@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: clinic-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: VAPI_PRIVATE_KEY
+        sync: false

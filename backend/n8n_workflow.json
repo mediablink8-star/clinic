@@ -1,0 +1,112 @@
+{
+    "name": "ClinicFlow SaaS Automation",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "clinic-events",
+                "options": {}
+            },
+            "name": "Clinic Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json.body.event }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "appointment.created",
+                            "output": 0
+                        },
+                        {
+                            "value2": "notification.send",
+                            "output": 1
+                        }
+                    ]
+                }
+            },
+            "name": "Event Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "calendar": {
+                    "__rl": true,
+                    "mode": "list",
+                    "value": "primary"
+                },
+                "start": "={{ $json.body.data.date }}T{{ $json.body.data.time }}:00",
+                "end": "={{ $json.body.data.date }}T{{ $json.body.data.time }}:00",
+                "summary": "={{ $json.body.data.patientName }} - {{ $json.body.data.reason }}",
+                "description": "Clinic: {{ $json.body.data.clinicName }}\nPriority: {{ $json.body.data.priority }}",
+                "additionalFields": {
+                    "color": "6"
+                }
+            },
+            "name": "Google Calendar",
+            "type": "n8n-nodes-base.googleCalendar",
+            "typeVersion": 1,
+            "position": [
+                700,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "from": "ClinicFlow",
+                "to": "={{ $json.body.data.clinicPhone }}",
+                "message": "={{ $json.body.data.message }}"
+            },
+            "name": "Send SMS (Twilio)",
+            "type": "n8n-nodes-base.twilio",
+            "typeVersion": 1,
+            "position": [
+                700,
+                450
+            ]
+        }
+    ],
+    "connections": {
+        "Clinic Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Event Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Event Switch": {
+            "main": [
+                [
+                    {
+                        "node": "Google Calendar",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Send SMS (Twilio)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

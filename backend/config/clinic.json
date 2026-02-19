@@ -1,0 +1,42 @@
+{
+  "name": "ClinicFlow Dental Care",
+  "location": "Αθήνα, Κέντρο",
+  "phone": "210 1234567",
+  "email": "info@clinicflow.com",
+  "workingHours": {
+    "weekdays": "09:00 - 20:00",
+    "saturday": "10:00 - 14:00",
+    "sunday": "Closed"
+  },
+  "services": [
+    {
+      "name": "Καθαρισμός",
+      "price": "50€",
+      "duration": "45 min"
+    },
+    {
+      "name": "Λεύκανση",
+      "price": "200€",
+      "duration": "60 min"
+    },
+    {
+      "name": "Σφράγισμα",
+      "price": "60€ - 80€",
+      "duration": "45 min"
+    },
+    {
+      "name": "Απονεύρωση",
+      "price": "150€",
+      "duration": "90 min"
+    },
+    {
+      "name": "Εξαγωγή",
+      "price": "40€ - 70€",
+      "duration": "30 min"
+    }
+  ],
+  "policies": {
+    "cancellation": "Παρακαλώ ενημερώστε μας τουλάχιστον 24 ώρες πριν την ακύρωση του ραντεβού.",
+    "emergency": "Για επείγοντα περιστατικά εκτός ωραρίου, καλέστε στο κινητό της κλινικής."
+  }
+}
