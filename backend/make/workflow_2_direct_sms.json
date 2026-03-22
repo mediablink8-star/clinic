@@ -1,0 +1,152 @@
+{
+  "name": "Workflow 2 — Direct SMS Delivery",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "POST /webhook/send-sms",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 }
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "parameters": {},
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "builtin:Sleep",
+              "version": 1,
+              "parameters": { "delay": 1 },
+              "filter": {
+                "name": "Validate Payload",
+                "conditions": [
+                  [
+                    { "a": "{{1.body.phone}}", "b": "", "o": "text:notequal" },
+                    { "a": "{{1.body.message}}", "b": "", "o": "text:notequal" },
+                    { "a": "{{length(1.body.message)}}", "b": "500", "o": "number:less" }
+                  ]
+                ]
+              },
+              "mapper": {},
+              "metadata": {
+                "designer": { "x": 600, "y": -150 },
+                "label": "Rate Limit Delay (1s)"
+              }
+            },
+            {
+              "id": 4,
+              "module": "twilio:ActionCreateMessage",
+              "version": 1,
+              "parameters": {
+                "accountSid": "{{env.TWILIO_ACCOUNT_SID}}",
+                "authToken": "{{env.TWILIO_AUTH_TOKEN}}"
+              },
+              "mapper": {
+                "to": "{{1.body.phone}}",
+                "from": "{{env.TWILIO_PHONE_NUMBER}}",
+                "body": "{{1.body.message}}"
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": -150 },
+                "label": "Send SMS via Twilio"
+              }
+            },
+            {
+              "id": 5,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "SMS Delivered",
+                "conditions": [
+                  [{ "a": "{{4.sid}}", "b": "", "o": "text:notequal" }]
+                ]
+              },
+              "mapper": {
+                "status": "200",
+                "body": "{\"status\":\"delivered\"}",
+                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": -150 }
+              }
+            },
+            {
+              "id": 6,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "SMS Failed",
+                "conditions": [
+                  [{ "a": "{{4.sid}}", "b": "", "o": "text:equal" }]
+                ]
+              },
+              "mapper": {
+                "status": "502",
+                "body": "{\"status\":\"failed\"}",
+                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": 0 }
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Invalid Payload",
+                "conditions": [
+                  [{ "a": "true", "b": "true", "o": "boolean:equal" }]
+                ]
+              },
+              "mapper": {
+                "status": "400",
+                "body": "{\"status\":\"error\",\"reason\":\"invalid payload or message too long\"}",
+                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 150 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": { "orphans": [] }
+  }
+}

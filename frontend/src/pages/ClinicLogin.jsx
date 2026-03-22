@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { Building2, Plus, ArrowRight } from 'lucide-react';
+import { Building2, Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -9,6 +9,7 @@ const ClinicLogin = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mfaData, setMfaData] = useState({ required: false, token: '', code: '' });
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -16,9 +17,30 @@ const ClinicLogin = ({ onLogin }) => {
     setError('');
     try {
       const resp = await axios.post(`${API_BASE}/auth/login`, credentials);
-      onLogin(resp.data); // This will pass { token, clinic }
+      if (resp.data.mfaRequired) {
+        setMfaData({ required: true, token: resp.data.mfaToken, code: '' });
+      } else {
+        onLogin(resp.data);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Σφάλμα σύνδεσης. Ελέγξτε τα στοιχεία σας.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const resp = await axios.post(`${API_BASE}/auth/mfa/login-verify`, {
+        mfaToken: mfaData.token,
+        code: mfaData.code
+      });
+      onLogin(resp.data);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Ο κωδικός MFA είναι λανθασμένος.');
     } finally {
       setLoading(false);
     }
@@ -28,150 +50,195 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await axios.post(`${API_BASE}/auth/google`, {
-        idToken: credentialResponse.credential
-      });
+      const resp = await axios.post(`${API_BASE}/auth/google`, { idToken: credentialResponse.credential });
       onLogin(resp.data);
-    } catch (err) {
+    } catch {
       setError('Η σύνδεση μέσω Google απέτυχε.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div className="layout center">Φόρτωση...</div>;
-
   return (
-    <div className="login-container">
-      <div className="login-card animate-fade">
-        <div className="logo center" style={{ marginBottom: '2rem' }}>
-          <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '12px', marginRight: '10px' }}>
-            <Building2 color="white" size={32} />
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background glows */}
+      <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+      {/* Left panel — branding */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '4rem',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '3rem' }}>
+          <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', display: 'flex' }}>
+            <Building2 color="white" size={28} />
           </div>
-          <h1 style={{ fontSize: '1.75rem', color: 'var(--text)' }}>ClinicFlow SaaS</h1>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-0.5px' }}>ClinicFlow</span>
         </div>
 
-        <form onSubmit={handleLoginSubmit}>
-          <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--text-light)' }}>
-            Είσοδος στο ιατρείο σας
-          </p>
+        <h2 style={{ fontSize: '3rem', fontWeight: '900', color: 'white', letterSpacing: '-2px', lineHeight: 1.1, marginBottom: '1.5rem' }}>
+          Αυτοματισμός<br />
+          <span style={{ color: 'var(--primary)' }}>ιατρείου</span><br />
+          επόμενης γενιάς.
+        </h2>
+        <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, maxWidth: '380px' }}>
+          Διαχείριση ραντεβού, ανάκτηση χαμένων κλήσεων και αυτόματη επικοινωνία με ασθενείς — όλα σε ένα.
+        </p>
 
-          {error && (
-            <div style={{ background: '#fee2e2', color: '#ef4444', padding: '10px', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              {error}
+        <div style={{ display: 'flex', gap: '2rem', marginTop: '3rem' }}>
+          {[['SMS', 'Αυτόματα'], ['AI', 'Ανάλυση'], ['24/7', 'Ανάκτηση']].map(([val, lbl]) => (
+            <div key={val}>
+              <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-1px' }}>{val}</p>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lbl}</p>
             </div>
-          )}
-
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              required
-              type="email"
-              value={credentials.email}
-              onChange={e => setCredentials({ ...credentials, email: e.target.value })}
-              placeholder="π.χ. dr@clinic.gr"
-            />
-          </div>
-          <div className="form-group">
-            <label>Κωδικός Πρόσβασης</label>
-            <input
-              required
-              type="password"
-              value={credentials.password}
-              onChange={e => setCredentials({ ...credentials, password: e.target.value })}
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary full-width" disabled={loading}>
-            {loading ? 'Σύνδεση...' : 'Είσοδος'}
-          </button>
-
-          <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-light)' }}>
-            <p>Default credentials: password123</p>
-          </div>
-
-          <div className="divider">
-            <span>Ή συνδεθείτε με</span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Η σύνδεση μέσω Google απέτυχε.')}
-              useOneTap
-              theme="outline"
-              shape="pill"
-            />
-          </div>
-        </form>
+          ))}
+        </div>
       </div>
 
-      <style>{`
-        .login-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        }
-        .login-card {
-          background: white;
-          padding: 2.5rem;
-          borderRadius: 24px;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          width: 100%;
-          max-width: 420px;
-        }
-        .clinic-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-        .clinic-btn {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-          width: 100%;
-        }
-        .clinic-btn:hover {
-          border-color: var(--primary);
-          background: var(--bg);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .icon-box {
-          background: var(--bg);
-          padding: 8px;
-          border-radius: 10px;
-        }
-        .divider {
-          display: flex;
-          align-items: center;
-          text-align: center;
-          margin: 1.5rem 0;
-          color: var(--text-light);
-          font-size: 0.875rem;
-        }
-        .divider::before, .divider::after {
-          content: '';
-          flex: 1;
-          border-bottom: 1px solid var(--border);
-        }
-        .divider span {
-          padding: 0 10px;
-        }
-        .full-width { width: 100%; }
-        .center { display: flex; align-items: center; justify-content: center; }
-        .btn-group { display: flex; gap: 1rem; margin-top: 1.5rem; }
-      `}</style>
+      {/* Right panel — form */}
+      <div style={{
+        width: '480px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <div style={{
+          width: '100%',
+          background: 'rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderRadius: '28px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          padding: '2.5rem',
+          boxShadow: '0 32px 64px rgba(0,0,0,0.4)'
+        }}>
+          {mfaData.required ? (
+            <>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                  <Shield size={28} color="var(--primary)" />
+                </div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', marginBottom: '6px' }}>Επαλήθευση</h2>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>Εισάγετε τον κωδικό από το Authenticator app.</p>
+              </div>
+
+              {error && <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '10px 14px', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.85rem', border: '1px solid rgba(239,68,68,0.2)' }}>{error}</div>}
+
+              <form onSubmit={handleMfaSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <input
+                  autoFocus required type="text" maxLength="6"
+                  value={mfaData.code}
+                  onChange={e => setMfaData({ ...mfaData, code: e.target.value })}
+                  placeholder="000000"
+                  style={{ textAlign: 'center', fontSize: '2rem', letterSpacing: '0.5rem', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'white', outline: 'none' }}
+                />
+                <button type="submit" disabled={loading} style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '800', fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                  {loading ? 'Επαλήθευση...' : 'Επαλήθευση'}
+                </button>
+                <button type="button" onClick={() => setMfaData({ required: false, token: '', code: '' })} style={{ padding: '12px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  Ακύρωση
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', marginBottom: '6px' }}>Καλώς ήρθατε</h2>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)' }}>Συνδεθείτε στο ιατρείο σας</p>
+              </div>
+
+              {error && <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '10px 14px', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.85rem', border: '1px solid rgba(239,68,68,0.2)' }}>{error}</div>}
+
+              <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Email */}
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                    <input
+                      required type="email"
+                      value={credentials.email}
+                      onChange={e => setCredentials({ ...credentials, email: e.target.value })}
+                      placeholder="dr@clinic.gr"
+                      style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Κωδικός</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                    <input
+                      required type="password"
+                      value={credentials.password}
+                      onChange={e => setCredentials({ ...credentials, password: e.target.value })}
+                      placeholder="••••••••"
+                      style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} style={{
+                  marginTop: '0.5rem',
+                  padding: '14px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
+                  color: 'white',
+                  fontWeight: '800',
+                  fontSize: '0.95rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 8px 24px rgba(99,102,241,0.35)'
+                }}>
+                  {loading ? 'Σύνδεση...' : <><span>Είσοδος</span><ArrowRight size={18} /></>}
+                </button>
+              </form>
+
+              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginTop: '1rem' }}>
+                admin@clinicflow.com / password123
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '1.5rem 0' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ή</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Η σύνδεση μέσω Google απέτυχε.')}
+                  useOneTap
+                  theme="filled_black"
+                  shape="pill"
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

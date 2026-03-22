@@ -1,8 +1,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+const { decrypt } = require('./encryptionService');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+function getModel(apiKey) {
+    const genAI = new GoogleGenerativeAI(apiKey || process.env.GEMINI_API_KEY);
+    return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+}
 /**
  * Analyzes Greek feedback text and returns POSITIVE, NEUTRAL, or NEGATIVE.
  * @param {string} text - The feedback text
@@ -20,6 +22,10 @@ async function analyzeSentiment(text, clinic) {
       
       Return ONLY the word (POSITIVE, NEUTRAL, or NEGATIVE).
     `;
+
+        const clinicKeys = JSON.parse(clinic.apiKeys || '{}');
+        const decryptedApiKey = clinicKeys.gemini ? decrypt(clinicKeys.gemini) : null;
+        const model = getModel(decryptedApiKey);
 
         const result = await model.generateContent(prompt);
         const response = result.response.text().trim().toUpperCase();

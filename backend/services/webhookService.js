@@ -5,12 +5,13 @@
 
 const crypto = require('crypto');
 
-async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret) {
+async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
     if (!webhookUrl) {
         console.log(`[Webhook] Skipped: No webhookUrl configured for this clinic.`);
-        return false;
+        return { success: false, reason: 'No URL' };
     }
 
+    const startTime = Date.now();
     try {
         console.log(`[Webhook] Triggering event: ${eventType} to ${webhookUrl}`);
 
@@ -20,7 +21,6 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret) {
             data: payload
         });
 
-        // Generate HMAC signature if secret is provided
         const headers = { 'Content-Type': 'application/json' };
         if (webhookSecret) {
             const signature = crypto
@@ -30,19 +30,32 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret) {
             headers['X-Webhook-Signature'] = signature;
         }
 
-        // Fire and forget (don't block the main thread)
-        fetch(webhookUrl, {
+        const fetchPromise = fetch(webhookUrl, {
             method: 'POST',
             headers,
             body
-        }).catch(err => {
-            console.error(`[Webhook] Failed to send event ${eventType}:`, err.message);
         });
 
-        return true;
+        if (options.awaitResponse) {
+            const response = await fetchPromise;
+            const duration = Date.now() - startTime;
+            return {
+                success: response.ok,
+                status: response.status,
+                duration,
+                message: response.ok ? 'Webhook delivered' : `HTTP ${response.status}`
+            };
+        } else {
+            // Original fire-and-forget behavior
+            fetchPromise.catch(err => {
+                console.error(`[Webhook] Failed to send event ${eventType}:`, err.message);
+            });
+            return { success: true, duration: 0 };
+        }
     } catch (error) {
+        const duration = Date.now() - startTime;
         console.error('[Webhook] Error:', error.message);
-        return false;
+        return { success: false, error: error.message, duration };
     }
 }
 

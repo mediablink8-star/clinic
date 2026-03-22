@@ -1,35 +1,69 @@
 const express = require('express');
 const router = express.Router();
-const { processVoiceIntent } = require('../services/voiceProcessor');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 /**
- * @route POST /api/voice/webhook
- * @desc Webhook for Voice AI providers (Vapi, Twilio, etc.)
+ * @route POST /api/voice/twilio
+ * @desc Twilio AI Voice Webhook 
  */
-router.post('/webhook', async (req, res) => {
-    if (!req.body) {
-        return res.status(400).json({ error: 'Request body is missing' });
+router.post('/twilio', async (req, res) => {
+    const twilio = require('twilio');
+    const twiml = new twilio.twiml.VoiceResponse();
+
+    const { CallSid, From, To, SpeechResult, clinicId } = req.body;
+    const targetClinicId = clinicId || req.query.clinicId;
+
+    // For demo purposes, if no clinicId in query, fallback to the first clinic
+    let clinic = targetClinicId 
+        ? await prisma.clinic.findUnique({ where: { id: targetClinicId } })
+        : await prisma.clinic.findFirst();
+
+    if (!clinic) {
+        twiml.say({ language: 'el-GR' }, 'Παρουσιάστηκε σφάλμα. Το ιατρείο δεν βρέθηκε.');
+        return res.type('text/xml').send(twiml.toString());
     }
-    const { transcript, callerId } = req.body;
 
-    if (!transcript) {
-        return res.status(400).json({ error: 'Transcript missing' });
-    }
-
-    try {
-        const result = await processVoiceIntent(transcript);
-
-        // Log the intent (In a real scenario, we'd trigger DB booking or handoff to human)
-        console.log(`[VOICE] Intent from ${callerId || 'Unknown'}: ${result.intent}`);
-
-        res.json({
-            reply: result.suggestedResponse,
-            action: result.intent,
-            data: result
+    if (!SpeechResult) {
+        // Initial Greeting
+        const gather = twiml.gather({
+            input: 'speech',
+            language: 'el-GR',
+            speechTimeout: 'auto',
+            action: `/api/voice/twilio?clinicId=${clinic.id}`
         });
-    } catch (error) {
-        res.status(500).json({ error: 'Processing failed' });
+        gather.say({ language: 'el-GR' }, `Γεια σας! Καλέσατε το ιατρείο ${clinic.name}. Πώς μπορώ να σας εξυπηρετήσω;`);
+    } else {
+        // Process speech
+        try {
+            const result = await processVoiceIntent(SpeechResult, clinic);
+            console.log(`[TWILIO VOICE] Intent: ${result.intent} from ${From}`);
+            
+            twiml.say({ language: 'el-GR' }, result.suggestedResponse);
+            
+            // If they need to reply further
+            if (result.intent !== 'CANCEL' && result.intent !== 'BOOK') {
+                 const gather = twiml.gather({
+                    input: 'speech',
+                    language: 'el-GR',
+                    speechTimeout: 'auto',
+                    action: `/api/voice/twilio?clinicId=${clinic.id}`
+                });
+                // Small prompt to continue the conversation
+                gather.say({ language: 'el-GR' }, 'Θέλετε κάτι άλλο;');
+            } else {
+                // Example of ending or transferring call
+                // twiml.say({ language: 'el-GR' }, 'Σας ευχαριστούμε.');
+            }
+        } catch (err) {
+            console.error(err);
+            twiml.say({ language: 'el-GR' }, 'Συγγνώμη, δεν σας κατάλαβα. Παρακαλώ επαναλάβετε.');
+            twiml.redirect(`/api/voice/twilio?clinicId=${clinic.id}`);
+        }
     }
+
+    res.type('text/xml').send(twiml.toString());
 });
+
 
 module.exports = router;

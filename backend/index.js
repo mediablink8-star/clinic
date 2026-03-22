@@ -1,45 +1,72 @@
-const express = require('express');
-const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
-const { triggerWebhook } = require('./services/webhookService');
+const Sentry = require("@sentry/node");
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
 require('dotenv').config();
 
-const { startNotificationWorker, startFollowUpWorker } = require('./services/notificationWorker');
+/*
+Sentry.init({
+    dsn: process.env.SENTRY_BACKEND_DSN || "https://placeholder@sentry.io/123",
+    integrations: [
+        nodeProfilingIntegration(),
+    ],
+    tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
+});
+*/
 
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const cors = require('cors');
+
+// Webhook rate limiter
+const webhookLimiter = rateLimit({ windowMs: 60000, max: 30, message: { error: 'Too many webhook requests' } });
+const cookieParser = require('cookie-parser');
+const { triggerWebhook } = require('./services/webhookService');
+const { logAction } = require('./services/auditService');
+const { encrypt, decrypt } = require('./services/encryptionService');
+const { reminderWorker, connection } = require('./services/queueService');
+
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 4000;
 
-app.use(cors());
+// MUST BE FIRST
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// Start background workers
-startNotificationWorker();
-startFollowUpWorker();
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', language: 'greek-clinic-ready (SaaS Mode)' });
+app.use(express.static('public'));
+
+/*
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 1000, // Increased for development/testing
+    message: { error: 'Too many requests, please try again later.' }
 });
+app.use(limiter);
+*/
 
-// --- ADMIN / PUBLIC ROUTES ---
-app.get('/api/admin/clinics-list', async (req, res) => {
-    try {
-        const clinics = await prisma.clinic.findMany({
-            select: { id: true, name: true, location: true }
-        });
-        res.json(clinics);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+// Debug Logging After Parsing
+app.use((req, res, next) => {
+    if (req.url === '/api/auth/login') {
+        console.log(`[DEBUG] Login Attempt - Content-Type: ${req.headers['content-type']}`);
+        console.log(`[DEBUG] Body:`, JSON.stringify(req.body));
     }
+    next();
 });
 
 const { verifyToken } = require('./services/authService');
-const { validate, patientSchema, appointmentSchema, clinicUpdateSchema } = require('./services/validationService');
+const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('./services/validationService');
 
 // --- SAAS MIDDLEWARE ---
-// Extracts clinicId from Bearer Token
-const requireClinic = async (req, res, next) => {
+
+const requireAuth = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Missing or malformed Authorization header' });
@@ -48,208 +75,662 @@ const requireClinic = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
-    if (!decoded || !decoded.clinicId) {
+    if (!decoded || !decoded.userId) {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const clinicId = decoded.clinicId;
+    req.user = decoded; // { userId, clinicId, role }
+    req.clinicId = decoded.clinicId;
 
-    // Validate clinic exists
-    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
-    if (!clinic) {
-        return res.status(404).json({ error: 'Clinic not found' });
-    }
+    // Optional: Hydrate clinic info if needed
+    const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
+    if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+    req.clinic = clinic;
 
-    req.clinic = clinic; // Attach full clinic object for AI context
-    req.clinicId = clinicId;
     next();
 };
 
+const requireRole = (role) => {
+    return (req, res, next) => {
+        if (!req.user || req.user.role !== role) {
+            return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+        }
+        next();
+    };
+};
+
+// Admin middleware for global control
+const requireAdmin = [requireAuth, requireRole('ADMIN')];
+
 // --- ROUTES ---
+
+// Public / Health
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Auth
 const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 
-// Register AI Routes
-const analysisRouter = require('./routes/analysis');
-app.use('/api/analysis', requireClinic, analysisRouter);
+// Admin (Protected)
+app.get('/api/admin/usage', requireAdmin, async (req, res) => {
+    try {
+        const usage = await prisma.clinic.findMany({
+            select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, dailyUsedCount: true, dailyMessageCap: true, creditResetDate: true }
+        });
+        res.json(usage);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
+app.get('/api/admin/logs', requireAdmin, async (req, res) => {
+    try {
+        const logs = await prisma.messageLog.findMany({
+            take: 50, orderBy: { timestamp: 'desc' }, include: { clinic: { select: { name: true } } }
+        });
+        res.json(logs);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/add-credits', requireAdmin, async (req, res) => {
+    try {
+        const { clinicId, amount } = req.body;
+        const clinic = await prisma.clinic.update({ where: { id: clinicId }, data: { messageCredits: { increment: parseInt(amount) } } });
+        res.json({ success: true, newBalance: clinic.messageCredits });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Clinic Scoped Routes
+const analysisRouter = require('./routes/analysis');
+app.use('/api/analysis', requireAuth, analysisRouter);
+
+const recoveryRouter = require('./routes/recovery');
+app.use('/api/recovery', requireAuth, recoveryRouter);
+
+const testRouter = require('./routes/test');
+app.use('/api/test', requireAdmin, testRouter);
+
+// Integrations (Protected)
+const integrationsRouter = require('./routes/integrations');
+app.use('/api/integrations', requireAuth, integrationsRouter);
+
+// Unauthenticated Webhooks (Self-protected via HMAC inside)
 const voiceRouter = require('./routes/voice');
 app.use('/api/voice', voiceRouter);
 
-const vapiRouter = require('./routes/vapi');
-app.use('/api/vapi', vapiRouter);
+// --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
 
-const testRouter = require('./routes/test');
-app.use('/api/test', testRouter);
-
-// --- PATIENT ROUTES (Clinic Scoped) ---
-
-// Get All Patients for this Clinic
-app.get('/api/patients', requireClinic, async (req, res) => {
-    try {
-        const patients = await prisma.patient.findMany({
-            where: { clinicId: req.clinicId },
-            include: { appointments: true }
-        });
-        res.json(patients);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+// --- TEST / DEMO ROUTES ---
+app.post('/api/webhook/missed-call', webhookLimiter, requireAuth, async (req, res) => {
+    // Fix 3: Webhook secret validation
+    const secret = req.headers['x-webhook-secret'];
+    if (process.env.WEBHOOK_SECRET && secret !== process.env.WEBHOOK_SECRET) {
+        return res.status(401).json({ error: 'Invalid webhook secret' });
     }
-});
-
-// Get Patient History (Confirm patient belongs to clinic)
-app.get('/api/patients/:id', requireClinic, async (req, res) => {
     try {
-        const patient = await prisma.patient.findFirst({
-            where: {
-                id: req.params.id,
-                clinicId: req.clinicId
-            },
-            include: {
-                appointments: { orderBy: { startTime: 'desc' } },
-                // Feedbacks are linked via appointment, so effectively scoped
-            }
-        });
-        if (!patient) return res.status(404).json({ error: 'Patient not found' });
-        res.json(patient);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Create Patient
-app.post('/api/patients', requireClinic, validate(patientSchema), async (req, res) => {
-    try {
-        const { name, phone, email } = req.body;
-        const patient = await prisma.patient.create({
+        const { phone = '+30690000000' } = req.body;
+        const missedCall = await prisma.missedCall.create({
             data: {
                 clinicId: req.clinicId,
-                name, phone, email
+                fromNumber: phone,
+                status: 'RECOVERING',
+                estimatedRevenue: 80
             }
         });
-        res.json(patient);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
+
+        // Trigger webhook if configured
+        const clinic = req.clinic;
+        if (clinic.webhookUrl) {
+            triggerWebhook('missed_call.detected', {
+                phone,
+                missedCallId: missedCall.id,
+                clinicId: req.clinicId
+            }, clinic.webhookUrl, clinic.webhookSecret).catch(() => {});
+        }
+
+        res.json({ success: true, missedCallId: missedCall.id });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
-const { classifyAppointment } = require('./services/aiTriage');
+// --- PUBLIC ROUTES (No Auth) ---
 
-// Book Appointment
-app.post('/api/appointments', requireClinic, validate(appointmentSchema), async (req, res) => {
+app.get('/api/public/clinic/:id', async (req, res) => {
     try {
-        const { patientId, startTime, endTime, reason } = req.body;
+        const clinic = await prisma.clinic.findUnique({
+            where: { id: req.params.id },
+            select: { name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
+        });
+        if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+        res.json({
+            ...clinic,
+            workingHours: JSON.parse(clinic.workingHours),
+            services: JSON.parse(clinic.services),
+            policies: JSON.parse(clinic.policies)
+        });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-        // Call AI Triage with Clinic Context
-        const triage = await classifyAppointment(reason, req.clinic);
+app.post('/api/public/book', async (req, res) => {
+    try {
+        const { clinicId, name, phone, email, reason, startTime } = req.body;
 
+        // 1. Find or create patient
+        let patient = await prisma.patient.findFirst({
+            where: { clinicId, phone }
+        });
+
+        if (!patient) {
+            patient = await prisma.patient.create({
+                data: { clinicId, name, phone, email }
+            });
+        }
+
+        // 2. Create appointment
+        const start = new Date(startTime);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+        const appointment = await prisma.appointment.create({
+            data: {
+                clinicId,
+                patientId: patient.id,
+                startTime: start,
+                endTime: end,
+                reason,
+                status: 'PENDING'
+            }
+        });
+
+        // 3. Trigger Webhook for automation
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        if (clinic && clinic.webhookUrl) {
+            // Look up patient phone for the webhook payload
+            const patient = await prisma.patient.findFirst({ where: { name, clinicId } });
+            triggerWebhook(
+                'appointment.created',
+                {
+                    appointmentId: appointment.id,
+                    patientName: name,
+                    phone: patient?.phone || '',
+                    date: start.toISOString().split('T')[0],
+                    time: start.toISOString().split('T')[1].slice(0, 5),
+                    reason
+                },
+                clinic.webhookUrl,
+                clinic.webhookSecret
+            ).catch(err => console.error('Webhook trigger failed:', err.message));
+        }
+
+        res.json({ success: true, appointmentId: appointment.id });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Standard Clinic API
+app.get('/api/patients', requireAuth, async (req, res) => {
+    const patients = await prisma.patient.findMany({ where: { clinicId: req.clinicId }, include: { appointments: true } });
+    res.json(patients);
+});
+
+app.get('/api/appointments', requireAuth, async (req, res) => {
+    const appointments = await prisma.appointment.findMany({ where: { clinicId: req.clinicId }, include: { patient: true }, orderBy: { startTime: 'asc' } });
+    res.json(appointments);
+});
+
+app.get('/api/clinic', requireAuth, async (req, res) => {
+    const clinic = { ...req.clinic };
+    const apiKeys = JSON.parse(clinic.apiKeys || '{}');
+
+    // Mask keys
+    const maskedKeys = {};
+    if (apiKeys) {
+        Object.keys(apiKeys).forEach(key => {
+            try {
+                const decrypted = decrypt(apiKeys[key]);
+                if (decrypted) {
+                    maskedKeys[key] = `********${decrypted.slice(-4)}`;
+                } else {
+                    maskedKeys[key] = '********';
+                }
+            } catch (e) {
+                maskedKeys[key] = '********';
+            }
+        });
+    }
+
+    // Mask webhook secret
+    let maskedWebhookSecret = clinic.webhookSecret;
+    if (clinic.webhookSecret) {
+        try {
+            const decSecret = decrypt(clinic.webhookSecret);
+            maskedWebhookSecret = decSecret ? `********${decSecret.slice(-4)}` : '********';
+        } catch (e) {
+            maskedWebhookSecret = '********';
+        }
+    }
+
+    res.json({
+        ...clinic,
+        workingHours: JSON.parse(clinic.workingHours),
+        services: JSON.parse(clinic.services),
+        policies: JSON.parse(clinic.policies),
+        webhookSecret: maskedWebhookSecret,
+        aiConfig: clinic.aiConfig ? JSON.parse(clinic.aiConfig) : null,
+        apiKeys: maskedKeys
+    });
+});
+
+app.get('/api/clinic/usage', requireAuth, async (req, res) => {
+    try {
+        const clinic = await prisma.clinic.findUnique({
+            where: { id: req.clinicId },
+            select: {
+                messageCredits: true,
+                monthlyCreditLimit: true,
+                dailyUsedCount: true,
+                dailyMessageCap: true
+            }
+        });
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const aiRequestsToday = await prisma.auditLog.count({
+            where: {
+                clinicId: req.clinicId,
+                action: 'AI_REQUEST',
+                createdAt: {
+                    gte: todayStart
+                }
+            }
+        });
+
+        res.json({
+            creditsRemaining: clinic.messageCredits,
+            monthlyLimit: clinic.monthlyCreditLimit,
+            dailyUsed: clinic.dailyUsedCount,
+            dailyLimit: clinic.dailyMessageCap,
+            aiRequestsToday
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'READ_CLINIC_USAGE',
+            entity: 'CLINIC',
+            entityId: req.clinicId,
+            ipAddress: req.ip
+        });
+    } catch (e) {
+        console.error('Fetch usage failed:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/system/config-status', requireAuth, async (req, res) => {
+    try {
+        const clinic = req.clinic;
+        const apiKeys = JSON.parse(clinic.apiKeys || '{}');
+        const warnings = [];
+
+        if (!apiKeys.gemini) warnings.push({ key: 'AI', message: 'Το Gemini API key δεν έχει ρυθμιστεί. Η ανάλυση AI δεν θα λειτουργεί.' });
+        if (!apiKeys.twilioSid || !apiKeys.twilioToken) warnings.push({ key: 'SMS', message: 'Τα Twilio credentials δεν έχουν ρυθμιστεί. Τα SMS δεν θα αποστέλλονται.' });
+        if (!clinic.webhookUrl) warnings.push({ key: 'webhook', message: 'Δεν έχει ρυθμιστεί webhook URL. Η αυτοματοποίηση δεν θα λειτουργεί.' });
+        if (!process.env.WEBHOOK_SECRET) warnings.push({ key: 'security', message: 'Δεν έχει οριστεί WEBHOOK_SECRET. Το webhook endpoint είναι ανοιχτό.' });
+
+        res.json({
+            AI: !!apiKeys.gemini,
+            SMS: !!(apiKeys.twilioSid && apiKeys.twilioToken),
+            recovery: !!clinic.webhookUrl,
+            webhook: !!process.env.WEBHOOK_SECRET,
+            warnings
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/system/status', requireAuth, async (req, res) => {
+    try {
+        const clinic = req.clinic;
+        const apiKeys = JSON.parse(clinic.apiKeys || '{}');
+
+        res.json({
+            redis: connection ? connection.status === 'ready' : false,
+            worker: reminderWorker ? reminderWorker.isRunning() : false,
+            aiConfigured: !!apiKeys.gemini,
+            twilioConfigured: !!(apiKeys.twilioSid && apiKeys.twilioToken),
+            voiceConfigured: !!apiKeys.telephony,
+            webhookConfigured: !!clinic.webhookUrl
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'READ_SYSTEM_STATUS',
+            entity: 'SYSTEM',
+            ipAddress: req.ip
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/clinic', requireAdmin, validate(clinicUpdateSchema), async (req, res) => {
+    try {
+        const updateData = { ...req.body };
+
+        // Stringify JSON fields if they are objects
+        if (updateData.workingHours && typeof updateData.workingHours === 'object') {
+            updateData.workingHours = JSON.stringify(updateData.workingHours);
+        }
+        if (updateData.services && typeof updateData.services === 'object') {
+            updateData.services = JSON.stringify(updateData.services);
+        }
+        if (updateData.policies && typeof updateData.policies === 'object') {
+            updateData.policies = JSON.stringify(updateData.policies);
+        }
+
+        // Handle API Keys Encryption
+        if (updateData.apiKeys && typeof updateData.apiKeys === 'object') {
+            const currentKeys = JSON.parse(req.clinic.apiKeys || '{}');
+            const newKeys = { ...currentKeys };
+
+            Object.keys(updateData.apiKeys).forEach(key => {
+                const value = updateData.apiKeys[key];
+                if (value && value !== '********') {
+                    newKeys[key] = encrypt(value);
+                }
+            });
+            updateData.apiKeys = JSON.stringify(newKeys);
+        }
+
+        const updatedClinic = await prisma.clinic.update({
+            where: { id: req.clinicId },
+            data: updateData
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'UPDATE_CLINIC_SETTINGS',
+            entity: 'CLINIC',
+            entityId: req.clinicId,
+            details: req.body,
+            ipAddress: req.ip
+        });
+
+        const responseClinic = { ...updatedClinic };
+        const finalKeys = JSON.parse(responseClinic.apiKeys || '{}');
+        const maskedFinalKeys = {};
+        Object.keys(finalKeys).forEach(key => {
+            maskedFinalKeys[key] = '********';
+        });
+
+        res.json({
+            ...responseClinic,
+            workingHours: JSON.parse(responseClinic.workingHours),
+            services: JSON.parse(responseClinic.services),
+            policies: JSON.parse(responseClinic.policies),
+            aiConfig: responseClinic.aiConfig ? JSON.parse(responseClinic.aiConfig) : null,
+            apiKeys: maskedFinalKeys
+        });
+    } catch (e) {
+        console.error('Update clinic failed:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.put('/api/clinic/settings', requireAdmin, validate(clinicInfoSchema), async (req, res) => {
+    try {
+        const { name, phone, email, location, timezone } = req.body;
+        const updatedClinic = await prisma.clinic.update({
+            where: { id: req.clinicId },
+            data: { name, phone, email, location, timezone }
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'UPDATE_CLINIC_INFO',
+            entity: 'CLINIC',
+            entityId: req.clinicId,
+            details: { name, phone, email, location, timezone },
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, clinic: updatedClinic });
+    } catch (e) {
+        console.error('Update clinic info failed:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.put('/api/clinic/ai-config', requireAdmin, validate(aiConfigSchema), async (req, res) => {
+    try {
+        const aiConfig = req.body;
+        const updatedClinic = await prisma.clinic.update({
+            where: { id: req.clinicId },
+            data: { aiConfig: JSON.stringify(aiConfig) }
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'UPDATE_AI_CONFIG',
+            entity: 'CLINIC',
+            entityId: req.clinicId,
+            details: aiConfig,
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, aiConfig: JSON.parse(updatedClinic.aiConfig) });
+    } catch (e) {
+        console.error('Update AI config failed:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/notifications', requireAuth, async (req, res) => {
+    const notifications = await prisma.notification.findMany({ where: { clinicId: req.clinicId }, orderBy: { createdAt: 'desc' }, take: 10, include: { appointment: { include: { patient: true } } } });
+    res.json(notifications);
+});
+
+// --- MUTATION ROUTES WITH AUDITING ---
+
+app.post('/api/appointments', requireAuth, async (req, res) => {
+    try {
+        const { patientId, reason, startTime, endTime, priority } = req.body;
         const appointment = await prisma.appointment.create({
             data: {
                 clinicId: req.clinicId,
                 patientId,
+                reason,
                 startTime: new Date(startTime),
                 endTime: new Date(endTime),
-                reason,
-                priority: triage.priority,
-                aiClassification: triage.greekSummary
+                priority: priority || 'NORMAL',
+                status: 'CONFIRMED'
             }
         });
 
-        // Schedule notification
-        await prisma.notification.create({
-            data: {
-                clinicId: req.clinicId,
-                appointmentId: appointment.id,
-                type: 'REMINDER',
-                scheduledFor: new Date(new Date(startTime).getTime() - 24 * 60 * 60 * 1000),
-                message: `Γεια σας! Ραντεβού στο ${req.clinic.name}: ${new Date(startTime).toLocaleTimeString('el-GR')}.`
-            }
-        });
-
-        // Trigger n8n Webhook for Calendar Sync
-        triggerWebhook('appointment.created', {
-            appointmentId: appointment.id,
+        await logAction({
             clinicId: req.clinicId,
-            clinicName: req.clinic.name,
-            patientId,
-            date: new Date(startTime).toISOString().split('T')[0],
-            time: new Date(startTime).toISOString().split('T')[1].substring(0, 5),
-            reason,
-            priority: triage.priority
-        }, req.clinic.webhookUrl);
+            userId: req.user.userId,
+            action: 'CREATE_APPOINTMENT',
+            entity: 'APPOINTMENT',
+            entityId: appointment.id,
+            details: { reason, startTime },
+            ipAddress: req.ip
+        });
 
         res.json(appointment);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Get Appointments
-app.get('/api/appointments', requireClinic, async (req, res) => {
+app.put('/api/appointments/:id/status', requireAuth, async (req, res) => {
     try {
-        const appointments = await prisma.appointment.findMany({
-            where: { clinicId: req.clinicId },
-            include: {
-                patient: true,
-                feedbacks: true
-            },
-            orderBy: { startTime: 'asc' }
+        const { status } = req.body;
+        const appointment = await prisma.appointment.update({
+            where: { id: req.params.id, clinicId: req.clinicId },
+            data: { status }
         });
-        res.json(appointments);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'UPDATE_APPOINTMENT_STATUS',
+            entity: 'APPOINTMENT',
+            entityId: req.params.id,
+            details: { status },
+            ipAddress: req.ip
+        });
+        res.json(appointment);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- CLINIC MANAGEMENT ---
-
-// Get Current Clinic Info (from DB, not JSON)
-app.get('/api/clinic', requireClinic, async (req, res) => {
-    // Return the clinic object attached by middleware
-    // Parse JSON fields
-    const data = {
-        ...req.clinic,
-        workingHours: JSON.parse(req.clinic.workingHours),
-        services: JSON.parse(req.clinic.services),
-        policies: JSON.parse(req.clinic.policies)
-    };
-    res.json(data);
-});
-
-// Get Recent Notifications (Activity Feed)
-app.get('/api/notifications', requireClinic, async (req, res) => {
+app.delete('/api/appointments/:id', requireAuth, async (req, res) => {
     try {
-        const notifications = await prisma.notification.findMany({
+        await prisma.appointment.delete({
+            where: { id: req.params.id, clinicId: req.clinicId }
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'DELETE_APPOINTMENT',
+            entity: 'APPOINTMENT',
+            entityId: req.params.id,
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/patients', requireAuth, async (req, res) => {
+    try {
+        const { name, phone, email } = req.body;
+        const patient = await prisma.patient.create({
+            data: { clinicId: req.clinicId, name, phone, email }
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'CREATE_PATIENT',
+            entity: 'PATIENT',
+            entityId: patient.id,
+            details: { name, phone },
+            ipAddress: req.ip
+        });
+
+        res.json(patient);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/audit-logs', requireAuth, requireRole('ADMIN'), async (req, res) => {
+    try {
+        const logs = await prisma.auditLog.findMany({
             where: { clinicId: req.clinicId },
             orderBy: { createdAt: 'desc' },
-            take: 10,
-            include: { appointment: { include: { patient: true } } }
+            take: 100
         });
-        res.json(notifications);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+        res.json(logs);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Update Clinic Info
-app.post('/api/clinic', requireClinic, validate(clinicUpdateSchema), async (req, res) => {
+app.post('/api/messages/send', requireAuth, async (req, res) => {
+    const { patientId, message, type = 'SMS' } = req.body;
+
+    if (!patientId || !message) {
+        return res.status(400).json({ error: 'patientId and message are required' });
+    }
+
     try {
-        const { name, phone, email, webhookUrl, workingHours, services, policies } = req.body;
+        const patient = await prisma.patient.findUnique({
+            where: { id: patientId, clinicId: req.clinicId }
+        });
+
+        if (!patient) return res.status(404).json({ error: 'Patient not found' });
+
+        const clinic = req.clinic;
+        if (clinic.messageCredits <= 0) {
+            return res.status(403).json({ error: 'Insufficient message credits' });
+        }
+
+        // 1. Trigger Webhook (only if configured)
+        let webhookResult = { success: true };
+        if (clinic.webhookUrl) {
+            webhookResult = await triggerWebhook(
+                'message.direct_send',
+                {
+                    patientId,
+                    patientName: patient.name,
+                    phone: patient.phone,
+                    message,
+                    type
+                },
+                clinic.webhookUrl,
+                clinic.webhookSecret,
+                { awaitResponse: true }
+            );
+        }
+
+        // 2. Update Credits & Log
+        // Determine real delivery status based on webhook result
+        let status = 'SIMULATED';
+        if (clinic.webhookUrl) {
+            status = webhookResult.success ? 'SENT' : 'FAILED';
+        }
+        
         await prisma.clinic.update({
             where: { id: req.clinicId },
             data: {
-                name, phone, email, webhookUrl,
-                workingHours: JSON.stringify(workingHours),
-                services: JSON.stringify(services),
-                policies: JSON.stringify(policies)
+                messageCredits: { decrement: 1 },
+                dailyUsedCount: { increment: 1 }
             }
         });
-        res.json({ message: 'Settings updated successfully' });
-    } catch (error) {
-        res.status(500).json({ error: 'Could not update clinic info' });
+
+        const log = await prisma.messageLog.create({
+            data: {
+                clinicId: req.clinicId,
+                type,
+                status,
+                cost: 1,
+                error: webhookResult.success ? null : (webhookResult.message || null)
+            }
+        });
+
+        await logAction({
+            clinicId: req.clinicId,
+            userId: req.user.userId,
+            action: 'SEND_DIRECT_MESSAGE',
+            entity: 'PATIENT',
+            entityId: patientId,
+            details: { message, status },
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, logId: log.id, deliveryStatus: status });
+    } catch (e) {
+        console.error('[Messaging] Error:', e);
+        res.status(500).json({ error: e.message });
     }
 });
 
+// Sentry error handler
+Sentry.setupExpressErrorHandler(app);
+
 app.listen(port, () => {
     console.log(`SaaS Backend running on port ${port}`);
+
+    // Fix 5: Startup environment validation
+    console.log('\n=== Startup Configuration Check ===');
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) console.warn('⚠  Twilio not configured — SMS will be simulated');
+    else console.log('✅ Twilio configured');
+    if (!process.env.GEMINI_API_KEY) console.warn('⚠  Gemini API key not set — AI features disabled');
+    else console.log('✅ Gemini configured');
+    if (!process.env.WEBHOOK_SECRET) console.warn('⚠  WEBHOOK_SECRET not set — webhook endpoint is unprotected');
+    else console.log('✅ Webhook secret configured');
+    console.log('===================================\n');
 });
+
+// Fix 1: Auto-start worker in same process
+require('./worker');

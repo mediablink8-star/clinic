@@ -10,10 +10,17 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env
+frontend/.env
 
 # Database
 prisma/dev.db
 prisma/dev.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/prisma/dev.db-wal
+backend/prisma/dev.db-shm
+backend/prisma/prisma/dev.db
 
 # Project payload files
 CODEBASE_FOR_REVIEW.md
@@ -24,9 +31,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Orchids internal
+.orchids/

@@ -1,0 +1,190 @@
+{
+  "name": "Workflow 1 — Appointment Confirmation SMS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-created",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_webhook_appt",
+      "name": "Receive Appointment Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.phone }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.patientName }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.date }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node_validate_appt",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"reason\": \"missing fields\" }",
+        "options": { "responseCode": 400 }
+      },
+      "id": "node_error_validation_appt",
+      "name": "Return Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "phone",
+              "value": "={{ $json.body.phone }}"
+            },
+            {
+              "name": "patientName",
+              "value": "={{ $json.body.patientName }}"
+            },
+            {
+              "name": "formattedMessage",
+              "value": "=Γεια σας {{ $json.body.patientName }}, Το ραντεβού σας επιβεβαιώθηκε για {{ $json.body.date }} στις {{ $json.body.time }}. Advanced Dental Care Athens"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_format_appt",
+      "name": "Format Confirmation Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $node[\"Format Confirmation Message\"].json.phone }}",
+        "message": "={{ $node[\"Format Confirmation Message\"].json.formattedMessage }}",
+        "options": {}
+      },
+      "id": "node_twilio_appt",
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio_creds",
+          "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sid }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node_check_sent_appt",
+      "name": "Check SMS Sent",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"sent\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_success_appt",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "workflow", "value": "appointment-confirmation" },
+            { "name": "result", "value": "failed" },
+            { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
+          ]
+        }
+      },
+      "id": "node_log_fail_appt",
+      "name": "Log Twilio Failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"failed\", \"service\": \"twilio\" }",
+        "options": { "responseCode": 502 }
+      },
+      "id": "node_error_twilio_appt",
+      "name": "Return Twilio Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    }
+  ],
+  "connections": {
+    "Receive Appointment Event": {
+      "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]]
+    },
+    "Validate Payload": {
+      "main": [
+        [{ "node": "Format Confirmation Message", "type": "main", "index": 0 }],
+        [{ "node": "Return Validation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Confirmation Message": {
+      "main": [[{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]]
+    },
+    "Send Confirmation SMS": {
+      "main": [[{ "node": "Check SMS Sent", "type": "main", "index": 0 }]]
+    },
+    "Check SMS Sent": {
+      "main": [
+        [{ "node": "Return Success", "type": "main", "index": 0 }],
+        [{ "node": "Log Twilio Failure", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Twilio Failure": {
+      "main": [[{ "node": "Return Twilio Error", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

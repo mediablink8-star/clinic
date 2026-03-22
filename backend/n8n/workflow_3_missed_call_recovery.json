@@ -1,0 +1,369 @@
+{
+  "name": "Workflow 3 — Missed Call Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_webhook_mc",
+      "name": "Receive Missed Call Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.phone }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.callSid }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.clinicId }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node_validate_mc",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"reason\": \"missing fields\" }",
+        "options": { "responseCode": 400 }
+      },
+      "id": "node_error_validation_mc",
+      "name": "Return Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/check-duplicate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "callSid", "value": "={{ $json.body.callSid }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_dedup_check",
+      "name": "Check Duplicate Call SID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isDuplicate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node_is_dup",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"duplicate_ignored\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_dup_stop",
+      "name": "Stop — Duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 460]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "node_wait_mc",
+      "name": "Wait 2 Minutes — Allow Manual Callback",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/calls/check-returned",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "phone", "value": "={{ $node[\"Receive Missed Call Event\"].json.body.phone }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_check_returned",
+      "name": "Check If Call Returned Manually",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.returned }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node_was_returned",
+      "name": "Was Call Handled Manually?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"call_handled_manually\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_manual_stop",
+      "name": "Stop — Handled Manually",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 460]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "Write a friendly Greek SMS for a dental clinic that missed a patient's call. Max 160 characters. Encourage booking. Professional tone. No emojis."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_ai_message",
+      "name": "Generate AI Recovery Message",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1780, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_creds",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message?.content }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node_ai_success",
+      "name": "AI Message Generated?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "recoveryMessage",
+              "value": "={{ $json.message.content }}"
+            }
+          ]
+        }
+      },
+      "id": "node_use_ai_msg",
+      "name": "Use AI Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "recoveryMessage",
+              "value": "Γεια σας, Χάσαμε την κλήση σας. Θέλετε να κλείσουμε ραντεβού; Απαντήστε ή καλέστε μας."
+            }
+          ]
+        }
+      },
+      "id": "node_fallback_msg",
+      "name": "Use Fallback Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2220, 400]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $node[\"Receive Missed Call Event\"].json.body.phone }}",
+        "message": "={{ $json.recoveryMessage }}",
+        "options": {}
+      },
+      "id": "node_twilio_recovery",
+      "name": "Send Recovery SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2440, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio_creds",
+          "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "boolean": [{ "name": "recoveryAttempted", "value": true }],
+          "string": [
+            { "name": "smsStatus", "value": "={{ $json.status || 'sent' }}" },
+            { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
+          ]
+        }
+      },
+      "id": "node_tag_result",
+      "name": "Tag Recovery Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2660, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/recovery-log",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "clinicId", "value": "={{ $node[\"Receive Missed Call Event\"].json.body.clinicId }}" },
+            { "name": "phone", "value": "={{ $node[\"Receive Missed Call Event\"].json.body.phone }}" },
+            { "name": "callSid", "value": "={{ $node[\"Receive Missed Call Event\"].json.body.callSid }}" },
+            { "name": "smsStatus", "value": "={{ $json.smsStatus }}" },
+            { "name": "timestamp", "value": "={{ $json.timestamp }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_log_recovery",
+      "name": "Log Recovery Attempt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2880, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"recovery_sent\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_success_mc",
+      "name": "Return Recovery Sent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [3100, 300]
+    }
+  ],
+  "connections": {
+    "Receive Missed Call Event": {
+      "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]]
+    },
+    "Validate Payload": {
+      "main": [
+        [{ "node": "Check Duplicate Call SID", "type": "main", "index": 0 }],
+        [{ "node": "Return Validation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Duplicate Call SID": {
+      "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [{ "node": "Stop — Duplicate", "type": "main", "index": 0 }],
+        [{ "node": "Wait 2 Minutes — Allow Manual Callback", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait 2 Minutes — Allow Manual Callback": {
+      "main": [[{ "node": "Check If Call Returned Manually", "type": "main", "index": 0 }]]
+    },
+    "Check If Call Returned Manually": {
+      "main": [[{ "node": "Was Call Handled Manually?", "type": "main", "index": 0 }]]
+    },
+    "Was Call Handled Manually?": {
+      "main": [
+        [{ "node": "Stop — Handled Manually", "type": "main", "index": 0 }],
+        [{ "node": "Generate AI Recovery Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate AI Recovery Message": {
+      "main": [[{ "node": "AI Message Generated?", "type": "main", "index": 0 }]]
+    },
+    "AI Message Generated?": {
+      "main": [
+        [{ "node": "Use AI Message", "type": "main", "index": 0 }],
+        [{ "node": "Use Fallback Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Use AI Message": {
+      "main": [[{ "node": "Send Recovery SMS", "type": "main", "index": 0 }]]
+    },
+    "Use Fallback Message": {
+      "main": [[{ "node": "Send Recovery SMS", "type": "main", "index": 0 }]]
+    },
+    "Send Recovery SMS": {
+      "main": [[{ "node": "Tag Recovery Result", "type": "main", "index": 0 }]]
+    },
+    "Tag Recovery Result": {
+      "main": [[{ "node": "Log Recovery Attempt", "type": "main", "index": 0 }]]
+    },
+    "Log Recovery Attempt": {
+      "main": [[{ "node": "Return Recovery Sent", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

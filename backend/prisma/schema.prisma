@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,6 @@ model Clinic {
   location     String
   phone        String
   email        String
-  password     String        @default("hashed_password_placeholder") // Will be hashed
   workingHours String // Stored as JSON string
   services     String // Stored as JSON string
   policies     String // Stored as JSON string
@@ -24,12 +23,54 @@ model Clinic {
   webhookSecret String       @default(cuid()) // Secret for HMAC signature
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
+  messageCredits    Int           @default(100)
+  monthlyCreditLimit Int           @default(100)
+  creditResetDate    DateTime      @default(now())
+  dailyMessageCap    Int           @default(300)
+  dailyUsedCount     Int           @default(0)
+  lastResetDay       DateTime      @default(now())
+  apiKeys            String       @default("{}") // Stores encrypted JSON of API keys
+  aiConfig           String       @default("{}") // Stores JSON of AI configuration (tone, services, value, etc)
+  timezone           String       @default("Europe/Athens")
+  
+  users        User[]
   patients     Patient[]
   appointments Appointment[]
   notifications Notification[]
+  messageLogs   MessageLog[]
+  auditLogs     AuditLog[]
+  missedCalls   MissedCall[]
   
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  refreshTokens RefreshToken[]
+  mfaEnabled   Boolean  @default(false)
+  mfaSecret    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  STAFF
 }
 
 model Patient {
@@ -40,6 +81,7 @@ model Patient {
   phone        String
   email        String?
   appointments Appointment[]
+  missedCalls  MissedCall[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -88,6 +130,19 @@ model Feedback {
   createdAt     DateTime    @default(now())
 }
 
+model MessageLog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  type      String   // SMS, WHATSAPP, VOICE
+  cost      Int      @default(1)
+  status    String   // SENT, FAILED, BLOCKED, PENDING
+  error     String?
+  timestamp DateTime @default(now())
+
+  @@index([clinicId])
+}
+
 enum NotificationType {
   REMINDER
   FOLLOW_UP
@@ -107,4 +162,46 @@ model Notification {
   status        String           @default("SCHEDULED")
   message       String
   createdAt     DateTime         @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  userId    String?
+  action    String   // e.g., CREATE_APPOINTMENT, DELETE_PATIENT
+  entity    String   // e.g., APPOINTMENT, PATIENT
+  entityId  String?
+  details   String?  // JSON string
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model MissedCall {
+  id               String           @id @default(cuid())
+  clinicId         String
+  clinic           Clinic           @relation(fields: [clinicId], references: [id])
+  fromNumber       String
+  patientId        String?
+  patient          Patient?         @relation(fields: [patientId], references: [id])
+  status           MissedCallStatus @default(DETECTED)
+  estimatedRevenue Float            @default(150.0)
+  aiConversation   String?          // Stored JSON of SMS history
+  lastSmsSentAt    DateTime?
+  recoveredAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([clinicId])
+  @@index([status])
+}
+
+enum MissedCallStatus {
+  DETECTED
+  RECOVERING
+  RECOVERED
+  LOST
 }

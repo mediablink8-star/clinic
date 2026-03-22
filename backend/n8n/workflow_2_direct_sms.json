@@ -1,0 +1,179 @@
+{
+  "name": "Workflow 2 — Direct SMS Delivery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-sms",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_webhook_sms",
+      "name": "Receive SMS Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.phone }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.message }}",
+              "operation": "isNotEmpty"
+            }
+          ],
+          "number": [
+            {
+              "value1": "={{ $json.body.message ? $json.body.message.length : 0 }}",
+              "operation": "smallerEqual",
+              "value2": 500
+            }
+          ]
+        }
+      },
+      "id": "node_validate_sms",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"reason\": \"invalid payload or message too long\" }",
+        "options": { "responseCode": 400 }
+      },
+      "id": "node_error_validation_sms",
+      "name": "Return Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "node_rate_limit",
+      "name": "Rate Limit Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.body.phone }}",
+        "message": "={{ $json.body.message }}",
+        "options": {}
+      },
+      "id": "node_twilio_sms",
+      "name": "Send SMS via Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio_creds",
+          "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.sid }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node_check_sent_sms",
+      "name": "Check Delivery Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"delivered\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_success_sms",
+      "name": "Return Delivered",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "workflow", "value": "direct-sms" },
+            { "name": "result", "value": "failed" },
+            { "name": "phone", "value": "={{ $node[\"Receive SMS Request\"].json.body.phone }}" },
+            { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
+          ]
+        }
+      },
+      "id": "node_log_fail_sms",
+      "name": "Log Delivery Failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"failed\" }",
+        "options": { "responseCode": 502 }
+      },
+      "id": "node_error_sms",
+      "name": "Return Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    }
+  ],
+  "connections": {
+    "Receive SMS Request": {
+      "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]]
+    },
+    "Validate Payload": {
+      "main": [
+        [{ "node": "Rate Limit Delay", "type": "main", "index": 0 }],
+        [{ "node": "Return Validation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rate Limit Delay": {
+      "main": [[{ "node": "Send SMS via Twilio", "type": "main", "index": 0 }]]
+    },
+    "Send SMS via Twilio": {
+      "main": [[{ "node": "Check Delivery Status", "type": "main", "index": 0 }]]
+    },
+    "Check Delivery Status": {
+      "main": [
+        [{ "node": "Return Delivered", "type": "main", "index": 0 }],
+        [{ "node": "Log Delivery Failure", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Delivery Failure": {
+      "main": [[{ "node": "Return Failed", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

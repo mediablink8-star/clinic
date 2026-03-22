@@ -1,59 +1,52 @@
 const cron = require('node-cron');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { triggerWebhook } = require('./webhookService');
+const { safeAddReminder } = require('./queueService');
 
 /**
- * Worker to process scheduled notifications.
- * Sends 'notification.send' event to n8n for real SMS/WhatsApp delivery.
+ * Enqueuer to find scheduled notifications and add them to BullMQ
  */
 function startNotificationWorker() {
-    // Run every minute
     cron.schedule('* * * * *', async () => {
-        console.log('Checking for scheduled notifications...');
+        console.log('Scanning for due notifications to enqueue...');
         const now = new Date();
 
         try {
-            const pendingNotifications = await prisma.notification.findMany({
+            const pending = await prisma.notification.findMany({
                 where: {
                     status: 'SCHEDULED',
                     scheduledFor: { lte: now }
                 },
-                include: { clinic: true } // Need clinic info for the SMS
+                select: { id: true }
             });
 
-            for (const notification of pendingNotifications) {
-                console.log(`Sending notification ${notification.id} via n8n...`);
+            for (const item of pending) {
+                const job = await safeAddReminder({ notificationId: item.id });
 
-                // Trigger n8n Webhook for SMS/WhatsApp
-                await triggerWebhook('notification.send', {
-                    notificationId: notification.id,
-                    type: notification.type,
-                    message: notification.message,
-                    clinicName: notification.clinic.name,
-                    clinicPhone: notification.clinic.phone
-                }, notification.clinic.webhookUrl);
+                if (!job) continue; // Skip state update if enqueuing failed
 
+                // Optimistically mark as ENQUEUED to prevent double enqueuing in next scan
                 await prisma.notification.update({
-                    where: { id: notification.id },
-                    data: { status: 'SENT', sentAt: new Date() }
+                    where: { id: item.id },
+                    data: { status: 'ENQUEUED' }
                 });
             }
+
+            if (pending.length > 0) {
+                console.log(`✅ Enqueued ${pending.length} notification jobs`);
+            }
         } catch (error) {
-            console.error('Notification Worker Error:', error);
+            console.error('Enqueuer Error:', error);
         }
     });
 }
 
 /**
- * Worker to handle post-appointment follow-ups and marketing
+ * Worker to handle post-appointment follow-ups
  */
 function startFollowUpWorker() {
-    // Run every hour
     cron.schedule('0 * * * *', async () => {
-        console.log('Checking for completed appointments for follow-up...');
-        // Logic to find COMPLETED appointments and send rating requests
-        // or find patients due for 6-month checkup
+        console.log('Follow-up worker running...');
     });
 }
 

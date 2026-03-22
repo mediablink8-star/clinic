@@ -12,11 +12,8 @@ const { triggerWebhook } = require('../services/webhookService');
  * @desc Simulates a Vapi webhook call (booking request)
  */
 router.post('/simulate-vapi', async (req, res) => {
-    const clinicId = req.headers['x-clinic-id'];
-    if (!clinicId) return res.status(400).json({ error: 'Missing x-clinic-id header' });
-
-    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
-    if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+    // req.clinic and req.clinicId are now attached by mandatory requireClinic middleware in index.js
+    const clinic = req.clinic;
 
     // Mock Vapi Payload
     const mockPayload = {
@@ -86,8 +83,8 @@ router.post('/simulate-vapi', async (req, res) => {
             }
         });
 
-        // 2. Trigger Webhook
-        const webhookSent = await triggerWebhook('appointment.created', {
+        // 2. Trigger Webhook (Await response for testing)
+        const webhookResult = await triggerWebhook('appointment.created', {
             appointmentId: appointment.id,
             clinicId: clinic.id,
             clinicName: clinic.name,
@@ -96,15 +93,17 @@ router.post('/simulate-vapi', async (req, res) => {
             time: timeStr,
             reason: "Test Appointment (Simulation)",
             priority: 'NORMAL'
-        }, clinic.webhookUrl);
+        }, clinic.webhookUrl, null, { awaitResponse: true });
 
         res.json({
             success: true,
             message: "Simulated Booking Successful!",
             details: {
                 db_appointment: appointment.id,
-                webhook_triggered: webhookSent,
-                target_url: clinic.webhookUrl || "None"
+                webhook_triggered: webhookResult.success,
+                target_url: clinic.webhookUrl || "None",
+                responseTime: webhookResult.duration,
+                webhook_details: webhookResult
             }
         });
 
@@ -119,23 +118,22 @@ router.post('/simulate-vapi', async (req, res) => {
  * @desc Sends a simple "ping" event to the webhook URL
  */
 router.post('/ping-make', async (req, res) => {
-    const clinicId = req.headers['x-clinic-id'];
-    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    const clinic = req.clinic;
 
     if (!clinic || !clinic.webhookUrl) {
         return res.status(400).json({ error: 'No webhook URL configured for this clinic.' });
     }
 
-    const sent = await triggerWebhook('system.ping', {
+    const { success, duration, message, error } = await triggerWebhook('system.ping', {
         message: "This is a test from ClinicFlow Settings.",
         user: "Admin",
         time: new Date().toISOString()
-    }, clinic.webhookUrl);
+    }, clinic.webhookUrl, null, { awaitResponse: true });
 
-    if (sent) {
-        res.json({ success: true, message: `Ping sent to ${clinic.webhookUrl}` });
+    if (success) {
+        res.json({ success: true, message: `Ping sent to ${clinic.webhookUrl}`, responseTime: duration });
     } else {
-        res.status(500).json({ error: 'Failed to send ping.' });
+        res.status(500).json({ error: error || message || 'Failed to send ping.', responseTime: duration });
     }
 });
 
