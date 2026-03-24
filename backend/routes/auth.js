@@ -77,7 +77,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Server error during login' });
     }
-});
+}));
 
 router.post('/refresh', asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
@@ -108,7 +108,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Refresh failed' });
     }
-});
+}));
 
 router.post('/logout', asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
@@ -117,7 +117,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
     }
     res.clearCookie('refreshToken');
     res.json({ success: true });
-});
+}));
 
 router.post('/google', asyncHandler(async (req, res) => {
     const { idToken } = req.body;
@@ -218,7 +218,7 @@ router.post('/google', asyncHandler(async (req, res) => {
         console.error('Google Auth Error:', error);
         res.status(401).json({ error: 'Google authentication failed' });
     }
-});
+}));
 
 // --- MFA ENDPOINTS ---
 
@@ -247,7 +247,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'MFA setup failed' });
     }
-});
+}));
 
 router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     const { secret, code } = req.body;
@@ -264,7 +264,7 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'MFA verification failed' });
     }
-});
+}));
 
 router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
     const { mfaToken, code } = req.body;
@@ -317,7 +317,7 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'MFA login failed' });
     }
-});
+}));
 
 
 router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
@@ -330,6 +330,6 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Failed to disable MFA' });
     }
-});
+}));
 
 module.exports = router;

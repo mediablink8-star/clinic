@@ -109,7 +109,7 @@ router.post('/test-ai', asyncHandler(async (req, res) => {
         }
         res.json({ success: false, error: errorMsg, latency, provider: 'gemini' });
     }
-});
+}));
 
 /**
  * @route POST /api/integrations/test-twilio
@@ -155,7 +155,7 @@ router.post('/test-twilio', asyncHandler(async (req, res) => {
         console.error('[INTEGRATION_ERROR] Twilio Test Failed:', err);
         res.json({ success: false, error: err.message, latency: Date.now() - start });
     }
-});
+}));
 
 /**
  * @route POST /api/integrations/save-ai-key
@@ -202,7 +202,7 @@ router.post('/save-ai-key', asyncHandler(async (req, res) => {
         console.error('Save AI key failed:', e);
         res.status(500).json({ error: e.message });
     }
-});
+}));
 
 /**
  * @route POST /api/integrations/save-twilio-keys
@@ -229,7 +229,7 @@ router.post('/save-twilio-keys', asyncHandler(async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
-});
+}));
 
 /**
  * @route POST /api/integrations/test-webhook
@@ -329,7 +329,7 @@ router.post('/test-webhook', asyncHandler(async (req, res) => {
             latency
         });
     }
-});
+}));
 
 /**
  * @route POST /api/integrations/save-webhook
@@ -383,6 +383,6 @@ router.post('/save-webhook', asyncHandler(async (req, res) => {
         console.error('Save Webhook settings failed:', e);
         res.status(500).json({ error: e.message });
     }
-});
+}));
 
 module.exports = router;

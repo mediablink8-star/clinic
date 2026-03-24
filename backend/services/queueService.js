@@ -1,9 +1,5 @@
 const { Queue, Worker, QueueEvents } = require('bullmq');
 const Redis = require('ioredis');
-const { PrismaClient } = require('@prisma/client');
-const { triggerWebhook } = require('./webhookService');
-
-const prisma = new PrismaClient();
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 const DISABLE_REDIS = process.env.DISABLE_REDIS === 'true';
@@ -50,71 +46,24 @@ if (!DISABLE_REDIS) {
 let reminderWorker = null;
 if (!DISABLE_REDIS) {
     reminderWorker = new Worker('reminders', async (job) => {
-    const { notificationId } = job.data;
-    console.log(`[BullMQ] Processing notification ${notificationId}...`);
+        const { notificationId } = job.data;
+        console.log(`[BullMQ] Processing notification ${notificationId}...`);
 
-    try {
-        const result = await prisma.$transaction(async (tx) => {
-            const notification = await tx.notification.findUnique({
-                where: { id: notificationId },
-                include: { clinic: true }
-            });
+        // All business logic lives in notificationService — worker is a dumb executor
+        const { processNotification } = require('./notificationService');
+        const result = await processNotification(notificationId);
 
-            if (!notification || notification.status !== 'SCHEDULED') {
-                return { success: false, reason: 'Already processed or not found' };
-            }
-
-            const clinic = await tx.clinic.findUnique({ where: { id: notification.clinicId } });
-            const today = new Date();
-            const dailyCost = 1;
-
-            // Simple Credit & Cap Check
-            if (clinic.messageCredits < dailyCost) throw new Error('INSUFFICIENT_CREDITS');
-            if (clinic.dailyUsedCount >= clinic.dailyMessageCap) throw new Error('DAILY_CAP_REACHED');
-
-            // Deduct
-            await tx.clinic.update({
-                where: { id: clinic.id },
-                data: {
-                    messageCredits: { decrement: dailyCost },
-                    dailyUsedCount: { increment: dailyCost }
-                }
-            });
-
-            const log = await tx.messageLog.create({
-                data: { clinicId: clinic.id, type: notification.type, cost: dailyCost, status: 'PENDING' }
-            });
-
-            // Trigger External
-            try {
-                await triggerWebhook('notification.send', {
-                    notificationId: notification.id,
-                    type: notification.type,
-                    message: notification.message,
-                    clinicName: notification.clinic.name
-                }, notification.clinic.webhookUrl);
-
-                await tx.messageLog.update({ where: { id: log.id }, data: { status: 'SENT' } });
-                await tx.notification.update({ where: { id: notification.id }, data: { status: 'SENT', sentAt: new Date() } });
-
-                return { success: true };
-            } catch (sendError) {
-                await tx.messageLog.update({ where: { id: log.id }, data: { status: 'FAILED', error: sendError.message } });
-                return { success: false, error: sendError.message };
-            }
-        });
+        if (!result.success) {
+            console.warn(`[BullMQ] Notification ${notificationId} skipped: ${result.reason}`);
+        }
 
         return result;
-    } catch (error) {
-        console.error(`[BullMQ] Job ${job.id} failed:`, error.message);
-        throw error; // Let BullMQ handle retries
-    }
-}, {
-    connection,
-    concurrency: 10,
-    removeOnComplete: { count: 100 },
-    removeOnFail: { count: 500 }
-});
+    }, {
+        connection,
+        concurrency: 10,
+        removeOnComplete: { count: 100 },
+        removeOnFail: { count: 500 }
+    });
 }
 
 let queueEvents = null;

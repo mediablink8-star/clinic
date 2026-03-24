@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Toaster } from 'react-hot-toast';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -86,19 +87,27 @@ const App = () => {
     retry: 1,
   });
 
-  const { data: recoveryStats = { recovered: 0, pending: 0, revenue: 0 }, isLoading: loadingStats } = useQuery({
-    queryKey: ['recovery-stats'],
-    queryFn: () => axios.get(`${API_BASE}/recovery/stats`, { headers: getHeaders() }).then(res => res.data),
+  const { data: recoveryStats = { recovered: 0, pending: 0, revenue: 0 }, isLoading: loadingStats, refetch: refetchStats } = useQuery({
+    queryKey: ['recovery-stats', token],
+    queryFn: async () => {
+      const res = await axios.get(`${API_BASE}/recovery/stats`, { headers: getHeaders() });
+      return res.data;
+    },
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    staleTime: 0,
     retry: 1,
   });
 
-  const { data: recoveryLog = [], isLoading: loadingLog } = useQuery({
-    queryKey: ['recovery-log'],
-    queryFn: () => axios.get(`${API_BASE}/recovery/log`, { headers: getHeaders() }).then(res => res.data),
+  const { data: recoveryLog = [], isLoading: loadingLog, refetch: refetchLog } = useQuery({
+    queryKey: ['recovery-log', token],
+    queryFn: async () => {
+      const res = await axios.get(`${API_BASE}/recovery/log`, { headers: getHeaders() });
+      return res.data;
+    },
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    staleTime: 0,
     retry: 1,
   });
 
@@ -237,6 +246,13 @@ const App = () => {
   const urgentCount = apts.filter(a => a.priority === 'URGENT').length;
   const patientsCount = Array.isArray(patients) ? patients.length : 0;
 
+  const refreshRecovery = () => {
+    refetchLog();
+    refetchStats();
+    queryClient.invalidateQueries({ queryKey: ['recovery-log'] });
+    queryClient.invalidateQueries({ queryKey: ['recovery-stats'] });
+  };
+
   const renderContent = () => {
     switch (currentTab) {
       case 'dashboard':
@@ -257,6 +273,7 @@ const App = () => {
           systemStatus={systemStatus}
           apiUsage={apiUsage}
           loading={loading}
+          onRefresh={refreshRecovery}
         />;
       case 'appointments':
         return <Appointments appointments={appointments} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
@@ -293,6 +310,15 @@ const App = () => {
 
   return (
     <div className="layout">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: { fontSize: '0.82rem', fontWeight: 700, borderRadius: '10px', padding: '10px 14px' },
+          success: { style: { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' } },
+          error:   { style: { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' } },
+        }}
+      />
       <Sidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}

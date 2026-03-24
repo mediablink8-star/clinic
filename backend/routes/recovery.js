@@ -3,6 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const asyncHandler = require('../middleware/asyncHandler');
+const { retrySms } = require('../services/missedCallService');
 
 router.get('/stats', asyncHandler(async (req, res) => {
     const stats = await prisma.missedCall.aggregate({
@@ -33,6 +34,12 @@ router.get('/log', asyncHandler(async (req, res) => {
         include: { patient: true }
     });
     res.json(logs);
+}));
+
+router.post('/:id/retry', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { data } = await retrySms({ clinicId: req.clinicId, missedCallId: id });
+    res.json({ success: true, data });
 }));
 
 module.exports = router;

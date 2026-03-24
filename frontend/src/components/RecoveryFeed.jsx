@@ -1,7 +1,32 @@
 import React from 'react';
-import { Sparkles, MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Sparkles, MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 
-const RecoveryFeed = ({ logs = [], muted = false }) => {
+const RecoveryFeed = ({ logs = [], muted = false, token }) => {
+    const [retrying, setRetrying] = React.useState({});
+
+    const handleRetry = async (logId) => {
+        if (retrying[logId]) return;
+        setRetrying(r => ({ ...r, [logId]: 'retrying' }));
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        const authToken = token || localStorage.getItem('clinic_token');
+        try {
+            const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
+            });
+            const data = await res.json();
+            const status = data.data?.smsStatus === 'sent' ? 'sent' : 'failed';
+            setRetrying(r => ({ ...r, [logId]: status }));
+            if (status === 'sent') toast.success('SMS retried successfully');
+            else toast.error('Retry failed — check webhook config');
+        } catch {
+            setRetrying(r => ({ ...r, [logId]: 'failed' }));
+            toast.error('Retry request failed');
+        } finally {
+            setTimeout(() => setRetrying(r => { const n = { ...r }; delete n[logId]; return n; }), 3000);
+        }
+    };
     const getStatusInfo = (status) => {
         switch (status) {
             case 'RECOVERED':
@@ -92,14 +117,22 @@ const RecoveryFeed = ({ logs = [], muted = false }) => {
                                     justifyContent: 'space-between',
                                     padding: '0.32rem 0.65rem',
                                     borderRadius: '8px',
-                                    border: '1px solid rgba(226,232,240,0.25)',
-                                    background: 'rgba(255,255,255,0.4)',
-                                    gap: '8px'
+                                    border: log.smsStatus === 'failed' ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(226,232,240,0.25)',
+                                    background: log.smsStatus === 'failed' ? 'rgba(254,242,242,0.6)' : 'rgba(255,255,255,0.4)',
+                                    gap: '8px',
+                                    flexWrap: 'wrap',
                                 }}>
                                     {/* phone number */}
                                     <span style={{ fontWeight: '600', fontSize: '0.75rem', color: 'var(--secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                                         {log.fromNumber}
                                     </span>
+                                    {/* SMS Failed badge */}
+                                    {log.smsStatus === 'failed' && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '6px', background: 'rgba(239,68,68,0.12)', flexShrink: 0 }}>
+                                            <AlertCircle size={9} color="#dc2626" />
+                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#dc2626' }}>SMS Failed</span>
+                                        </div>
+                                    )}
                                     {/* dot + label */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }} />
@@ -107,6 +140,41 @@ const RecoveryFeed = ({ logs = [], muted = false }) => {
                                     </div>
                                     {/* time */}
                                     <span style={{ fontSize: '0.58rem', color: '#b0bec5', fontWeight: '400', flexShrink: 0 }}>{time}</span>
+                                    {/* error message */}
+                                    {log.smsStatus === 'failed' && log.smsError && (
+                                        <p style={{ width: '100%', margin: '2px 0 0', fontSize: '0.62rem', color: '#dc2626', fontWeight: '600' }}>
+                                            {log.smsError}
+                                        </p>
+                                    )}
+                                    {/* retry button */}
+                                    {log.smsStatus === 'failed' && (
+                                        <button
+                                            onClick={() => handleRetry(log.id)}
+                                            disabled={!!retrying[log.id]}
+                                            style={{
+                                                marginTop: '4px',
+                                                display: 'flex', alignItems: 'center', gap: '4px',
+                                                padding: '3px 10px', borderRadius: '6px',
+                                                border: '1px solid rgba(239,68,68,0.3)',
+                                                background: retrying[log.id] === 'sent'
+                                                    ? 'rgba(16,185,129,0.1)'
+                                                    : 'rgba(239,68,68,0.08)',
+                                                color: retrying[log.id] === 'sent' ? '#059669' : '#dc2626',
+                                                fontSize: '0.62rem', fontWeight: '800',
+                                                cursor: retrying[log.id] ? 'not-allowed' : 'pointer',
+                                                opacity: retrying[log.id] === 'retrying' ? 0.6 : 1,
+                                            }}
+                                        >
+                                            <RefreshCw size={9} />
+                                            {retrying[log.id] === 'retrying'
+                                                ? 'Retrying...'
+                                                : retrying[log.id] === 'sent'
+                                                    ? '✓ Sent!'
+                                                    : retrying[log.id] === 'failed'
+                                                        ? '✗ Failed again'
+                                                        : 'Retry SMS'}
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })}

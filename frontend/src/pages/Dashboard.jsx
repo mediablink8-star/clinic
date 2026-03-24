@@ -1,4 +1,5 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import {
     PhoneMissed,
     CheckCircle2,
@@ -7,6 +8,7 @@ import {
     Calendar,
     ArrowUpRight,
     AlertTriangle,
+    Zap,
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
@@ -85,39 +87,82 @@ const Dashboard = ({
     recoveryLog = [],
     systemStatus = {},
     apiUsage = {},
-    loading
+    loading,
+    onRefresh,
 }) => {
     const hasLoaded = React.useRef(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     const [configWarnings, setConfigWarnings] = React.useState([]);
     const [testRecoveryStatus, setTestRecoveryStatus] = React.useState(null);
+    const [runAutomationStatus, setRunAutomationStatus] = React.useState(null);
 
     const handleTestRecovery = React.useCallback(async () => {
         if (testRecoveryStatus === 'sending') return;
         setTestRecoveryStatus('sending');
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        const authToken = token || localStorage.getItem('clinic_token');
         try {
-            await fetch(`${API_BASE}/webhook/missed-call`, {
+            const res = await fetch(`${API_BASE}/automation/missed-call`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                    'x-webhook-secret': import.meta.env.VITE_WEBHOOK_SECRET || ''
+                    Authorization: `Bearer ${authToken}`,
                 },
-                body: JSON.stringify({ phone: '+30690000000', clinicId: clinic?.id, callSid: `demo_${Date.now()}` })
+                body: JSON.stringify({
+                    phone: '+3069' + Math.floor(10000000 + Math.random() * 90000000),
+                    clinicId: clinic?.id,
+                    callSid: `demo_${Date.now()}`
+                })
             });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
             setTestRecoveryStatus('sent');
-        } catch {
+            toast.success('Missed call simulated!');
+            onRefresh?.();
+        } catch (err) {
             setTestRecoveryStatus('error');
+            toast.error(`Simulation failed: ${err.message}`);
         } finally {
             setTimeout(() => setTestRecoveryStatus(null), 3000);
         }
-    }, [token, clinic, testRecoveryStatus]);
+    }, [token, clinic, testRecoveryStatus, onRefresh]);
+
+    const handleRunAutomation = React.useCallback(async () => {
+        if (runAutomationStatus === 'running') return;
+        setRunAutomationStatus('running');
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        const authToken = token || localStorage.getItem('clinic_token');
+        try {
+            const res = await fetch(`${API_BASE}/automation/process-missed-calls`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            const processed = data?.data?.processed ?? 0;
+            setRunAutomationStatus(processed > 0 ? 'done' : 'empty');
+            if (processed > 0) {
+                toast.success(`Processed ${processed} missed call${processed > 1 ? 's' : ''}`);
+                onRefresh?.();
+            } else {
+                toast('Nothing pending', { icon: '—' });
+            }
+        } catch {
+            setRunAutomationStatus('error');
+            toast.error('Automation failed');
+        } finally {
+            setTimeout(() => setRunAutomationStatus(null), 3000);
+        }
+    }, [token, runAutomationStatus, onRefresh]);
 
     React.useEffect(() => {
-        if (!token) return;
+        const authToken = token || localStorage.getItem('clinic_token');
+        if (!authToken) return;
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-        fetch(`${API_BASE}/system/config-status`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_BASE}/system/config-status`, { headers: { Authorization: `Bearer ${authToken}` } })
             .then(r => r.json())
             .then(d => setConfigWarnings(d.warnings || []))
             .catch(() => {});
@@ -151,6 +196,10 @@ const Dashboard = ({
                     <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
                         Δείτε τι συμβαίνει στο ιατρείο σας σήμερα.
                     </p>
+                    <p style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', display: 'inline-block', boxShadow: '0 0 5px rgba(99,102,241,0.5)' }} />
+                        Automation: External (API Mode)
+                    </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     {systemStatus && (
@@ -165,6 +214,84 @@ const Dashboard = ({
                             {systemStatus.aiConfigured ? '● Ενεργό' : '● Πρόβλημα'}
                         </span>
                     )}
+                    <button
+                        onClick={handleTestRecovery}
+                        disabled={testRecoveryStatus === 'sending'}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '12px',
+                            border: '1.5px solid rgba(239,68,68,0.35)',
+                            background: testRecoveryStatus === 'sent'
+                                ? 'rgba(16,185,129,0.1)'
+                                : testRecoveryStatus === 'error'
+                                    ? 'rgba(239,68,68,0.1)'
+                                    : 'rgba(239,68,68,0.07)',
+                            color: testRecoveryStatus === 'sent'
+                                ? '#059669'
+                                : testRecoveryStatus === 'error'
+                                    ? '#dc2626'
+                                    : '#ef4444',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: testRecoveryStatus === 'sending' ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s',
+                            opacity: testRecoveryStatus === 'sending' ? 0.6 : 1,
+                        }}
+                    >
+                        <PhoneMissed size={14} />
+                        {testRecoveryStatus === 'sending'
+                            ? 'Αποστολή...'
+                            : testRecoveryStatus === 'sent'
+                                ? '✓ Εστάλη!'
+                                : testRecoveryStatus === 'error'
+                                    ? '✗ Σφάλμα'
+                                    : 'Simulate Missed Call'}
+                    </button>
+                    <button
+                        onClick={handleRunAutomation}
+                        disabled={runAutomationStatus === 'running'}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '12px',
+                            border: '1.5px solid rgba(99,102,241,0.35)',
+                            background: runAutomationStatus === 'done'
+                                ? 'rgba(16,185,129,0.1)'
+                                : runAutomationStatus === 'empty'
+                                    ? 'rgba(148,163,184,0.1)'
+                                    : runAutomationStatus === 'error'
+                                        ? 'rgba(239,68,68,0.1)'
+                                        : 'rgba(99,102,241,0.07)',
+                            color: runAutomationStatus === 'done'
+                                ? '#059669'
+                                : runAutomationStatus === 'empty'
+                                    ? '#64748b'
+                                    : runAutomationStatus === 'error'
+                                        ? '#dc2626'
+                                        : '#6366f1',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: runAutomationStatus === 'running' ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s',
+                            opacity: runAutomationStatus === 'running' ? 0.6 : 1,
+                        }}
+                    >
+                        <Zap size={14} />
+                        {runAutomationStatus === 'running'
+                            ? 'Εκτέλεση...'
+                            : runAutomationStatus === 'done'
+                                ? '✓ Ολοκληρώθηκε!'
+                                : runAutomationStatus === 'empty'
+                                    ? '— Τίποτα εκκρεμές'
+                                    : runAutomationStatus === 'error'
+                                        ? '✗ Σφάλμα'
+                                        : 'Run Automation'}
+                    </button>
                     <button
                         onClick={() => setCurrentTab('reports')}
                         className="btn btn-outline"
@@ -267,7 +394,7 @@ const Dashboard = ({
                     minHeight: '560px',
                 }}>
                     {/* Row 1 */}
-                    <RecoveryFeed logs={recoveryLog} muted={true} />
+                    <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
 
                     <div className="grid-cell-glass card-hover" style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.5)', padding: '1.1rem 1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Γρήγορες Ενέργειες</h3>

@@ -3,9 +3,9 @@ import { MessageSquare, PhoneMissed, CheckCircle2, Send, Reply, Zap, Clock, Aler
 
 const EVENT_META = {
     SMS_SENT:            { icon: Send,         color: '#6366f1', bg: 'rgba(99,102,241,0.1)',  label: 'SMS εστάλη' },
-    MISSED_CALL:         { icon: PhoneMissed,  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   label: 'Αναπάντητη κλήση' },
-    RECOVERY_SENT:       { icon: MessageSquare,color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Μήνυμα ανάκτησης' },
-    APPOINTMENT_CONFIRMED:{ icon: CheckCircle2,color: '#10b981', bg: 'rgba(16,185,129,0.1)',  label: 'Ραντεβού επιβεβαιώθηκε' },
+    MISSED_CALL:         { icon: PhoneMissed,  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   label: '👉 Missed call detected' },
+    RECOVERY_SENT:       { icon: MessageSquare,color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: '👉 Recovery SMS sent' },
+    APPOINTMENT_CONFIRMED:{ icon: CheckCircle2,color: '#10b981', bg: 'rgba(16,185,129,0.1)',  label: '👉 Appointment booked (Recovered)' },
     PATIENT_REPLIED:     { icon: Reply,        color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  label: 'Ασθενής απάντησε' },
     RECOVERING:          { icon: Zap,          color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Σε ανάκτηση' },
 };
@@ -43,7 +43,7 @@ const buildEntries = (logs) => {
         const entries = [];
         if (l.status === 'RECOVERING' || l.status === 'RECOVERED') {
             entries.push({ id: `${l.id}-miss`, type: 'MISSED_CALL', phone: l.fromNumber, time: l.createdAt });
-            entries.push({ id: `${l.id}-sms`, type: 'RECOVERY_SENT', phone: l.fromNumber, time: l.updatedAt || l.createdAt, smsStatus: l.smsStatus });
+            entries.push({ id: `${l.id}-sms`, type: 'RECOVERY_SENT', phone: l.fromNumber, time: l.updatedAt || l.createdAt, smsStatus: l.smsStatus, smsError: l.smsError });
         }
         if (l.status === 'RECOVERED') {
             entries.push({ id: `${l.id}-conf`, type: 'APPOINTMENT_CONFIRMED', phone: l.fromNumber, time: l.updatedAt || l.createdAt });
@@ -181,6 +181,15 @@ const AutomationLog = ({ logs = [], onTestRecovery }) => {
                 ) : entries.map((entry) => {
                     const meta = EVENT_META[entry.type] || EVENT_META['SMS_SENT'];
                     const Icon = meta.icon;
+
+                    // For RECOVERY_SENT, override color based on smsStatus
+                    let rowColor = meta.color;
+                    let rowBg = meta.bg;
+                    if (entry.type === 'RECOVERY_SENT' && entry.smsStatus) {
+                        if (entry.smsStatus === 'sent') { rowColor = '#059669'; rowBg = 'rgba(16,185,129,0.1)'; }
+                        else if (entry.smsStatus === 'failed') { rowColor = '#dc2626'; rowBg = 'rgba(239,68,68,0.1)'; }
+                        else if (entry.smsStatus === 'pending' || entry.smsStatus === 'scheduled') { rowColor = '#d97706'; rowBg = 'rgba(245,158,11,0.1)'; }
+                    }
                     return (
                         <div key={entry.id} className="animate-fade" style={{
                             display: 'flex',
@@ -188,11 +197,11 @@ const AutomationLog = ({ logs = [], onTestRecovery }) => {
                             gap: '10px',
                             padding: '7px 10px',
                             borderRadius: '10px',
-                            background: meta.bg,
-                            border: `1px solid ${meta.bg.replace('0.1', '0.2')}`,
+                            background: rowBg,
+                            border: `1px solid ${rowBg.replace('0.1', '0.2')}`,
                         }}>
                             <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                                <Icon size={12} color={meta.color} />
+                                <Icon size={12} color={rowColor} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -201,6 +210,11 @@ const AutomationLog = ({ logs = [], onTestRecovery }) => {
                                 <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: 0, fontWeight: '600' }}>
                                     {maskPhone(entry.phone)}
                                 </p>
+                                {entry.smsStatus === 'failed' && entry.smsError && (
+                                    <p style={{ fontSize: '0.6rem', color: '#dc2626', margin: '2px 0 0', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {entry.smsError}
+                                    </p>
+                                )}
                             </div>
                             {entry.smsStatus && SMS_STATUS_BADGE[entry.smsStatus] && (() => {
                                 const badge = SMS_STATUS_BADGE[entry.smsStatus];

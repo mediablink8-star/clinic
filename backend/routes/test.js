@@ -105,7 +105,7 @@ router.post('/simulate-vapi', asyncHandler(async (req, res) => {
         console.error('[TEST] Simulation Failed:', error);
         res.status(500).json({ error: error.message });
     }
-});
+}));
 
 /**
  * @route POST /api/test/ping-make
@@ -129,6 +129,6 @@ router.post('/ping-make', asyncHandler(async (req, res) => {
     } else {
         res.status(500).json({ error: error || message || 'Failed to send ping.', responseTime: duration });
     }
-});
+}));
 
 module.exports = router;
