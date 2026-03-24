@@ -48,20 +48,33 @@ const RecoveryFeed = ({ logs = [], muted = false }) => {
             }}>
                 {sortedLogs.length === 0 ? (
                     <div style={{
-                        textAlign: 'center',
-                        padding: '3rem 2rem',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        padding: '2.5rem 1.5rem', textAlign: 'center', gap: '0.5rem',
                         borderRadius: '16px',
                         background: 'linear-gradient(180deg, #f8fafc, #f1f5f9)',
                         border: '1px dashed #e2e8f0'
                     }}>
-                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📞</div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>
-                            Δεν καταγράφηκαν αναπάντητες κλήσεις σήμερα
+                        <div style={{
+                            width: '44px', height: '44px', borderRadius: '14px',
+                            background: 'rgba(16,185,129,0.1)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', marginBottom: '4px'
+                        }}>
+                            <PhoneMissed size={20} color="#10b981" />
+                        </div>
+                        <p style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569', margin: 0 }}>
+                            Σύστημα έτοιμο
                         </p>
-                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '500', lineHeight: '1.5' }}>
-                            Το AI σας παρακολουθεί κλήσεις.<br />
-                            Όλα λειτουργούν κανονικά.
+                        <p style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '500', margin: 0, lineHeight: 1.6 }}>
+                            Οι αναπάντητες κλήσεις θα εμφανίζονται<br />εδώ αυτόματα.
                         </p>
+                        <div style={{
+                            marginTop: '6px', display: 'flex', alignItems: 'center', gap: '5px',
+                            padding: '4px 10px', borderRadius: '8px',
+                            background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)'
+                        }}>
+                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 5px rgba(16,185,129,0.5)' }} />
+                            <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#059669' }}>Παρακολούθηση ενεργή</span>
+                        </div>
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

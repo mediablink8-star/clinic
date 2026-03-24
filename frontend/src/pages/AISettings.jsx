@@ -78,6 +78,7 @@ const StatusBadge = ({ status, latency }) => {
 };
 
 const AISettings = ({ clinic, token, onUpdate }) => {
+    const isOwner = ['OWNER', 'ADMIN'].includes(clinic?.role);
     const [formData, setFormData] = useState({
         ...clinic,
         aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
@@ -179,9 +180,55 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 </p>
             </header>
 
-            {/* Section 1 — API Connections */}
+            {/* Reassurance banner */}
+            {!isOwner && (
+                <div style={{
+                    marginBottom: '1.25rem',
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '14px',
+                    background: 'rgba(245,158,11,0.07)',
+                    border: '1px solid rgba(245,158,11,0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '0.82rem',
+                    fontWeight: '700',
+                    color: '#92400e',
+                }}>
+                    <span style={{ fontSize: '1rem' }}>🔒</span>
+                    Μόνο ανάγνωση — μόνο ο ιδιοκτήτης μπορεί να αλλάξει ρυθμίσεις AI και κλειδιά API.
+                </div>
+            )}
+            <div style={{                marginBottom: '1.75rem',
+                padding: '1rem 1.5rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.07) 0%, rgba(99,102,241,0.06) 100%)',
+                border: '1px solid rgba(16,185,129,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1.5rem',
+                flexWrap: 'wrap',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Check size={16} color="#10b981" />
+                    </div>
+                    <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#065f46' }}>Ρύθμιση μία φορά. Τρέχει αυτόματα.</span>
+                </div>
+                <div style={{ width: '1px', height: '28px', background: 'rgba(16,185,129,0.2)', flexShrink: 0 }} className="divider-hide" />
+                {[
+                    { icon: '🔑', text: 'Προσθέστε τα κλειδιά API σας' },
+                    { icon: '⚡', text: 'Το σύστημα ανιχνεύει αναπάντητες κλήσεις αυτόματα' },
+                    { icon: '📅', text: 'Ασθενείς κλείνουν ραντεβού χωρίς χειροκίνητη παρέμβαση' },
+                ].map((item, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.85rem' }}>{item.icon}</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#374151' }}>{item.text}</span>
+                    </div>
+                ))}
+            </div>
             <SectionCard id="ai-s1" number="1" icon={<Key size={15} color="#7c3aed" />} iconBg="#f3f0ff"
-                title="Συνδέσεις API" subtitle="Κλειδιά API και πάροχοι">
+                title="Συνδέσεις API" subtitle="Προσθέστε τα κλειδιά σας μία φορά — δεν χρειάζεται ξανά ρύθμιση">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
                     {/* AI Provider */}
                     <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: '#fafbfc' }}>
@@ -212,7 +259,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                             <button type="button" className="btn btn-outline btn-sm" onClick={handleTestAI} disabled={aiTest.status === 'loading'} style={{ flex: 1 }}>
                                 {aiTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
                             </button>
-                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAIKey} disabled={aiSaving} style={{ flex: 1 }}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAIKey} disabled={aiSaving || !isOwner} style={{ flex: 1 }}>
                                 {aiSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
                             </button>
                         </div>
@@ -236,7 +283,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                             <button type="button" className="btn btn-outline btn-sm" onClick={handleTestTwilio} disabled={twilioTest.status === 'loading'} style={{ flex: 1 }}>
                                 {twilioTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
                             </button>
-                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveTwilioKeys} disabled={twilioSaving} style={{ flex: 1 }}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveTwilioKeys} disabled={twilioSaving || !isOwner} style={{ flex: 1 }}>
                                 {twilioSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
                             </button>
                         </div>
@@ -246,7 +293,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
 
             {/* Section 2 — AI Knowledge Config */}
             <SectionCard id="ai-s2" number="2" icon={<Brain size={15} color="#0891b2" />} iconBg="#ecfeff"
-                title="Ρυθμίσεις Γνώσης AI" subtitle="Ορίστε τη λογική και το ύφος του βοηθού σας">
+                title="Ρυθμίσεις Γνώσης AI" subtitle="Ορίστε τη λογική του βοηθού — μετά τρέχει μόνος του">
                 <FormGroup label="Υπηρεσίες Ιατρείου">
                     <textarea style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
                         value={formData.aiConfig?.services || ''}
@@ -302,9 +349,47 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                     </div>
                 </FormGroup>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                    <button type="button" className="btn btn-primary" onClick={handleSaveAiConfig} disabled={aiConfigSaving}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveAiConfig} disabled={aiConfigSaving || !isOwner}>
                         {aiConfigSaving ? 'Αποθήκευση...' : 'Αποθήκευση Ρυθμίσεων AI'}
                     </button>
+                </div>
+
+                {/* How it works strip */}
+                <div style={{
+                    marginTop: '1.5rem',
+                    padding: '1rem 1.25rem',
+                    borderRadius: '14px',
+                    background: 'rgba(99,102,241,0.05)',
+                    border: '1px solid rgba(99,102,241,0.12)',
+                }}>
+                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>
+                        Πώς λειτουργεί αυτόματα
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0', flexWrap: 'wrap' }}>
+                        {[
+                            { step: 'Αναπάντητη κλήση', color: '#64748b', bg: 'rgba(100,116,139,0.1)' },
+                            { step: 'AI στέλνει SMS', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                            { step: 'Ασθενής απαντά', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
+                            { step: 'Ραντεβού κλείνει', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+                        ].map((item, i, arr) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                                <div style={{
+                                    padding: '5px 12px', borderRadius: '99px',
+                                    background: item.bg, border: `1px solid ${item.color}22`,
+                                    fontSize: '0.72rem', fontWeight: '700', color: item.color,
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {item.step}
+                                </div>
+                                {i < arr.length - 1 && (
+                                    <span style={{ fontSize: '0.7rem', color: '#cbd5e1', margin: '0 4px', fontWeight: '700' }}>→</span>
+                                )}
+                            </div>
+                        ))}
+                        <span style={{ marginLeft: '8px', fontSize: '0.72rem', fontWeight: '700', color: '#10b981' }}>
+                            — χωρίς χειροκίνητη παρέμβαση
+                        </span>
+                    </div>
                 </div>
             </SectionCard>
 

@@ -29,6 +29,14 @@
   --radius: 16px;
   --radius-lg: 24px;
   --glass: blur(24px) saturate(200%);
+  --modal-bg: rgba(255,255,255,0.96);
+  --modal-border: rgba(255,255,255,0.7);
+  --modal-header-bg: rgba(0,102,255,0.04);
+  --input-bg: rgba(248,250,252,0.8);
+  --input-border: rgba(226,232,240,0.8);
+  --cancel-bg: rgba(248,250,252,0.8);
+  --cancel-border: rgba(226,232,240,0.8);
+  --cancel-color: #64748b;
 }
 
 /* ── Animations ── */
@@ -56,6 +64,29 @@
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-4px); }
+}
+
+/* ── Recovery flash — green border glow burst ── */
+@keyframes recovery-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.0),  var(--shadow-md); border-color: rgba(255,255,255,0.5); }
+  15%  { box-shadow: 0 0 0 4px rgba(16,185,129,0.45), 0 0 32px rgba(16,185,129,0.25); border-color: rgba(16,185,129,0.6); }
+  60%  { box-shadow: 0 0 0 2px rgba(16,185,129,0.2),  0 0 16px rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); }
+  100% { box-shadow: var(--shadow-md); border-color: rgba(255,255,255,0.5); }
+}
+.recovery-flash {
+  animation: recovery-flash 1.4s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+/* ── Toast pop — "+1 ανάκτηση" badge ── */
+@keyframes toast-pop {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.85); }
+  20%  { opacity: 1; transform: translateY(0)   scale(1); }
+  75%  { opacity: 1; transform: translateY(0)   scale(1); }
+  100% { opacity: 0; transform: translateY(-4px) scale(0.9); }
+}
+.recovery-toast {
+  animation: toast-pop 2s cubic-bezier(0.4,0,0.2,1) forwards;
+  pointer-events: none;
 }
 
 .animate-fade  { animation: fadeIn  0.45s cubic-bezier(0.4,0,0.2,1) forwards; }
@@ -161,12 +192,16 @@ header p { color: var(--text-light); }
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-md);
-  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
+              transform 0.22s cubic-bezier(0.4,0,0.2,1);
 }
 .card-glass:hover {
-  box-shadow: 0 16px 40px rgba(0,0,0,0.09), 0 4px 12px rgba(0,0,0,0.05);
-  border-color: rgba(255,255,255,0.65);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+  border-color: rgba(255,255,255,0.72);
 }
+.card-glass:active { transform: translateY(0); }
 
 /* ── Stat Cards ── */
 .stat-card {
@@ -175,14 +210,16 @@ header p { color: var(--text-light); }
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important;
+  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
+              transform 0.22s cubic-bezier(0.4,0,0.2,1) !important;
 }
 .stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 28px -6px rgba(0,102,255,0.12), 0 4px 8px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(0,102,255,0.13), 0 4px 10px rgba(0,0,0,0.05);
   border-color: rgba(0,102,255,0.18);
 }
-.stat-card:active { transform: translateY(-1px); }
+.stat-card:active { transform: translateY(0); }
 .stat-card.stat-card--highlighted {
   border-left: 3px solid #3b82f6;
   box-shadow: 0 8px 24px -4px rgba(59,130,246,0.14), var(--shadow-sm);
@@ -220,17 +257,21 @@ header p { color: var(--text-light); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
+              transform 0.22s cubic-bezier(0.4,0,0.2,1);
 }
 .appointment-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 32px -6px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05);
   border-color: rgba(0,102,255,0.15);
 }
+.appointment-card:active { transform: translateY(0); }
 
 .appointment-card.urgent:hover {
-  border-color: rgba(239,68,68,0.4);
+  border-color: rgba(239,68,68,0.35);
+  box-shadow: 0 12px 32px -6px rgba(239,68,68,0.10), 0 4px 10px rgba(0,0,0,0.05);
 }
 
 .apt-main { display: flex; align-items: center; gap: 1.5rem; flex: 1; }
@@ -243,6 +284,18 @@ header p { color: var(--text-light); }
 .apt-reason p { font-size: 0.875rem; color: var(--text); max-width: 400px; }
 .apt-ai { font-size: 0.75rem; font-style: italic; color: var(--primary); margin-top: 4px; }
 .apt-actions { display: flex; gap: 8px; }
+
+/* ── Reusable card hover lift (for inline-styled cards) ── */
+.card-hover {
+  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
+              transform 0.22s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.card-hover:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 32px -6px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05) !important;
+}
+.card-hover:active { transform: translateY(0) !important; }
 
 /* ── Badges ── */
 .badge { padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
@@ -309,6 +362,20 @@ header p { color: var(--text-light); }
   border-radius: 8px;
 }
 
+/* ── Skeleton pulse (no-Tailwind version) ── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.skeleton {
+  background: rgba(226,232,240,0.7);
+  border-radius: 10px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+[data-theme="dark"] .skeleton {
+  background: rgba(30,41,59,0.8);
+}
+
 /* ── Status pulse ── */
 .status-pulse {
   width: 10px; height: 10px;
@@ -361,6 +428,19 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--shadow-md);
 }
 
+/* ── Grid cell glass (dashboard 3×2) ── */
+.grid-cell-glass {
+  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
+              transform 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+.grid-cell-glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06) !important;
+  border-color: rgba(255,255,255,0.72) !important;
+}
+.grid-cell-glass:active { transform: translateY(0); }
+
 /* ── Dark Mode ── */
 [data-theme="dark"] {
   --primary: #6366f1;
@@ -383,9 +463,20 @@ input:focus, textarea:focus, select:focus {
   --shadow-md: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
   --shadow-lg: 0 24px 48px -12px rgba(0,0,0,0.6);
   --shadow-glow: 0 0 0 1px rgba(99,102,241,0.15), 0 8px 32px rgba(99,102,241,0.12);
+  --modal-bg: rgba(15,23,42,0.97);
+  --modal-border: rgba(255,255,255,0.08);
+  --modal-header-bg: rgba(99,102,241,0.06);
+  --input-bg: rgba(10,15,30,0.8);
+  --input-border: rgba(255,255,255,0.1);
+  --cancel-bg: rgba(15,23,42,0.6);
+  --cancel-border: rgba(255,255,255,0.1);
+  --cancel-color: #94a3b8;
 }
 
 /* body dark bg — applied when html has data-theme=dark */
+html[data-theme="dark"] {
+  background-color: #0a0f1e;
+}
 html[data-theme="dark"] body {
   background-color: #0a0f1e;
   background-image:

@@ -5,13 +5,14 @@ const { comparePassword, generateAccessToken, generateRefreshToken, verifyToken,
 const { loginSchema, validate } = require('../services/validationService');
 const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const prisma = new PrismaClient();
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
 
-router.post('/login', validate(loginSchema), async (req, res) => {
+router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await prisma.user.findUnique({
@@ -67,6 +68,8 @@ router.post('/login', validate(loginSchema), async (req, res) => {
                 email: user.email,
                 avatarUrl: user.clinic.avatarUrl,
                 role: user.role,
+                userId: user.id,
+                userName: user.name || user.email,
                 isAdmin
             }
         });
@@ -76,7 +79,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     }
 });
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: 'Refresh token missing' });
 
@@ -107,7 +110,7 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-router.post('/logout', async (req, res) => {
+router.post('/logout', asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
@@ -116,7 +119,7 @@ router.post('/logout', async (req, res) => {
     res.json({ success: true });
 });
 
-router.post('/google', async (req, res) => {
+router.post('/google', asyncHandler(async (req, res) => {
     const { idToken } = req.body;
     try {
         const ticket = await client.verifyIdToken({
@@ -229,7 +232,7 @@ const requireAuth = async (req, res, next) => {
     next();
 };
 
-router.post('/mfa/setup', requireAuth, async (req, res) => {
+router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -246,7 +249,7 @@ router.post('/mfa/setup', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/mfa/verify', requireAuth, async (req, res) => {
+router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     const { secret, code } = req.body;
     try {
         const isValid = authenticator.check(code, secret);
@@ -263,7 +266,7 @@ router.post('/mfa/verify', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/mfa/login-verify', async (req, res) => {
+router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
     const { mfaToken, code } = req.body;
     try {
         const decoded = verifyToken(mfaToken);
@@ -317,7 +320,7 @@ router.post('/mfa/login-verify', async (req, res) => {
 });
 
 
-router.post('/mfa/disable', requireAuth, async (req, res) => {
+router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
     try {
         await prisma.user.update({
             where: { id: req.user.userId },

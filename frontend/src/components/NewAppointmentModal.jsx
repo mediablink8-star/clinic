@@ -29,11 +29,11 @@ const NewAppointmentModal = ({
                 onClick={e => e.stopPropagation()}
                 style={{
                     width: '100%', maxWidth: '520px',
-                    background: 'rgba(255,255,255,0.92)',
+                    background: 'var(--modal-bg)',
                     backdropFilter: 'blur(24px) saturate(200%)',
                     WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                     borderRadius: '28px',
-                    border: '1px solid rgba(255,255,255,0.7)',
+                    border: '1px solid var(--modal-border)',
                     boxShadow: '0 32px 64px -12px rgba(5,11,27,0.25), 0 0 0 1px rgba(255,255,255,0.5)',
                     overflow: 'hidden'
                 }}
@@ -41,9 +41,9 @@ const NewAppointmentModal = ({
                 {/* Header */}
                 <div style={{
                     padding: '1.5rem 1.75rem 1.25rem',
-                    borderBottom: '1px solid rgba(226,232,240,0.6)',
+                    borderBottom: '1px solid var(--border)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    background: 'linear-gradient(135deg, rgba(0,102,255,0.04) 0%, transparent 100%)'
+                    background: 'var(--modal-header-bg)'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
@@ -55,7 +55,7 @@ const NewAppointmentModal = ({
                             <Calendar size={16} color="white" />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '900', color: 'var(--secondary)', margin: 0 }}>Νέο Ραντεβού</h2>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '900', color: 'var(--text)', margin: 0 }}>Νέο Ραντεβού</h2>
                             <p style={{ fontSize: '0.7rem', color: '#94a3b8', margin: 0, fontWeight: '500' }}>Καταχώρηση νέας επίσκεψης</p>
                         </div>
                     </div>
@@ -63,9 +63,9 @@ const NewAppointmentModal = ({
                         onClick={onClose}
                         style={{
                             width: '32px', height: '32px', borderRadius: '8px',
-                            background: 'rgba(241,245,249,0.8)', border: 'none',
+                            background: 'var(--cancel-bg)', border: '1px solid var(--cancel-border)',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#64748b', transition: 'all 0.15s'
+                            color: 'var(--cancel-color)', transition: 'all 0.15s'
                         }}
                     >
                         <X size={16} />
@@ -82,9 +82,9 @@ const NewAppointmentModal = ({
                         <select
                             style={{
                                 width: '100%', padding: '11px 14px',
-                                borderRadius: '12px', border: '1px solid rgba(226,232,240,0.8)',
-                                background: 'rgba(248,250,252,0.8)', fontSize: '0.9rem',
-                                color: 'var(--secondary)', outline: 'none', fontWeight: '500'
+                                borderRadius: '12px', border: '1px solid var(--input-border)',
+                                background: 'var(--input-bg)', fontSize: '0.9rem',
+                                color: 'var(--text)', outline: 'none', fontWeight: '500'
                             }}
                             value={newAppt.patientId}
                             onChange={e => setNewAppt({ ...newAppt, patientId: e.target.value })}
@@ -103,10 +103,10 @@ const NewAppointmentModal = ({
                             placeholder="Περιγράψτε το πρόβλημα..."
                             style={{
                                 width: '100%', padding: '11px 14px',
-                                borderRadius: '12px', border: '1px solid rgba(226,232,240,0.8)',
-                                background: 'rgba(248,250,252,0.8)', fontSize: '0.9rem',
+                                borderRadius: '12px', border: '1px solid var(--input-border)',
+                                background: 'var(--input-bg)', fontSize: '0.9rem',
                                 minHeight: '90px', resize: 'none', outline: 'none',
-                                color: 'var(--secondary)', fontFamily: 'inherit'
+                                color: 'var(--text)', fontFamily: 'inherit'
                             }}
                             value={newAppt.reason}
                             onChange={e => {
@@ -146,8 +146,9 @@ const NewAppointmentModal = ({
                                 type="date"
                                 style={{
                                     width: '100%', padding: '11px 14px',
-                                    borderRadius: '12px', border: '1px solid rgba(226,232,240,0.8)',
-                                    background: 'rgba(248,250,252,0.8)', fontSize: '0.9rem', outline: 'none'
+                                    borderRadius: '12px', border: '1px solid var(--input-border)',
+                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: 'none',
+                                    color: 'var(--text)'
                                 }}
                                 value={newAppt.date}
                                 onChange={e => setNewAppt({ ...newAppt, date: e.target.value })}
@@ -161,8 +162,9 @@ const NewAppointmentModal = ({
                                 type="time"
                                 style={{
                                     width: '100%', padding: '11px 14px',
-                                    borderRadius: '12px', border: '1px solid rgba(226,232,240,0.8)',
-                                    background: 'rgba(248,250,252,0.8)', fontSize: '0.9rem', outline: 'none'
+                                    borderRadius: '12px', border: '1px solid var(--input-border)',
+                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: 'none',
+                                    color: 'var(--text)'
                                 }}
                                 value={newAppt.time}
                                 onChange={e => setNewAppt({ ...newAppt, time: e.target.value })}
@@ -177,9 +179,9 @@ const NewAppointmentModal = ({
                         onClick={onClose}
                         style={{
                             flex: 1, padding: '12px',
-                            borderRadius: '14px', border: '1px solid rgba(226,232,240,0.8)',
-                            background: 'rgba(248,250,252,0.8)', fontSize: '0.9rem',
-                            fontWeight: '700', color: '#64748b', cursor: 'pointer'
+                            borderRadius: '14px', border: '1px solid var(--cancel-border)',
+                            background: 'var(--cancel-bg)', fontSize: '0.9rem',
+                            fontWeight: '700', color: 'var(--cancel-color)', cursor: 'pointer'
                         }}
                     >
                         Ακύρωση

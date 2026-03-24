@@ -2,13 +2,46 @@ import React, { useState } from 'react';
 import { Brain, MessageSquare, PhoneCall, Zap, RefreshCw } from 'lucide-react';
 
 const services = [
-    { key: 'ai',       icon: Brain,        label: 'AI Assistant',    check: s => s?.aiConfigured },
-    { key: 'sms',      icon: MessageSquare, label: 'SMS Service',    check: s => s?.voiceConfigured },
-    { key: 'recovery', icon: PhoneCall,     label: 'Call Recovery',  check: s => s?.worker },
-    { key: 'webhook',  icon: Zap,           label: 'Automations',    check: s => s?.webhookConfigured },
+    {
+        key: 'ai',
+        icon: Brain,
+        label: 'AI Assistant',
+        check: s => s?.aiConfigured,
+        offlineLabel: 'Μη ρυθμισμένο',
+        actionLabel: 'Ρύθμιση',
+        actionTab: 'ai',
+    },
+    {
+        key: 'sms',
+        icon: MessageSquare,
+        label: 'SMS / Twilio',
+        check: s => s?.twilioConfigured,
+        offlineLabel: 'Μη ρυθμισμένο',
+        actionLabel: 'Προσθήκη credentials',
+        actionTab: 'ai',
+    },
+    {
+        key: 'recovery',
+        icon: PhoneCall,
+        label: 'Call Recovery',
+        check: s => s?.worker,
+        offlineLabel: 'Worker σταματημένος',
+        actionLabel: 'Επανεκκίνηση',
+        actionTab: null, // handled via page reload
+        actionReload: true,
+    },
+    {
+        key: 'webhook',
+        icon: Zap,
+        label: 'Automations',
+        check: s => s?.webhookConfigured,
+        offlineLabel: 'Μη ρυθμισμένο',
+        actionLabel: 'Ρύθμιση',
+        actionTab: 'settings',
+    },
 ];
 
-const SystemStatus = ({ status = {} }) => {
+const SystemStatus = ({ status = {}, setCurrentTab }) => {
     const [lastSync] = useState(new Date());
     const allOnline = services.every(s => s.check(status));
 
@@ -16,6 +49,14 @@ const SystemStatus = ({ status = {} }) => {
         const diff = Math.floor((Date.now() - d) / 1000);
         if (diff < 60) return `${diff}δ πριν`;
         return `${Math.floor(diff / 60)}λ πριν`;
+    };
+
+    const handleAction = (svc) => {
+        if (svc.actionReload) {
+            window.location.reload();
+        } else if (svc.actionTab && setCurrentTab) {
+            setCurrentTab(svc.actionTab);
+        }
     };
 
     return (
@@ -50,44 +91,74 @@ const SystemStatus = ({ status = {} }) => {
                     background: allOnline ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
                     color: allOnline ? '#10b981' : '#f59e0b',
                 }}>
-                    {allOnline ? 'ΟΛΑ ΕΝΕΡΓΑ' : 'ΜΕΡΙΚΩΣ'}
+                    {allOnline ? 'ΟΛΑ ΕΝΕΡΓΑ' : 'ΑΠΑΙΤΕΙΤΑΙ ΡΥΘΜΙΣΗ'}
                 </span>
             </div>
 
             {/* Service rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                {services.map(({ key, icon: Icon, label, check }) => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1 }}>
+                {services.map((svc) => {
+                    const { key, icon: Icon, label, check, offlineLabel, actionLabel } = svc;
                     const online = check(status);
                     return (
                         <div key={key} style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            padding: '9px 12px',
                             borderRadius: '12px',
-                            background: online ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.05)',
-                            border: `1px solid ${online ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)'}`,
+                            background: online ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.04)',
+                            border: `1px solid ${online ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)'}`,
                             flex: 1,
+                            gap: '8px',
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Icon + label */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                                 <div style={{
-                                    width: '28px', height: '28px', borderRadius: '8px',
-                                    background: online ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)',
+                                    width: '26px', height: '26px', borderRadius: '7px', flexShrink: 0,
+                                    background: online ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.08)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}>
-                                    <Icon size={13} color={online ? '#10b981' : '#ef4444'} />
+                                    <Icon size={12} color={online ? '#10b981' : '#ef4444'} />
                                 </div>
-                                <span style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--text)' }}>{label}</span>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text)', whiteSpace: 'nowrap' }}>{label}</div>
+                                    {!online && (
+                                        <div style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: '600', marginTop: '1px' }}>
+                                            {offlineLabel}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <div style={{
-                                    width: '6px', height: '6px', borderRadius: '50%',
-                                    background: online ? '#10b981' : '#ef4444',
-                                    boxShadow: online ? '0 0 6px rgba(16,185,129,0.6)' : 'none',
-                                }} />
-                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: online ? '#10b981' : '#ef4444' }}>
-                                    {online ? 'Online' : 'Offline'}
-                                </span>
+
+                            {/* Status dot + action button */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                {online ? (
+                                    <>
+                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.6)' }} />
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#10b981' }}>Online</span>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => handleAction(svc)}
+                                        style={{
+                                            padding: '3px 9px',
+                                            borderRadius: '7px',
+                                            border: '1px solid rgba(99,102,241,0.3)',
+                                            background: 'rgba(99,102,241,0.08)',
+                                            color: '#6366f1',
+                                            fontSize: '0.65rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                            transition: 'background 0.15s',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.16)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                                    >
+                                        {actionLabel} →
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );

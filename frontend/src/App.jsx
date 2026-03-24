@@ -263,10 +263,28 @@ const App = () => {
       case 'patients':
         return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':
-        return <Reports appointments={appointments} />;
+        return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
       case 'settings':
         return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => setClinic({ ...clinic, ...updated })} />;
       case 'ai':
+        if (clinic?.role === 'ASSISTANT') return <Dashboard
+          clinic={clinic}
+          appointments={appointments}
+          todayAppointments={todayAppointments}
+          upcomingAppointments={upcomingAppointments}
+          urgentCount={urgentCount}
+          patientsCount={patientsCount}
+          patients={patients}
+          token={token}
+          notifications={notifications}
+          recoveryStats={recoveryStats}
+          recoveryLog={recoveryLog}
+          setCurrentTab={setCurrentTab}
+          setShowModal={setShowModal}
+          systemStatus={systemStatus}
+          apiUsage={apiUsage}
+          loading={loading}
+        />;
         return <AISettings clinic={clinic} token={token} onUpdate={(updated) => setClinic({ ...clinic, ...updated })} />;
       default:
         return <div>Σε κατασκευή...</div>;

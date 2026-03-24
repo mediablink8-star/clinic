@@ -49,7 +49,8 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
-  role         Role     @default(STAFF)
+  role         Role     @default(RECEPTIONIST)
+  name         String   @default("")
   clinicId     String
   clinic       Clinic   @relation(fields: [clinicId], references: [id])
   refreshTokens RefreshToken[]
@@ -70,7 +71,9 @@ model RefreshToken {
 
 enum Role {
   ADMIN
-  STAFF
+  OWNER
+  RECEPTIONIST
+  ASSISTANT
 }
 
 model Patient {
@@ -185,9 +188,13 @@ model MissedCall {
   clinicId         String
   clinic           Clinic           @relation(fields: [clinicId], references: [id])
   fromNumber       String
+  callSid          String?          @unique // Twilio/external call ID for dedup (Fix 4)
   patientId        String?
   patient          Patient?         @relation(fields: [patientId], references: [id])
   status           MissedCallStatus @default(DETECTED)
+  smsStatus        String           @default("pending") // pending | processing | sent | failed | scheduled (Fix 5)
+  smsError         String?          // last SMS error message
+  scheduledSmsAt   DateTime?        // When outside working hours, SMS is scheduled for this time
   estimatedRevenue Float            @default(150.0)
   aiConversation   String?          // Stored JSON of SMS history
   lastSmsSentAt    DateTime?
@@ -197,6 +204,7 @@ model MissedCall {
 
   @@index([clinicId])
   @@index([status])
+  @@index([smsStatus])
 }
 
 enum MissedCallStatus {

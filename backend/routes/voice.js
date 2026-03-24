@@ -2,12 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const asyncHandler = require('../middleware/asyncHandler');
 
-/**
- * @route POST /api/voice/twilio
- * @desc Twilio AI Voice Webhook 
- */
-router.post('/twilio', async (req, res) => {
+router.post('/twilio', asyncHandler(async (req, res) => {
     const twilio = require('twilio');
     const twiml = new twilio.twiml.VoiceResponse();
 

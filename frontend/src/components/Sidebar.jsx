@@ -3,13 +3,33 @@ import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, Lo
 import logo from '../assets/logo.png';
 
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode }) => {
-    const navItems = [
-        { id: 'dashboard', label: 'Πίνακας Ελέγχου', icon: LayoutDashboard },
-        { id: 'appointments', label: 'Ραντεβού', icon: Calendar },
-        { id: 'patients', label: 'Ασθενείς', icon: Users },
-        { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
-        { id: 'ai', label: 'AI', icon: Brain },
-        { id: 'settings', label: 'Ρυθμίσεις', icon: Settings },
+    const navSections = [
+        {
+            label: 'Επισκόπηση',
+            items: [
+                { id: 'dashboard', label: 'Πίνακας Ελέγχου', icon: LayoutDashboard },
+            ]
+        },
+        {
+            label: 'Διαχείριση',
+            items: [
+                { id: 'appointments', label: 'Ραντεβού', icon: Calendar },
+                { id: 'patients', label: 'Ασθενείς', icon: Users },
+            ]
+        },
+        {
+            label: 'Αυτοματισμός',
+            items: [
+                ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'AI & Ειδοποιήσεις', icon: Brain }] : []),
+                { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
+            ]
+        },
+        {
+            label: 'Σύστημα',
+            items: [
+                { id: 'settings', label: 'Ρυθμίσεις', icon: Settings },
+            ]
+        },
     ];
 
     return (
@@ -45,37 +65,52 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 </button>
             </div>
 
-            <nav style={{ flex: 1, padding: '0 12px' }}>
-                {navItems.map((item) => (
-                    <a
-                        key={item.id}
-                        href="#"
-                        className={`nav-link ${currentTab === item.id ? 'active' : ''}`}
-                        onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentTab(item.id);
-                        }}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '14px',
-                            padding: '16px 20px',
-                            textDecoration: 'none',
-                            color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
-                            background: currentTab === item.id
-                                ? 'linear-gradient(135deg, rgba(0,102,255,0.1) 0%, rgba(0,102,255,0.06) 100%)'
-                                : 'transparent',
-                            borderRadius: '18px',
-                            fontWeight: currentTab === item.id ? '900' : '700',
-                            marginBottom: '6px',
-                            transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-                            fontSize: '0.95rem',
-                            border: `1px solid ${currentTab === item.id ? 'rgba(0,102,255,0.15)' : 'transparent'}`,
-                            boxShadow: currentTab === item.id ? '0 4px 14px rgba(0,102,255,0.1)' : 'none'
-                        }}
-                    >
-                        <item.icon size={22} strokeWidth={currentTab === item.id ? 2.5 : 2} /> {item.label}
-                    </a>
+            <nav style={{ flex: 1, padding: '0 12px', overflowY: 'auto' }}>
+                {navSections.map((section, si) => (
+                    <div key={section.label} style={{ marginBottom: si < navSections.length - 1 ? '8px' : 0 }}>
+                        <div style={{
+                            fontSize: '0.65rem',
+                            fontWeight: '800',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase',
+                            color: 'var(--text-light)',
+                            opacity: 0.5,
+                            padding: '10px 20px 4px 20px',
+                        }}>
+                            {section.label}
+                        </div>
+                        {section.items.map((item) => (
+                            <a
+                                key={item.id}
+                                href="#"
+                                className={`nav-link ${currentTab === item.id ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentTab(item.id);
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '14px',
+                                    padding: '13px 20px',
+                                    textDecoration: 'none',
+                                    color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
+                                    background: currentTab === item.id
+                                        ? 'linear-gradient(135deg, rgba(0,102,255,0.1) 0%, rgba(0,102,255,0.06) 100%)'
+                                        : 'transparent',
+                                    borderRadius: '18px',
+                                    fontWeight: currentTab === item.id ? '900' : '700',
+                                    marginBottom: '2px',
+                                    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                                    fontSize: '0.95rem',
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,102,255,0.15)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 4px 14px rgba(0,102,255,0.1)' : 'none'
+                                }}
+                            >
+                                <item.icon size={22} strokeWidth={currentTab === item.id ? 2.5 : 2} /> {item.label}
+                            </a>
+                        ))}
+                    </div>
                 ))}
             </nav>
 
@@ -159,7 +194,9 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     </div>
                     <div className="info" style={{ flex: 1, overflow: 'hidden' }}>
                         <div className="name" style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic?.name || 'Ιατρείο'}</div>
-                        <div className="role" style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Διαχειριστής</div>
+                        <div className="role" style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>
+                            {clinic?.role === 'OWNER' ? 'Ιδιοκτήτης' : clinic?.role === 'RECEPTIONIST' ? 'Γραμματέας' : clinic?.role === 'ASSISTANT' ? 'Βοηθός' : 'Διαχειριστής'}
+                        </div>
                     </div>
                     <button
                         className="btn-icon-sm"

@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { safeAddReminder } = require('./queueService');
+const { triggerWebhook } = require('./webhookService');
 
 /**
  * Enqueuer to find scheduled notifications and add them to BullMQ
@@ -50,4 +51,72 @@ function startFollowUpWorker() {
     });
 }
 
-module.exports = { startNotificationWorker, startFollowUpWorker };
+/**
+ * Scheduled SMS worker — fires queued missed-call SMS when working hours begin.
+ * Runs every minute, picks up any MissedCall with smsStatus='scheduled'
+ * where scheduledSmsAt <= now.
+ */
+function startScheduledSmsWorker() {
+    cron.schedule('* * * * *', async () => {
+        const now = new Date();
+        try {
+            const due = await prisma.missedCall.findMany({
+                where: {
+                    smsStatus: 'scheduled',
+                    scheduledSmsAt: { lte: now }
+                },
+                include: { clinic: true }
+            });
+
+            for (const mc of due) {
+                const clinic = mc.clinic;
+                if (!clinic) continue;
+
+                console.log(`[ScheduledSMS] Firing delayed SMS for ${mc.fromNumber} (missedCallId: ${mc.id})`);
+
+                await prisma.missedCall.update({
+                    where: { id: mc.id },
+                    data: { smsStatus: 'processing' }
+                });
+
+                if (clinic.webhookUrl) {
+                    try {
+                        const result = await triggerWebhook(
+                            'missed_call.detected',
+                            { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId },
+                            clinic.webhookUrl,
+                            clinic.webhookSecret,
+                            { maxRetries: 3, baseDelay: 500 }
+                        );
+
+                        await prisma.missedCall.update({
+                            where: { id: mc.id },
+                            data: result.success
+                                ? { smsStatus: 'sent', lastSmsSentAt: new Date() }
+                                : { smsStatus: 'failed', smsError: result.error || 'Webhook failed' }
+                        });
+                    } catch (err) {
+                        await prisma.missedCall.update({
+                            where: { id: mc.id },
+                            data: { smsStatus: 'failed', smsError: err.message }
+                        });
+                    }
+                } else {
+                    // No webhook configured — mark as pending (will send when configured)
+                    await prisma.missedCall.update({
+                        where: { id: mc.id },
+                        data: { smsStatus: 'pending' }
+                    });
+                }
+            }
+
+            if (due.length > 0) {
+                console.log(`[ScheduledSMS] Processed ${due.length} delayed SMS(es)`);
+            }
+        } catch (err) {
+            console.error('[ScheduledSMS] Worker error:', err.message);
+        }
+    });
+}
+
+module.exports = { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker };

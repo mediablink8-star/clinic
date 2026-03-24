@@ -62,13 +62,14 @@ const MessageModal = ({ isOpen, onClose, patient }) => {
       zIndex: 1000, padding: '1rem'
     }}>
       <div style={{
-        background: 'var(--card-bg, white)',
+        background: 'var(--modal-bg)',
         borderRadius: '24px',
         padding: '2rem',
         width: '100%',
         maxWidth: '500px',
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)',
-        animation: 'fadeIn 0.25s ease'
+        animation: 'fadeIn 0.25s ease',
+        border: '1px solid var(--modal-border)'
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -77,7 +78,7 @@ const MessageModal = ({ isOpen, onClose, patient }) => {
               <MessageSquare size={20} color="var(--primary)" />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--secondary)' }}>Αποστολή Μηνύματος</h2>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Αποστολή Μηνύματος</h2>
               <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Προς: {patient.name} ({patient.phone})</p>
             </div>
           </div>
@@ -130,7 +131,7 @@ const MessageModal = ({ isOpen, onClose, patient }) => {
           <button
             onClick={onClose}
             disabled={sending}
-            style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: '#64748b' }}
+            style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}
           >
             Ακύρωση
           </button>

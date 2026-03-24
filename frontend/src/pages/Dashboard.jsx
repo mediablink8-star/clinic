@@ -15,37 +15,45 @@ import QuickActions from '../components/QuickActions';
 import TodayStatus from '../components/TodayStatus';
 import SystemStatus from '../components/SystemStatus';
 import AutomationLog from '../components/AutomationLog';
+import RecoveryFunnel from '../components/RecoveryFunnel';
+import OnboardingChecklist from '../components/OnboardingChecklist';
+
+const SkBox = ({ w = '100%', h = 20, r = 10, style = {} }) => (
+    <div className="skeleton" style={{ width: w, height: h, borderRadius: r, flexShrink: 0, ...style }} />
+);
 
 const DashboardSkeleton = () => (
-    <div className="animate-fade space-y-8">
-        <div className="flex justify-between items-end mb-8">
-            <div className="space-y-3">
-                <div className="shimmer w-64 h-10" />
-                <div className="shimmer w-48 h-4" />
+    <div style={{ paddingBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <SkBox w={280} h={36} r={10} />
+                <SkBox w={200} h={16} r={8} />
             </div>
-            <div className="flex gap-3">
-                <div className="shimmer w-32 h-10 rounded-xl" />
-                <div className="shimmer w-40 h-10 rounded-xl" />
+            <div style={{ display: 'flex', gap: '10px' }}>
+                <SkBox w={130} h={42} r={14} />
+                <SkBox w={150} h={42} r={14} />
             </div>
         </div>
-        <div className="grid grid-cols-5 gap-6">
-            {[...Array(5)].map((_, i) => (
-                <div key={i} className="shimmer h-32 rounded-3xl" />
+
+        {/* Stat cards row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="skeleton" style={{ height: 90, borderRadius: 20 }} />
             ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 320px', gap: '2rem' }}>
-            <div className="space-y-8">
-                <div className="shimmer h-[350px] rounded-3xl" />
-                <div className="shimmer h-[350px] rounded-3xl" />
-            </div>
-            <div className="space-y-8">
-                <div className="shimmer h-[420px] rounded-3xl" />
-                <div className="shimmer h-[300px] rounded-3xl" />
-            </div>
-            <div className="space-y-8">
-                <div className="shimmer h-[350px] rounded-3xl" />
-                <div className="shimmer h-[250px] rounded-3xl" />
-            </div>
+
+        {/* 3×2 grid */}
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateRows: 'repeat(2, minmax(280px, 1fr))',
+            gap: '1rem',
+            minHeight: '560px',
+        }}>
+            {[...Array(6)].map((_, i) => (
+                <div key={i} className="skeleton" style={{ borderRadius: 24 }} />
+            ))}
         </div>
     </div>
 );
@@ -82,6 +90,29 @@ const Dashboard = ({
     const hasLoaded = React.useRef(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     const [configWarnings, setConfigWarnings] = React.useState([]);
+    const [testRecoveryStatus, setTestRecoveryStatus] = React.useState(null);
+
+    const handleTestRecovery = React.useCallback(async () => {
+        if (testRecoveryStatus === 'sending') return;
+        setTestRecoveryStatus('sending');
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+        try {
+            await fetch(`${API_BASE}/webhook/missed-call`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    'x-webhook-secret': import.meta.env.VITE_WEBHOOK_SECRET || ''
+                },
+                body: JSON.stringify({ phone: '+30690000000', clinicId: clinic?.id, callSid: `demo_${Date.now()}` })
+            });
+            setTestRecoveryStatus('sent');
+        } catch {
+            setTestRecoveryStatus('error');
+        } finally {
+            setTimeout(() => setTestRecoveryStatus(null), 3000);
+        }
+    }, [token, clinic, testRecoveryStatus]);
 
     React.useEffect(() => {
         if (!token) return;
@@ -148,6 +179,13 @@ const Dashboard = ({
                     </button>
                 </div>
             </div>
+
+            {/* Onboarding Checklist */}
+            <OnboardingChecklist
+                clinic={clinic}
+                systemStatus={systemStatus}
+                recoveryLog={logsArray}
+            />
 
             {/* Config Warnings */}
             {configWarnings.length > 0 && (
@@ -231,7 +269,7 @@ const Dashboard = ({
                     {/* Row 1 */}
                     <RecoveryFeed logs={recoveryLog} muted={true} />
 
-                    <div className="grid-cell-glass" style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.5)', padding: '1.1rem 1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div className="grid-cell-glass card-hover" style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.5)', padding: '1.1rem 1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Γρήγορες Ενέργειες</h3>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
@@ -246,16 +284,11 @@ const Dashboard = ({
                     <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
 
                     {/* Row 2 */}
-                    <TodayStatus
-                        missedCalls={missedCallsToday}
-                        recovered={recoveryStats?.recovered || 0}
-                        appointmentsToday={todayAppointments?.length || 0}
-                        activeChats={activeConversations}
-                    />
+                    <RecoveryFunnel logs={logsArray} stats={recoveryStats} />
 
-                    <SystemStatus status={systemStatus} />
+                    <SystemStatus status={systemStatus} setCurrentTab={setCurrentTab} />
 
-                    <AutomationLog logs={logsArray} />
+                    <AutomationLog logs={logsArray} onTestRecovery={handleTestRecovery} />
                 </div>
             </section>
         </div>

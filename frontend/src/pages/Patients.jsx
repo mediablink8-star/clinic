@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Clock, Search, MessageSquare, UserPlus, X } from 'lucide-react';
+import { User, Clock, Search, MessageSquare, UserPlus, X, Download } from 'lucide-react';
 import axios from 'axios';
 import MessageModal from '../components/MessageModal';
 
@@ -33,29 +33,29 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '440px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ background: 'var(--modal-bg)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '440px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0 }}>Νέος Ασθενής</h2>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Νέος Ασθενής</h2>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                         <X size={20} />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Ονοματεπώνυμο *</label>
-                        <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="π.χ. Γιώργος Παπαδόπουλος" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Ονοματεπώνυμο *</label>
+                        <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="π.χ. Γιώργος Παπαδόπουλος" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Τηλέφωνο *</label>
-                        <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="π.χ. 6912345678" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Τηλέφωνο *</label>
+                        <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="π.χ. 6912345678" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '4px' }}>Email (προαιρετικό)</label>
-                        <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="π.χ. user@example.com" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Email (προαιρετικό)</label>
+                        <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="π.χ. user@example.com" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
                     </div>
                     {error && <p style={{ color: '#ef4444', fontSize: '0.8125rem', margin: 0 }}>{error}</p>}
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                        <button type="button" onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem' }}>Ακύρωση</button>
+                        <button type="button" onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Ακύρωση</button>
                         <button type="submit" disabled={loading} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: loading ? 0.7 : 1 }}>
                             {loading ? 'Αποθήκευση...' : 'Δημιουργία'}
                         </button>
@@ -77,6 +77,27 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
         p.email?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const handleExportCSV = () => {
+        const rows = [
+            ['Ονοματεπώνυμο', 'Τηλέφωνο', 'Email', 'Ραντεβού', 'Εγγραφή'],
+            ...patients.map(p => [
+                p.name || '',
+                p.phone || '',
+                p.email || '',
+                p.appointments?.length || 0,
+                p.createdAt ? new Date(p.createdAt).toLocaleDateString('el-GR') : ''
+            ])
+        ];
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ασθενείς_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <section className="animate-fade">
             <header style={{ marginBottom: 'var(--section-gap)', padding: '2rem', background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)', borderRadius: '24px', color: 'white', boxShadow: 'var(--shadow-lg)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -85,10 +106,16 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                         <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1.5px', marginBottom: '8px', color: 'white' }}>Αρχείο Ασθενών</h1>
                         <p style={{ fontSize: '1.1rem', fontWeight: '600', opacity: 0.8 }}>Λεπτομερές ιστορικό ασθενών και στοιχεία επικοινωνίας.</p>
                     </div>
-                    <button onClick={() => setShowNewPatient(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        <UserPlus size={18} />
-                        Νέος Ασθενής
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
+                            <Download size={16} />
+                            Εξαγωγή CSV
+                        </button>
+                        <button onClick={() => setShowNewPatient(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            <UserPlus size={18} />
+                            Νέος Ασθενής
+                        </button>
+                    </div>
                 </div>
                 <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(100px)', opacity: 0.3, borderRadius: '50%' }}></div>
             </header>
@@ -107,7 +134,7 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                     </div>
                 ) : (
                     filtered.map((p, idx) => (
-                        <div key={p.id} className="animate-fade" style={{
+                        <div key={p.id} className="animate-fade card-hover" style={{
                             animationDelay: `${idx * 0.05}s`,
                             display: 'flex',
                             alignItems: 'center',

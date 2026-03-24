@@ -140,7 +140,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'var(--card-bg, white)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}>
+            <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -148,7 +148,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                             <Send size={18} color="var(--primary)" />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0 }}>Αποστολή SMS</h2>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Αποστολή SMS</h2>
                             <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Επιλέξτε ασθενή και γράψτε μήνυμα</p>
                         </div>
                     </div>
@@ -168,14 +168,14 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                                 placeholder="Αναζήτηση ασθενή..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                                style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
                             />
                         </div>
                         <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             {filtered.length === 0 ? (
                                 <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>Δεν βρέθηκαν ασθενείς</p>
                             ) : filtered.map(p => (
-                                <button key={p.id} onClick={() => setSelected(p)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--card-bg, white)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                                <button key={p.id} onClick={() => setSelected(p)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'var(--text)' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary)', flexShrink: 0 }}>
                                         {p.name?.charAt(0)}
                                     </div>
@@ -214,7 +214,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                                 onChange={e => setMessage(e.target.value)}
                                 placeholder="Πληκτρολογήστε το μήνυμά σας..."
                                 disabled={sending || status?.type === 'success'}
-                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.875rem', resize: 'none', minHeight: '110px', boxSizing: 'border-box', outline: 'none' }}
+                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', minHeight: '110px', boxSizing: 'border-box', outline: 'none' }}
                             />
                             <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>{message.length} χαρακτήρες • 1 πίστωση</p>
                         </div>
@@ -227,7 +227,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                         )}
 
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--card-bg, white)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem' }}>Ακύρωση</button>
+                            <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Ακύρωση</button>
                             <button onClick={handleSend} disabled={sending || !message.trim() || status?.type === 'success'} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'var(--primary)', color: 'white', cursor: (sending || !message.trim()) ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (sending || !message.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                 <Send size={15} />
                                 {sending ? 'Αποστολή...' : 'Αποστολή SMS'}
@@ -250,14 +250,14 @@ const CallPatientModal = ({ patients = [], onClose }) => {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'var(--card-bg, white)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)' }}>
+            <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ background: '#f0fdf4', padding: '8px', borderRadius: '10px' }}>
                             <Phone size={18} color="#10b981" />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0 }}>Κλήση Ασθενή</h2>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Κλήση Ασθενή</h2>
                             <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Επιλέξτε ασθενή για κλήση</p>
                         </div>
                     </div>
@@ -274,7 +274,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                         placeholder="Αναζήτηση ασθενή..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--border)', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
                     />
                 </div>
 
@@ -282,7 +282,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                     {filtered.length === 0 ? (
                         <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>Δεν βρέθηκαν ασθενείς</p>
                     ) : filtered.map(p => (
-                        <a key={p.id} href={`tel:${p.phone}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--card-bg, white)', textDecoration: 'none', color: 'inherit' }}
+                        <a key={p.id} href={`tel:${p.phone}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', textDecoration: 'none', color: 'var(--text)' }}
                             onClick={onClose}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: '#10b981', flexShrink: 0 }}>
@@ -313,10 +313,16 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
         setTestStatus('sending');
         try {
             await axios.post(`${API_BASE}/webhook/missed-call`, {
-                fromNumber: '+30690000000',
+                phone: '+30690000000',
+                clinicId: clinic?.id,
                 callSid: `demo_${Date.now()}`,
                 timestamp: new Date().toISOString()
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'x-webhook-secret': import.meta.env.VITE_WEBHOOK_SECRET || ''
+                }
+            });
             setTestStatus('sent');
             setTimeout(() => setTestStatus(null), 3000);
         } catch {
@@ -328,21 +334,28 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
     return (
         <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+
+                {/* Primary */}
                 <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
+
+                {/* Secondary */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Προσθήκη Ασθενή" onClick={onAddPatient} variant="secondary" />
-                    <QuickActionBtn icon={Calendar} label="Πρόγραμμα" onClick={onViewSchedule} variant="secondary" />
+                    <QuickActionBtn icon={UserPlus} label="Ασθενής" onClick={onAddPatient} variant="secondary" />
+                    <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
+                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
                 </div>
 
-                <QuickActionBtn
-                    icon={FlaskConical}
-                    label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Test Recovery SMS'}
-                    onClick={handleTestRecovery}
-                    variant="test"
-                />
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={Send} label="Αποστολή SMS" onClick={() => setShowSMS(true)} variant="outline" />
-                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="outline" />
+                {/* Developer Tools — collapsed at bottom */}
+                <div style={{ marginTop: '0.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                        Developer Tools
+                    </div>
+                    <QuickActionBtn
+                        icon={FlaskConical}
+                        label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Test Recovery SMS'}
+                        onClick={handleTestRecovery}
+                        variant="test"
+                    />
                 </div>
             </div>
 

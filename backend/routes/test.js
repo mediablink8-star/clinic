@@ -3,15 +3,9 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { triggerWebhook } = require('../services/webhookService');
+const asyncHandler = require('../middleware/asyncHandler');
 
-// Middleware to require clinic context is NOT applied globally here
-// because we might want to test generically, but we'll try to use it if passed.
-
-/**
- * @route POST /api/test/simulate-vapi
- * @desc Simulates a Vapi webhook call (booking request)
- */
-router.post('/simulate-vapi', async (req, res) => {
+router.post('/simulate-vapi', asyncHandler(async (req, res) => {
     // req.clinic and req.clinicId are now attached by mandatory requireClinic middleware in index.js
     const clinic = req.clinic;
 
@@ -117,7 +111,7 @@ router.post('/simulate-vapi', async (req, res) => {
  * @route POST /api/test/ping-make
  * @desc Sends a simple "ping" event to the webhook URL
  */
-router.post('/ping-make', async (req, res) => {
+router.post('/ping-make', asyncHandler(async (req, res) => {
     const clinic = req.clinic;
 
     if (!clinic || !clinic.webhookUrl) {

@@ -1,19 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React from 'react';
 import { ClipboardList, TrendingUp, ThumbsUp, Minus, ThumbsDown, Calendar, PhoneMissed, CheckCircle2, Euro } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-
-const Reports = ({ appointments }) => {
-    const [recoveryStats, setRecoveryStats] = useState(null);
-    const [recoveryLog, setRecoveryLog] = useState([]);
-
-    useEffect(() => {
-        const token = localStorage.getItem('clinic_token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        axios.get(`${API_BASE}/recovery/stats`, { headers }).then(r => setRecoveryStats(r.data)).catch(() => {});
-        axios.get(`${API_BASE}/recovery/log`, { headers }).then(r => setRecoveryLog(Array.isArray(r.data) ? r.data : [])).catch(() => {});
-    }, []);
+const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: recoveryLogProp }) => {
+    const recoveryStats = recoveryStatsProp || null;
+    const recoveryLog = Array.isArray(recoveryLogProp) ? recoveryLogProp : [];
 
     const sentimentStats = appointments.reduce((acc, apt) => {
         apt.feedbacks?.forEach(f => {

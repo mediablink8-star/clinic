@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 const crypto = require('crypto');
 const axios = require('axios');
 const { validate, webhookSchema } = require('../services/validationService');
+const asyncHandler = require('../middleware/asyncHandler');
 
 // --- RELIABILITY UTILS ---
 const withRetries = async (fn, desc = 'Action', maxRetries = 3) => {
@@ -33,7 +34,7 @@ const withRetries = async (fn, desc = 'Action', maxRetries = 3) => {
  * @returns { success: true, latency: 320, provider: 'gemini' }
  *       or { success: false, error: 'Invalid API key' }
  */
-router.post('/test-ai', async (req, res) => {
+router.post('/test-ai', asyncHandler(async (req, res) => {
     const clinic = req.clinic;
     const { provider = 'gemini', key } = req.body;
 
@@ -114,7 +115,7 @@ router.post('/test-ai', async (req, res) => {
  * @route POST /api/integrations/test-twilio
  * @desc  Tests Twilio connectivity.
  */
-router.post('/test-twilio', async (req, res) => {
+router.post('/test-twilio', asyncHandler(async (req, res) => {
     const { sid, token } = req.body;
     let resolvedSid = sid;
     let resolvedToken = token;
@@ -160,7 +161,10 @@ router.post('/test-twilio', async (req, res) => {
  * @route POST /api/integrations/save-ai-key
  * @desc  Encrypts and saves the AI provider API key for the clinic.
  */
-router.post('/save-ai-key', async (req, res) => {
+router.post('/save-ai-key', asyncHandler(async (req, res) => {
+    if (!['OWNER', 'ADMIN'].includes(req.user.role)) {
+        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
+    }
     const { provider = 'gemini', key } = req.body;
 
     if (!key || key.startsWith('********')) {
@@ -204,7 +208,10 @@ router.post('/save-ai-key', async (req, res) => {
  * @route POST /api/integrations/save-twilio-keys
  * @desc  Encrypts and saves the Twilio credentials.
  */
-router.post('/save-twilio-keys', async (req, res) => {
+router.post('/save-twilio-keys', asyncHandler(async (req, res) => {
+    if (!['OWNER', 'ADMIN'].includes(req.user.role)) {
+        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
+    }
     const { sid, token, phone } = req.body;
 
     try {
@@ -228,7 +235,7 @@ router.post('/save-twilio-keys', async (req, res) => {
  * @route POST /api/integrations/test-webhook
  * @desc  Tests the webhook URL by sending a signed POST request.
  */
-router.post('/test-webhook', async (req, res) => {
+router.post('/test-webhook', asyncHandler(async (req, res) => {
     const { url, secret } = req.body;
 
     // Reliability: Validate URL format
@@ -328,7 +335,7 @@ router.post('/test-webhook', async (req, res) => {
  * @route POST /api/integrations/save-webhook
  * @desc  Saves the Webhook URL and Secret.
  */
-router.post('/save-webhook', async (req, res) => {
+router.post('/save-webhook', asyncHandler(async (req, res) => {
     const { url, secret } = req.body;
 
     if (!url) {

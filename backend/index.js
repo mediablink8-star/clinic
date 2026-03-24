@@ -22,6 +22,7 @@ const cors = require('cors');
 const webhookLimiter = rateLimit({ windowMs: 60000, max: 30, message: { error: 'Too many webhook requests' } });
 const cookieParser = require('cookie-parser');
 const { triggerWebhook } = require('./services/webhookService');
+const { checkWorkingHours } = require('./services/workingHours');
 const { logAction } = require('./services/auditService');
 const { encrypt, decrypt } = require('./services/encryptionService');
 const { reminderWorker, connection } = require('./services/queueService');
@@ -63,6 +64,7 @@ app.use((req, res, next) => {
 
 const { verifyToken } = require('./services/authService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('./services/validationService');
+const asyncHandler = require('./middleware/asyncHandler');
 
 // --- SAAS MIDDLEWARE ---
 
@@ -102,6 +104,14 @@ const requireRole = (role) => {
 // Admin middleware for global control
 const requireAdmin = [requireAuth, requireRole('ADMIN')];
 
+// Owner middleware — clinic-level owner or system admin
+const requireOwner = (req, res, next) => {
+    if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
+        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
+    }
+    next();
+};
+
 // --- ROUTES ---
 
 // Public / Health
@@ -112,31 +122,25 @@ const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 
 // Admin (Protected)
-app.get('/api/admin/usage', requireAdmin, async (req, res) => {
-    try {
-        const usage = await prisma.clinic.findMany({
-            select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, dailyUsedCount: true, dailyMessageCap: true, creditResetDate: true }
-        });
-        res.json(usage);
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.get('/api/admin/usage', requireAdmin, asyncHandler(async (req, res) => {
+    const usage = await prisma.clinic.findMany({
+        select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, dailyUsedCount: true, dailyMessageCap: true, creditResetDate: true }
+    });
+    res.json(usage);
+}));
 
-app.get('/api/admin/logs', requireAdmin, async (req, res) => {
-    try {
-        const logs = await prisma.messageLog.findMany({
-            take: 50, orderBy: { timestamp: 'desc' }, include: { clinic: { select: { name: true } } }
-        });
-        res.json(logs);
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.get('/api/admin/logs', requireAdmin, asyncHandler(async (req, res) => {
+    const logs = await prisma.messageLog.findMany({
+        take: 50, orderBy: { timestamp: 'desc' }, include: { clinic: { select: { name: true } } }
+    });
+    res.json(logs);
+}));
 
-app.post('/api/admin/add-credits', requireAdmin, async (req, res) => {
-    try {
-        const { clinicId, amount } = req.body;
-        const clinic = await prisma.clinic.update({ where: { id: clinicId }, data: { messageCredits: { increment: parseInt(amount) } } });
-        res.json({ success: true, newBalance: clinic.messageCredits });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.post('/api/admin/add-credits', requireAdmin, asyncHandler(async (req, res) => {
+    const { clinicId, amount } = req.body;
+    const clinic = await prisma.clinic.update({ where: { id: clinicId }, data: { messageCredits: { increment: parseInt(amount) } } });
+    res.json({ success: true, newBalance: clinic.messageCredits });
+}));
 
 // Clinic Scoped Routes
 const analysisRouter = require('./routes/analysis');
@@ -152,130 +156,164 @@ app.use('/api/test', requireAdmin, testRouter);
 const integrationsRouter = require('./routes/integrations');
 app.use('/api/integrations', requireAuth, integrationsRouter);
 
+const teamRouter = require('./routes/team');
+app.use('/api/team', requireAuth, teamRouter);
+
 // Unauthenticated Webhooks (Self-protected via HMAC inside)
 const voiceRouter = require('./routes/voice');
+const webhookAuth = require('./middleware/webhookAuth');
 app.use('/api/voice', voiceRouter);
 
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
 
 // --- TEST / DEMO ROUTES ---
-app.post('/api/webhook/missed-call', webhookLimiter, requireAuth, async (req, res) => {
-    // Fix 3: Webhook secret validation
-    const secret = req.headers['x-webhook-secret'];
-    if (process.env.WEBHOOK_SECRET && secret !== process.env.WEBHOOK_SECRET) {
-        return res.status(401).json({ error: 'Invalid webhook secret' });
-    }
-    try {
-        const { phone = '+30690000000' } = req.body;
-        const missedCall = await prisma.missedCall.create({
-            data: {
-                clinicId: req.clinicId,
-                fromNumber: phone,
-                status: 'RECOVERING',
-                estimatedRevenue: 80
-            }
-        });
+app.post('/api/webhook/missed-call', webhookLimiter, webhookAuth, asyncHandler(async (req, res) => {
+    const { phone = '+30690000000', clinicId, callSid } = req.body;
 
-        // Trigger webhook if configured
-        const clinic = req.clinic;
-        if (clinic.webhookUrl) {
-            triggerWebhook('missed_call.detected', {
+    if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
+
+    // Fix 4 — Dedup by callSid
+    if (callSid) {
+        const existing = await prisma.missedCall.findFirst({ where: { callSid } });
+        if (existing) {
+            return res.json({ success: true, duplicate: true, missedCallId: existing.id });
+        }
+    }
+
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+
+    // --- Working Hours Check ---
+    const aiConfig = JSON.parse(clinic.aiConfig || '{}');
+    const workingHours = aiConfig.workingHours || null;
+    const now = new Date();
+    const { withinHours, scheduledAt } = checkWorkingHours(now, workingHours);
+
+    // Fix 5 — Create with smsStatus: pending
+    const missedCall = await prisma.missedCall.create({
+        data: {
+            clinicId,
+            fromNumber: phone,
+            callSid: callSid || null,
+            status: 'RECOVERING',
+            smsStatus: withinHours ? 'pending' : 'scheduled',
+            scheduledSmsAt: withinHours ? null : scheduledAt,
+            estimatedRevenue: 80
+        }
+    });
+
+    if (!withinHours) {
+        // Outside working hours — SMS will be sent at scheduledAt by the cron job
+        const fmt = scheduledAt.toLocaleString('el-GR', { timeZone: 'Europe/Athens', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+        console.log(`[WorkingHours] Outside hours — SMS for ${phone} scheduled at ${fmt}`);
+        return res.json({ success: true, missedCallId: missedCall.id, scheduled: true, scheduledAt });
+    }
+
+    // Mark as processing before triggering
+    await prisma.missedCall.update({
+        where: { id: missedCall.id },
+        data: { smsStatus: 'processing' }
+    });
+
+    if (clinic.webhookUrl) {
+        try {
+            const result = await triggerWebhook('missed_call.detected', {
                 phone,
                 missedCallId: missedCall.id,
-                clinicId: req.clinicId
-            }, clinic.webhookUrl, clinic.webhookSecret).catch(() => {});
-        }
+                clinicId
+            }, clinic.webhookUrl, clinic.webhookSecret, { maxRetries: 3, baseDelay: 500 });
 
-        res.json({ success: true, missedCallId: missedCall.id });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+            if (result.success) {
+                await prisma.missedCall.update({
+                    where: { id: missedCall.id },
+                    data: { smsStatus: 'sent', lastSmsSentAt: new Date() }
+                });
+            } else {
+                await prisma.missedCall.update({
+                    where: { id: missedCall.id },
+                    data: { smsStatus: 'failed', smsError: result.error || 'Webhook failed' }
+                });
+            }
+        } catch (webhookErr) {
+            await prisma.missedCall.update({
+                where: { id: missedCall.id },
+                data: { smsStatus: 'failed', smsError: webhookErr.message }
+            });
+        }
+    } else {
+        await prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { smsStatus: 'pending' }
+        });
     }
-});
+
+    res.json({ success: true, missedCallId: missedCall.id });
+}));
 
 // --- PUBLIC ROUTES (No Auth) ---
 
-app.get('/api/public/clinic/:id', async (req, res) => {
-    try {
-        const clinic = await prisma.clinic.findUnique({
-            where: { id: req.params.id },
-            select: { name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
-        });
-        if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
-        res.json({
-            ...clinic,
-            workingHours: JSON.parse(clinic.workingHours),
-            services: JSON.parse(clinic.services),
-            policies: JSON.parse(clinic.policies)
-        });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.get('/api/public/clinic/:id', asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.params.id },
+        select: { name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
+    });
+    if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+    res.json({
+        ...clinic,
+        workingHours: JSON.parse(clinic.workingHours),
+        services: JSON.parse(clinic.services),
+        policies: JSON.parse(clinic.policies)
+    });
+}));
 
-app.post('/api/public/book', async (req, res) => {
-    try {
-        const { clinicId, name, phone, email, reason, startTime } = req.body;
+app.post('/api/public/book', asyncHandler(async (req, res) => {
+    const { clinicId, name, phone, email, reason, startTime } = req.body;
 
-        // 1. Find or create patient
-        let patient = await prisma.patient.findFirst({
-            where: { clinicId, phone }
-        });
+    let patient = await prisma.patient.findFirst({ where: { clinicId, phone } });
+    if (!patient) {
+        patient = await prisma.patient.create({ data: { clinicId, name, phone, email } });
+    }
 
-        if (!patient) {
-            patient = await prisma.patient.create({
-                data: { clinicId, name, phone, email }
-            });
-        }
+    const start = new Date(startTime);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
 
-        // 2. Create appointment
-        const start = new Date(startTime);
-        const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const appointment = await prisma.appointment.create({
+        data: { clinicId, patientId: patient.id, startTime: start, endTime: end, reason, status: 'PENDING' }
+    });
 
-        const appointment = await prisma.appointment.create({
-            data: {
-                clinicId,
-                patientId: patient.id,
-                startTime: start,
-                endTime: end,
-                reason,
-                status: 'PENDING'
-            }
-        });
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    if (clinic && clinic.webhookUrl) {
+        const pt = await prisma.patient.findFirst({ where: { name, clinicId } });
+        triggerWebhook(
+            'appointment.created',
+            {
+                appointmentId: appointment.id,
+                patientName: name,
+                phone: pt?.phone || '',
+                date: start.toISOString().split('T')[0],
+                time: start.toISOString().split('T')[1].slice(0, 5),
+                reason
+            },
+            clinic.webhookUrl,
+            clinic.webhookSecret
+        ).catch(err => console.error('Webhook trigger failed:', err.message));
+    }
 
-        // 3. Trigger Webhook for automation
-        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
-        if (clinic && clinic.webhookUrl) {
-            // Look up patient phone for the webhook payload
-            const patient = await prisma.patient.findFirst({ where: { name, clinicId } });
-            triggerWebhook(
-                'appointment.created',
-                {
-                    appointmentId: appointment.id,
-                    patientName: name,
-                    phone: patient?.phone || '',
-                    date: start.toISOString().split('T')[0],
-                    time: start.toISOString().split('T')[1].slice(0, 5),
-                    reason
-                },
-                clinic.webhookUrl,
-                clinic.webhookSecret
-            ).catch(err => console.error('Webhook trigger failed:', err.message));
-        }
-
-        res.json({ success: true, appointmentId: appointment.id });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
+    res.json({ success: true, appointmentId: appointment.id });
+}));
 
 // Standard Clinic API
-app.get('/api/patients', requireAuth, async (req, res) => {
+app.get('/api/patients', requireAuth, asyncHandler(async (req, res) => {
     const patients = await prisma.patient.findMany({ where: { clinicId: req.clinicId }, include: { appointments: true } });
     res.json(patients);
-});
+}));
 
-app.get('/api/appointments', requireAuth, async (req, res) => {
+app.get('/api/appointments', requireAuth, asyncHandler(async (req, res) => {
     const appointments = await prisma.appointment.findMany({ where: { clinicId: req.clinicId }, include: { patient: true }, orderBy: { startTime: 'asc' } });
     res.json(appointments);
-});
+}));
 
-app.get('/api/clinic', requireAuth, async (req, res) => {
+app.get('/api/clinic', requireAuth, asyncHandler(async (req, res) => {
     const clinic = { ...req.clinic };
     const apiKeys = JSON.parse(clinic.apiKeys || '{}');
 
@@ -318,7 +356,7 @@ app.get('/api/clinic', requireAuth, async (req, res) => {
     });
 });
 
-app.get('/api/clinic/usage', requireAuth, async (req, res) => {
+app.get('/api/clinic/usage', requireAuth, asyncHandler(async (req, res) => {
     try {
         const clinic = await prisma.clinic.findUnique({
             where: { id: req.clinicId },
@@ -365,7 +403,7 @@ app.get('/api/clinic/usage', requireAuth, async (req, res) => {
     }
 });
 
-app.get('/api/system/config-status', requireAuth, async (req, res) => {
+app.get('/api/system/config-status', requireAuth, asyncHandler(async (req, res) => {
     try {
         const clinic = req.clinic;
         const apiKeys = JSON.parse(clinic.apiKeys || '{}');
@@ -388,7 +426,7 @@ app.get('/api/system/config-status', requireAuth, async (req, res) => {
     }
 });
 
-app.get('/api/system/status', requireAuth, async (req, res) => {
+app.get('/api/system/status', requireAuth, asyncHandler(async (req, res) => {
     try {
         const clinic = req.clinic;
         const apiKeys = JSON.parse(clinic.apiKeys || '{}');
@@ -414,7 +452,7 @@ app.get('/api/system/status', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/api/clinic', requireAdmin, validate(clinicUpdateSchema), async (req, res) => {
+app.post('/api/clinic', requireAdmin, validate(clinicUpdateSchema), asyncHandler(async (req, res) => {
     try {
         const updateData = { ...req.body };
 
@@ -479,7 +517,7 @@ app.post('/api/clinic', requireAdmin, validate(clinicUpdateSchema), async (req, 
     }
 });
 
-app.put('/api/clinic/settings', requireAdmin, validate(clinicInfoSchema), async (req, res) => {
+app.put('/api/clinic/settings', requireAuth, requireOwner, validate(clinicInfoSchema), asyncHandler(async (req, res) => {
     try {
         const { name, phone, email, location, timezone } = req.body;
         const updatedClinic = await prisma.clinic.update({
@@ -504,7 +542,7 @@ app.put('/api/clinic/settings', requireAdmin, validate(clinicInfoSchema), async 
     }
 });
 
-app.put('/api/clinic/ai-config', requireAdmin, validate(aiConfigSchema), async (req, res) => {
+app.put('/api/clinic/ai-config', requireAuth, requireOwner, validate(aiConfigSchema), asyncHandler(async (req, res) => {
     try {
         const aiConfig = req.body;
         const updatedClinic = await prisma.clinic.update({
@@ -529,14 +567,14 @@ app.put('/api/clinic/ai-config', requireAdmin, validate(aiConfigSchema), async (
     }
 });
 
-app.get('/api/notifications', requireAuth, async (req, res) => {
+app.get('/api/notifications', requireAuth, asyncHandler(async (req, res) => {
     const notifications = await prisma.notification.findMany({ where: { clinicId: req.clinicId }, orderBy: { createdAt: 'desc' }, take: 10, include: { appointment: { include: { patient: true } } } });
     res.json(notifications);
 });
 
 // --- MUTATION ROUTES WITH AUDITING ---
 
-app.post('/api/appointments', requireAuth, async (req, res) => {
+app.post('/api/appointments', requireAuth, asyncHandler(async (req, res) => {
     try {
         const { patientId, reason, startTime, endTime, priority } = req.body;
         const appointment = await prisma.appointment.create({
@@ -565,7 +603,7 @@ app.post('/api/appointments', requireAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/appointments/:id/status', requireAuth, async (req, res) => {
+app.put('/api/appointments/:id/status', requireAuth, asyncHandler(async (req, res) => {
     try {
         const { status } = req.body;
         const appointment = await prisma.appointment.update({
@@ -585,7 +623,7 @@ app.put('/api/appointments/:id/status', requireAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.delete('/api/appointments/:id', requireAuth, async (req, res) => {
+app.delete('/api/appointments/:id', requireAuth, asyncHandler(async (req, res) => {
     try {
         await prisma.appointment.delete({
             where: { id: req.params.id, clinicId: req.clinicId }
@@ -604,7 +642,7 @@ app.delete('/api/appointments/:id', requireAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/patients', requireAuth, async (req, res) => {
+app.post('/api/patients', requireAuth, asyncHandler(async (req, res) => {
     try {
         const { name, phone, email } = req.body;
         const patient = await prisma.patient.create({
@@ -625,7 +663,7 @@ app.post('/api/patients', requireAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/audit-logs', requireAuth, requireRole('ADMIN'), async (req, res) => {
+app.get('/api/audit-logs', requireAuth, requireOwner, asyncHandler(async (req, res) => {
     try {
         const logs = await prisma.auditLog.findMany({
             where: { clinicId: req.clinicId },
@@ -636,7 +674,7 @@ app.get('/api/audit-logs', requireAuth, requireRole('ADMIN'), async (req, res) =
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/messages/send', requireAuth, async (req, res) => {
+app.post('/api/messages/send', requireAuth, asyncHandler(async (req, res) => {
     const { patientId, message, type = 'SMS' } = req.body;
 
     if (!patientId || !message) {
@@ -718,18 +756,34 @@ app.post('/api/messages/send', requireAuth, async (req, res) => {
 // Sentry error handler
 Sentry.setupExpressErrorHandler(app);
 
+// Global error handler — catches anything forwarded via next(err) or asyncHandler
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+    console.error(`[ERROR] ${req.method} ${req.url} —`, err.message || err);
+    const status = err.status || err.statusCode || 500;
+    res.status(status).json({ error: err.message || 'Internal server error' });
+});
+
 app.listen(port, () => {
     console.log(`SaaS Backend running on port ${port}`);
 
-    // Fix 5: Startup environment validation
-    console.log('\n=== Startup Configuration Check ===');
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) console.warn('⚠  Twilio not configured — SMS will be simulated');
-    else console.log('✅ Twilio configured');
-    if (!process.env.GEMINI_API_KEY) console.warn('⚠  Gemini API key not set — AI features disabled');
-    else console.log('✅ Gemini configured');
-    if (!process.env.WEBHOOK_SECRET) console.warn('⚠  WEBHOOK_SECRET not set — webhook endpoint is unprotected');
-    else console.log('✅ Webhook secret configured');
-    console.log('===================================\n');
+    // System check — logs all critical config at startup
+    console.log('\n=== System Check ===');
+    console.log(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
+    console.log(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
+    console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing — AI features use per-clinic keys only'}`);
+    console.log(`  Twilio (env):   ${process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN   ? '✅ OK' : '⚠  Not set — SMS uses per-clinic keys'}`);
+    console.log(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
+    console.log(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
+    console.log(`  Worker:         ✅ Running (embedded)`);
+    console.log(`  Port:           ${port}`);
+    console.log(`  Node:           ${process.version}`);
+    console.log(`  Env:            ${process.env.NODE_ENV || 'development'}`);
+
+    // DB connectivity check
+    prisma.$queryRaw`SELECT 1`
+        .then(() => console.log(`  DB Connection:  ✅ Connected`))
+        .catch(e => console.error(`  DB Connection:  ❌ FAILED — ${e.message}`));
+    console.log('====================\n');
 });
 
 // Fix 1: Auto-start worker in same process

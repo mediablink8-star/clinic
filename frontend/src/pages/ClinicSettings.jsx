@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     Save, Globe, Zap, BarChart2, Activity,
-    Shield, CheckCircle, XCircle, Loader, Check
+    Shield, CheckCircle, XCircle, Loader, Check,
+    Users, UserPlus, Trash2, ChevronDown
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -107,10 +108,11 @@ const inputStyle = {
 
 const SECTIONS = [
     { id: 's1', number: '1', label: 'Γενικά', icon: <Globe size={14} color="var(--primary)" />, iconBg: 'var(--primary-light)', title: 'Γενικές Πληροφορίες Ιατρείου', subtitle: 'Όνομα, στοιχεία επικοινωνίας και τοποθεσία' },
-    { id: 's4', number: '2', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
-    { id: 's5', number: '3', label: 'Αυτοματισμοί', icon: <Zap size={14} color="#d97706" />, iconBg: '#fffbeb', title: 'Αυτοματισμοί / Webhooks', subtitle: 'Σύνδεση με εξωτερικές υπηρεσίες' },
-    { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
-    { id: 's8', number: '5', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
+    { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
+    { id: 's5', number: '4', label: 'Αυτοματισμοί', icon: <Zap size={14} color="#d97706" />, iconBg: '#fffbeb', title: 'Αυτοματισμοί / Webhooks', subtitle: 'Σύνδεση με εξωτερικές υπηρεσίες' },
+    { id: 's6', number: '5', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
+    { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
@@ -135,6 +137,14 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [loadingUsage, setLoadingUsage] = useState(true);
     const [webhookErrors, setWebhookErrors] = useState({});
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // Team management state
+    const isOwner = ['OWNER', 'ADMIN'].includes(clinic?.role);
+    const [teamMembers, setTeamMembers] = useState([]);
+    const [showInvite, setShowInvite] = useState(false);
+    const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'RECEPTIONIST', password: '' });
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [inviteError, setInviteError] = useState('');
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
@@ -190,6 +200,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     useEffect(() => {
         fetchLogs();
         fetchUsage();
+        fetchTeam();
     }, []);
 
     useEffect(() => {
@@ -268,6 +279,55 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             showToast(err.response?.data?.error || 'Failed to save clinic info.', 'error');
         } finally {
             setSavingInfo(false);
+        }
+    };
+
+    const fetchTeam = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/team`, { headers: { Authorization: `Bearer ${token}` } });
+            setTeamMembers(res.data);
+        } catch { /* silently fail */ }
+    };
+
+    const handleInvite = async (e) => {
+        e.preventDefault();
+        setInviteError('');
+        if (!inviteForm.email || !inviteForm.password) {
+            setInviteError('Email και κωδικός είναι υποχρεωτικά.');
+            return;
+        }
+        setInviteLoading(true);
+        try {
+            await axios.post(`${API_BASE}/team`, inviteForm, { headers: { Authorization: `Bearer ${token}` } });
+            showToast('Μέλος προστέθηκε!');
+            setShowInvite(false);
+            setInviteForm({ name: '', email: '', role: 'RECEPTIONIST', password: '' });
+            fetchTeam();
+        } catch (err) {
+            setInviteError(err.response?.data?.error || 'Σφάλμα κατά την προσθήκη.');
+        } finally {
+            setInviteLoading(false);
+        }
+    };
+
+    const handleRemoveMember = async (id, email) => {
+        if (!window.confirm(`Αφαίρεση ${email};`)) return;
+        try {
+            await axios.delete(`${API_BASE}/team/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            showToast('Μέλος αφαιρέθηκε.');
+            fetchTeam();
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα.', 'error');
+        }
+    };
+
+    const handleChangeRole = async (id, role) => {
+        try {
+            await axios.put(`${API_BASE}/team/${id}`, { role }, { headers: { Authorization: `Bearer ${token}` } });
+            showToast('Ρόλος ενημερώθηκε.');
+            fetchTeam();
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα.', 'error');
         }
     };
 
@@ -485,8 +545,168 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* 2 · Ασφάλεια */}
-            <SectionCard id="s4" number="2" icon={<Shield size={15} color="#dc2626" />} iconBg="#fff5f5"
+            {/* 2 · Team Management */}
+            <SectionCard id="s2" number="2" icon={<Users size={15} color="#0891b2" />} iconBg="#ecfeff"
+                title="Διαχείριση Ομάδας" subtitle="Χρήστες, ρόλοι και δικαιώματα πρόσβασης">
+
+                {/* Role legend */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                    {[
+                        { role: 'OWNER', label: 'Ιδιοκτήτης', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)', desc: 'Πλήρης πρόσβαση' },
+                        { role: 'RECEPTIONIST', label: 'Γραμματέας', color: '#0891b2', bg: 'rgba(8,145,178,0.08)', desc: 'Ραντεβού & ασθενείς' },
+                        { role: 'ASSISTANT', label: 'Βοηθός', color: '#059669', bg: 'rgba(5,150,105,0.08)', desc: 'Μόνο ανάγνωση' },
+                    ].map(r => (
+                        <div key={r.role} style={{ padding: '6px 12px', borderRadius: '10px', background: r.bg, border: `1px solid ${r.color}22` }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: r.color }}>{r.label}</span>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b', marginLeft: '6px' }}>{r.desc}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Member list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
+                    {teamMembers.map(member => {
+                        const roleColors = { OWNER: '#7c3aed', ADMIN: '#7c3aed', RECEPTIONIST: '#0891b2', ASSISTANT: '#059669' };
+                        const roleLabels = { OWNER: 'Ιδιοκτήτης', ADMIN: 'Admin', RECEPTIONIST: 'Γραμματέας', ASSISTANT: 'Βοηθός' };
+                        const color = roleColors[member.role] || '#64748b';
+                        const isSelf = member.id === clinic?.userId;
+                        return (
+                            <div key={member.id} style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '12px 16px', borderRadius: '14px',
+                                background: 'rgba(248,250,252,0.8)', border: '1px solid var(--border)',
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color }}>{(member.name || member.email)[0].toUpperCase()}</span>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text)' }}>
+                                            {member.name || member.email}
+                                            {isSelf && <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: '#94a3b8', fontWeight: '600' }}>(εσείς)</span>}
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{member.email}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isOwner && !isSelf ? (
+                                        <div style={{ position: 'relative' }}>
+                                            <select
+                                                value={member.role}
+                                                onChange={e => handleChangeRole(member.id, e.target.value)}
+                                                style={{
+                                                    padding: '4px 28px 4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800',
+                                                    border: `1px solid ${color}33`, background: `${color}10`, color,
+                                                    cursor: 'pointer', appearance: 'none', outline: 'none'
+                                                }}
+                                            >
+                                                <option value="OWNER">Ιδιοκτήτης</option>
+                                                <option value="RECEPTIONIST">Γραμματέας</option>
+                                                <option value="ASSISTANT">Βοηθός</option>
+                                            </select>
+                                            <ChevronDown size={10} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color, pointerEvents: 'none' }} />
+                                        </div>
+                                    ) : (
+                                        <span style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800', background: `${color}10`, color, border: `1px solid ${color}22` }}>
+                                            {roleLabels[member.role] || member.role}
+                                        </span>
+                                    )}
+                                    {isOwner && !isSelf && (
+                                        <button onClick={() => handleRemoveMember(member.id, member.email)} style={{ padding: '6px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                            <Trash2 size={13} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {teamMembers.length === 0 && (
+                        <p style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>Δεν βρέθηκαν μέλη.</p>
+                    )}
+                </div>
+
+                {/* Invite form */}
+                {isOwner && (
+                    showInvite ? (
+                        <form onSubmit={handleInvite} style={{ padding: '1.25rem', borderRadius: '14px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.12)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                <div>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Όνομα</label>
+                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} placeholder="π.χ. Μαρία" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Email *</label>
+                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="email" placeholder="email@example.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Κωδικός *</label>
+                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="password" placeholder="Προσωρινός κωδικός" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Ρόλος</label>
+                                    <select style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
+                                        <option value="OWNER">Ιδιοκτήτης</option>
+                                        <option value="RECEPTIONIST">Γραμματέας</option>
+                                        <option value="ASSISTANT">Βοηθός</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {inviteError && <p style={{ color: '#ef4444', fontSize: '0.78rem', marginBottom: '0.75rem', fontWeight: '600' }}>{inviteError}</p>}
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button type="submit" className="btn btn-primary btn-sm" disabled={inviteLoading}>{inviteLoading ? 'Αποθήκευση...' : 'Προσθήκη Μέλους'}</button>
+                                <button type="button" className="btn btn-outline btn-sm" onClick={() => { setShowInvite(false); setInviteError(''); }}>Ακύρωση</button>
+                            </div>
+                        </form>
+                    ) : (
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => setShowInvite(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <UserPlus size={14} /> Προσθήκη Μέλους
+                        </button>
+                    )
+                )}
+
+                {/* Permission matrix */}
+                <div style={{ marginTop: '1.25rem', padding: '1rem', borderRadius: '12px', background: 'rgba(248,250,252,0.8)', border: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Δικαιώματα ανά ρόλο</p>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ textAlign: 'left', padding: '4px 8px', color: '#64748b', fontWeight: '700' }}>Λειτουργία</th>
+                                    {['Ιδιοκτήτης', 'Γραμματέας', 'Βοηθός'].map(r => (
+                                        <th key={r} style={{ textAlign: 'center', padding: '4px 8px', color: '#64748b', fontWeight: '700' }}>{r}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    ['Ραντεβού (προβολή/δημιουργία)', true, true, true],
+                                    ['Ασθενείς (προβολή/δημιουργία)', true, true, true],
+                                    ['Αποστολή SMS', true, true, false],
+                                    ['Αναφορές', true, true, false],
+                                    ['Ρυθμίσεις AI & API keys', true, false, false],
+                                    ['Webhook & Αυτοματισμοί', true, false, false],
+                                    ['Διαχείριση ομάδας', true, false, false],
+                                ].map(([label, ...perms]) => (
+                                    <tr key={label}>
+                                        <td style={{ padding: '5px 8px', color: 'var(--text)', fontWeight: '500' }}>{label}</td>
+                                        {perms.map((allowed, i) => (
+                                            <td key={i} style={{ textAlign: 'center', padding: '5px 8px' }}>
+                                                {allowed
+                                                    ? <span style={{ color: '#10b981', fontWeight: '800' }}>✓</span>
+                                                    : <span style={{ color: '#cbd5e1', fontWeight: '800' }}>—</span>
+                                                }
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </SectionCard>
+
+            {/* 3 · Ασφάλεια */}
+            <SectionCard id="s4" number="3" icon={<Shield size={15} color="#dc2626" />} iconBg="#fff5f5"
                 title="Ασφάλεια" subtitle="Έλεγχος πρόσβασης και προστασία δεδομένων">
                 <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem',
@@ -504,8 +724,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* 3 · Αυτοματισμοί */}
-            <SectionCard id="s5" number="3" icon={<Zap size={15} color="#d97706" />} iconBg="#fffbeb"
+            {/* 4 · Αυτοματισμοί */}
+            <SectionCard id="s5" number="4" icon={<Zap size={15} color="#d97706" />} iconBg="#fffbeb"
                 title="Αυτοματισμοί" subtitle="Webhooks και εξωτερικοί κανόνες (Make / n8n)">
                 <FormRow>
                     <FormGroup label="Webhook URL" flex="2 1 300px">
@@ -568,8 +788,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* 4 · Usage & Limits */}
-            <SectionCard id="s6" number="4" icon={<BarChart2 size={15} color="#4f46e5" />} iconBg="#eef2ff"
+            {/* 5 · Usage & Limits */}
+            <SectionCard id="s6" number="5" icon={<BarChart2 size={15} color="#4f46e5" />} iconBg="#eef2ff"
                 title="Χρήση & Όρια" subtitle="Παρακολούθηση μηνυμάτων και AI σε πραγματικό χρόνο">
                 {!usageData ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '8px' }}>
@@ -635,8 +855,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 )}
             </SectionCard>
 
-            {/* 5 · Audit */}
-            <SectionCard id="s8" number="5" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
+            {/* 6 · Audit */}
+            <SectionCard id="s8" number="6" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
                 title="Αρχείο Ενεργειών" subtitle="Ιστορικό διοικητικών ενεργειών">
                 {logs.length === 0 ? <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Δεν βρέθηκε δραστηριότητα.</p> : (
                     <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border)' }}>

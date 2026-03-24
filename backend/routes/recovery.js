@@ -2,46 +2,37 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const asyncHandler = require('../middleware/asyncHandler');
 
-router.get('/stats', async (req, res) => {
-    try {
-        const stats = await prisma.missedCall.aggregate({
-            where: { clinicId: req.clinicId, status: 'RECOVERED' },
-            _sum: { estimatedRevenue: true }
-        });
-        
-        const recoveredCount = await prisma.missedCall.count({
-            where: { clinicId: req.clinicId, status: 'RECOVERED' }
-        });
+router.get('/stats', asyncHandler(async (req, res) => {
+    const stats = await prisma.missedCall.aggregate({
+        where: { clinicId: req.clinicId, status: 'RECOVERED' },
+        _sum: { estimatedRevenue: true }
+    });
 
-        const pendingCount = await prisma.missedCall.count({
-            where: { clinicId: req.clinicId, status: 'RECOVERING' }
-        });
+    const recoveredCount = await prisma.missedCall.count({
+        where: { clinicId: req.clinicId, status: 'RECOVERED' }
+    });
 
-        res.json({
-            recovered: recoveredCount,
-            pending: pendingCount,
-            revenue: stats._sum.estimatedRevenue || 0
-        });
-    } catch (e) {
-        console.error('Error fetching recovery stats:', e);
-        res.status(500).json({ error: e.message });
-    }
-});
+    const pendingCount = await prisma.missedCall.count({
+        where: { clinicId: req.clinicId, status: 'RECOVERING' }
+    });
 
-router.get('/log', async (req, res) => {
-    try {
-        const logs = await prisma.missedCall.findMany({
-            where: { clinicId: req.clinicId },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
-            include: { patient: true }
-        });
-        res.json(logs);
-    } catch (e) {
-        console.error('Error fetching recovery log:', e);
-        res.status(500).json({ error: e.message });
-    }
-});
+    res.json({
+        recovered: recoveredCount,
+        pending: pendingCount,
+        revenue: stats._sum.estimatedRevenue || 0
+    });
+}));
+
+router.get('/log', asyncHandler(async (req, res) => {
+    const logs = await prisma.missedCall.findMany({
+        where: { clinicId: req.clinicId },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { patient: true }
+    });
+    res.json(logs);
+}));
 
 module.exports = router;
