@@ -142,7 +142,7 @@ const Dashboard = ({
                 body: JSON.stringify({})
             });
             const data = await res.json();
-            const processed = data?.data?.processed ?? 0;
+            const processed = data?.data?.processedCount ?? 0;
             setRunAutomationStatus(processed > 0 ? 'done' : 'empty');
             if (processed > 0) {
                 toast.success(`Processed ${processed} missed call${processed > 1 ? 's' : ''}`);
