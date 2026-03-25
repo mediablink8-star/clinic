@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const automationAuth = require('../middleware/automationAuth');
 const { handleMissedCall, processScheduledMissedCalls, markRecovered } = require('../services/missedCallService');
 const { getDueNotifications, processNotification } = require('../services/notificationService');
 
@@ -10,6 +11,8 @@ const { getDueNotifications, processNotification } = require('../services/notifi
  *   FAILURE: { error: { code, message } }  (via global error handler + AppError)
  */
 
+router.use(automationAuth);
+
 /**
  * POST /api/automation/missed-call
  * Ingest a new missed call and trigger recovery workflow.
@@ -17,8 +20,8 @@ const { getDueNotifications, processNotification } = require('../services/notifi
  * Body: { phone, clinicId, callSid? }
  *
  * Example response:
- *   { "success": true, "data": { "missedCallId": "abc123" } }
- *   { "success": true, "data": { "missedCallId": "abc123", "scheduled": true, "scheduledAt": "..." } }
+ *   { "success": true, "data": { "missedCallId": "abc123", "smsStatus": "pending", "scheduledSmsAt": null } }
+ *   { "success": true, "data": { "missedCallId": "abc123", "smsStatus": "scheduled", "scheduledSmsAt": "..." } }
  *   { "success": true, "data": { "duplicate": true, "missedCallId": "abc123" } }
  */
 router.post('/missed-call', asyncHandler(async (req, res) => {
@@ -40,11 +43,11 @@ router.post('/missed-call', asyncHandler(async (req, res) => {
  * Body: {} (no params needed)
  *
  * Example response:
- *   { "success": true, "data": { "processed": 3 } }
+ *   { "success": true, "data": { "processedCount": 3 } }
  */
 router.post('/process-missed-calls', asyncHandler(async (req, res) => {
     const processed = await processScheduledMissedCalls();
-    res.json({ success: true, data: { processed } });
+    res.json({ success: true, data: { processedCount: processed } });
 }));
 
 /**

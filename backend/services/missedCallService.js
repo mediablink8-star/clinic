@@ -31,7 +31,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
     });
 
     if (!withinHours) {
-        return { success: true, data: { missedCallId: missedCall.id, scheduled: true, scheduledAt } };
+        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
     }
 
     // Mark processing
@@ -45,7 +45,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
             where: { id: missedCall.id },
             data: { smsStatus: 'pending' }
         });
-        return { success: true, data: { missedCallId: missedCall.id } };
+        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', scheduledSmsAt: null } };
     }
 
     // Attempt webhook — always log outcome, never silent
@@ -62,6 +62,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         webhookResult = { success: false, error: err.message };
     }
 
+    const finalSmsStatus = webhookResult.success ? 'sent' : 'failed';
     await prisma.missedCall.update({
         where: { id: missedCall.id },
         data: webhookResult.success
@@ -69,7 +70,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
             : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
     });
 
-    return { success: true, data: { missedCallId: missedCall.id } };
+    return { success: true, data: { missedCallId: missedCall.id, smsStatus: finalSmsStatus, scheduledSmsAt: null } };
 }
 
 /**
@@ -172,9 +173,14 @@ async function markRecovered({ clinicId, missedCallId }) {
     });
     if (!existing) throw new AppError('NOT_FOUND', 'MissedCall not found', 404);
 
+    // Idempotent: already recovered, return success without DB write
+    if (existing.status === 'RECOVERED') {
+        return { success: true, data: { missedCallId: existing.id, status: 'RECOVERED' } };
+    }
+
     const updated = await prisma.missedCall.update({
         where: { id: missedCallId },
-        data: { status: 'RECOVERED' }
+        data: { status: 'RECOVERED', recoveredAt: new Date() }
     });
     return { success: true, data: { missedCallId: updated.id, status: updated.status } };
 }
