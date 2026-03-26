@@ -18,18 +18,9 @@
       "parameters": {
         "conditions": {
           "string": [
-            {
-              "value1": "={{ $json.body.phone }}",
-              "operation": "isNotEmpty"
-            },
-            {
-              "value1": "={{ $json.body.patientName }}",
-              "operation": "isNotEmpty"
-            },
-            {
-              "value1": "={{ $json.body.date }}",
-              "operation": "isNotEmpty"
-            }
+            { "value1": "={{ $json.body.data.phone }}", "operation": "isNotEmpty" },
+            { "value1": "={{ $json.body.data.patientName }}", "operation": "isNotEmpty" },
+            { "value1": "={{ $json.body.data.date }}", "operation": "isNotEmpty" }
           ]
         }
       },
@@ -42,11 +33,11 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"status\": \"error\", \"reason\": \"missing fields\" }",
+        "responseBody": "={ \"success\": false, \"error\": \"missing required fields\" }",
         "options": { "responseCode": 400 }
       },
-      "id": "node_error_validation_appt",
-      "name": "Return Validation Error",
+      "id": "node_error_appt",
+      "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [680, 460]
@@ -55,23 +46,16 @@
       "parameters": {
         "values": {
           "string": [
+            { "name": "phone", "value": "={{ $json.body.data.phone }}" },
+            { "name": "clinicName", "value": "={{ $json.body.clinic?.name || 'Ιατρείο' }}" },
             {
-              "name": "phone",
-              "value": "={{ $json.body.phone }}"
-            },
-            {
-              "name": "patientName",
-              "value": "={{ $json.body.patientName }}"
-            },
-            {
-              "name": "formattedMessage",
-              "value": "=Γεια σας {{ $json.body.patientName }}, Το ραντεβού σας επιβεβαιώθηκε για {{ $json.body.date }} στις {{ $json.body.time }}. Advanced Dental Care Athens"
+              "name": "smsBody",
+              "value": "=Γεια σας {{ $json.body.data.patientName }}, το ραντεβού σας στο {{ $json.body.clinic?.name || 'ιατρείο' }} επιβεβαιώθηκε για {{ $json.body.data.date }} στις {{ $json.body.data.time }}."
             }
           ]
-        },
-        "options": {}
+        }
       },
-      "id": "node_format_appt",
+      "id": "node_format_msg",
       "name": "Format Confirmation Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
@@ -81,8 +65,8 @@
       "parameters": {
         "operation": "send",
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
-        "to": "={{ $node[\"Format Confirmation Message\"].json.phone }}",
-        "message": "={{ $node[\"Format Confirmation Message\"].json.formattedMessage }}",
+        "to": "={{ $json.phone }}",
+        "message": "={{ $json.smsBody }}",
         "options": {}
       },
       "id": "node_twilio_appt",
@@ -104,15 +88,12 @@
       "parameters": {
         "conditions": {
           "string": [
-            {
-              "value1": "={{ $json.sid }}",
-              "operation": "isNotEmpty"
-            }
+            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
           ]
         }
       },
-      "id": "node_check_sent_appt",
-      "name": "Check SMS Sent",
+      "id": "node_check_appt",
+      "name": "SMS Sent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [1120, 300]
@@ -120,7 +101,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"status\": \"sent\" }",
+        "responseBody": "={ \"success\": true, \"status\": \"sent\" }",
         "options": { "responseCode": 200 }
       },
       "id": "node_success_appt",
@@ -131,31 +112,15 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            { "name": "workflow", "value": "appointment-confirmation" },
-            { "name": "result", "value": "failed" },
-            { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
-          ]
-        }
-      },
-      "id": "node_log_fail_appt",
-      "name": "Log Twilio Failure",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1340, 400]
-    },
-    {
-      "parameters": {
         "respondWith": "json",
-        "responseBody": "={ \"status\": \"failed\", \"service\": \"twilio\" }",
+        "responseBody": "={ \"success\": false, \"status\": \"failed\" }",
         "options": { "responseCode": 502 }
       },
-      "id": "node_error_twilio_appt",
-      "name": "Return Twilio Error",
+      "id": "node_failed_appt",
+      "name": "Return Failed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1560, 400]
+      "position": [1340, 400]
     }
   ],
   "connections": {
@@ -165,23 +130,20 @@
     "Validate Payload": {
       "main": [
         [{ "node": "Format Confirmation Message", "type": "main", "index": 0 }],
-        [{ "node": "Return Validation Error", "type": "main", "index": 0 }]
+        [{ "node": "Return 400", "type": "main", "index": 0 }]
       ]
     },
     "Format Confirmation Message": {
       "main": [[{ "node": "Send Confirmation SMS", "type": "main", "index": 0 }]]
     },
     "Send Confirmation SMS": {
-      "main": [[{ "node": "Check SMS Sent", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "SMS Sent?", "type": "main", "index": 0 }]]
     },
-    "Check SMS Sent": {
+    "SMS Sent?": {
       "main": [
         [{ "node": "Return Success", "type": "main", "index": 0 }],
-        [{ "node": "Log Twilio Failure", "type": "main", "index": 0 }]
+        [{ "node": "Return Failed", "type": "main", "index": 0 }]
       ]
-    },
-    "Log Twilio Failure": {
-      "main": [[{ "node": "Return Twilio Error", "type": "main", "index": 0 }]]
     }
   },
   "settings": {

@@ -1,0 +1,130 @@
+{
+  "name": "Workflow 4 — Scheduled SMS Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "node_cron",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/process-missed-calls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "options": { "timeout": 30000 }
+      },
+      "id": "node_process_scheduled",
+      "name": "Process Scheduled Missed Calls",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            { "value1": "={{ $json.data?.processedCount }}", "operation": "larger", "value2": 0 }
+          ]
+        }
+      },
+      "id": "node_any_processed",
+      "name": "Any Processed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/pending-notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_poll_notifications",
+      "name": "Poll Pending Notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "node_split",
+      "name": "Split Notifications",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "notificationId", "value": "={{ $json.id }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_send_notification",
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [[{ "node": "Process Scheduled Missed Calls", "type": "main", "index": 0 }]]
+    },
+    "Process Scheduled Missed Calls": {
+      "main": [[{ "node": "Any Processed?", "type": "main", "index": 0 }]]
+    },
+    "Any Processed?": {
+      "main": [
+        [{ "node": "Poll Pending Notifications", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Poll Pending Notifications": {
+      "main": [[{ "node": "Split Notifications", "type": "main", "index": 0 }]]
+    },
+    "Split Notifications": {
+      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

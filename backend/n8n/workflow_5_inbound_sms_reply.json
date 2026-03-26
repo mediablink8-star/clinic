@@ -1,0 +1,202 @@
+{
+  "name": "Workflow 5 — Inbound SMS Reply & Mark Recovered",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-sms",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_webhook_inbound",
+      "name": "Receive Inbound SMS",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.body.from }}", "operation": "isNotEmpty" },
+            { "value1": "={{ $json.body.clinicId }}", "operation": "isNotEmpty" }
+          ]
+        }
+      },
+      "id": "node_validate_inbound",
+      "name": "Validate Inbound",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"missing from or clinicId\" }",
+        "options": { "responseCode": 400 }
+      },
+      "id": "node_bad_inbound",
+      "name": "Return 400",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a medical clinic assistant. Classify the patient's SMS reply. Reply with ONLY one word: BOOKING (patient wants to book), CANCEL (patient wants to cancel), INFO (patient asking for info), or OTHER."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.body.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_classify_intent",
+      "name": "Classify Patient Intent",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_creds",
+          "name": "OpenAI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.message?.content?.trim().toUpperCase() }}", "operation": "equal", "value2": "BOOKING" }
+          ]
+        }
+      },
+      "id": "node_is_booking",
+      "name": "Is Booking Intent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/mark-recovered",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "clinicId", "value": "={{ $node[\"Receive Inbound SMS\"].json.body.clinicId }}" },
+            { "name": "missedCallId", "value": "={{ $node[\"Receive Inbound SMS\"].json.body.missedCallId }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_mark_recovered",
+      "name": "Mark Recovered",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $node[\"Receive Inbound SMS\"].json.body.from }}",
+        "message": "=Ευχαριστούμε! Θα επικοινωνήσουμε μαζί σας σύντομα για να κλείσουμε το ραντεβού σας.",
+        "options": {}
+      },
+      "id": "node_reply_booking",
+      "name": "Reply — Booking Confirmed",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1340, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio_creds",
+          "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $node[\"Receive Inbound SMS\"].json.body.from }}",
+        "message": "=Ευχαριστούμε για την απάντησή σας. Θα επικοινωνήσουμε μαζί σας σύντομα.",
+        "options": {}
+      },
+      "id": "node_reply_other",
+      "name": "Reply — General Acknowledgement",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio_creds",
+          "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": true }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_success_inbound",
+      "name": "Return Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Receive Inbound SMS": {
+      "main": [[{ "node": "Validate Inbound", "type": "main", "index": 0 }]]
+    },
+    "Validate Inbound": {
+      "main": [
+        [{ "node": "Classify Patient Intent", "type": "main", "index": 0 }],
+        [{ "node": "Return 400", "type": "main", "index": 0 }]
+      ]
+    },
+    "Classify Patient Intent": {
+      "main": [[{ "node": "Is Booking Intent?", "type": "main", "index": 0 }]]
+    },
+    "Is Booking Intent?": {
+      "main": [
+        [{ "node": "Mark Recovered", "type": "main", "index": 0 }],
+        [{ "node": "Reply — General Acknowledgement", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Recovered": {
+      "main": [[{ "node": "Reply — Booking Confirmed", "type": "main", "index": 0 }]]
+    },
+    "Reply — Booking Confirmed": {
+      "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]]
+    },
+    "Reply — General Acknowledgement": {
+      "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
