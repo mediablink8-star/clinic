@@ -1,5 +1,4 @@
 import React from 'react';
-import toast from 'react-hot-toast';
 import {
     PhoneMissed,
     CheckCircle2,
@@ -8,7 +7,6 @@ import {
     Calendar,
     ArrowUpRight,
     AlertTriangle,
-    Zap,
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
@@ -61,18 +59,19 @@ const DashboardSkeleton = () => (
 );
 
 const SectionHeader = ({ children, icon: Icon, style = {} }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem', paddingLeft: '2px' }}>
-        {Icon && <Icon size={14} className="text-text-light opacity-60" />}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '0.9rem', paddingLeft: '2px' }}>
+        {Icon && <Icon size={13} color="#94a3b8" />}
         <h3 style={{
-            fontSize: '11px',
-            fontWeight: '700',
+            fontSize: '10px',
+            fontWeight: '800',
             color: '#94a3b8',
-            letterSpacing: '0.12em',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
             ...style
         }}>
             {children}
         </h3>
+        <div style={{ flex: 1, height: '1px', background: 'rgba(148,163,184,0.15)', marginLeft: '4px' }} />
     </div>
 );
 
@@ -93,70 +92,6 @@ const Dashboard = ({
     const hasLoaded = React.useRef(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     const [configWarnings, setConfigWarnings] = React.useState([]);
-    const [testRecoveryStatus, setTestRecoveryStatus] = React.useState(null);
-    const [runAutomationStatus, setRunAutomationStatus] = React.useState(null);
-
-    const handleTestRecovery = React.useCallback(async () => {
-        if (testRecoveryStatus === 'sending') return;
-        setTestRecoveryStatus('sending');
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-        const authToken = token || localStorage.getItem('clinic_token');
-        try {
-            const res = await fetch(`${API_BASE}/automation/missed-call`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authToken}`,
-                },
-                body: JSON.stringify({
-                    phone: '+3069' + Math.floor(10000000 + Math.random() * 90000000),
-                    clinicId: clinic?.id,
-                    callSid: `demo_${Date.now()}`
-                })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
-            setTestRecoveryStatus('sent');
-            toast.success('Missed call simulated!');
-            onRefresh?.();
-        } catch (err) {
-            setTestRecoveryStatus('error');
-            toast.error(`Simulation failed: ${err.message}`);
-        } finally {
-            setTimeout(() => setTestRecoveryStatus(null), 3000);
-        }
-    }, [token, clinic, testRecoveryStatus, onRefresh]);
-
-    const handleRunAutomation = React.useCallback(async () => {
-        if (runAutomationStatus === 'running') return;
-        setRunAutomationStatus('running');
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-        const authToken = token || localStorage.getItem('clinic_token');
-        try {
-            const res = await fetch(`${API_BASE}/automation/process-missed-calls`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authToken}`,
-                },
-                body: JSON.stringify({})
-            });
-            const data = await res.json();
-            const processed = data?.data?.processedCount ?? 0;
-            setRunAutomationStatus(processed > 0 ? 'done' : 'empty');
-            if (processed > 0) {
-                toast.success(`Processed ${processed} missed call${processed > 1 ? 's' : ''}`);
-                onRefresh?.();
-            } else {
-                toast('Nothing pending', { icon: '—' });
-            }
-        } catch {
-            setRunAutomationStatus('error');
-            toast.error('Automation failed');
-        } finally {
-            setTimeout(() => setRunAutomationStatus(null), 3000);
-        }
-    }, [token, runAutomationStatus, onRefresh]);
 
     React.useEffect(() => {
         const authToken = token || localStorage.getItem('clinic_token');
@@ -188,121 +123,46 @@ const Dashboard = ({
     return (
         <div className="animate-fade" style={{ paddingBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '0.25rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.02em', marginBottom: '6px' }}>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.03em', marginBottom: '4px', lineHeight: 1.1 }}>
                         {greeting}, {clinic?.name || 'Local Health Clinic'}
                     </h1>
-                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>
                         Δείτε τι συμβαίνει στο ιατρείο σας σήμερα.
                     </p>
-                    <p style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', display: 'inline-block', boxShadow: '0 0 5px rgba(99,102,241,0.5)' }} />
-                        Automation: External (API Mode)
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', display: 'inline-block', boxShadow: '0 0 6px rgba(99,102,241,0.6)' }} />
+                        <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            Automation: External API Mode
+                        </span>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     {systemStatus && (
                         <span style={{
-                            padding: '6px 12px',
+                            padding: '5px 11px',
                             borderRadius: '999px',
-                            fontSize: '0.75rem',
+                            fontSize: '0.72rem',
                             fontWeight: 700,
-                            background: systemStatus.aiConfigured ? '#f0fdf4' : '#fef2f2',
-                            color: systemStatus.aiConfigured ? '#15803d' : '#b91c1c'
+                            background: systemStatus.aiConfigured ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)',
+                            color: systemStatus.aiConfigured ? '#059669' : '#dc2626',
+                            border: `1px solid ${systemStatus.aiConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.15)'}`,
                         }}>
                             {systemStatus.aiConfigured ? '● Ενεργό' : '● Πρόβλημα'}
                         </span>
                     )}
                     <button
-                        onClick={handleTestRecovery}
-                        disabled={testRecoveryStatus === 'sending'}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '12px',
-                            border: '1.5px solid rgba(239,68,68,0.35)',
-                            background: testRecoveryStatus === 'sent'
-                                ? 'rgba(16,185,129,0.1)'
-                                : testRecoveryStatus === 'error'
-                                    ? 'rgba(239,68,68,0.1)'
-                                    : 'rgba(239,68,68,0.07)',
-                            color: testRecoveryStatus === 'sent'
-                                ? '#059669'
-                                : testRecoveryStatus === 'error'
-                                    ? '#dc2626'
-                                    : '#ef4444',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: testRecoveryStatus === 'sending' ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            transition: 'all 0.15s',
-                            opacity: testRecoveryStatus === 'sending' ? 0.6 : 1,
-                        }}
-                    >
-                        <PhoneMissed size={14} />
-                        {testRecoveryStatus === 'sending'
-                            ? 'Αποστολή...'
-                            : testRecoveryStatus === 'sent'
-                                ? '✓ Εστάλη!'
-                                : testRecoveryStatus === 'error'
-                                    ? '✗ Σφάλμα'
-                                    : 'Simulate Missed Call'}
-                    </button>
-                    <button
-                        onClick={handleRunAutomation}
-                        disabled={runAutomationStatus === 'running'}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '12px',
-                            border: '1.5px solid rgba(99,102,241,0.35)',
-                            background: runAutomationStatus === 'done'
-                                ? 'rgba(16,185,129,0.1)'
-                                : runAutomationStatus === 'empty'
-                                    ? 'rgba(148,163,184,0.1)'
-                                    : runAutomationStatus === 'error'
-                                        ? 'rgba(239,68,68,0.1)'
-                                        : 'rgba(99,102,241,0.07)',
-                            color: runAutomationStatus === 'done'
-                                ? '#059669'
-                                : runAutomationStatus === 'empty'
-                                    ? '#64748b'
-                                    : runAutomationStatus === 'error'
-                                        ? '#dc2626'
-                                        : '#6366f1',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: runAutomationStatus === 'running' ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            transition: 'all 0.15s',
-                            opacity: runAutomationStatus === 'running' ? 0.6 : 1,
-                        }}
-                    >
-                        <Zap size={14} />
-                        {runAutomationStatus === 'running'
-                            ? 'Εκτέλεση...'
-                            : runAutomationStatus === 'done'
-                                ? '✓ Ολοκληρώθηκε!'
-                                : runAutomationStatus === 'empty'
-                                    ? '— Τίποτα εκκρεμές'
-                                    : runAutomationStatus === 'error'
-                                        ? '✗ Σφάλμα'
-                                        : 'Run Automation'}
-                    </button>
-                    <button
                         onClick={() => setCurrentTab('reports')}
                         className="btn btn-outline"
                     >
-                        Προβολή Αναφορών
+                        Αναφορές
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
                         className="btn btn-primary"
                     >
-                        Νέο Ραντεβού
+                        + Νέο Ραντεβού
                     </button>
                 </div>
             </div>
@@ -334,7 +194,7 @@ const Dashboard = ({
             {/* PERFORMANCE strip */}
             <section>
                 <SectionHeader icon={ArrowUpRight}>PERFORMANCE</SectionHeader>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.875rem' }}>
                     <StatCard
                         title="Αναπάντητες (μήνας)"
                         value={missedCallsToday}
@@ -389,9 +249,9 @@ const Dashboard = ({
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gridTemplateRows: 'repeat(2, minmax(280px, 1fr))',
-                    gap: '1rem',
-                    minHeight: '560px',
+                    gridTemplateRows: 'repeat(2, minmax(260px, 1fr))',
+                    gap: '0.875rem',
+                    minHeight: '520px',
                 }}>
                     {/* Row 1 */}
                     <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
@@ -415,7 +275,7 @@ const Dashboard = ({
 
                     <SystemStatus status={systemStatus} setCurrentTab={setCurrentTab} />
 
-                    <AutomationLog logs={logsArray} onTestRecovery={handleTestRecovery} />
+                    <AutomationLog logs={logsArray} />
                 </div>
             </section>
         </div>

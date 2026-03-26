@@ -34,11 +34,12 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
 
     return (
         <aside className="sidebar" style={{
-            background: 'rgba(255,255,255,0.68)',
-            backdropFilter: 'blur(28px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-            borderRight: '1px solid rgba(255,255,255,0.45)',
-            boxShadow: '4px 0 40px rgba(0,0,0,0.06)'
+            width: '260px',
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(32px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+            borderRight: '1px solid rgba(226,232,240,0.5)',
+            boxShadow: '2px 0 24px rgba(0,0,0,0.04)'
         }}>
             <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
                 <div style={{
@@ -91,20 +92,20 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '14px',
-                                    padding: '13px 20px',
+                                    gap: '12px',
+                                    padding: '11px 16px',
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'linear-gradient(135deg, rgba(0,102,255,0.1) 0%, rgba(0,102,255,0.06) 100%)'
+                                        ? 'rgba(37,99,235,0.08)'
                                         : 'transparent',
-                                    borderRadius: '18px',
-                                    fontWeight: currentTab === item.id ? '900' : '700',
+                                    borderRadius: '14px',
+                                    fontWeight: currentTab === item.id ? '800' : '600',
                                     marginBottom: '2px',
-                                    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-                                    fontSize: '0.95rem',
-                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,102,255,0.15)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 4px 14px rgba(0,102,255,0.1)' : 'none'
+                                    transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                    fontSize: '0.875rem',
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(37,99,235,0.12)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 2px 10px rgba(37,99,235,0.08)' : 'none'
                                 }}
                             >
                                 <item.icon size={22} strokeWidth={currentTab === item.id ? 2.5 : 2} /> {item.label}
