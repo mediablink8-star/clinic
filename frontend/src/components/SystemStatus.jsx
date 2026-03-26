@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, MessageSquare, PhoneCall, Zap, RefreshCw } from 'lucide-react';
+import { Brain, Webhook, PhoneCall, Zap, RefreshCw } from 'lucide-react';
 
 const services = [
     {
@@ -12,13 +12,13 @@ const services = [
         actionTab: 'ai',
     },
     {
-        key: 'sms',
-        icon: MessageSquare,
-        label: 'SMS / Twilio',
-        check: s => s?.twilioConfigured,
+        key: 'webhook',
+        icon: Zap,
+        label: 'n8n Webhook',
+        check: s => s?.webhookConfigured,
         offlineLabel: 'Μη ρυθμισμένο',
-        actionLabel: 'Προσθήκη credentials',
-        actionTab: 'ai',
+        actionLabel: 'Ρύθμιση',
+        actionTab: 'settings',
     },
     {
         key: 'recovery',
@@ -27,17 +27,8 @@ const services = [
         check: s => s?.worker,
         offlineLabel: 'Worker σταματημένος',
         actionLabel: 'Επανεκκίνηση',
-        actionTab: null, // handled via page reload
+        actionTab: null,
         actionReload: true,
-    },
-    {
-        key: 'webhook',
-        icon: Zap,
-        label: 'Automations',
-        check: s => s?.webhookConfigured,
-        offlineLabel: 'Μη ρυθμισμένο',
-        actionLabel: 'Ρύθμιση',
-        actionTab: 'settings',
     },
 ];
 

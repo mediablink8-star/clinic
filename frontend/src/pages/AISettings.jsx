@@ -84,9 +84,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
         aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
     });
     const [aiTest, setAiTest]         = useState({ status: 'idle', latency: null });
-    const [twilioTest, setTwilioTest] = useState({ status: 'idle', latency: null });
     const [aiSaving, setAiSaving]     = useState(false);
-    const [twilioSaving, setTwilioSaving] = useState(false);
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [systemStatus, setSystemStatus] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -105,8 +103,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const set    = (key, val) => setFormData(p => ({ ...p, [key]: val }));
     const setKey = (key, val) => setFormData(p => ({ ...p, apiKeys: { ...p.apiKeys, [key]: val } }));
 
-    const handleTestAI = async () => {
-        setAiTest({ status: 'loading', latency: null });
+    const handleTestAI = async () => {        setAiTest({ status: 'loading', latency: null });
         try {
             const res = await axios.post(`${API_BASE}/integrations/test-ai`,
                 { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini },
@@ -127,30 +124,6 @@ const AISettings = ({ clinic, token, onUpdate }) => {
             if (err.response?.status === 401) { localStorage.removeItem('clinic_token'); window.location.reload(); }
             else showToast('Failed to save AI Key', 'error');
         } finally { setAiSaving(false); }
-    };
-
-    const handleTestTwilio = async () => {
-        setTwilioTest({ status: 'loading', latency: null });
-        try {
-            const res = await axios.post(`${API_BASE}/integrations/test-twilio`,
-                { sid: formData.apiKeys?.twilioSid, token: formData.apiKeys?.twilioToken },
-                { headers: { Authorization: `Bearer ${token}` } });
-            if (res.data.success) { setTwilioTest({ status: 'connected', latency: res.data.latency }); showToast('Twilio connected!'); }
-            else { setTwilioTest({ status: 'failed' }); showToast(res.data.error || 'Connection failed.', 'error'); }
-        } catch { setTwilioTest({ status: 'failed' }); showToast('Connection failed.', 'error'); }
-    };
-
-    const handleSaveTwilioKeys = async () => {
-        setTwilioSaving(true);
-        try {
-            await axios.post(`${API_BASE}/integrations/save-twilio-keys`,
-                { sid: formData.apiKeys?.twilioSid, token: formData.apiKeys?.twilioToken, phone: formData.apiKeys?.twilioPhone },
-                { headers: { Authorization: `Bearer ${token}` } });
-            showToast('Twilio credentials saved!');
-        } catch (err) {
-            if (err.response?.status === 401) { localStorage.removeItem('clinic_token'); window.location.reload(); }
-            else showToast('Failed to save Twilio credentials', 'error');
-        } finally { setTwilioSaving(false); }
     };
 
     const handleSaveAiConfig = async () => {
@@ -229,64 +202,38 @@ const AISettings = ({ clinic, token, onUpdate }) => {
             </div>
             <SectionCard id="ai-s1" number="1" icon={<Key size={15} color="#7c3aed" />} iconBg="#f3f0ff"
                 title="Συνδέσεις API" subtitle="Προσθέστε τα κλειδιά σας μία φορά — δεν χρειάζεται ξανά ρύθμιση">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
-                    {/* AI Provider */}
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: '#fafbfc' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                            <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0 }}>Πάροχος AI</h3>
-                            <StatusBadge status={aiTest.status} latency={aiTest.latency} />
+                {/* AI Provider */}
+                <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: '#fafbfc', maxWidth: '480px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0 }}>Πάροχος AI</h3>
+                        <StatusBadge status={aiTest.status} latency={aiTest.latency} />
+                    </div>
+                    {aiTest.status === 'failed' && aiTest.error && (
+                        <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
+                            {aiTest.error}
                         </div>
-                        {aiTest.status === 'failed' && aiTest.error && (
-                            <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
-                                {aiTest.error}
+                    )}
+                    <FormGroup label="Πάροχος">
+                        <select style={inputStyle} value={formData.aiProvider || 'gemini'} onChange={e => set('aiProvider', e.target.value)}>
+                            <option value="gemini">Gemini (Google)</option>
+                            <option value="openai" disabled>OpenAI (Μελλοντικά)</option>
+                        </select>
+                    </FormGroup>
+                    <FormGroup label="Κλειδί API">
+                        <input style={inputStyle} type="password" value={formData.apiKeys?.gemini || ''} onChange={e => setKey('gemini', e.target.value)} placeholder="AIza..." />
+                        {formData.apiKeys?.gemini && /[^\x00-\x7F]/.test(formData.apiKeys.gemini) && (
+                            <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '6px 10px' }}>
+                                ⚠ Το κλειδί περιέχει μη έγκυρους χαρακτήρες. Πληκτρολογήστε το χειροκίνητα.
                             </div>
                         )}
-                        <FormGroup label="Πάροχος">
-                            <select style={inputStyle} value={formData.aiProvider || 'gemini'} onChange={e => set('aiProvider', e.target.value)}>
-                                <option value="gemini">Gemini (Google)</option>
-                                <option value="openai" disabled>OpenAI (Μελλοντικά)</option>
-                            </select>
-                        </FormGroup>
-                        <FormGroup label="Κλειδί API">
-                            <input style={inputStyle} type="password" value={formData.apiKeys?.gemini || ''} onChange={e => setKey('gemini', e.target.value)} placeholder="AIza..." />
-                            {formData.apiKeys?.gemini && /[^\x00-\x7F]/.test(formData.apiKeys.gemini) && (
-                                <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '6px 10px' }}>
-                                    ⚠ Το κλειδί περιέχει μη έγκυρους χαρακτήρες. Πληκτρολογήστε το χειροκίνητα.
-                                </div>
-                            )}
-                        </FormGroup>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button type="button" className="btn btn-outline btn-sm" onClick={handleTestAI} disabled={aiTest.status === 'loading'} style={{ flex: 1 }}>
-                                {aiTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
-                            </button>
-                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAIKey} disabled={aiSaving || !isOwner} style={{ flex: 1 }}>
-                                {aiSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
-                            </button>
-                        </div>
-                    </div>
-                    {/* Twilio */}
-                    <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: '#fafbfc' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                            <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0 }}>Κανάλι Twilio</h3>
-                            <StatusBadge status={twilioTest.status} latency={twilioTest.latency} />
-                        </div>
-                        <FormGroup label="Account SID">
-                            <input style={inputStyle} value={formData.apiKeys?.twilioSid || ''} onChange={e => setKey('twilioSid', e.target.value)} />
-                        </FormGroup>
-                        <FormGroup label="Auth Token">
-                            <input style={inputStyle} type="password" value={formData.apiKeys?.twilioToken || ''} onChange={e => setKey('twilioToken', e.target.value)} />
-                        </FormGroup>
-                        <FormGroup label="Twilio Phone Number">
-                            <input style={inputStyle} placeholder="+1234567890" value={formData.apiKeys?.twilioPhone || ''} onChange={e => setKey('twilioPhone', e.target.value)} />
-                        </FormGroup>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button type="button" className="btn btn-outline btn-sm" onClick={handleTestTwilio} disabled={twilioTest.status === 'loading'} style={{ flex: 1 }}>
-                                {twilioTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
-                            </button>
-                            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveTwilioKeys} disabled={twilioSaving || !isOwner} style={{ flex: 1 }}>
-                                {twilioSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
-                            </button>
-                        </div>
+                    </FormGroup>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-outline btn-sm" onClick={handleTestAI} disabled={aiTest.status === 'loading'} style={{ flex: 1 }}>
+                            {aiTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
+                        </button>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAIKey} disabled={aiSaving || !isOwner} style={{ flex: 1 }}>
+                            {aiSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
+                        </button>
                     </div>
                 </div>
             </SectionCard>
@@ -399,8 +346,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     {[
                         { label: 'Πάροχος AI',   status: systemStatus?.aiConfigured },
-                        { label: 'Twilio SMS',    status: systemStatus?.twilioConfigured },
-                        { label: 'Webhook',       status: systemStatus?.webhookConfigured, altLabel: 'Ρυθμίστηκε' },
+                        { label: 'n8n Webhook',   status: systemStatus?.webhookConfigured, altLabel: 'Ρυθμίστηκε' },
                         { label: 'Worker Ουράς', status: systemStatus?.worker, customRunning: 'Σε λειτουργία', customOffline: 'Εκτός λειτουργίας' }
                     ].map((item, idx) => (
                         <div key={idx} style={{

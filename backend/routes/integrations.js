@@ -112,52 +112,6 @@ router.post('/test-ai', asyncHandler(async (req, res) => {
 }));
 
 /**
- * @route POST /api/integrations/test-twilio
- * @desc  Tests Twilio connectivity.
- */
-router.post('/test-twilio', asyncHandler(async (req, res) => {
-    const { sid, token } = req.body;
-    let resolvedSid = sid;
-    let resolvedToken = token;
-
-    if (!sid || sid === '********') {
-        const storedKeys = JSON.parse(req.clinic.apiKeys || '{}');
-        resolvedSid = decrypt(storedKeys.twilioSid);
-    }
-    if (!token || token === '********') {
-        const storedKeys = JSON.parse(req.clinic.apiKeys || '{}');
-        resolvedToken = decrypt(storedKeys.twilioToken);
-    }
-
-    if (!resolvedSid || !resolvedToken) {
-        return res.json({ success: false, error: 'Twilio credentials missing.' });
-    }
-
-    const start = Date.now();
-    try {
-        const Twilio = require('twilio');
-        const client = new Twilio(resolvedSid, resolvedToken);
-
-        // In Twilio Node v5, use the api.v2010 namespace
-        await client.api.v2010.accounts(resolvedSid).fetch();
-
-        const latency = Date.now() - start;
-        await logAction({
-            clinicId: req.clinicId,
-            userId: req.user.userId,
-            action: 'TEST_TWILIO_CONNECTION',
-            entity: 'INTEGRATION',
-            details: { success: true, latency },
-            ipAddress: req.ip
-        });
-        res.json({ success: true, latency });
-    } catch (err) {
-        console.error('[INTEGRATION_ERROR] Twilio Test Failed:', err);
-        res.json({ success: false, error: err.message, latency: Date.now() - start });
-    }
-}));
-
-/**
  * @route POST /api/integrations/save-ai-key
  * @desc  Encrypts and saves the AI provider API key for the clinic.
  */
@@ -200,33 +154,6 @@ router.post('/save-ai-key', asyncHandler(async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         console.error('Save AI key failed:', e);
-        res.status(500).json({ error: e.message });
-    }
-}));
-
-/**
- * @route POST /api/integrations/save-twilio-keys
- * @desc  Encrypts and saves the Twilio credentials.
- */
-router.post('/save-twilio-keys', asyncHandler(async (req, res) => {
-    if (!['OWNER', 'ADMIN'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
-    }
-    const { sid, token, phone } = req.body;
-
-    try {
-        const currentKeys = JSON.parse(req.clinic.apiKeys || '{}');
-        if (sid && sid !== '********') currentKeys.twilioSid = encrypt(sid);
-        if (token && token !== '********') currentKeys.twilioToken = encrypt(token);
-        if (phone) currentKeys.twilioPhone = phone;
-
-        await prisma.clinic.update({
-            where: { id: req.clinicId },
-            data: { apiKeys: JSON.stringify(currentKeys) }
-        });
-
-        res.json({ success: true });
-    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 }));
