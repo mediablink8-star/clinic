@@ -100,7 +100,7 @@ module.exports = { triggerWebhook };
  * @param {object} params
  * @param {string} params.from        - Sender phone number
  * @param {string} params.body        - Message text
- * @param {string} params.provider    - 'whatsapp' | 'sms' | etc.
+ * @param {string} params.provider    - 'sms' | 'whatsapp' | etc.
  * @param {object} params.clinic      - Full Prisma clinic record
  * @param {object} [params.raw]       - Raw provider payload (optional, for debugging)
  */
