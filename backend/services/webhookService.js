@@ -12,6 +12,26 @@ async function sendOnce(webhookUrl, body, headers) {
 }
 
 /**
+ * Builds a sanitized clinic context object safe to include in outbound webhook payloads.
+ * Strips sensitive fields (apiKeys, webhookSecret, etc.) before sending.
+ * @param {object} clinic - Prisma Clinic record
+ * @returns {object}
+ */
+function buildClinicContext(clinic) {
+    if (!clinic) return null;
+    return {
+        id: clinic.id,
+        name: clinic.name,
+        phone: clinic.phone,
+        location: clinic.location,
+        services: (() => { try { return JSON.parse(clinic.services || '[]'); } catch { return []; } })(),
+        workingHours: (() => { try { return JSON.parse(clinic.workingHours || '{}'); } catch { return {}; } })(),
+        policies: (() => { try { return JSON.parse(clinic.policies || '{}'); } catch { return {}; } })(),
+        aiConfig: (() => { try { return JSON.parse(clinic.aiConfig || '{}'); } catch { return {}; } })(),
+    };
+}
+
+/**
  * Triggers an external webhook with automatic retry (exponential backoff).
  * @param {string} eventType
  * @param {object} payload
@@ -20,6 +40,7 @@ async function sendOnce(webhookUrl, body, headers) {
  * @param {object} [options]
  * @param {number} [options.maxRetries=3]
  * @param {number} [options.baseDelay=500]  ms
+ * @param {object} [options.clinic]         Full clinic object — included as `clinic` in payload
  */
 async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
     if (!webhookUrl) {
@@ -27,12 +48,13 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         return { success: false, reason: 'No URL' };
     }
 
-    const { maxRetries = 3, baseDelay = 500 } = options;
+    const { maxRetries = 3, baseDelay = 500, clinic } = options;
 
     const body = JSON.stringify({
         event: eventType,
         timestamp: new Date().toISOString(),
-        data: payload
+        data: payload,
+        ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
     });
 
     const headers = { 'Content-Type': 'application/json' };
@@ -70,3 +92,26 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
 }
 
 module.exports = { triggerWebhook };
+
+/**
+ * Forwards an inbound message (e.g. from WhatsApp) to the clinic's configured webhook URL.
+ * Used by POST /api/webhooks/whatsapp and similar inbound routes.
+ *
+ * @param {object} params
+ * @param {string} params.from        - Sender phone number
+ * @param {string} params.body        - Message text
+ * @param {string} params.provider    - 'whatsapp' | 'sms' | etc.
+ * @param {object} params.clinic      - Full Prisma clinic record
+ * @param {object} [params.raw]       - Raw provider payload (optional, for debugging)
+ */
+async function forwardInboundMessage({ from, body, provider, clinic, raw }) {
+    return triggerWebhook(
+        'message.inbound',
+        { from, body, provider, raw: raw || null },
+        clinic.webhookUrl,
+        clinic.webhookSecret,
+        { maxRetries: 3, baseDelay: 500, clinic }
+    );
+}
+
+module.exports = { triggerWebhook, forwardInboundMessage, buildClinicContext };
