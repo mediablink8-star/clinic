@@ -12,7 +12,7 @@
       "name": "Receive Appointment Event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [240, 400]
     },
     {
       "parameters": {
