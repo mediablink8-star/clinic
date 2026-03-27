@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical, Zap } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -121,18 +121,18 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
             if (resp.data.success) {
                 const deliveryStatus = resp.data.deliveryStatus;
                 const statusMessages = {
-                    SENT: 'Το μήνυμα στάλθηκε επιτυχώς!',
-                    SIMULATED: 'Προσομοίωση αποστολής (δεν έχει ρυθμιστεί webhook).',
-                    FAILED: 'Η αποστολή απέτυχε. Ελέγξτε τις ρυθμίσεις SMS.',
+                    SENT: 'خ¤خ؟ خ¼خ®خ½د…خ¼خ± دƒد„خ¬خ»خ¸خ·خ؛خµ خµد€خ¹د„د…د‡دژد‚!',
+                    SIMULATED: 'خ دپخ؟دƒخ؟خ¼خ؟خ¯د‰دƒخ· خ±د€خ؟دƒد„خ؟خ»خ®د‚ (خ´خµخ½ خ­د‡خµخ¹ دپد…خ¸خ¼خ¹دƒد„خµخ¯ webhook).',
+                    FAILED: 'خ— خ±د€خ؟دƒد„خ؟خ»خ® خ±د€خ­د„د…د‡خµ. خ•خ»خ­خ³خ¾د„خµ د„خ¹د‚ دپد…خ¸خ¼خ¯دƒخµخ¹د‚ SMS.',
                 };
                 const isError = deliveryStatus === 'FAILED';
-                setStatus({ type: isError ? 'error' : 'success', text: statusMessages[deliveryStatus] || 'Αποστολή ολοκληρώθηκε.' });
+                setStatus({ type: isError ? 'error' : 'success', text: statusMessages[deliveryStatus] || 'خ‘د€خ؟دƒد„خ؟خ»خ® خ؟خ»خ؟خ؛خ»خ·دپدژخ¸خ·خ؛خµ.' });
                 if (!isError) setTimeout(() => onClose(), 2000);
             } else {
-                setStatus({ type: 'error', text: 'Αποτυχία αποστολής.' });
+                setStatus({ type: 'error', text: 'خ‘د€خ؟د„د…د‡خ¯خ± خ±د€خ؟دƒد„خ؟خ»خ®د‚.' });
             }
         } catch (err) {
-            setStatus({ type: 'error', text: err.response?.data?.error || 'Σφάλμα κατά την αποστολή.' });
+            setStatus({ type: 'error', text: err.response?.data?.error || 'خ£د†خ¬خ»خ¼خ± خ؛خ±د„خ¬ د„خ·خ½ خ±د€خ؟دƒد„خ؟خ»خ®.' });
         } finally {
             setSending(false);
         }
@@ -148,8 +148,8 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                             <Send size={18} color="var(--primary)" />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Αποστολή SMS</h2>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Επιλέξτε ασθενή και γράψτε μήνυμα</p>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>خ‘د€خ؟دƒد„خ؟خ»خ® SMS</h2>
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>خ•د€خ¹خ»خ­خ¾د„خµ خ±دƒخ¸خµخ½خ® خ؛خ±خ¹ خ³دپخ¬دˆد„خµ خ¼خ®خ½د…خ¼خ±</p>
                         </div>
                     </div>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}>
@@ -165,7 +165,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                             <input
                                 autoFocus
                                 type="text"
-                                placeholder="Αναζήτηση ασθενή..."
+                                placeholder="خ‘خ½خ±خ¶خ®د„خ·دƒخ· خ±دƒخ¸خµخ½خ®..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
@@ -173,7 +173,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                         </div>
                         <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             {filtered.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>Δεν βρέθηκαν ασθενείς</p>
+                                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>خ”خµخ½ خ²دپخ­خ¸خ·خ؛خ±خ½ خ±دƒخ¸خµخ½خµخ¯د‚</p>
                             ) : filtered.map(p => (
                                 <button key={p.id} onClick={() => setSelected(p)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'var(--text)' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary)', flexShrink: 0 }}>
@@ -207,16 +207,16 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
 
                         {/* Message input */}
                         <div>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Μήνυμα</label>
+                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>خœخ®خ½د…خ¼خ±</label>
                             <textarea
                                 autoFocus
                                 value={message}
                                 onChange={e => setMessage(e.target.value)}
-                                placeholder="Πληκτρολογήστε το μήνυμά σας..."
+                                placeholder="خ خ»خ·خ؛د„دپخ؟خ»خ؟خ³خ®دƒد„خµ د„خ؟ خ¼خ®خ½د…خ¼خ¬ دƒخ±د‚..."
                                 disabled={sending || status?.type === 'success'}
                                 style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', minHeight: '110px', boxSizing: 'border-box', outline: 'none' }}
                             />
-                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>{message.length} χαρακτήρες • 1 πίστωση</p>
+                            <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>{message.length} د‡خ±دپخ±خ؛د„خ®دپخµد‚ â€¢ 1 د€خ¯دƒد„د‰دƒخ·</p>
                         </div>
 
                         {status && (
@@ -227,10 +227,10 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                         )}
 
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Ακύρωση</button>
+                            <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>خ‘خ؛دچدپد‰دƒخ·</button>
                             <button onClick={handleSend} disabled={sending || !message.trim() || status?.type === 'success'} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'var(--primary)', color: 'white', cursor: (sending || !message.trim()) ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (sending || !message.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                 <Send size={15} />
-                                {sending ? 'Αποστολή...' : 'Αποστολή SMS'}
+                                {sending ? 'خ‘د€خ؟دƒد„خ؟خ»خ®...' : 'خ‘د€خ؟دƒد„خ؟خ»خ® SMS'}
                             </button>
                         </div>
                     </div>
@@ -257,8 +257,8 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                             <Phone size={18} color="#10b981" />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Κλήση Ασθενή</h2>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Επιλέξτε ασθενή για κλήση</p>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>خڑخ»خ®دƒخ· خ‘دƒخ¸خµخ½خ®</h2>
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>خ•د€خ¹خ»خ­خ¾د„خµ خ±دƒخ¸خµخ½خ® خ³خ¹خ± خ؛خ»خ®دƒخ·</p>
                         </div>
                     </div>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
@@ -271,7 +271,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                     <input
                         autoFocus
                         type="text"
-                        placeholder="Αναζήτηση ασθενή..."
+                        placeholder="خ‘خ½خ±خ¶خ®د„خ·دƒخ· خ±دƒخ¸خµخ½خ®..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         style={{ width: '100%', padding: '9px 9px 9px 32px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
@@ -280,7 +280,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
 
                 <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {filtered.length === 0 ? (
-                        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>Δεν βρέθηκαν ασθενείς</p>
+                        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>خ”خµخ½ خ²دپخ­خ¸خ·خ؛خ±خ½ خ±دƒخ¸خµخ½خµخ¯د‚</p>
                     ) : filtered.map(p => (
                         <a key={p.id} href={`tel:${p.phone}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', textDecoration: 'none', color: 'var(--text)' }}
                             onClick={onClose}>
@@ -304,10 +304,116 @@ const CallPatientModal = ({ patients = [], onClose }) => {
     );
 };
 
+
+const SimulateCallModal = ({ onClose, clinic }) => {
+    const [url, setUrl] = useState(() => localStorage.getItem('n8n_webhook_url') || '');
+    const [phone, setPhone] = useState('+30690000000');
+    const [status, setStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
+    const [errMsg, setErrMsg] = useState('');
+
+    const handleSave = () => localStorage.setItem('n8n_webhook_url', url);
+
+    const handleSimulate = async () => {
+        if (!url.trim()) return;
+        handleSave();
+        setStatus('sending');
+        setErrMsg('');
+        const payload = {
+            event: 'missed_call',
+            phone,
+            clinicId: clinic?.id || 'test-clinic',
+            callSid: `sim_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            source: 'simulate_button'
+        };
+        try {
+            await axios.post(url.trim(), payload);
+            setStatus('sent');
+            setTimeout(() => { setStatus(null); onClose(); }, 2000);
+        } catch (err) {
+            setStatus('error');
+            setErrMsg(err?.response?.data?.message || err.message || 'Request failed');
+        }
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '460px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid var(--modal-border)' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', padding: '8px', borderRadius: '10px' }}>
+                            <Zap size={18} color="white" />
+                        </div>
+                        <div>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Simulate Incoming Call</h2>
+                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Fires a missed-call payload to your n8n webhook</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Webhook URL */}
+                    <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>n8n Webhook URL</label>
+                        <input
+                            type="url"
+                            placeholder="https://your-n8n.com/webhook/clinic-events"
+                            value={url}
+                            onChange={e => setUrl(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                        />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                        <label style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Caller Phone (simulated)</label>
+                        <input
+                            type="text"
+                            value={phone}
+                            onChange={e => setPhone(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                        />
+                    </div>
+
+                    {/* Payload preview */}
+                    <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px', fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace', lineHeight: 1.6 }}>
+                        <span style={{ color: '#64748b' }}>// payload sent to n8n</span>{'\n'}
+                        {JSON.stringify({ event: 'missed_call', phone, clinicId: clinic?.id || 'test-clinic', callSid: 'sim_...', timestamp: '...', source: 'simulate_button' }, null, 2)}
+                    </div>
+
+                    {status === 'error' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: '#fef2f2', color: '#ef4444', fontSize: '0.8rem', fontWeight: '600' }}>
+                            <AlertCircle size={15} /> {errMsg || 'Failed to reach webhook'}
+                        </div>
+                    )}
+                    {status === 'sent' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: '#f0fdf4', color: '#10b981', fontSize: '0.8rem', fontWeight: '600' }}>
+                            <CheckCircle2 size={15} /> Webhook triggered successfully!
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Cancel</button>
+                        <button
+                            onClick={handleSimulate}
+                            disabled={!url.trim() || status === 'sending' || status === 'sent'}
+                            style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: 'white', cursor: (!url.trim() || status === 'sending') ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (!url.trim() || status === 'sending') ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <Zap size={15} />
+                            {status === 'sending' ? 'Firing...' : 'Fire Webhook'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic }) => {
     const [showSMS, setShowSMS] = useState(false);
     const [showCall, setShowCall] = useState(false);
-    const [testStatus, setTestStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
+    const [testStatus, setTestStatus] = useState(null);
+    const [showSimulate, setShowSimulate] = useState(false); // null | 'sending' | 'sent' | 'error'
 
     const handleTestRecovery = async () => {
         setTestStatus('sending');
@@ -336,23 +442,23 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
 
                 {/* Primary */}
-                <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
+                <QuickActionBtn icon={Calendar} label="+ خ‌خ­خ؟ خ،خ±خ½د„خµخ²خ؟دچ" onClick={onNewAppointment || onViewSchedule} variant="primary" />
 
                 {/* Secondary */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Ασθενής" onClick={onAddPatient} variant="secondary" />
+                    <QuickActionBtn icon={UserPlus} label="خ‘دƒخ¸خµخ½خ®د‚" onClick={onAddPatient} variant="secondary" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
-                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
+                    <QuickActionBtn icon={Phone} label="خڑخ»خ®دƒخ·" onClick={() => setShowCall(true)} variant="secondary" />
                 </div>
 
-                {/* Developer Tools — collapsed at bottom */}
+                {/* Developer Tools â€” collapsed at bottom */}
                 <div style={{ marginTop: '0.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.5rem' }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
                         Developer Tools
                     </div>
                     <QuickActionBtn
                         icon={FlaskConical}
-                        label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Test Recovery SMS'}
+                        label={testStatus === 'sending' ? 'خ‘د€خ؟دƒد„خ؟خ»خ®...' : testStatus === 'sent' ? 'âœ“ خ•دƒد„خ¬خ»خ·!' : testStatus === 'error' ? 'âœ— خ£د†خ¬خ»خ¼خ±' : 'Test Recovery SMS'}
                         onClick={handleTestRecovery}
                         variant="test"
                     />
@@ -362,6 +468,9 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
             {showSMS && (
                 <SendSMSModal patients={patients} token={token} onClose={() => setShowSMS(false)} />
             )}
+            \{showSimulate && (
+                <SimulateCallModal onClose={() => setShowSimulate(false)} clinic={clinic} />
+            )}
             {showCall && (
                 <CallPatientModal patients={patients} onClose={() => setShowCall(false)} />
             )}
@@ -370,3 +479,4 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
 };
 
 export default QuickActions;
+
