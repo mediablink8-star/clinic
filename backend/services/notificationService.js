@@ -1,8 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 /**
  * Process a single queued notification job.

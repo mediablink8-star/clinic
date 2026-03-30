@@ -85,6 +85,7 @@ const Dashboard = ({
     recoveryStats = { recovered: 0, pending: 0, revenue: 0 },
     recoveryLog = [],
     systemStatus = {},
+    systemStats = {},
     apiUsage = {},
     loading,
     onRefresh,
@@ -94,7 +95,7 @@ const Dashboard = ({
     const [configWarnings, setConfigWarnings] = React.useState([]);
 
     React.useEffect(() => {
-        const authToken = token || localStorage.getItem('clinic_token');
+        const authToken = token;
         if (!authToken) return;
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
         fetch(`${API_BASE}/system/config-status`, { headers: { Authorization: `Bearer ${authToken}` } })
@@ -132,9 +133,9 @@ const Dashboard = ({
                         Δείτε τι συμβαίνει στο ιατρείο σας σήμερα.
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366f1', display: 'inline-block', boxShadow: '0 0 6px rgba(99,102,241,0.6)' }} />
-                        <span style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 700, letterSpacing: '0.02em' }}>
-                            Automation: External API Mode
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px rgba(16,185,129,0.6)' }} />
+                        <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            Σύστημα Αυτοματισμού: Σε λειτουργία
                         </span>
                     </div>
                 </div>
@@ -193,7 +194,7 @@ const Dashboard = ({
 
             {/* PERFORMANCE strip */}
             <section>
-                <SectionHeader icon={ArrowUpRight}>PERFORMANCE</SectionHeader>
+                <SectionHeader icon={ArrowUpRight}>ΑΠΟΔΟΣΗ ΙΑΤΡΕΙΟΥ</SectionHeader>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.875rem' }}>
                     <StatCard
                         title="Αναπάντητες (μήνας)"
@@ -244,19 +245,19 @@ const Dashboard = ({
 
             {/* DASHBOARD OVERVIEW — 3×2 equal grid */}
             <section>
-                <SectionHeader icon={Calendar}>DASHBOARD OVERVIEW</SectionHeader>
+                <SectionHeader icon={Calendar}>ΕΠΙΣΚΟΠΗΣΗ ΔΡΑΣΤΗΡΙΟΤΗΤΑΣ</SectionHeader>
 
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gridTemplateRows: 'repeat(2, minmax(260px, 1fr))',
+                    gridTemplateRows: 'repeat(2, 280px)',
                     gap: '0.875rem',
-                    minHeight: '520px',
+                    height: '560px',
                 }}>
                     {/* Row 1 */}
                     <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
 
-                    <div className="grid-cell-glass card-hover" style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.5)', padding: '1.1rem 1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div className="grid-cell-glass card-hover" style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.5)', padding: '1.1rem 1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.07)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: '0.75rem', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Γρήγορες Ενέργειες</h3>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
@@ -273,7 +274,7 @@ const Dashboard = ({
                     {/* Row 2 */}
                     <RecoveryFunnel logs={logsArray} stats={recoveryStats} />
 
-                    <SystemStatus status={systemStatus} setCurrentTab={setCurrentTab} />
+                    <SystemStatus status={systemStatus} stats={systemStats} setCurrentTab={setCurrentTab} />
 
                     <AutomationLog logs={logsArray} />
                 </div>

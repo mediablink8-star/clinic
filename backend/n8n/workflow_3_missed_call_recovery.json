@@ -1,3 +1,4 @@
+
 {
   "name": "Workflow 3 — Missed Call Recovery",
   "nodes": [
@@ -18,6 +19,36 @@
       "parameters": {
         "conditions": {
           "string": [
+            {
+              "value1": "={{ $json.headers['x-webhook-key'] }}",
+              "operation": "equal",
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "node_auth_check",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
+        "options": { "responseCode": 401 }
+      },
+      "id": "node_unauthorized",
+      "name": "Return 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
             { "value1": "={{ $json.body.data.phone }}", "operation": "isNotEmpty" },
             { "value1": "={{ $json.body.data.clinicId }}", "operation": "isNotEmpty" }
           ]
@@ -27,7 +58,7 @@
       "name": "Validate Payload",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -39,7 +70,41 @@
       "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 500]
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_respond_immediately",
+      "name": "Respond 200 Immediately",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "executionId",
+              "value": "={{ $json.body.data.callSid || $json.body.data.missedCallId || $execution.id }}"
+            },
+            { "name": "entityId", "value": "={{ $json.body.data.callSid || $json.body.data.missedCallId || '' }}" },
+            { "name": "entityType", "value": "missed_call" },
+            { "name": "phone", "value": "={{ $json.body.data.phone }}" },
+            { "name": "clinicId", "value": "={{ $json.body.data.clinicId }}" },
+            { "name": "callSid", "value": "={{ $json.body.data.callSid || '' }}" }
+          ]
+        }
+      },
+      "id": "node_set_execution_id",
+      "name": "Set Execution Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -49,9 +114,10 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "phone", "value": "={{ $json.body.data.phone }}" },
-            { "name": "clinicId", "value": "={{ $json.body.data.clinicId }}" },
-            { "name": "callSid", "value": "={{ $json.body.data.callSid || '' }}" }
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "clinicId", "value": "={{ $json.clinicId }}" },
+            { "name": "callSid", "value": "={{ $json.callSid }}" },
+            { "name": "executionId", "value": "={{ $json.executionId }}" }
           ]
         },
         "options": { "timeout": 10000 }
@@ -60,7 +126,7 @@
       "name": "Record Missed Call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [680, 300],
+      "position": [1340, 300],
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
@@ -80,25 +146,17 @@
       "name": "Is Duplicate?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 300]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": true, \"note\": \"duplicate ignored\" }",
-        "options": { "responseCode": 200 }
-      },
-      "id": "node_stop_duplicate",
-      "name": "Stop — Duplicate",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1120, 460]
+      "position": [1560, 300]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.data?.smsStatus }}", "operation": "equal", "value2": "scheduled" }
+            {
+              "value1": "={{ $json.data?.smsStatus }}",
+              "operation": "equal",
+              "value2": "scheduled"
+            }
           ]
         }
       },
@@ -106,31 +164,22 @@
       "name": "Is Scheduled (OOH)?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1120, 300]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": true, \"note\": \"sms scheduled for working hours\" }",
-        "options": { "responseCode": 200 }
-      },
-      "id": "node_stop_scheduled",
-      "name": "Stop — Scheduled",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1340, 460]
+      "position": [1780, 300]
     },
     {
       "parameters": {
         "values": {
           "string": [
+            { "name": "executionId", "value": "={{ $node[\"Set Execution Context\"].json.executionId }}" },
+            { "name": "entityId", "value": "={{ $node[\"Set Execution Context\"].json.entityId }}" },
+            { "name": "entityType", "value": "missed_call" },
             { "name": "missedCallId", "value": "={{ $json.data.missedCallId }}" },
-            { "name": "phone", "value": "={{ $node[\"Missed Call Webhook\"].json.body.data.phone }}" },
-            { "name": "clinicId", "value": "={{ $node[\"Missed Call Webhook\"].json.body.data.clinicId }}" },
-            { "name": "clinicName", "value": "={{ $node[\"Missed Call Webhook\"].json.body.clinic?.name || 'Ιατρείο' }}" },
-            { "name": "clinicServices", "value": "={{ JSON.stringify($node[\"Missed Call Webhook\"].json.body.clinic?.services || []) }}" },
-            { "name": "clinicPolicies", "value": "={{ $node[\"Missed Call Webhook\"].json.body.clinic?.policies?.cancellation || '' }}" },
-            { "name": "workingHours", "value": "={{ JSON.stringify($node[\"Missed Call Webhook\"].json.body.clinic?.workingHours || {}) }}" }
+            { "name": "phone", "value": "={{ $node[\"Set Execution Context\"].json.phone }}" },
+            { "name": "clinicId", "value": "={{ $node[\"Set Execution Context\"].json.clinicId }}" },
+            { "name": "clinicName", "value": "={{ $json.data.clinic?.name || 'Ιατρείο' }}" },
+            { "name": "clinicServices", "value": "={{ $json.data.clinic?.services || [] }}" },
+            { "name": "clinicPolicies", "value": "={{ $json.data.clinic?.policies?.cancellation || '' }}" },
+            { "name": "workingHours", "value": "={{ $json.data.clinic?.workingHours || {} }}" }
           ]
         }
       },
@@ -138,7 +187,7 @@
       "name": "Extract Clinic Context",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1340, 300]
+      "position": [2000, 300]
     },
     {
       "parameters": {
@@ -149,7 +198,7 @@
           "values": [
             {
               "role": "system",
-              "content": "=You are a friendly medical clinic assistant. Write a short SMS in Greek (max 160 chars) to a patient whose call was missed. Clinic: {{ $json.clinicName }}. Services: {{ $json.clinicServices }}. Be warm, professional, encourage booking. No emojis."
+              "content": "=You are a friendly medical clinic assistant. Write a short SMS in Greek (max 160 chars) to a patient whose call was missed. Clinic: {{ $json.clinicName }}. Services: {{ JSON.stringify($json.clinicServices) }}. Be warm, professional, encourage booking. No emojis."
             },
             {
               "role": "user",
@@ -157,13 +206,13 @@
             }
           ]
         },
-        "options": {}
+        "options": { "timeout": 5000 }
       },
       "id": "node_ai_message",
       "name": "Generate AI Recovery SMS",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
-      "position": [1560, 300],
+      "position": [2220, 300],
       "continueOnFail": true,
       "credentials": {
         "openAiApi": {
@@ -184,13 +233,16 @@
       "name": "AI Message OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1780, 300]
+      "position": [2440, 300]
     },
     {
       "parameters": {
         "values": {
           "string": [
-            { "name": "smsBody", "value": "={{ $json.message.content }}" }
+            {
+              "name": "smsBody",
+              "value": "={{ $json.message.content.length > 160 ? $json.message.content.substring(0, 160) : $json.message.content }}"
+            }
           ]
         }
       },
@@ -198,13 +250,16 @@
       "name": "Use AI Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [2000, 200]
+      "position": [2660, 200]
     },
     {
       "parameters": {
         "values": {
           "string": [
-            { "name": "smsBody", "value": "=Γεια σας, χάσαμε την κλήση σας. Θέλετε να κλείσουμε ραντεβού; Απαντήστε ή καλέστε μας." }
+            {
+              "name": "smsBody",
+              "value": "=Γεια σας, χάσαμε την κλήση σας. Θέλετε να κλείσουμε ραντεβού; Απαντήστε ή καλέστε μας."
+            }
           ]
         }
       },
@@ -212,7 +267,7 @@
       "name": "Use Fallback Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [2000, 400]
+      "position": [2660, 400]
     },
     {
       "parameters": {
@@ -226,10 +281,11 @@
       "name": "Send Recovery SMS",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [2220, 300],
+      "position": [2880, 300],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000,
+      "continueOnFail": true,
       "credentials": {
         "twilioApi": {
           "id": "twilio_creds",
@@ -239,94 +295,110 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/pending-notifications",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 10000 }
-      },
-      "id": "node_poll_notifications",
-      "name": "Poll Pending Notifications",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [2440, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
+          ]
         }
-      }
+      },
+      "id": "node_sms_ok",
+      "name": "SMS Sent OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [3100, 300]
     },
     {
       "parameters": {
-        "fieldToSplitOut": "data",
-        "options": {}
+        "values": {
+          "string": [
+            {
+              "name": "log",
+              "value": "=SMS sent to {{ $node[\"Extract Clinic Context\"].json.phone }} | executionId: {{ $node[\"Extract Clinic Context\"].json.executionId }} | entityType: missed_call | entityId: {{ $node[\"Extract Clinic Context\"].json.entityId }}"
+            },
+            { "name": "smsStatus", "value": "sent" }
+          ]
+        }
       },
-      "id": "node_split_notifications",
-      "name": "Split Notifications",
-      "type": "n8n-nodes-base.splitOut",
+      "id": "node_log_success",
+      "name": "Log SMS Sent",
+      "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [2660, 300]
+      "position": [3320, 200]
     },
     {
       "parameters": {
         "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "notificationId", "value": "={{ $json.id }}" }
+            { "name": "type", "value": "sms_failure" },
+            { "name": "entityType", "value": "missed_call" },
+            {
+              "name": "entityId",
+              "value": "={{ $node[\"Extract Clinic Context\"].json.entityId }}"
+            },
+            {
+              "name": "executionId",
+              "value": "={{ $node[\"Extract Clinic Context\"].json.executionId }}"
+            },
+            {
+              "name": "error",
+              "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
+            }
           ]
         },
         "options": { "timeout": 10000 }
       },
-      "id": "node_send_notification",
-      "name": "Send Notification",
+      "id": "node_log_sms_failure",
+      "name": "Log SMS Failure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [2880, 300],
+      "position": [3320, 400],
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
           "name": "Backend API Key"
         }
       }
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": true, \"status\": \"recovery_initiated\" }",
-        "options": { "responseCode": 200 }
-      },
-      "id": "node_success",
-      "name": "Return Success",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [3100, 300]
     }
   ],
   "connections": {
     "Missed Call Webhook": {
-      "main": [[{ "node": "Validate Payload", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Auth Check", "type": "main", "index": 0 }]]
+    },
+    "Auth Check": {
+      "main": [
+        [{ "node": "Validate Payload", "type": "main", "index": 0 }],
+        [{ "node": "Return 401", "type": "main", "index": 0 }]
+      ]
     },
     "Validate Payload": {
       "main": [
-        [{ "node": "Record Missed Call", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 Immediately", "type": "main", "index": 0 }],
         [{ "node": "Return 400", "type": "main", "index": 0 }]
       ]
+    },
+    "Respond 200 Immediately": {
+      "main": [[{ "node": "Set Execution Context", "type": "main", "index": 0 }]]
+    },
+    "Set Execution Context": {
+      "main": [[{ "node": "Record Missed Call", "type": "main", "index": 0 }]]
     },
     "Record Missed Call": {
       "main": [[{ "node": "Is Duplicate?", "type": "main", "index": 0 }]]
     },
     "Is Duplicate?": {
       "main": [
-        [{ "node": "Stop — Duplicate", "type": "main", "index": 0 }],
+        [],
         [{ "node": "Is Scheduled (OOH)?", "type": "main", "index": 0 }]
       ]
     },
     "Is Scheduled (OOH)?": {
       "main": [
-        [{ "node": "Stop — Scheduled", "type": "main", "index": 0 }],
+        [],
         [{ "node": "Extract Clinic Context", "type": "main", "index": 0 }]
       ]
     },
@@ -349,16 +421,13 @@
       "main": [[{ "node": "Send Recovery SMS", "type": "main", "index": 0 }]]
     },
     "Send Recovery SMS": {
-      "main": [[{ "node": "Poll Pending Notifications", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "SMS Sent OK?", "type": "main", "index": 0 }]]
     },
-    "Poll Pending Notifications": {
-      "main": [[{ "node": "Split Notifications", "type": "main", "index": 0 }]]
-    },
-    "Split Notifications": {
-      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
-    },
-    "Send Notification": {
-      "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]]
+    "SMS Sent OK?": {
+      "main": [
+        [{ "node": "Log SMS Sent", "type": "main", "index": 0 }],
+        [{ "node": "Log SMS Failure", "type": "main", "index": 0 }]
+      ]
     }
   },
   "settings": {

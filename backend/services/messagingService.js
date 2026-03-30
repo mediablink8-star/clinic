@@ -1,9 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', clinic }, actor) {
     const patient = await prisma.patient.findUnique({

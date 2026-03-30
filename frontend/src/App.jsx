@@ -6,6 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Pages
 import ClinicLogin from './pages/ClinicLogin';
+import ClinicRegister from './pages/ClinicRegister';
+import ResetPassword from './pages/ResetPassword';
 import ClinicSettings from './pages/ClinicSettings';
 import AISettings from './pages/AISettings';
 import Dashboard from './pages/Dashboard';
@@ -48,18 +50,24 @@ const App = () => {
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
 
+  // On mount: try to restore session via httpOnly refresh cookie (no localStorage token)
   useEffect(() => {
-    const savedToken = localStorage.getItem('clinic_token');
     const savedClinic = localStorage.getItem('clinic_data');
-    if (savedToken && savedClinic) {
-      setToken(savedToken);
-      setClinic(JSON.parse(savedClinic));
-    }
+    if (!savedClinic) return;
+    // Attempt silent token refresh — cookie is sent automatically
+    axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
+      .then(res => {
+        setToken(res.data.token);
+        setClinic(JSON.parse(savedClinic));
+      })
+      .catch(() => {
+        // Refresh failed — clear stale clinic data and show login
+        localStorage.removeItem('clinic_data');
+      });
   }, []);
 
   const getHeaders = () => {
-    const t = token || localStorage.getItem('clinic_token');
-    return t ? { 'Authorization': `Bearer ${t}` } : {};
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   // React Queries
@@ -126,7 +134,16 @@ const App = () => {
     refetchInterval: 60000,
     retry: 1,
   });
-  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage;
+
+  const { data: systemStats = {}, isLoading: loadingSystemStats } = useQuery({
+    queryKey: ['system-stats'],
+    queryFn: () => axios.get(`${API_BASE}/system/stats`, { headers: getHeaders() }).then(res => res.data),
+    enabled: !!token,
+    refetchInterval: 30000,
+    retry: 1,
+  });
+
+  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage || loadingSystemStats;
 
   const safeTime = (dateStr) => {
     try {
@@ -149,15 +166,24 @@ const App = () => {
     const { token, clinic } = loginData;
     setToken(token);
     setClinic(clinic);
-    localStorage.setItem('clinic_token', token);
+    // Only persist non-sensitive clinic metadata — token stays in memory only
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     queryClient.invalidateQueries();
   };
 
+  const handleRegister = (registerData) => {
+    const { token, clinic } = registerData;
+    setToken(token);
+    setClinic(clinic);
+    localStorage.setItem('clinic_data', JSON.stringify(clinic));
+    setCurrentTab('settings');
+    queryClient.invalidateQueries();
+  };
+
   const handleLogout = () => {
+    axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
     setToken(null);
     setClinic(null);
-    localStorage.removeItem('clinic_token');
     localStorage.removeItem('clinic_data');
     queryClient.clear();
   };
@@ -231,6 +257,8 @@ const App = () => {
   }
 
   if (!clinic) {
+    if (path === '/register') return <ClinicRegister onRegister={handleRegister} />;
+    if (path === '/reset-password') return <ResetPassword />;
     return <ClinicLogin onLogin={handleLogin} />;
   }
 
@@ -271,6 +299,7 @@ const App = () => {
           setCurrentTab={setCurrentTab}
           setShowModal={setShowModal}
           systemStatus={systemStatus}
+          systemStats={systemStats}
           apiUsage={apiUsage}
           loading={loading}
           onRefresh={refreshRecovery}
@@ -299,6 +328,7 @@ const App = () => {
           setCurrentTab={setCurrentTab}
           setShowModal={setShowModal}
           systemStatus={systemStatus}
+          systemStats={systemStats}
           apiUsage={apiUsage}
           loading={loading}
         />;

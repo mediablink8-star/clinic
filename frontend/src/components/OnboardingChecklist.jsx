@@ -21,12 +21,6 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             hint: 'Ρυθμίσεις AI → Πάροχος AI',
         },
         {
-            key: 'twilio',
-            label: 'Σύνδεση Twilio SMS',
-            done: !!(systemStatus?.twilioConfigured),
-            hint: 'Ρυθμίσεις AI → Κανάλι Twilio',
-        },
-        {
             key: 'recovery',
             label: 'Δοκιμή ανάκτησης SMS',
             done: Array.isArray(recoveryLog) && recoveryLog.length > 0,
@@ -95,6 +89,19 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {/* Dismiss Button */}
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            localStorage.setItem(STORAGE_KEY, 'true');
+                            setDismissed(true);
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                        title="Απόκρυψη"
+                    >
+                        <X size={14} />
+                    </button>
+
                     {/* Progress bar */}
                     {!collapsed && (
                         <div style={{ width: '80px', height: '5px', borderRadius: '99px', background: 'rgba(99,102,241,0.12)', overflow: 'hidden' }}>
@@ -130,8 +137,8 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
 
             {/* Steps */}
             {!collapsed && (
-                <div style={{ display: 'flex', gap: '0', padding: '0.85rem 1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {steps.map((step, i) => (
+                <div style={{ display: 'flex', padding: '0.85rem 1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {steps.map((step) => (
                         <div key={step.key} style={{
                             display: 'flex', alignItems: 'center', gap: '7px',
                             padding: '6px 12px', borderRadius: '10px',

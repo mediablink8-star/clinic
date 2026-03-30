@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 
 router.get('/', asyncHandler(async (req, res) => {
     const notifications = await prisma.notification.findMany({

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const { validate, patientSchema, appointmentSchema } = require('../services/validationService');
 const {
     listPatients, createPatient,
     listAppointments, createAppointment,
@@ -12,7 +13,7 @@ router.get('/patients', asyncHandler(async (req, res) => {
     res.json(data);
 }));
 
-router.post('/patients', asyncHandler(async (req, res) => {
+router.post('/patients', validate(patientSchema), asyncHandler(async (req, res) => {
     const { name, phone, email } = req.body;
     const { data } = await createPatient(
         { clinicId: req.clinicId, name, phone, email },
@@ -26,7 +27,7 @@ router.get('/appointments', asyncHandler(async (req, res) => {
     res.json(data);
 }));
 
-router.post('/appointments', asyncHandler(async (req, res) => {
+router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {
     const { patientId, reason, startTime, endTime, priority } = req.body;
     const { data } = await createAppointment(
         { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority },

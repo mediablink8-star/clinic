@@ -1,8 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 async function listPatients(clinicId) {
     const data = await prisma.patient.findMany({

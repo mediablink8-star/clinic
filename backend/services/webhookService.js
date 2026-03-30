@@ -32,10 +32,27 @@ function buildClinicContext(clinic) {
 }
 
 /**
+ * Resolves the target webhook URL for a given event based on clinic overrides.
+ */
+function resolveWebhookUrl(eventType, clinic) {
+    if (!clinic) return null;
+    
+    // Event specific overrides
+    if (eventType.startsWith('missed_call') && clinic.webhookMissedCall) return clinic.webhookMissedCall;
+    if (eventType.startsWith('appointment') && clinic.webhookAppointment) return clinic.webhookAppointment;
+    if (eventType.startsWith('notification') && clinic.webhookReminders) return clinic.webhookReminders;
+    if (eventType === 'message.direct_send' && clinic.webhookDirectSms) return clinic.webhookDirectSms;
+    if (eventType === 'message.inbound' && clinic.webhookInboundSms) return clinic.webhookInboundSms;
+    
+    // Default global URL
+    return clinic.webhookUrl;
+}
+
+/**
  * Triggers an external webhook with automatic retry (exponential backoff).
  * @param {string} eventType
  * @param {object} payload
- * @param {string} webhookUrl
+ * @param {string} webhookUrl - If null, will attempt to resolve from clinic context
  * @param {string} [webhookSecret]
  * @param {object} [options]
  * @param {number} [options.maxRetries=3]
@@ -43,12 +60,18 @@ function buildClinicContext(clinic) {
  * @param {object} [options.clinic]         Full clinic object — included as `clinic` in payload
  */
 async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
-    if (!webhookUrl) {
-        console.log(`[Webhook] Skipped: No webhookUrl configured.`);
+    const { clinic } = options;
+    
+    // If webhookUrl is not explicitly provided, or if it's the global one, 
+    // try to resolve a more specific one from the clinic config.
+    const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
+
+    if (!targetUrl) {
+        console.log(`[Webhook] Skipped: No webhookUrl configured for event ${eventType}.`);
         return { success: false, reason: 'No URL' };
     }
 
-    const { maxRetries = 3, baseDelay = 500, clinic } = options;
+    const { maxRetries = 3, baseDelay = 500 } = options;
 
     const body = JSON.stringify({
         event: eventType,
@@ -58,9 +81,10 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     });
 
     const headers = { 'Content-Type': 'application/json' };
-    if (webhookSecret) {
+    const secret = webhookSecret || clinic?.webhookSecret;
+    if (secret) {
         headers['X-Webhook-Signature'] = crypto
-            .createHmac('sha256', webhookSecret)
+            .createHmac('sha256', secret)
             .update(body)
             .digest('hex');
     }
@@ -70,8 +94,8 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`[Webhook] ${eventType} → attempt ${attempt}/${maxRetries}`);
-            await sendOnce(webhookUrl, body, headers);
+            console.log(`[Webhook] ${eventType} → attempt ${attempt}/${maxRetries} to ${targetUrl}`);
+            await sendOnce(targetUrl, body, headers);
             const duration = Date.now() - startTime;
             console.log(`[Webhook] ${eventType} delivered in ${duration}ms (attempt ${attempt})`);
             return { success: true, duration, attempts: attempt };

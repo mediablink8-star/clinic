@@ -1,7 +1,5 @@
 const { verifyToken } = require('../services/authService');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 
 /**
  * Automation auth middleware.

@@ -18,6 +18,36 @@
       "parameters": {
         "conditions": {
           "string": [
+            {
+              "value1": "={{ $json.headers['x-webhook-key'] }}",
+              "operation": "equal",
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "node_auth_check",
+      "name": "Auth Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
+        "options": { "responseCode": 401 }
+      },
+      "id": "node_unauthorized",
+      "name": "Return 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
             { "value1": "={{ $json.body.from }}", "operation": "isNotEmpty" },
             { "value1": "={{ $json.body.clinicId }}", "operation": "isNotEmpty" }
           ]
@@ -27,7 +57,7 @@
       "name": "Validate Inbound",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -39,7 +69,42 @@
       "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 460]
+      "position": [900, 460]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node_respond_immediately",
+      "name": "Respond 200 Immediately",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "executionId",
+              "value": "={{ $json.body.missedCallId || $execution.id }}"
+            },
+            { "name": "entityId", "value": "={{ $json.body.missedCallId || '' }}" },
+            { "name": "entityType", "value": "inbound_sms" },
+            { "name": "from", "value": "={{ $json.body.from }}" },
+            { "name": "clinicId", "value": "={{ $json.body.clinicId }}" },
+            { "name": "missedCallId", "value": "={{ $json.body.missedCallId || '' }}" },
+            { "name": "messageBody", "value": "={{ $json.body.body }}" }
+          ]
+        }
+      },
+      "id": "node_set_execution_id",
+      "name": "Set Execution ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -54,7 +119,7 @@
             },
             {
               "role": "user",
-              "content": "={{ $json.body.body }}"
+              "content": "={{ $json.messageBody }}"
             }
           ]
         },
@@ -64,7 +129,7 @@
       "name": "Classify Patient Intent",
       "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
-      "position": [680, 300],
+      "position": [1340, 300],
       "continueOnFail": true,
       "credentials": {
         "openAiApi": {
@@ -77,7 +142,11 @@
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.message?.content?.trim().toUpperCase() }}", "operation": "equal", "value2": "BOOKING" }
+            {
+              "value1": "={{ $json.message?.content?.trim().toUpperCase() }}",
+              "operation": "equal",
+              "value2": "BOOKING"
+            }
           ]
         }
       },
@@ -85,7 +154,7 @@
       "name": "Is Booking Intent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 300]
+      "position": [1560, 300]
     },
     {
       "parameters": {
@@ -96,8 +165,9 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "clinicId", "value": "={{ $node[\"Receive Inbound SMS\"].json.body.clinicId }}" },
-            { "name": "missedCallId", "value": "={{ $node[\"Receive Inbound SMS\"].json.body.missedCallId }}" }
+            { "name": "clinicId", "value": "={{ $node[\"Set Execution ID\"].json.clinicId }}" },
+            { "name": "missedCallId", "value": "={{ $node[\"Set Execution ID\"].json.missedCallId }}" },
+            { "name": "executionId", "value": "={{ $node[\"Set Execution ID\"].json.executionId }}" }
           ]
         },
         "options": { "timeout": 10000 }
@@ -106,7 +176,7 @@
       "name": "Mark Recovered",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1120, 200],
+      "position": [1780, 200],
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
@@ -118,7 +188,7 @@
       "parameters": {
         "operation": "send",
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
-        "to": "={{ $node[\"Receive Inbound SMS\"].json.body.from }}",
+        "to": "={{ $node[\"Set Execution ID\"].json.from }}",
         "message": "=Ευχαριστούμε! Θα επικοινωνήσουμε μαζί σας σύντομα για να κλείσουμε το ραντεβού σας.",
         "options": {}
       },
@@ -126,11 +196,80 @@
       "name": "Reply — Booking Confirmed",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [1340, 200],
+      "position": [2000, 200],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "continueOnFail": true,
       "credentials": {
         "twilioApi": {
           "id": "twilio_creds",
           "name": "Twilio Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
+          ]
+        }
+      },
+      "id": "node_booking_sms_ok",
+      "name": "Booking SMS Sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "log",
+              "value": "=Booking reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }}"
+            },
+            { "name": "smsStatus", "value": "sent" }
+          ]
+        }
+      },
+      "id": "node_log_booking_sent",
+      "name": "Log Booking Reply Sent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2440, 120]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "type", "value": "sms_failure" },
+            {
+              "name": "executionId",
+              "value": "={{ $node[\"Set Execution ID\"].json.executionId }}"
+            },
+            { "name": "error", "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}" },
+            { "name": "entityType", "value": "inbound_sms" },
+            { "name": "entityId", "value": "={{ $node[\"Set Execution ID\"].json.entityId }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_log_booking_failure",
+      "name": "Log Booking Reply Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2440, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
         }
       }
     },
@@ -138,7 +277,7 @@
       "parameters": {
         "operation": "send",
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
-        "to": "={{ $node[\"Receive Inbound SMS\"].json.body.from }}",
+        "to": "={{ $node[\"Set Execution ID\"].json.from }}",
         "message": "=Ευχαριστούμε για την απάντησή σας. Θα επικοινωνήσουμε μαζί σας σύντομα.",
         "options": {}
       },
@@ -146,7 +285,11 @@
       "name": "Reply — General Acknowledgement",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
-      "position": [1120, 400],
+      "position": [1780, 420],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "continueOnFail": true,
       "credentials": {
         "twilioApi": {
           "id": "twilio_creds",
@@ -156,26 +299,91 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": true }",
-        "options": { "responseCode": 200 }
+        "conditions": {
+          "string": [
+            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
+          ]
+        }
       },
-      "id": "node_success_inbound",
-      "name": "Return Success",
-      "type": "n8n-nodes-base.respondToWebhook",
+      "id": "node_other_sms_ok",
+      "name": "General SMS Sent?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [2000, 420]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "log",
+              "value": "=General reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }}"
+            },
+            { "name": "smsStatus", "value": "sent" }
+          ]
+        }
+      },
+      "id": "node_log_other_sent",
+      "name": "Log General Reply Sent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2220, 360]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "type", "value": "sms_failure" },
+            {
+              "name": "executionId",
+              "value": "={{ $node[\"Set Execution ID\"].json.executionId }}"
+            },
+            { "name": "error", "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}" },
+            { "name": "entityType", "value": "inbound_sms" },
+            { "name": "entityId", "value": "={{ $node[\"Set Execution ID\"].json.entityId }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_log_other_failure",
+      "name": "Log General Reply Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [2220, 520],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
     }
   ],
   "connections": {
     "Receive Inbound SMS": {
-      "main": [[{ "node": "Validate Inbound", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Auth Check", "type": "main", "index": 0 }]]
+    },
+    "Auth Check": {
+      "main": [
+        [{ "node": "Validate Inbound", "type": "main", "index": 0 }],
+        [{ "node": "Return 401", "type": "main", "index": 0 }]
+      ]
     },
     "Validate Inbound": {
       "main": [
-        [{ "node": "Classify Patient Intent", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 Immediately", "type": "main", "index": 0 }],
         [{ "node": "Return 400", "type": "main", "index": 0 }]
       ]
+    },
+    "Respond 200 Immediately": {
+      "main": [[{ "node": "Set Execution ID", "type": "main", "index": 0 }]]
+    },
+    "Set Execution ID": {
+      "main": [[{ "node": "Classify Patient Intent", "type": "main", "index": 0 }]]
     },
     "Classify Patient Intent": {
       "main": [[{ "node": "Is Booking Intent?", "type": "main", "index": 0 }]]
@@ -190,10 +398,22 @@
       "main": [[{ "node": "Reply — Booking Confirmed", "type": "main", "index": 0 }]]
     },
     "Reply — Booking Confirmed": {
-      "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Booking SMS Sent?", "type": "main", "index": 0 }]]
+    },
+    "Booking SMS Sent?": {
+      "main": [
+        [{ "node": "Log Booking Reply Sent", "type": "main", "index": 0 }],
+        [{ "node": "Log Booking Reply Failure", "type": "main", "index": 0 }]
+      ]
     },
     "Reply — General Acknowledgement": {
-      "main": [[{ "node": "Return Success", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "General SMS Sent?", "type": "main", "index": 0 }]]
+    },
+    "General SMS Sent?": {
+      "main": [
+        [{ "node": "Log General Reply Sent", "type": "main", "index": 0 }],
+        [{ "node": "Log General Reply Failure", "type": "main", "index": 0 }]
+      ]
     }
   },
   "settings": {

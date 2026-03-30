@@ -7,10 +7,28 @@ const PatientBooking = () => {
     const [clinic, setClinic] = useState(null);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({ name: '', phone: '', email: '', reason: '', date: '', time: '' });
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [slotsLoading, setSlotsLoading] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+    useEffect(() => {
+        const fetchSlots = async () => {
+            if (!formData.date || !clinicId) return;
+            setSlotsLoading(true);
+            try {
+                const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}`);
+                setAvailableSlots(resp.data.data);
+            } catch (err) {
+                console.error("Failed to fetch slots:", err);
+            } finally {
+                setSlotsLoading(false);
+            }
+        };
+        fetchSlots();
+    }, [formData.date, clinicId]);
 
     useEffect(() => {
         const fetchClinic = async () => {
@@ -33,7 +51,11 @@ const PatientBooking = () => {
             await axios.post(`${API_BASE}/public/book`, { ...formData, clinicId, startTime });
             setStep(3);
         } catch (err) {
-            setError("Η κράτηση απέτυχε. Παρακαλώ δοκιμάστε ξανά.");
+            if (err.response?.status === 409) {
+                setError("Η συγκεκριμένη ώρα έχει ήδη κλειστεί. Παρακαλώ επιλέξτε μια άλλη ώρα.");
+            } else {
+                setError("Η κράτηση απέτυχε. Παρακαλώ δοκιμάστε ξανά.");
+            }
         } finally {
             setLoading(false);
         }
@@ -43,7 +65,8 @@ const PatientBooking = () => {
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '2rem' }}>
             <div style={{ textAlign: 'center', padding: '2rem', background: '#fee2e2', borderRadius: '16px', color: '#b91c1c' }}>
                 <AlertCircle size={48} style={{ marginBottom: '1rem' }} />
-                <p>{error}</p>
+                <p style={{ marginBottom: '1.5rem', fontWeight: '600' }}>{error}</p>
+                <button className="btn btn-primary" onClick={() => { setError(null); setStep(2); }}>Δοκιμάστε ξανά</button>
             </div>
         </div>
     );
@@ -94,6 +117,9 @@ const PatientBooking = () => {
                                 <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', marginTop: '1rem' }} onClick={() => setStep(2)} disabled={!formData.name || !formData.phone || !formData.reason}>
                                     Συνέχεια
                                 </button>
+                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', marginTop: '1rem', lineHeight: 1.5 }}>
+                                    Κάνοντας κλικ στο "Συνέχεια", αποδέχεστε την επεξεργασία των δεδομένων σας για τον σκοπό της κράτησης ραντεβού, σύμφωνα με την <span style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline', cursor: 'pointer' }}>Πολιτική Απορρήτου</span> του ιατρείου.
+                                </p>
                             </div>
                         </div>
                     )}
@@ -111,17 +137,26 @@ const PatientBooking = () => {
                                     </div>
                                     <div className="form-group">
                                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Ώρα</label>
-                                        <select style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })}>
-                                            <option value="">Επιλέξτε ώρα...</option>
-                                            <option value="09:00">09:00</option>
-                                            <option value="10:00">10:00</option>
-                                            <option value="11:00">11:00</option>
-                                            <option value="12:00">12:00</option>
-                                            <option value="13:00">13:00</option>
-                                            <option value="17:00">17:00</option>
-                                            <option value="18:00">18:00</option>
-                                            <option value="19:00">19:00</option>
-                                            <option value="20:00">20:00</option>
+                                        <select 
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: slotsLoading ? '#f1f5f9' : 'white' }} 
+                                            value={formData.time} 
+                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                            disabled={!formData.date || slotsLoading || availableSlots.length === 0}
+                                        >
+                                            {!formData.date ? (
+                                                <option value="">Επιλέξτε ημερομηνία πρώτα...</option>
+                                            ) : slotsLoading ? (
+                                                <option value="">Φόρτωση διαθεσιμότητας...</option>
+                                            ) : availableSlots.length === 0 ? (
+                                                <option value="">Κανένα διαθέσιμο ραντεβού</option>
+                                            ) : (
+                                                <>
+                                                    <option value="">Επιλέξτε ώρα...</option>
+                                                    {availableSlots.map(slot => (
+                                                        <option key={slot} value={slot}>{slot}</option>
+                                                    ))}
+                                                </>
+                                            )}
                                         </select>
                                     </div>
                                 </div>

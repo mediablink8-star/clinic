@@ -1,13 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 async function getPublicClinic(clinicId) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
+        select: { id: true, name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
@@ -15,11 +13,60 @@ async function getPublicClinic(clinicId) {
         success: true,
         data: {
             ...clinic,
-            workingHours: JSON.parse(clinic.workingHours),
-            services: JSON.parse(clinic.services),
-            policies: JSON.parse(clinic.policies)
+            workingHours: JSON.parse(clinic.workingHours || '{}'),
+            services: JSON.parse(clinic.services || '[]'),
+            policies: JSON.parse(clinic.policies || '{}')
         }
     };
+}
+
+/**
+ * Returns available time slots for a specific date (e.g., '2026-04-15')
+ * based on clinic's working hours and existing appointments.
+ */
+async function getAvailableSlots(clinicId, dateStr) {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: clinicId },
+        select: { workingHours: true }
+    });
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    const workingHours = JSON.parse(clinic.workingHours || '{}');
+    const dayName = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    
+    // Map full day names to shorthand used in settings if necessary
+    const dayKey = dayName === 'saturday' ? 'saturday' : (dayName === 'sunday' ? 'sunday' : 'weekdays');
+    const hours = workingHours[dayKey];
+
+    if (!hours || hours === 'Closed') return [];
+
+    // Parse "09:00 - 18:00"
+    const [startH, endH] = hours.split(' - ').map(h => parseInt(h.split(':')[0]));
+    
+    // Get existing appointments for this day
+    const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
+    const dayEnd = new Date(`${dateStr}T23:59:59.999Z`);
+    
+    const appointments = await prisma.appointment.findMany({
+        where: {
+            clinicId,
+            startTime: { gte: dayStart, lte: dayEnd },
+            status: { notIn: ['CANCELLED', 'NOSHOW'] }
+        },
+        select: { startTime: true }
+    });
+
+    const bookedHours = appointments.map(a => a.startTime.getUTCHours());
+    
+    const slots = [];
+    for (let h = startH; h < endH; h++) {
+        const timeStr = `${h.toString().padStart(2, '0')}:00`;
+        if (!bookedHours.includes(h)) {
+            slots.push(timeStr);
+        }
+    }
+
+    return slots;
 }
 
 async function bookAppointment({ clinicId, name, phone, email, reason, startTime }) {
@@ -29,12 +76,22 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, webhookUrl: true, webhookSecret: true }
+        select: { id: true, webhookUrl: true, webhookSecret: true, workingHours: true }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
     const start = new Date(startTime);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    // Double-booking check
+    const existing = await prisma.appointment.findFirst({
+        where: {
+            clinicId,
+            startTime: start,
+            status: { notIn: ['CANCELLED', 'NOSHOW'] }
+        }
+    });
+    if (existing) throw new AppError('CONFLICT', 'Time slot already booked', 409);
 
     // Atomic: upsert patient + create appointment in one transaction
     const { patient, appointment } = await prisma.$transaction(async (tx) => {
@@ -68,4 +125,4 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     return { success: true, data: { appointmentId: appointment.id } };
 }
 
-module.exports = { getPublicClinic, bookAppointment };
+module.exports = { getPublicClinic, getAvailableSlots, bookAppointment };

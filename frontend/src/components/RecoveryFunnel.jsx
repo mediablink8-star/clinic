@@ -85,7 +85,7 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem',
-                overflow: 'hidden',
+                overflowY: 'auto',
                 position: 'relative',
             }}
         >

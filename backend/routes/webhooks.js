@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { forwardInboundMessage } = require('../services/webhookService');
-
-const prisma = new PrismaClient();
 
 // POST /api/webhook/missed-call
 // Auth: HMAC via webhookAuth middleware (applied in index.js)

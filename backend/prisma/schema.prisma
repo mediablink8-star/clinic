@@ -19,8 +19,13 @@ model Clinic {
   workingHours String // Stored as JSON string
   services     String // Stored as JSON string
   policies     String // Stored as JSON string
-  webhookUrl   String? // URL for n8n/Make integration
+  webhookUrl   String? // Global URL for n8n/Make integration
   webhookSecret String       @default(cuid()) // Secret for HMAC signature
+  webhookMissedCall String? // Event-specific override
+  webhookAppointment String? // Event-specific override
+  webhookReminders String? // Event-specific override
+  webhookDirectSms String? // Event-specific override
+  webhookInboundSms String? // Event-specific override
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
   messageCredits    Int           @default(100)
@@ -54,10 +59,20 @@ model User {
   clinicId     String
   clinic       Clinic   @relation(fields: [clinicId], references: [id])
   refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   mfaEnabled   Boolean  @default(false)
   mfaSecret    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model RefreshToken {

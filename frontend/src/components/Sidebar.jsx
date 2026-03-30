@@ -5,29 +5,24 @@ import logo from '../assets/logo.png';
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode }) => {
     const navSections = [
         {
-            label: 'Επισκόπηση',
+            label: 'Κύρια Μενού',
             items: [
                 { id: 'dashboard', label: 'Πίνακας Ελέγχου', icon: LayoutDashboard },
-            ]
-        },
-        {
-            label: 'Διαχείριση',
-            items: [
                 { id: 'appointments', label: 'Ραντεβού', icon: Calendar },
                 { id: 'patients', label: 'Ασθενείς', icon: Users },
             ]
         },
         {
-            label: 'Αυτοματισμός',
+            label: 'Εργαλεία',
             items: [
-                ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'AI & Ειδοποιήσεις', icon: Brain }] : []),
+                ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'Τεχνητή Νοημοσύνη', icon: Brain }] : []),
                 { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
             ]
         },
         {
-            label: 'Σύστημα',
+            label: 'Διαχείριση',
             items: [
-                { id: 'settings', label: 'Ρυθμίσεις', icon: Settings },
+                { id: 'settings', label: 'Ρυθμίσεις Ιατρείου', icon: Settings },
             ]
         },
     ];

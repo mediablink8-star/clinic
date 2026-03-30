@@ -1,9 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { encrypt, decrypt } = require('./encryptionService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 function maskApiKeys(apiKeys) {
     const masked = {};

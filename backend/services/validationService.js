@@ -18,6 +18,11 @@ const clinicUpdateSchema = Joi.object({
     phone: Joi.string().pattern(/^[0-9+() \-]{7,20}$/),
     email: Joi.string().email(),
     webhookUrl: Joi.string().uri().allow(null, ''),
+    webhookMissedCall: Joi.string().uri().allow(null, ''),
+    webhookAppointment: Joi.string().uri().allow(null, ''),
+    webhookReminders: Joi.string().uri().allow(null, ''),
+    webhookDirectSms: Joi.string().uri().allow(null, ''),
+    webhookInboundSms: Joi.string().uri().allow(null, ''),
     workingHours: Joi.object(),
     services: Joi.array().items(Joi.string()),
     policies: Joi.array().items(Joi.string()),
@@ -42,13 +47,31 @@ const aiConfigSchema = Joi.object({
 });
 
 const webhookSchema = Joi.object({
-    webhookUrl: Joi.string().uri().required(),
-    webhookSecret: Joi.string().min(8).max(100).allow(null, '').message('Webhook Secret must be at least 8 characters if provided.')
+    url: Joi.string().uri().allow(null, ''),
+    secret: Joi.string().min(8).max(100).allow(null, '').message('Webhook Secret must be at least 8 characters if provided.'),
+    webhookMissedCall: Joi.string().uri().allow(null, ''),
+    webhookAppointment: Joi.string().uri().allow(null, ''),
+    webhookReminders: Joi.string().uri().allow(null, ''),
+    webhookDirectSms: Joi.string().uri().allow(null, ''),
+    webhookInboundSms: Joi.string().uri().allow(null, '')
 });
 
 const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required()
+});
+
+const resetPasswordSchema = Joi.object({
+    token: Joi.string().required(),
+    password: Joi.string().min(6).required()
+});
+
+const registerSchema = Joi.object({
+    clinicName: Joi.string().min(2).max(100).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
+    phone: Joi.string().pattern(/^[0-9+() \-]{7,20}$/).required(),
+    agreedToTerms: Joi.boolean().valid(true).required()
 });
 
 const validate = (schema) => (req, res, next) => {
@@ -72,5 +95,7 @@ module.exports = {
     aiConfigSchema,
     webhookSchema,
     loginSchema,
+    resetPasswordSchema,
+    registerSchema,
     validate
 };

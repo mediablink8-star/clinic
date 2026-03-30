@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 const asyncHandler = require('../middleware/asyncHandler');
 const { retrySms } = require('../services/missedCallService');
 
@@ -40,6 +39,24 @@ router.post('/:id/retry', asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { data } = await retrySms({ clinicId: req.clinicId, missedCallId: id });
     res.json({ success: true, data });
+}));
+
+/**
+ * @route POST /api/recovery/test-trigger
+ * @desc Manually triggers a missed call recovery flow for testing (from Dashboard)
+ */
+router.post('/test-trigger', asyncHandler(async (req, res) => {
+    const { handleMissedCall } = require('../services/missedCallService');
+    const { phone = '+30690000000', callSid = `test_${Date.now()}` } = req.body;
+
+    const { data } = await handleMissedCall({ 
+        phone, 
+        clinicId: req.clinicId, 
+        callSid,
+        source: 'DASHBOARD_TEST' 
+    });
+
+    res.json({ success: true, ...data });
 }));
 
 module.exports = router;

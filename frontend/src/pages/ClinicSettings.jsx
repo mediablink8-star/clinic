@@ -3,7 +3,7 @@ import axios from 'axios';
 import {
     Save, Globe, Zap, BarChart2, Activity,
     Shield, CheckCircle, XCircle, Loader, Check,
-    Users, UserPlus, Trash2, ChevronDown
+    Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -133,6 +133,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         webhook: { status: 'idle', lastTested: null, responseTime: null, error: '', httpStatus: null }
     });
     const [webhookSaving, setWebhookSaving] = useState(false);
+    const [showAdvancedWebhooks, setShowAdvancedWebhooks] = useState(false);
     const [usageData, setUsageData] = useState(null);
     const [loadingUsage, setLoadingUsage] = useState(true);
     const [webhookErrors, setWebhookErrors] = useState({});
@@ -151,49 +152,52 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    const handleTestWebhook = async () => {
-        setTestState(prev => ({ ...prev, webhook: { ...prev.webhook, status: 'loading', error: '', httpStatus: null } }));
+    const handleTestWebhook = async (specificUrl = null, fieldName = 'Global') => {
+        const urlToTest = specificUrl || formData.webhookUrl;
+        if (!urlToTest) {
+            showToast(`Παρακαλώ εισάγετε ένα URL για δοκιμή (${fieldName}).`, 'error');
+            return;
+        }
+
+        const testKey = specificUrl ? fieldName : 'webhook';
+        setTestState(prev => ({ ...prev, [testKey]: { status: 'loading', error: '', httpStatus: null } }));
+        
         try {
             const res = await axios.post(`${API_BASE}/integrations/test-webhook`, {
-                url: formData.webhookUrl,
+                url: urlToTest,
                 secret: formData.webhookSecret
             }, { headers: { 'Authorization': `Bearer ${token}` } });
 
             if (res.data.success) {
-                setTestState(prev => ({
-                    ...prev,
-                    webhook: {
-                        status: 'success',
-                        lastTested: new Date(),
-                        responseTime: res.data.latency,
-                        httpStatus: res.data.status,
-                        error: ''
-                    }
-                }));
-                showToast('Το Webhook συνδέθηκε με επιτυχία!');
+                const successState = {
+                    status: 'success',
+                    lastTested: new Date(),
+                    responseTime: res.data.latency,
+                    httpStatus: res.data.status,
+                    error: ''
+                };
+                setTestState(prev => ({ ...prev, [testKey]: successState }));
+                showToast(`Το Webhook (${fieldName}) συνδέθηκε με επιτυχία!`);
             } else {
-                setTestState(prev => ({
-                    ...prev,
-                    webhook: {
-                        status: 'error',
-                        lastTested: new Date(),
-                        responseTime: res.data.latency,
-                        error: res.data.error,
-                        httpStatus: null
-                    }
-                }));
-                showToast(res.data.error || 'Η δοκιμή του Webhook απέτυχε.', 'error');
-            }
-        } catch (err) {
-            setTestState(prev => ({
-                ...prev,
-                webhook: {
+                const errorState = {
                     status: 'error',
                     lastTested: new Date(),
-                    error: err.response?.data?.error || err.message,
-                    httpStatus: err.response?.status
-                }
-            }));
+                    responseTime: res.data.latency,
+                    error: res.data.error,
+                    httpStatus: res.data.status
+                };
+                setTestState(prev => ({ ...prev, [testKey]: errorState }));
+                showToast(res.data.error || `Η δοκιμή του Webhook (${fieldName}) απέτυχε.`, 'error');
+            }
+        } catch (err) {
+            const errorState = {
+                status: 'error',
+                lastTested: new Date(),
+                error: err.response?.data?.error || err.message,
+                httpStatus: err.response?.status
+            };
+            setTestState(prev => ({ ...prev, [testKey]: errorState }));
+            showToast(`Σφάλμα δικτύου κατά τη δοκιμή (${fieldName}).`, 'error');
         }
     };
 
@@ -226,22 +230,40 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleSaveWebhook = async () => {
         const errors = {};
-        if (!formData.webhookUrl) {
+        if (!formData.webhookUrl && !showAdvancedWebhooks) {
             errors.url = 'Το Webhook URL είναι υποχρεωτικό.';
-        } else {
+        }
+        
+        if (formData.webhookUrl) {
             try { new URL(formData.webhookUrl); } catch { errors.url = 'Μη έγκυρη μορφή URL.'; }
         }
+        
+        // Basic validation for overrides if shown
+        if (showAdvancedWebhooks) {
+            ['webhookMissedCall', 'webhookAppointment', 'webhookReminders', 'webhookDirectSms', 'webhookInboundSms'].forEach(key => {
+                if (formData[key]) {
+                    try { new URL(formData[key]); } catch { errors[key] = 'Μη έγκυρη μορφή URL.'; }
+                }
+            });
+        }
+
         setWebhookErrors(errors);
         if (Object.keys(errors).length > 0) return;
 
         setWebhookSaving(true);
         try {
-            await axios.post(`${API_BASE}/integrations/save-webhook`, {
+            const payload = {
                 url: formData.webhookUrl,
-                secret: formData.webhookSecret
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
+                secret: formData.webhookSecret,
+                webhookMissedCall: formData.webhookMissedCall,
+                webhookAppointment: formData.webhookAppointment,
+                webhookReminders: formData.webhookReminders,
+                webhookDirectSms: formData.webhookDirectSms,
+                webhookInboundSms: formData.webhookInboundSms
+            };
+            await axios.post(`${API_BASE}/integrations/save-webhook`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
             showToast('Webhook settings saved!');
-            if (onUpdate) onUpdate({ webhookUrl: formData.webhookUrl, webhookSecret: formData.webhookSecret });
+            if (onUpdate) onUpdate(payload);
         } catch (err) {
             showToast(err.response?.data?.error || 'Failed to save webhook settings', 'error');
         } finally {
@@ -537,6 +559,50 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         </select>
                     </FormGroup>
                 </FormRow>
+
+                <div style={{ 
+                    marginTop: '0.5rem', marginBottom: '1.5rem', padding: '1.25rem', 
+                    borderRadius: '16px', background: 'rgba(99,102,241,0.04)', 
+                    border: '1px solid rgba(99,102,241,0.1)' 
+                }}>
+                    <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '800', fontSize: '0.72rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Δημόσιος Σύνδεσμος Κρατήσεων
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                            <Globe size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                            <input 
+                                readOnly 
+                                style={{ ...inputStyle, paddingLeft: '34px', background: '#fff', color: '#64748b', cursor: 'default', fontSize: '0.8rem', border: '1px solid rgba(99,102,241,0.2)' }} 
+                                value={`${window.location.origin}/book?clinicId=${clinic?.id}`} 
+                            />
+                        </div>
+                        <button 
+                            type="button" 
+                            title="Αντιγραφή Συνδέσμου"
+                            style={{ padding: '0 12px', background: 'white', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/book?clinicId=${clinic?.id}`);
+                                showToast('Ο σύνδεσμος αντιγράφηκε!');
+                            }}
+                        >
+                            <Copy size={16} color="var(--primary)" />
+                        </button>
+                        <a 
+                            href={`/book?clinicId=${clinic?.id}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            title="Άνοιγμα Σελίδας"
+                            style={{ padding: '0 12px', background: 'white', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                            <ExternalLink size={16} color="var(--secondary)" />
+                        </a>
+                    </div>
+                    <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px', fontWeight: '500' }}>
+                        Μοιραστείτε αυτόν τον σύνδεσμο με τους ασθενείς σας ή τοποθετήστε τον στα social media για online κρατήσεις.
+                    </p>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                     <button type="button" className="btn btn-primary" onClick={handleSaveClinicInfo} disabled={savingInfo}>
                         {savingInfo ? 'Αποθήκευση...' : 'Αποθήκευση Στοιχείων'}
@@ -751,6 +817,132 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     Τα εισερχόμενα αιτήματα θα υπογράφονται με HMAC-SHA256 στην κεφαλίδα <code>X-Webhook-Signature</code>.
                 </p>
 
+                {/* Advanced Webhooks Toggle */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <button 
+                        type="button" 
+                        onClick={() => setShowAdvancedWebhooks(!showAdvancedWebhooks)}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '6px', 
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '700',
+                            padding: 0
+                        }}
+                    >
+                        <ChevronDown size={14} style={{ transform: showAdvancedWebhooks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                        {showAdvancedWebhooks ? 'Απόκρυψη Προχωρημένων Ρυθμίσεων' : 'Εξειδικευμένα Webhooks ανά Ενέργεια'}
+                    </button>
+                    
+                    {showAdvancedWebhooks && (
+                        <div style={{ 
+                            marginTop: '1rem', padding: '1.25rem', borderRadius: '16px', 
+                            background: 'rgba(99,102,241,0.03)', border: '1px solid rgba(99,102,241,0.08)',
+                            display: 'flex', flexDirection: 'column', gap: '1rem'
+                        }}>
+                            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                                Εάν οριστούν, αυτά τα URL θα υπερισχύουν του καθολικού Webhook URL για τις συγκεκριμένες ενέργειες.
+                            </p>
+                            
+                            <FormGroup label={
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>Missed Call Detection (Workflow 3)</span>
+                                    {formData.webhookMissedCall && (
+                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookMissedCall, 'Missed Call')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                            ΔΟΚΙΜΗ
+                                        </button>
+                                    )}
+                                </div>
+                            }>
+                                <input 
+                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                    placeholder="https://.../missed-call-event"
+                                    value={formData.webhookMissedCall || ''}
+                                    onChange={e => set('webhookMissedCall', e.target.value)}
+                                />
+                                <ErrorText message={webhookErrors.webhookMissedCall} />
+                            </FormGroup>
+                            
+                            <FormRow>
+                                <FormGroup label={
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span>Appointment Created (Workflow 1)</span>
+                                        {formData.webhookAppointment && (
+                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookAppointment, 'Appointment')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                                ΔΟΚΙΜΗ
+                                            </button>
+                                        )}
+                                    </div>
+                                }>
+                                    <input 
+                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                        placeholder="https://.../appointment-created"
+                                        value={formData.webhookAppointment || ''}
+                                        onChange={e => set('webhookAppointment', e.target.value)}
+                                    />
+                                    <ErrorText message={webhookErrors.webhookAppointment} />
+                                </FormGroup>
+                                <FormGroup label={
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span>Reminders / Notifications (Workflow 4)</span>
+                                        {formData.webhookReminders && (
+                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookReminders, 'Reminders')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                                ΔΟΚΙΜΗ
+                                            </button>
+                                        )}
+                                    </div>
+                                }>
+                                    <input 
+                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                        placeholder="https://... (Cron Processor)"
+                                        value={formData.webhookReminders || ''}
+                                        onChange={e => set('webhookReminders', e.target.value)}
+                                    />
+                                    <ErrorText message={webhookErrors.webhookReminders} />
+                                </FormGroup>
+                            </FormRow>
+                            
+                            <FormRow>
+                                <FormGroup label={
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span>Direct Dashboard SMS (Workflow 2)</span>
+                                        {formData.webhookDirectSms && (
+                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookDirectSms, 'Direct SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                                ΔΟΚΙΜΗ
+                                            </button>
+                                        )}
+                                    </div>
+                                }>
+                                    <input 
+                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                        placeholder="https://.../send-sms"
+                                        value={formData.webhookDirectSms || ''}
+                                        onChange={e => set('webhookDirectSms', e.target.value)}
+                                    />
+                                    <ErrorText message={webhookErrors.webhookDirectSms} />
+                                </FormGroup>
+                                <FormGroup label={
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <span>Inbound SMS / Replies (Workflow 5)</span>
+                                        {formData.webhookInboundSms && (
+                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookInboundSms, 'Inbound SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                                ΔΟΚΙΜΗ
+                                            </button>
+                                        )}
+                                    </div>
+                                }>
+                                    <input 
+                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                        placeholder="https://.../inbound-sms"
+                                        value={formData.webhookInboundSms || ''}
+                                        onChange={e => set('webhookInboundSms', e.target.value)}
+                                    />
+                                    <ErrorText message={webhookErrors.webhookInboundSms} />
+                                </FormGroup>
+                            </FormRow>
+                        </div>
+                    )}
+                </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button
@@ -853,6 +1045,20 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         </div>
                     </div>
                 )}
+
+                <div style={{ 
+                    marginTop: '1.5rem', padding: '1.25rem', borderRadius: '16px', 
+                    background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                    <div>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '4px' }}>Χρειάζεστε περισσότερες πιστώσεις;</h4>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Αναβαθμίστε το πακέτο σας ή αγοράστε πακέτα SMS για να συνεχίσετε την αυτοματοποίηση.</p>
+                    </div>
+                    <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => showToast('Η αναβάθμιση θα είναι διαθέσιμη σύντομα!', 'info')}>
+                        Αναβάθμιση Τώρα
+                    </button>
+                </div>
             </SectionCard>
 
             {/* 6 · Audit */}

@@ -1,0 +1,72 @@
+{
+  "name": "Workflow 0 — Global Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node_error_trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "workflow", "value": "={{ $json.workflow.name }}" },
+            { "name": "error", "value": "={{ $json.error.message }}" },
+            { "name": "executionId", "value": "={{ $json.execution.id || 'unknown' }}" },
+            { "name": "timestamp", "value": "={{ new Date().toISOString() }}" }
+          ]
+        }
+      },
+      "id": "node_extract_error",
+      "name": "Extract Error Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "type", "value": "workflow_error" },
+            { "name": "workflow", "value": "={{ $json.workflow }}" },
+            { "name": "error", "value": "={{ $json.error }}" },
+            { "name": "executionId", "value": "={{ $json.executionId }}" },
+            { "name": "timestamp", "value": "={{ $json.timestamp }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "node_log_error",
+      "name": "Log Workflow Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend_api_key",
+          "name": "Backend API Key"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Extract Error Details", "type": "main", "index": 0 }]]
+    },
+    "Extract Error Details": {
+      "main": [[{ "node": "Log Workflow Error", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  }
+}

@@ -3,8 +3,7 @@ const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { decrypt, encrypt } = require('../services/encryptionService');
 const { logAction } = require('../services/auditService');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 const crypto = require('crypto');
 const axios = require('axios');
 const { validate, webhookSchema } = require('../services/validationService');
@@ -263,18 +262,31 @@ router.post('/test-webhook', asyncHandler(async (req, res) => {
  * @desc  Saves the Webhook URL and Secret.
  */
 router.post('/save-webhook', asyncHandler(async (req, res) => {
-    const { url, secret } = req.body;
+    const { 
+        url, 
+        secret, 
+        webhookMissedCall, 
+        webhookAppointment, 
+        webhookReminders, 
+        webhookDirectSms, 
+        webhookInboundSms 
+    } = req.body;
 
-    if (!url) {
-        return res.status(400).json({ error: 'Webhook URL is required.' });
-    }
     // Reliability Rule: Prevent invalid URL saving
-    try {
-        const parsed = new URL(url);
-        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
-    } catch {
-        return res.status(400).json({ error: 'Invalid Webhook URL format. Only HTTP/HTTPS allowed.' });
-    }
+    const validateUrl = (u) => {
+        if (!u) return true;
+        try {
+            const parsed = new URL(u);
+            return ['http:', 'https:'].includes(parsed.protocol);
+        } catch { return false; }
+    };
+
+    if (url && !validateUrl(url)) return res.status(400).json({ error: 'Invalid Global Webhook URL format.' });
+    if (webhookMissedCall && !validateUrl(webhookMissedCall)) return res.status(400).json({ error: 'Invalid Missed Call Webhook URL format.' });
+    if (webhookAppointment && !validateUrl(webhookAppointment)) return res.status(400).json({ error: 'Invalid Appointment Webhook URL format.' });
+    if (webhookReminders && !validateUrl(webhookReminders)) return res.status(400).json({ error: 'Invalid Reminders Webhook URL format.' });
+    if (webhookDirectSms && !validateUrl(webhookDirectSms)) return res.status(400).json({ error: 'Invalid Direct SMS Webhook URL format.' });
+    if (webhookInboundSms && !validateUrl(webhookInboundSms)) return res.status(400).json({ error: 'Invalid Inbound SMS Webhook URL format.' });
 
     try {
         let encryptedSecret = undefined;
@@ -290,8 +302,13 @@ router.post('/save-webhook', asyncHandler(async (req, res) => {
         await prisma.clinic.update({
             where: { id: req.clinicId },
             data: {
-                webhookUrl: url,
-                webhookSecret: encryptedSecret
+                webhookUrl: url || null,
+                webhookSecret: encryptedSecret,
+                webhookMissedCall: webhookMissedCall || null,
+                webhookAppointment: webhookAppointment || null,
+                webhookReminders: webhookReminders || null,
+                webhookDirectSms: webhookDirectSms || null,
+                webhookInboundSms: webhookInboundSms || null
             }
         });
 
@@ -301,7 +318,7 @@ router.post('/save-webhook', asyncHandler(async (req, res) => {
             action: 'UPDATE_WEBHOOK_SETTINGS',
             entity: 'CLINIC',
             entityId: req.clinicId,
-            details: { url },
+            details: { url, overrides: !!(webhookMissedCall || webhookAppointment || webhookReminders || webhookDirectSms || webhookInboundSms) },
             ipAddress: req.ip
         });
 

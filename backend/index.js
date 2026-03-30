@@ -1,17 +1,23 @@
-const Sentry = require("@sentry/node");
-const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+// const Sentry = require("@sentry/node");
+// const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
 require('dotenv').config();
 
+// Fail fast if JWT_SECRET is not set in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start in production.');
+    process.exit(1);
+}
+
 /*
-Sentry.init({
-    dsn: process.env.SENTRY_BACKEND_DSN || "https://placeholder@sentry.io/123",
-    integrations: [
-        nodeProfilingIntegration(),
-    ],
-    tracesSampleRate: 1.0,
-    profilesSampleRate: 1.0,
-});
+if (process.env.SENTRY_BACKEND_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_BACKEND_DSN,
+        // integrations: [nodeProfilingIntegration()],
+        tracesSampleRate: 1.0,
+        profilesSampleRate: 1.0,
+    });
+}
 */
 
 const express = require('express');
@@ -20,11 +26,28 @@ const cors = require('cors');
 
 // Webhook rate limiter
 const webhookLimiter = rateLimit({ windowMs: 60000, max: 30, message: { error: 'Too many webhook requests' } });
+
+// General API rate limiter
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' }
+});
+
+// Stricter limiter for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts, please try again later.' }
+});
 const cookieParser = require('cookie-parser');
 const { reminderWorker, connection } = require('./services/queueService');
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./services/prisma');
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -34,7 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-    origin: true,
+    origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? false : true),
     credentials: true
 }));
 
@@ -112,9 +135,12 @@ const requireOwner = (req, res, next) => {
 // Public / Health
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Apply general rate limit to all /api routes
+app.use('/api', apiLimiter);
+
 // Auth
 const authRouter = require('./routes/auth');
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 
 // Admin (Protected)
 const adminRouter = require('./routes/admin');
@@ -177,8 +203,10 @@ const automationAuth = require('./middleware/automationAuth');
 const automationRouter = require('./routes/automation');
 app.use('/api/automation', automationAuth, automationRouter);
 
-// Sentry error handler
-Sentry.setupExpressErrorHandler(app);
+// Sentry error handler — must be before the global error handler
+if (process.env.SENTRY_BACKEND_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+}
 
 // Global error handler — catches anything forwarded via next(err) or asyncHandler
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
@@ -198,7 +226,6 @@ app.listen(port, () => {
     console.log(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
     console.log(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
     console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing — AI features use per-clinic keys only'}`);
-    console.log(`  Twilio (env):   ${process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN   ? '✅ OK' : '⚠  Not set — SMS uses per-clinic keys'}`);
     console.log(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
     console.log(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
     console.log(`  Worker:         ✅ Running (embedded)`);

@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {

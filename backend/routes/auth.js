@@ -1,16 +1,96 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const { comparePassword, generateAccessToken, generateRefreshToken, verifyToken, generateMfaToken } = require('../services/authService');
-const { loginSchema, validate } = require('../services/validationService');
+const prisma = require('../services/prisma');
+const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken, generateMfaToken } = require('../services/authService');
+const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
+const { triggerWebhook } = require('../services/webhookService');
+const crypto = require('crypto');
 const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 
-const prisma = new PrismaClient();
-
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
+
+router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
+    const { clinicName, email, password, phone } = req.body;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+        return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    try {
+        const passwordHash = await hashPassword(password);
+
+        // Create Clinic and User in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const clinic = await tx.clinic.create({
+                data: {
+                    name: clinicName,
+                    phone: phone,
+                    email: email,
+                    location: "Αθήνα, Ελλάδα", // Default location
+                    services: JSON.stringify([]), // Default empty services
+                    policies: JSON.stringify({}), // Default empty policies
+                    // Default values for a new clinic
+                    workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
+                    messageCredits: 100, // Free trial credits
+                    dailyMessageCap: 100
+                }
+            });
+
+            const user = await tx.user.create({
+                data: {
+                    email,
+                    passwordHash,
+                    role: 'OWNER',
+                    clinicId: clinic.id,
+                    name: clinicName // Use clinic name as default user name
+                },
+                include: { clinic: true }
+            });
+
+            return user;
+        });
+
+        const accessToken = generateAccessToken({ userId: result.id, clinicId: result.clinicId, role: result.role });
+        const refreshToken = generateRefreshToken({ userId: result.id });
+
+        // Store Refresh Token in DB
+        await prisma.refreshToken.create({
+            data: {
+                token: refreshToken,
+                userId: result.id,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+            }
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.json({
+            token: accessToken,
+            clinic: {
+                id: result.clinic.id,
+                name: result.clinic.name,
+                email: result.email,
+                role: result.role,
+                userId: result.id,
+                userName: result.name,
+                isAdmin: false
+            }
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Server error during registration' });
+    }
+}));
 
 router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -79,6 +159,78 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     }
 }));
 
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    
+    const user = await prisma.user.findUnique({ 
+        where: { email },
+        include: { clinic: true }
+    });
+
+    if (!user) {
+        // Security: Don't reveal if user exists
+        return res.json({ success: true, message: 'Instructions sent if email exists' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour
+
+    await prisma.passwordResetToken.create({
+        data: {
+            token,
+            userId: user.id,
+            expiresAt
+        }
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+
+    // Send via Webhook (to n8n for email delivery)
+    if (user.clinic.webhookUrl) {
+        triggerWebhook(
+            'auth.password_reset',
+            {
+                email: user.email,
+                userName: user.name || user.email,
+                resetLink,
+                clinicName: user.clinic.name
+            },
+            user.clinic.webhookUrl,
+            user.clinic.webhookSecret
+        ).catch(err => console.error('[AUTH] Password reset webhook failed:', err.message));
+    }
+
+    console.log(`[AUTH] Password reset token generated for: ${email}`);
+    console.log(`[AUTH] Reset Link: ${resetLink}`);
+
+    res.json({ success: true, message: 'Instructions sent if email exists' });
+}));
+
+router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async (req, res) => {
+    const { token, password } = req.body;
+
+    const storedToken = await prisma.passwordResetToken.findUnique({
+        where: { token },
+        include: { user: true }
+    });
+
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await prisma.user.update({
+        where: { id: storedToken.userId },
+        data: { passwordHash }
+    });
+
+    // Clean up used token
+    await prisma.passwordResetToken.delete({ where: { token } });
+
+    res.json({ success: true, message: 'Password reset successful' });
+}));
+
 router.post('/refresh', asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: 'Refresh token missing' });
@@ -98,10 +250,28 @@ router.post('/refresh', asyncHandler(async (req, res) => {
             return res.status(401).json({ error: 'Invalid token' });
         }
 
+        // Rotate: delete old token, issue new one
+        const newRefreshToken = generateRefreshToken({ userId: storedToken.user.id });
+        await prisma.refreshToken.delete({ where: { token: refreshToken } });
+        await prisma.refreshToken.create({
+            data: {
+                token: newRefreshToken,
+                userId: storedToken.user.id,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            }
+        });
+
         const accessToken = generateAccessToken({
             userId: storedToken.user.id,
             clinicId: storedToken.user.clinicId,
             role: storedToken.user.role
+        });
+
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         res.json({ token: accessToken });

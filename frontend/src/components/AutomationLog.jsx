@@ -3,11 +3,11 @@ import { MessageSquare, PhoneMissed, CheckCircle2, Send, Reply, Zap, Clock, Aler
 
 const EVENT_META = {
     SMS_SENT:            { icon: Send,         color: '#6366f1', bg: 'rgba(99,102,241,0.1)',  label: 'SMS εστάλη' },
-    MISSED_CALL:         { icon: PhoneMissed,  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   label: '👉 Missed call detected' },
-    RECOVERY_SENT:       { icon: MessageSquare,color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: '👉 Recovery SMS sent' },
-    APPOINTMENT_CONFIRMED:{ icon: CheckCircle2,color: '#10b981', bg: 'rgba(16,185,129,0.1)',  label: '👉 Appointment booked (Recovered)' },
+    MISSED_CALL:         { icon: PhoneMissed,  color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   label: 'Αναπάντητη κλήση' },
+    RECOVERY_SENT:       { icon: MessageSquare,color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Στάλθηκε SMS αυτόματης απάντησης' },
+    APPOINTMENT_CONFIRMED:{ icon: CheckCircle2,color: '#10b981', bg: 'rgba(16,185,129,0.1)',  label: 'Κλείστηκε ραντεβού (Ανάκτηση)' },
     PATIENT_REPLIED:     { icon: Reply,        color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  label: 'Ασθενής απάντησε' },
-    RECOVERING:          { icon: Zap,          color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Σε ανάκτηση' },
+    RECOVERING:          { icon: Zap,          color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  label: 'Σε εξέλιξη' },
 };
 
 const SMS_STATUS_BADGE = {

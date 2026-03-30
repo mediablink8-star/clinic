@@ -1,9 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { checkWorkingHours } = require('./workingHours');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 async function handleMissedCall({ phone, clinicId, callSid }) {
     // Dedup by callSid — scoped to clinicId

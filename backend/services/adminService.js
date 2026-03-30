@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
-
-const prisma = new PrismaClient();
 
 // Admin-scoped: intentionally no clinicId filter — returns all clinics
 async function getUsage() {

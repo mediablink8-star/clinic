@@ -7,6 +7,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 
 const ClinicLogin = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mfaData, setMfaData] = useState({ required: false, token: '', code: '' });
@@ -27,6 +29,26 @@ const ClinicLogin = ({ onLogin }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+        await axios.post(`${API_BASE}/auth/forgot-password`, { email: resetEmail });
+        alert('Αν το email υπάρχει στο σύστημά μας, θα λάβετε οδηγίες επαναφοράς σύντομα.');
+        setForgotPassword(false);
+    } catch (err) {
+        setError(err.response?.data?.error || 'Σφάλμα κατά την αποστολή του email.');
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const navigateTo = (path) => {
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new Event('popstate'));
   };
 
   const handleMfaSubmit = async (e) => {
@@ -157,66 +179,105 @@ const ClinicLogin = ({ onLogin }) => {
             </>
           ) : (
             <>
-              <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', marginBottom: '6px' }}>Καλώς ήρθατε</h2>
-                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)' }}>Συνδεθείτε στο ιατρείο σας</p>
+              <div style={{ marginBottom: '2.5rem' }}>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'white', marginBottom: '8px' }}>
+                    {forgotPassword ? 'Επαναφορά Κωδικού' : 'Καλώς Ήρθατε'}
+                </h2>
+                <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.45)' }}>
+                    {forgotPassword ? 'Εισάγετε το email σας για να λάβετε οδηγίες' : 'Συνδεθείτε στο ιατρείο σας'}
+                </p>
               </div>
 
               {error && <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '10px 14px', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.85rem', border: '1px solid rgba(239,68,68,0.2)' }}>{error}</div>}
 
-              <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {/* Email */}
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
-                    <input
-                      required type="email"
-                      value={credentials.email}
-                      onChange={e => setCredentials({ ...credentials, email: e.target.value })}
-                      placeholder="dr@clinic.gr"
-                      style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
+              {forgotPassword ? (
+                  <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
+                          <div style={{ position: 'relative' }}>
+                              <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                              <input
+                                  required type="email"
+                                  value={resetEmail}
+                                  onChange={e => setResetEmail(e.target.value)}
+                                  placeholder="dr@clinic.gr"
+                                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                              />
+                          </div>
+                      </div>
+                      <button type="submit" disabled={loading} style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '800', fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+                          {loading ? 'Αποστολή...' : 'Αποστολή Οδηγιών'}
+                      </button>
+                      <button type="button" onClick={() => setForgotPassword(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          Επιστροφή στη Σύνδεση
+                      </button>
+                  </form>
+              ) : (
+                  <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Email */}
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
+                      <div style={{ position: 'relative' }}>
+                        <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                        <input
+                          required type="email"
+                          value={credentials.email}
+                          onChange={e => setCredentials({ ...credentials, email: e.target.value })}
+                          placeholder="dr@clinic.gr"
+                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
 
-                {/* Password */}
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Κωδικός</label>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
-                    <input
-                      required type="password"
-                      value={credentials.password}
-                      onChange={e => setCredentials({ ...credentials, password: e.target.value })}
-                      placeholder="••••••••"
-                      style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
+                    {/* Password */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κωδικός</label>
+                        <button type="button" onClick={() => setForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0 }}>
+                            Ξεχάσατε τον κωδικό;
+                        </button>
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
+                        <input
+                          required type="password"
+                          value={credentials.password}
+                          onChange={e => setCredentials({ ...credentials, password: e.target.value })}
+                          placeholder="••••••••"
+                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
 
-                <button type="submit" disabled={loading} style={{
-                  marginTop: '0.5rem',
-                  padding: '14px',
-                  borderRadius: '14px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
-                  color: 'white',
-                  fontWeight: '800',
-                  fontSize: '0.95rem',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 8px 24px rgba(99,102,241,0.35)'
-                }}>
-                  {loading ? 'Σύνδεση...' : <><span>Είσοδος</span><ArrowRight size={18} /></>}
-                </button>
-              </form>
+                    <button type="submit" disabled={loading} style={{
+                      marginTop: '0.5rem',
+                      padding: '14px',
+                      borderRadius: '14px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
+                      color: 'white',
+                      fontWeight: '800',
+                      fontSize: '0.95rem',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      opacity: loading ? 0.7 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 8px 24px rgba(99,102,241,0.35)'
+                    }}>
+                      {loading ? 'Σύνδεση...' : <><span>Είσοδος</span><ArrowRight size={18} /></>}
+                    </button>
+                  </form>
+              )}
 
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginTop: '1rem' }}>
+              <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
+                  Δεν έχετε ιατρείο; <button onClick={() => navigateTo('/register')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '700', cursor: 'pointer', textDecoration: 'none' }}>Δημιουργία Λογαριασμού</button>
+                </p>
+              </div>
+
+              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.15)', marginTop: '1rem' }}>
                 admin@clinicflow.com / password123
               </p>
 

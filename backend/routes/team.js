@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../services/prisma');
 const { hashPassword } = require('../services/authService');
 const { logAction } = require('../services/auditService');
 const asyncHandler = require('../middleware/asyncHandler');
-
-const prisma = new PrismaClient();
 
 // Roles that can manage team (only OWNER and ADMIN)
 const OWNER_ROLES = ['OWNER', 'ADMIN'];
