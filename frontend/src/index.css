@@ -160,12 +160,30 @@ body {
   color: var(--text-light);
   border-radius: var(--radius);
   font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin-bottom: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,102,255,0.08);
+  opacity: 0;
+  transform: scaleX(0.9);
+  transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  z-index: -1;
+  border-radius: var(--radius);
+}
+.nav-link:hover::before,
+.nav-link.active::before {
+  opacity: 1;
+  transform: scaleX(1);
 }
 .nav-link:hover,
 .nav-link.active {
-  background: rgba(0,102,255,0.08);
   color: var(--primary);
 }
 .nav-link svg { width: 20px; height: 20px; }
@@ -198,12 +216,12 @@ header p { color: var(--text-light); }
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border-glass);
   box-shadow: var(--shadow-md);
-  transition: box-shadow 0.2s cubic-bezier(0.4,0,0.2,1),
-              border-color 0.2s cubic-bezier(0.4,0,0.2,1),
-              transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  transition: box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              border-color 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .card-glass:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(0,0,0,0.09), 0 3px 10px rgba(0,0,0,0.05);
   border-color: rgba(255,255,255,0.8);
 }
@@ -216,12 +234,12 @@ header p { color: var(--text-light); }
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid rgba(226,232,240,0.6);
   box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03);
-  transition: box-shadow 0.2s cubic-bezier(0.4,0,0.2,1),
-              border-color 0.2s cubic-bezier(0.4,0,0.2,1),
-              transform 0.2s cubic-bezier(0.4,0,0.2,1) !important;
+  transition: box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              border-color 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 8px 24px -4px rgba(37,99,235,0.12), 0 3px 8px rgba(0,0,0,0.04);
   border-color: rgba(37,99,235,0.15);
 }
@@ -264,12 +282,12 @@ header p { color: var(--text-light); }
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.22s cubic-bezier(0.4,0,0.2,1),
-              border-color 0.22s cubic-bezier(0.4,0,0.2,1),
-              transform 0.22s cubic-bezier(0.4,0,0.2,1);
+  transition: box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              border-color 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .appointment-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 12px 32px -6px rgba(0,0,0,0.10), 0 4px 10px rgba(0,0,0,0.05);
   border-color: rgba(0,102,255,0.15);
 }
@@ -420,10 +438,14 @@ header p { color: var(--text-light); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.6); }
 
 /* ── Input focus ring ── */
+input, textarea, select {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease !important;
+}
+
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: rgba(0,102,255,0.35) !important;
-  box-shadow: 0 0 0 3px rgba(0,102,255,0.1) !important;
+  border-color: rgba(0,102,255,0.45) !important;
+  box-shadow: 0 0 0 4px rgba(0,102,255,0.15) !important;
 }
 
 /* ── Glass panel utility ── */
