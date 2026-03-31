@@ -1,0 +1,35 @@
+Searched for "TODO"
+Searched for "FIXME"
+Searched for "nodemailer"
+Viewed schema.prisma:1-237
+Searched for "sendEmail"
+Searched for "resend"
+
+If you're looking at taking this from "working on my laptop" to a **SaaS Production Launch**, there are several critical architectural gaps that need to be addressed before real clinics start using it.
+
+Here is a comprehensive audit of what is critically missing or needs upgrading for a launch:
+
+### 1. Database Must Be Swapped to PostgreSQL (Critical)
+Right now, the app is hardcoded to use SQLite (`provider = "sqlite"` in `schema.prisma`). 
+* **The Problem**: SQLite locks the entire database when writing. If two clinics try to save an appointment or send an SMS at the same time, the app will crash or freeze.
+* **The Fix**: Before launch, you must update `schema.prisma` to use `"postgresql"`, run a migration, and provision a hosted Postgres database (like Supabase, Render, or Neon).
+
+### 2. Missing Email Infrastructure (Critical)
+I audited the codebase for email providers (Sendgrid, Mailgun, Resend, Nodemailer). **There are none.**
+* **The Problem**: While your database schema has a `PasswordResetToken` table, there is no actual code to *send* a password reset email. If a user forgets their password, they are permanently locked out. Welcome emails or receipt emails are also missing.
+* **The Fix**: Integrate an email service like Resend or Sendgrid into the backend auth routes.
+
+### 3. Background Workers Will Break in Production (Critical)
+Currently, you have Redis disabled (`DISABLE_REDIS=true`) and are relying on Node's internal cron jobs (`USE_INTERNAL_AUTOMATION=true`).
+* **The Problem**: This works perfectly on `localhost` where you have exactly 1 Node server running. In production (like Vercel or Render), your server will scale up to multiple instances or go to sleep. **This means SMS reminders and follow-ups will either be sent multiple times to the same patient (duplicates) or not sent at all (dropped).**
+* **The Fix**: You must provision a Redis instance (like Upstash) for production, turn `DISABLE_REDIS=false`, and let BullMQ safely handle the background jobs so they only run exactly once.
+
+### 4. Integration Dependencies Setup
+Since this is an automation platform, its core value relies on third-party APIs. To launch, you or your users will need active billing accounts for:
+* **Twilio**: For sending the automated Greek SMS/WhatsApp reminders.
+* **Google Gemini**: For the AI Triage features (the code is ready, just needs the key).
+
+### Summary Verdict
+It is a phenomenal proof-of-concept and works locally perfectly. However, **you cannot launch this to paying customers yet.** 
+
+Would you like me to start fixing any of these? For example, I can quickly swap the Prisma schema to PostgreSQL, add an Email service like Resend, or fix the Redis queue configuration!
