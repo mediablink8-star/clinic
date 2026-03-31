@@ -15,6 +15,8 @@ import Appointments from './pages/Appointments';
 import Patients from './pages/Patients';
 import Reports from './pages/Reports';
 import PatientBooking from './pages/PatientBooking';
+import NotFound from './pages/NotFound';
+import ServerError from './pages/ServerError';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -256,9 +258,18 @@ const App = () => {
     return <PatientBooking />;
   }
 
+  // Handle other public routes if needed, otherwise check auth
   if (!clinic) {
     if (path === '/register') return <ClinicRegister onRegister={handleRegister} />;
     if (path === '/reset-password') return <ResetPassword />;
+    if (path === '/') return <ClinicLogin onLogin={handleLogin} />;
+    
+    // If not one of the allowed public routes and not logged in, show login (default)
+    // unless it's a completely unknown path
+    const publicPaths = ['/', '/register', '/reset-password', '/book'];
+    if (!publicPaths.includes(path)) {
+      return <NotFound />;
+    }
     return <ClinicLogin onLogin={handleLogin} />;
   }
 

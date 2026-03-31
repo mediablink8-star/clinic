@@ -17,29 +17,26 @@ import SystemStatus from '../components/SystemStatus';
 import AutomationLog from '../components/AutomationLog';
 import RecoveryFunnel from '../components/RecoveryFunnel';
 import OnboardingChecklist from '../components/OnboardingChecklist';
-
-const SkBox = ({ w = '100%', h = 20, r = 10, style = {} }) => (
-    <div className="skeleton" style={{ width: w, height: h, borderRadius: r, flexShrink: 0, ...style }} />
-);
+import Skeleton from '../components/Skeleton';
 
 const DashboardSkeleton = () => (
     <div style={{ paddingBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <SkBox w={280} h={36} r={10} />
-                <SkBox w={200} h={16} r={8} />
+                <Skeleton width="280px" height="36px" borderRadius="10px" />
+                <Skeleton width="200px" height="16px" borderRadius="8px" />
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-                <SkBox w={130} h={42} r={14} />
-                <SkBox w={150} h={42} r={14} />
+                <Skeleton width="130px" height="42px" borderRadius="14px" />
+                <Skeleton width="150px" height="42px" borderRadius="14px" />
             </div>
         </div>
 
         {/* Stat cards row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
             {[...Array(4)].map((_, i) => (
-                <div key={i} className="skeleton" style={{ height: 90, borderRadius: 20 }} />
+                <Skeleton key={i} height="90px" borderRadius="20px" />
             ))}
         </div>
 
@@ -52,7 +49,7 @@ const DashboardSkeleton = () => (
             minHeight: '560px',
         }}>
             {[...Array(6)].map((_, i) => (
-                <div key={i} className="skeleton" style={{ borderRadius: 24 }} />
+                <Skeleton key={i} height="100%" borderRadius="24px" />
             ))}
         </div>
     </div>

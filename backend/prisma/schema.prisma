@@ -180,6 +180,10 @@ model Notification {
   status        String           @default("SCHEDULED")
   message       String
   createdAt     DateTime         @default(now())
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([scheduledFor])
 }
 
 model AuditLog {
@@ -220,6 +224,8 @@ model MissedCall {
   @@index([clinicId])
   @@index([status])
   @@index([smsStatus])
+  @@index([createdAt])
+  @@index([recoveredAt])
 }
 
 enum MissedCallStatus {

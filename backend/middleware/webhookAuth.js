@@ -12,8 +12,12 @@ module.exports = function webhookAuth(req, res, next) {
     const envSecret = process.env.WEBHOOK_SECRET;
 
     if (!envSecret) {
-        console.warn('[WEBHOOK] WEBHOOK_SECRET not set — skipping auth (insecure)');
-        return next();
+        console.error('[WEBHOOK] CRITICAL: WEBHOOK_SECRET not set. Webhook endpoints are disabled for security.');
+        return res.status(500).json({ 
+            error: 'Server configuration error', 
+            code: 'MISSING_WEBHOOK_SECRET',
+            message: 'Webhook security is not configured on the server.'
+        });
     }
 
     // Mode 1: simple secret header

@@ -1,24 +1,20 @@
-// const Sentry = require("@sentry/node");
-// const { nodeProfilingIntegration } = require("@sentry/profiling-node");
-
 require('dotenv').config();
+const { validateEnv } = require('./utils/envValidator');
 
-// Fail fast if JWT_SECRET is not set in production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start in production.');
+// Fail fast if critical environment variables are missing
+if (!validateEnv()) {
+    console.error('FATAL: Required environment variables are missing. Refusing to start.');
     process.exit(1);
 }
 
-/*
+const Sentry = require("@sentry/node");
+
 if (process.env.SENTRY_BACKEND_DSN) {
     Sentry.init({
         dsn: process.env.SENTRY_BACKEND_DSN,
-        // integrations: [nodeProfilingIntegration()],
         tracesSampleRate: 1.0,
-        profilesSampleRate: 1.0,
     });
 }
-*/
 
 const express = require('express');
 const rateLimit = require('express-rate-limit');
@@ -56,10 +52,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(cors({
-    origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? false : true),
+const corsOptions = {
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL,
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:5175'
+        ].filter(Boolean);
+
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.static('public'));
 
@@ -202,6 +216,15 @@ app.use('/api/messages', requireAuth, messagesRouter);
 const automationAuth = require('./middleware/automationAuth');
 const automationRouter = require('./routes/automation');
 app.use('/api/automation', automationAuth, automationRouter);
+
+// --- 404 HANDLER (MUST BE AFTER ALL ROUTES) ---
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        code: 'ROUTE_NOT_FOUND',
+        message: `The endpoint ${req.method} ${req.originalUrl} does not exist.`
+    });
+});
 
 // Sentry error handler — must be before the global error handler
 if (process.env.SENTRY_BACKEND_DSN) {

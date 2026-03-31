@@ -66,6 +66,11 @@
   50%       { transform: translateY(-4px); }
 }
 
+@keyframes skeleton-loading {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── Recovery flash — green border glow burst ── */
 @keyframes recovery-flash {
   0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.0),  var(--shadow-md); border-color: rgba(255,255,255,0.5); }
