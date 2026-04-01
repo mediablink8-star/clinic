@@ -5,38 +5,36 @@
 @tailwind utilities;
 
 :root {
-  --primary: #2563eb;
-  --primary-vibrant: #3b82f6;
-  --primary-glow: rgba(37, 99, 235, 0.28);
-  --primary-light: rgba(37, 99, 235, 0.08);
+  --primary: #00B5AD;
+  --primary-vibrant: #26C6BD;
+  --primary-glow: rgba(0, 181, 173, 0.22);
+  --primary-light: rgba(0, 181, 173, 0.08);
   --secondary: #0f172a;
-  --accent: #f59e0b;
-  --bg: #eef2ff;
-  --sidebar-bg: rgba(255, 255, 255, 0.75);
+  --accent: #10b981;
+  --bg: #f8fafc;
+  --sidebar-bg: rgba(255, 255, 255, 0.85);
   --card-bg: rgba(255, 255, 255, 0.75);
-  --text: #0f172a;
+  --text: #1e293b;
   --text-light: #64748b;
   --urgent: #ef4444;
   --normal: #10b981;
   --border: rgba(148, 163, 184, 0.15);
   --border-glass: rgba(255, 255, 255, 0.55);
-  --ring: rgba(37, 99, 235, 0.2);
+  --ring: rgba(99, 102, 241, 0.2);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 24px rgba(0,0,0,0.06), 0 1px 6px rgba(0,0,0,0.04);
-  --shadow-lg: 0 20px 48px -12px rgba(15,23,42,0.16);
-  --shadow-glow: 0 0 0 1px rgba(37,99,235,0.08), 0 8px 32px rgba(37,99,235,0.1);
-  --section-gap: 2rem;
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0,0,0,0.25);
+  --shadow-glow: 0 0 0 1px rgba(99,102,241,0.08), 0 8px 32px rgba(99,102,241,0.1);
+  --section-gap: 2.5rem;
   --radius: 16px;
-  --radius-lg: 22px;
-  --glass: blur(24px) saturate(200%);
-  --modal-bg: rgba(255,255,255,0.97);
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --glass: blur(16px) saturate(180%);
+  --modal-bg: rgba(255,255,255,0.98);
   --modal-border: rgba(255,255,255,0.7);
-  --modal-header-bg: rgba(37,99,235,0.04);
-  --input-bg: rgba(248,250,252,0.9);
-  --input-border: rgba(226,232,240,0.9);
-  --cancel-bg: rgba(248,250,252,0.9);
-  --cancel-border: rgba(226,232,240,0.9);
-  --cancel-color: #64748b;
+  --bg-subtle: rgba(255, 255, 255, 0.45);
 }
 
 /* ── Animations ── */
@@ -107,11 +105,11 @@
 
 /* ── Body — mesh gradient background ── */
 body {
-  background-color: #eef2ff;
+  background-color: #f1f5f9;
   background-image:
-    radial-gradient(ellipse 90% 70% at 15% 5%, rgba(37,99,235,0.09) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%, rgba(99,102,241,0.07) 0%, transparent 50%),
-    radial-gradient(ellipse 55% 45% at 55% 15%, rgba(16,185,129,0.04) 0%, transparent 45%);
+    radial-gradient(ellipse 90% 70% at 15% 5%, rgba(0,181,173,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 85%, rgba(16,185,129,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 55% 45% at 55% 15%, rgba(0,209,193,0.04) 0%, transparent 45%);
   background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
@@ -191,7 +189,7 @@ body {
 /* ── Main Content ── */
 .main-content {
   flex: 1;
-  padding: 2rem 2.5rem;
+  padding: 1.25rem 1.75rem;
   max-width: 1440px;
   margin: 0 auto;
   min-width: 0;
@@ -472,13 +470,13 @@ input:focus, textarea:focus, select:focus {
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
-  --primary: #6366f1;
-  --primary-vibrant: #818cf8;
-  --primary-glow: rgba(99,102,241,0.3);
-  --primary-light: rgba(99,102,241,0.12);
+  --primary: #00D1C1;
+  --primary-vibrant: #26C6BD;
+  --primary-glow: rgba(0, 209, 193, 0.25);
+  --primary-light: rgba(0, 209, 193, 0.12);
   --secondary: #e2e8f0;
-  --accent: #f59e0b;
-  --bg: #080d1a;
+  --accent: #10b981;
+  --bg: #060b14;
   --sidebar-bg: rgba(10,15,30,0.9);
   --card-bg: rgba(12,18,38,0.75);
   --text: #e2e8f0;
@@ -500,6 +498,7 @@ input:focus, textarea:focus, select:focus {
   --cancel-bg: rgba(12,18,38,0.7);
   --cancel-border: rgba(255,255,255,0.09);
   --cancel-color: #94a3b8;
+  --bg-subtle: rgba(255, 255, 255, 0.05);
 }
 
 /* body dark bg — applied when html has data-theme=dark */
@@ -507,11 +506,11 @@ html[data-theme="dark"] {
   background-color: #080d1a;
 }
 html[data-theme="dark"] body {
-  background-color: #080d1a;
+  background-color: #060b14;
   background-image:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99,102,241,0.1) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.07) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 40% at 60% 20%, rgba(16,185,129,0.04) 0%, transparent 45%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,209,193,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(16,185,129,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 60% 20%, rgba(0,181,173,0.05) 0%, transparent 45%);
 }
 [data-theme="dark"] .sidebar {
   background: rgba(10,15,30,0.85) !important;

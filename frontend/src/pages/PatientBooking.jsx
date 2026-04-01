@@ -78,7 +78,7 @@ const PatientBooking = () => {
     );
 
     return (
-        <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '2rem 1rem' }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-mesh)', padding: '2rem 1rem' }}>
             <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                 <header style={{ textAlign: 'center', marginBottom: 'var(--section-gap)' }}>
                     {clinic.avatarUrl && <img src={clinic.avatarUrl} alt={clinic.name} style={{ width: '100px', height: '100px', borderRadius: '32px', marginBottom: '1.5rem', objectFit: 'cover', boxShadow: 'var(--shadow-md)' }} />}
@@ -89,7 +89,7 @@ const PatientBooking = () => {
                     </div>
                 </header>
 
-                <div style={{ background: 'white', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '3.5rem', border: '1px solid var(--border)' }}>
+                <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '2.5rem', border: '1px solid var(--border)' }}>
                     {step === 1 && (
                         <div className="animate-fade">
                             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -176,8 +176,8 @@ const PatientBooking = () => {
                                 <CheckCircle size={48} color="#22c55e" />
                             </div>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', marginBottom: '1rem' }}>Το αίτημά σας καταχωρήθηκε!</h2>
-                            <p style={{ color: '#64748b', marginBottom: '2rem', lineHeight: '1.6' }}>
-                                Σας ευχαριστούμε, {formData.name.split(' ')[0]}. Το ιατρείο θα επεξεργαστεί το αίτημα σας για τις <strong>{new Date(formData.date).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' })}</strong> στις <strong>{formData.time}</strong> και θα επικοινωνήσει μαζί σας για επιβεβαίωση.
+                            <p style={{ color: 'var(--text-light)', marginBottom: '2rem', lineHeight: '1.6' }}>
+                                Σας ευχαριστούμε, {formData.name.split(' ')[0]}. Το ιατρείο θα επεξεργαστεί το αίτημα σας για τις <strong>{new Date(formData.date + 'T00:00:00').toLocaleDateString('el-GR', { day: 'numeric', month: 'long' })}</strong> στις <strong>{formData.time}</strong> και θα επικοινωνήσει μαζί σας για επιβεβαίωση.
                             </p>
                             <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px' }} onClick={() => window.location.reload()}>
                                 Νέα Κράτηση

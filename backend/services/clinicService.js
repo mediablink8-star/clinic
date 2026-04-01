@@ -161,4 +161,24 @@ async function updateAiConfig({ clinicId, aiConfig }, actor) {
     return { success: true, data: JSON.parse(updated.aiConfig) };
 }
 
-module.exports = { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig };
+async function updateClinicStatus({ clinicId, isActive }, actor) {
+    const updated = await prisma.$transaction(async (tx) => {
+        const result = await tx.clinic.update({
+            where: { id: clinicId },
+            data: { isActive }
+        });
+        await logAction({
+            clinicId,
+            userId: actor.userId,
+            action: isActive ? 'CLINIC_ACTIVATE' : 'CLINIC_DEACTIVATE',
+            entity: 'CLINIC',
+            entityId: clinicId,
+            details: { isActive },
+            ipAddress: actor.ip
+        });
+        return result;
+    });
+    return { success: true, data: updated };
+}
+
+module.exports = { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus };

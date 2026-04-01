@@ -10,16 +10,15 @@ const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge
     const isAi = variant === 'ai';
     const isTest = variant === 'test';
 
-    const bg = isPrimary ? 'linear-gradient(135deg, var(--primary) 0%, #2563eb 100%)'
+    const bg = isPrimary ? 'linear-gradient(135deg, var(--primary) 0%, #009a93 100%)'
         : isAi ? 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
         : isTest ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)'
-        : isSecondary ? 'rgba(255,255,255,0.85)'
-        : 'rgba(255,255,255,0.55)';
+        : 'var(--bg-subtle)';
 
     const color = (isPrimary || isAi || isTest) ? 'white' : 'var(--secondary)';
-    const border = (isPrimary || isAi || isTest) ? 'none' : isSecondary ? '1px solid rgba(226,232,240,0.8)' : '1px solid rgba(226,232,240,0.4)';
-    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : isTest ? '0 6px 18px -4px rgba(16,185,129,0.35)' : '0 2px 8px rgba(0,0,0,0.04)';
-    const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : isTest ? 'rgba(52,211,153,0.25)' : isSecondary ? 'var(--primary-light)' : 'rgba(241,245,249,0.8)';
+    const border = (isPrimary || isAi || isTest) ? 'none' : '1px solid var(--border)';
+    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : isTest ? '0 6px 18px -4px rgba(16,185,129,0.35)' : 'var(--shadow-sm)';
+    const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : isTest ? 'rgba(52,211,153,0.25)' : 'var(--primary-light)';
     const iconColor = (isPrimary || isAi || isTest) ? 'white' : 'var(--primary)';
 
     return (
@@ -270,17 +269,17 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
     return (
         <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                <QuickActionBtn icon={Calendar} label="+ New Appointment" onClick={onNewAppointment || onViewSchedule} variant="primary" />
+                <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Patients" onClick={onAddPatient} variant="secondary" />
+                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient} variant="secondary" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
-                    <QuickActionBtn icon={Phone} label="Call" onClick={() => setShowCall(true)} variant="secondary" />
+                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
                 </div>
-                <div style={{ marginTop: '0.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.6rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>Developer Tools</div>
+                <div style={{ marginTop: '0.25rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>Εργαλεία Προγραμματιστή</div>
                     <QuickActionBtn
                         icon={FlaskConical}
-                        label={testStatus === 'sending' ? 'Sending...' : testStatus === 'sent' ? '✓ Sent!' : testStatus === 'error' ? '✗ Error' : 'Test Recovery SMS'}
+                        label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Δοκιμή SMS Ανάκτησης'}
                         onClick={handleTestRecovery}
                         variant="test"
                     />

@@ -13,11 +13,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
  ───────────────────────────────────────────────────────── */
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
-        background: 'rgba(255,255,255,0.75)',
+        background: 'var(--card-bg)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,0.5)',
+        border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
         marginBottom: '1.5rem',
         overflow: 'hidden',
@@ -30,7 +30,7 @@ const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) =>
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            background: 'linear-gradient(to right, #fafbfc, #fff)'
+            background: 'var(--bg-subtle)'
         }}>
             <div style={{
                 width: '26px',
@@ -102,7 +102,7 @@ const inputStyle = {
     fontSize: '0.9rem',
     outline: 'none',
     boxSizing: 'border-box',
-    background: '#fff',
+    background: 'var(--bg-subtle)',
     color: 'var(--text)'
 };
 
@@ -472,11 +472,11 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 flexWrap: 'wrap',
                 marginBottom: '1.75rem',
                 padding: '0.6rem',
-                background: 'rgba(255,255,255,0.8)',
+                background: 'var(--card-bg)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 borderRadius: '16px',
-                border: '1px solid rgba(255,255,255,0.5)',
+                border: '1px solid var(--border)',
                 boxShadow: 'var(--shadow-md)',
                 position: 'sticky',
                 top: '20px',

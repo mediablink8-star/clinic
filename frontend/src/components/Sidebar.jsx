@@ -30,11 +30,11 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
     return (
         <aside className="sidebar" style={{
             width: '260px',
-            background: 'rgba(255,255,255,0.75)',
+            background: 'var(--sidebar-bg)',
             backdropFilter: 'blur(32px) saturate(200%)',
             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            borderRight: '1px solid rgba(226,232,240,0.5)',
-            boxShadow: '2px 0 24px rgba(0,0,0,0.04)'
+            borderRight: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)'
         }}>
             <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
                 <div style={{
@@ -92,15 +92,15 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'rgba(37,99,235,0.08)'
+                                        ? 'var(--primary-light)'
                                         : 'transparent',
                                     borderRadius: '14px',
                                     fontWeight: currentTab === item.id ? '800' : '600',
                                     marginBottom: '2px',
                                     transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                                     fontSize: '0.875rem',
-                                    border: `1px solid ${currentTab === item.id ? 'rgba(37,99,235,0.12)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 2px 10px rgba(37,99,235,0.08)' : 'none'
+                                    border: `1px solid ${currentTab === item.id ? 'var(--primary-light)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 2px 10px rgba(37,99,235,0.05)' : 'none'
                                 }}
                             >
                                 <item.icon size={22} strokeWidth={currentTab === item.id ? 2.5 : 2} /> {item.label}
@@ -122,14 +122,14 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         justifyContent: 'space-between',
                         padding: '10px 14px',
                         borderRadius: '12px',
-                        border: '1px solid var(--border-glass)',
-                        background: darkMode ? 'rgba(99,102,241,0.12)' : 'rgba(0,0,0,0.04)',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-subtle)',
                         cursor: 'pointer',
                         marginBottom: '12px',
                         transition: 'all 0.2s ease',
                     }}
                 >
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-light)' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
                         {darkMode ? 'Dark Mode' : 'Light Mode'}
                     </span>
                     <div style={{
@@ -171,14 +171,14 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     background: 'var(--card-bg)',
                     backdropFilter: 'blur(12px)',
                     borderRadius: '16px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                    border: '1px solid var(--border-glass)'
+                    boxShadow: 'var(--shadow-sm)',
+                    border: '1px solid var(--border)'
                 }}>
                     <div className="avatar" style={{
                         width: '40px',
                         height: '40px',
                         borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)',
+                        background: 'var(--primary-light)',
                         color: 'var(--primary)',
                         display: 'flex',
                         alignItems: 'center',
@@ -189,19 +189,30 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         {clinic?.name?.[0] || 'D'}
                     </div>
                     <div className="info" style={{ flex: 1, overflow: 'hidden' }}>
-                        <div className="name" style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic?.name || 'Ιατρείο'}</div>
-                        <div className="role" style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>
+                        <div className="name" style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic?.name || 'Ιατρείο'}</div>
+                        <div className="role" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase' }}>
                             {clinic?.role === 'OWNER' ? 'Ιδιοκτήτης' : clinic?.role === 'RECEPTIONIST' ? 'Γραμματέας' : clinic?.role === 'ASSISTANT' ? 'Βοηθός' : 'Διαχειριστής'}
                         </div>
                     </div>
-                    <button
-                        className="btn-icon-sm"
+                    <button 
                         onClick={onLogout}
+                        style={{
+                            background: 'var(--bg-subtle)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '10px',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            color: 'var(--urgent)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease'
+                        }}
                         title="Αποσύνδεση"
-                        style={{ background: '#f8fafc', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px', color: '#ef4444' }}
                     >
                         <LogOut size={16} />
-                    </button>                </div>
+                    </button>
+                </div>
             </div>
         </aside>
     );

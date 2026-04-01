@@ -6,11 +6,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
-        background: 'rgba(255,255,255,0.75)',
+        background: 'var(--card-bg)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,0.5)',
+        border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
         marginBottom: '1.5rem',
         overflow: 'hidden',
@@ -19,7 +19,7 @@ const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) =>
             padding: '1.1rem 1.75rem',
             borderBottom: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', gap: '12px',
-            background: 'linear-gradient(to right, #fafbfc, #fff)'
+            background: 'var(--bg-subtle)'
         }}>
             <div style={{
                 width: '26px', height: '26px', borderRadius: '8px',
@@ -56,7 +56,7 @@ const FormGroup = ({ label, flex, children }) => (
 const inputStyle = {
     width: '100%', padding: '0.7rem 1rem', borderRadius: '12px',
     border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none',
-    boxSizing: 'border-box', background: '#fff', color: 'var(--text)'
+    boxSizing: 'border-box', background: 'var(--bg-subtle)', color: 'var(--text)'
 };
 
 const StatusBadge = ({ status, latency }) => {
@@ -203,7 +203,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
             <SectionCard id="ai-s1" number="1" icon={<Key size={15} color="#7c3aed" />} iconBg="#f3f0ff"
                 title="Συνδέσεις API" subtitle="Προσθέστε τα κλειδιά σας μία φορά — δεν χρειάζεται ξανά ρύθμιση">
                 {/* AI Provider */}
-                <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: '#fafbfc', maxWidth: '480px' }}>
+                <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', maxWidth: '480px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                         <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0 }}>Πάροχος AI</h3>
                         <StatusBadge status={aiTest.status} latency={aiTest.latency} />

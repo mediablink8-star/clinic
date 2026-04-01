@@ -130,7 +130,7 @@ const AutomationLog = ({ logs = [], onTestRecovery }) => {
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Automation Activity
+                    ΠΡΟΣΦΑΤΗ ΔΡΑΣΤΗΡΙΟΤΗΤΑ
                 </span>
                 <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '3px 8px', borderRadius: '6px', background: 'rgba(99,102,241,0.1)', color: '#6366f1' }}>
                     LIVE

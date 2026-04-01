@@ -5,48 +5,48 @@ const services = [
     {
         key: 'ai',
         icon: Brain,
-        label: 'AI Assistant',
+        label: 'Έξυπνη Γραμματεία',
         check: s => s?.aiConfigured,
-        offlineLabel: 'Not Configured',
-        actionLabel: 'Configure',
+        offlineLabel: 'Μη ρυθμισμένη',
+        actionLabel: 'Ρύθμιση',
         actionTab: 'ai',
     },
     {
         key: 'webhook',
         icon: Zap,
-        label: 'n8n Webhook',
+        label: 'Συγχρονισμός Ιατρείου',
         check: s => s?.webhookConfigured,
-        offlineLabel: 'Not Configured',
-        actionLabel: 'Configure',
+        offlineLabel: 'Αποσυνδεδεμένο',
+        actionLabel: 'Σύνδεση',
         actionTab: 'settings',
     },
     {
         key: 'recovery',
         icon: PhoneCall,
-        label: 'Call Recovery',
+        label: 'Παρακολούθηση Κλήσεων',
         check: s => s?.worker,
-        offlineLabel: 'Worker Disconnected',
-        actionLabel: 'Reload Page',
+        offlineLabel: 'Εκτός λειτουργίας',
+        actionLabel: 'Επανεκκίνηση',
         actionTab: null,
         actionReload: true,
     },
 ];
 
-const MetricPill = ({ icon: Icon, label, value, color = '#6366f1', warn = false }) => (
+const MetricPill = ({ icon: Icon, label, value, color = 'var(--primary)', warn = false }) => (
     <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '7px 10px',
         borderRadius: '10px',
-        background: warn ? 'rgba(239,68,68,0.05)' : 'rgba(99,102,241,0.04)',
-        border: `1px solid ${warn ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.1)'}`,
+        background: warn ? 'rgba(239,68,68,0.05)' : 'var(--bg-subtle)',
+        border: `1px solid ${warn ? 'rgba(239,68,68,0.12)' : 'var(--border)'}`,
     }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Icon size={11} color={warn ? '#ef4444' : color} />
-            <span style={{ fontSize: '0.68rem', fontWeight: '600', color: '#64748b' }}>{label}</span>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: 'var(--text-light)' }}>{label}</span>
         </div>
-        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: warn ? '#ef4444' : color }}>{value}</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: '900', color: warn ? '#ef4444' : color }}>{value}</span>
     </div>
 );
 
@@ -56,8 +56,8 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
 
     const fmt = (d) => {
         const diff = Math.floor((Date.now() - d) / 1000);
-        if (diff < 60) return `${diff}s ago`;
-        return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 60) return `πριν ${diff} δευτ.`;
+        return `πριν ${Math.floor(diff / 60)} λεπτά`;
     };
 
     const handleAction = (svc) => {
@@ -88,10 +88,9 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
                         width: '8px', height: '8px', borderRadius: '50%',
                         background: allOnline ? '#10b981' : '#f59e0b',
                         boxShadow: allOnline ? '0 0 0 3px rgba(16,185,129,0.2)' : '0 0 0 3px rgba(245,158,11,0.2)',
-                        animation: 'pulse-green 2s infinite',
                     }} />
                     <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                        System Status
+                        ΚΑΤΑΣΤΑΣΗ ΒΟΗΘΟΥ
                     </span>
                 </div>
                 <span style={{
@@ -100,12 +99,12 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
                     background: allOnline ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
                     color: allOnline ? '#10b981' : '#f59e0b',
                 }}>
-                    {allOnline ? 'All Online' : 'Needs Attention'}
+                    {allOnline ? 'Σε Λειτουργία' : 'Χρειάζεται Προσοχή'}
                 </span>
             </div>
 
             {/* Service rows */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                 {services.map((svc) => {
                     const { key, icon: Icon, label, check, offlineLabel, actionLabel } = svc;
                     const online = check(status);
@@ -137,16 +136,16 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
                                 {online ? (
                                     <>
                                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.6)' }} />
-                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#10b981' }}>Online</span>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#10b981' }}>OK</span>
                                     </>
                                 ) : (
                                     <button
                                         onClick={() => handleAction(svc)}
                                         style={{
                                             padding: '3px 9px', borderRadius: '7px', cursor: 'pointer',
-                                            border: '1px solid rgba(99,102,241,0.3)',
-                                            background: 'rgba(99,102,241,0.08)',
-                                            color: '#6366f1', fontSize: '0.65rem', fontWeight: '800',
+                                            border: '1px solid var(--primary-light)',
+                                            background: 'var(--primary-light)',
+                                            color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800',
                                             whiteSpace: 'nowrap', transition: 'background 0.15s',
                                         }}
                                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.16)'}
@@ -165,16 +164,16 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
             {hasStats && (
                 <div style={{ marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                     <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        Metrics
+                        Δραστηριότητα
                     </span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '0.45rem' }}>
-                        <MetricPill icon={PhoneCall} label="Missed Calls Today" value={stats.missedCallsToday ?? '�'} color="#6366f1" />
-                        <MetricPill icon={MessageSquare} label="SMS Sent Today" value={stats.smsSentToday ?? '�'} color="#10b981" />
+                        <MetricPill icon={PhoneCall} label="Αναπάντητες Σήμερα" value={stats.missedCallsToday ?? ''} color="var(--primary)" />
+                        <MetricPill icon={MessageSquare} label="SMS που Εστάλησαν" value={stats.smsSentToday ?? ''} color="#10b981" />
                         {stats.smsFailedToday > 0 && (
-                            <MetricPill icon={AlertTriangle} label="SMS Failed" value={stats.smsFailedToday} warn />
+                            <MetricPill icon={AlertTriangle} label="Προβλήματα SMS" value={stats.smsFailedToday} warn />
                         )}
-                        <MetricPill icon={Clock} label="Pending Notifications" value={stats.pendingNotifications ?? '�'} color="#f59e0b" />
-                        <MetricPill icon={TrendingUp} label="Recovery (Today)" value={`${stats.recoveryRate ?? 0}%`} color="#3b82f6" />
+                        <MetricPill icon={Clock} label="Εκκρεμείς Ειδοποιήσεις" value={stats.pendingNotifications ?? ''} color="#f59e0b" />
+                        <MetricPill icon={TrendingUp} label="Ποσοστό Ανάκτησης" value={`${stats.recoveryRate ?? 0}%`} color="var(--primary)" />
                     </div>
                 </div>
             )}

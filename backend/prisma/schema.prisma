@@ -16,6 +16,7 @@ model Clinic {
   location     String
   phone        String
   email        String
+  isActive     Boolean       @default(true) // Master switch for clinic workflows
   workingHours String // Stored as JSON string
   services     String // Stored as JSON string
   policies     String // Stored as JSON string

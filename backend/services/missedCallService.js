@@ -13,6 +13,11 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
+    if (clinic.isActive === false) {
+        console.log(`[INFO] Clinic ${clinicId} is INACTIVE. Skipping automated response.`);
+        return { success: false, error: 'Clinic inactive' };
+    }
+
     const aiConfig = JSON.parse(clinic.aiConfig || '{}');
     const { withinHours, scheduledAt } = checkWorkingHours(new Date(), aiConfig.workingHours || null);
 
@@ -88,6 +93,11 @@ async function processScheduledMissedCalls() {
     for (const mc of due) {
         const clinic = mc.clinic;
         if (!clinic) continue;
+
+        if (clinic.isActive === false) {
+            console.log(`[ScheduledWorker] Skipping clinic ${clinic.id} (status: INACTIVE)`);
+            continue;
+        }
 
         await prisma.missedCall.update({
             where: { id: mc.id },

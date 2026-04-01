@@ -43,13 +43,13 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
     ];
 
     const cardStyle = {
-        background: 'rgba(255,255,255,0.7)',
+        background: 'var(--card-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        padding: '1.5rem',
+        padding: '1.25rem',
         borderRadius: '20px',
-        border: '1px solid rgba(255,255,255,0.6)',
-        boxShadow: '0 4px 24px rgba(15,23,42,0.06)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
         display: 'flex', alignItems: 'center', gap: '1rem'
     };
 
@@ -66,8 +66,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                         <TrendingUp size={28} color="white" />
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-1px', marginBottom: '4px', color: 'white' }}>Αναφορές & Analytics</h1>
-                        <p style={{ fontSize: '0.95rem', fontWeight: '500', opacity: 0.7 }}>Ανάλυση απόδοσης ιατρείου και ικανοποίησης ασθενών.</p>
+                        <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '-1px', marginBottom: '4px', color: 'white' }}>Αναφορές & Στατιστικά</h1>
+                        <p style={{ fontSize: '0.95rem', fontWeight: '500', opacity: 0.7 }}>Ανάλυση απόδοσης ιατρείου και εμπειρίας ασθενών.</p>
                     </div>
                 </div>
                 <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(100px)', opacity: 0.3, borderRadius: '50%' }} />
@@ -81,8 +81,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                             <Icon size={22} color={color} />
                         </div>
                         <div>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{label}</p>
-                            <p style={{ fontSize: '1.75rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-1px', lineHeight: 1 }}>{value}</p>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{label}</p>
+                            <p style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-1px', lineHeight: 1 }}>{value}</p>
                         </div>
                     </div>
                 ))}
@@ -91,8 +91,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
             {/* Recovery funnel + Appointment breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
                 {/* Recovery funnel */}
-                <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
-                    <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Χωνί Ανάκτησης</h3>
+                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Πρόοδος Ασθενών</h3>
                     {[
                         { label: 'Αναπάντητες', value: totalMissed, color: '#ef4444', pct: 100 },
                         { label: 'Σε Ανάκτηση', value: recoveringCount, color: '#f59e0b', pct: totalMissed > 0 ? Math.round((recoveringCount / totalMissed) * 100) : 0 },
@@ -101,15 +101,15 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                     ].map(({ label, value, color, pct }) => (
                         <div key={label} style={{ marginBottom: '0.9rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>{label}</span>
-                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color }}>{value} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({pct}%)</span></span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>{label}</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '900', color }}>{value} <span style={{ fontSize: '0.7rem', color: 'var(--text-light)', opacity: 0.7 }}>({pct}%)</span></span>
                             </div>
-                            <div style={{ height: '7px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '7px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '4px', transition: 'width 0.6s ease' }} />
                             </div>
                         </div>
                     ))}
-                    <div style={{ marginTop: '1rem', padding: '0.75rem', background: recoveryRate >= 50 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)', borderRadius: '10px', textAlign: 'center' }}>
+                    <div style={{ marginTop: '1rem', padding: '0.75rem', background: recoveryRate >= 50 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', borderRadius: '10px', textAlign: 'center' }}>
                         <span style={{ fontSize: '0.8rem', fontWeight: '800', color: recoveryRate >= 50 ? '#10b981' : '#f59e0b' }}>
                             Ποσοστό Ανάκτησης: {recoveryRate}%
                         </span>
@@ -117,7 +117,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                 </div>
 
                 {/* Appointment status breakdown */}
-                <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid rgba(255,255,255,0.6)', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}>
+                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                     <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κατάσταση Ραντεβού</h3>
                     {[
                         { key: 'CONFIRMED', label: 'Επιβεβαιωμένα', color: '#10b981' },
@@ -129,10 +129,10 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                         return (
                             <div key={key} style={{ marginBottom: '0.9rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>{label}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color }}>{count} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({pct}%)</span></span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>{label}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '900', color }}>{count} <span style={{ fontSize: '0.7rem', color: 'var(--text-light)', opacity: 0.7 }}>({pct}%)</span></span>
                                 </div>
-                                <div style={{ height: '7px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{ height: '7px', background: 'var(--bg-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                                     <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '4px', transition: 'width 0.6s ease' }} />
                                 </div>
                             </div>
@@ -149,8 +149,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                             <Icon size={22} color={color} />
                         </div>
                         <div>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{label}</p>
-                            <p style={{ fontSize: '2rem', fontWeight: '900', color: '#1e293b', letterSpacing: '-1px', lineHeight: 1 }}>{value}</p>
+                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>{label}</p>
+                            <p style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-1px', lineHeight: 1 }}>{value}</p>
                         </div>
                     </div>
                 ))}
@@ -159,7 +159,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
             {/* Feedback list */}
             <div style={{ marginBottom: '1.25rem' }}>
                 <h2 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Πρόσφατα Feedback (AI Sentiment)
+                    Πρόσφατα Feedback Ασθενών
                 </h2>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -174,17 +174,17 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                             animationDelay: `${idx * 0.05}s`,
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '1.25rem 1.5rem',
-                            background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)',
-                            borderRadius: '16px', border: '1px solid rgba(255,255,255,0.6)',
-                            boxShadow: '0 2px 12px rgba(15,23,42,0.05)',
+                            background: 'var(--card-bg)', backdropFilter: 'blur(12px)',
+                            borderRadius: '16px', border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-sm)',
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                     <ClipboardList size={18} color={color} />
                                 </div>
                                 <div>
-                                    <p style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1e293b', marginBottom: '2px' }}>{f.patientName}</p>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>"{f.comment}"</p>
+                                    <p style={{ fontWeight: '800', fontSize: '0.9rem', color: 'var(--secondary)', marginBottom: '2px' }}>{f.patientName}</p>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontStyle: 'italic' }}>"{f.comment}"</p>
                                 </div>
                             </div>
                             <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: '800', background: bg, color, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
@@ -193,8 +193,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                         </div>
                     );
                 }) : (
-                    <div style={{ padding: '4rem', textAlign: 'center', background: 'rgba(248,250,252,0.8)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Δεν υπάρχουν ακόμα δεδομένα feedback.</p>
+                    <div style={{ padding: '4rem', textAlign: 'center', background: 'var(--bg-subtle)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
+                        <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Δεν υπάρχουν ακόμα δεδομένα feedback.</p>
                     </div>
                 )}
             </div>

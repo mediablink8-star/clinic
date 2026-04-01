@@ -18,11 +18,11 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
             const data = await res.json();
             const status = data.data?.smsStatus === 'sent' ? 'sent' : 'failed';
             setRetrying(r => ({ ...r, [logId]: status }));
-            if (status === 'sent') toast.success('SMS retried successfully');
-            else toast.error('Retry failed — check webhook config');
+            if (status === 'sent') toast.success('Το SMS στάλθηκε με επιτυχία!');
+            else toast.error('Η αποστολή απέτυχε — ελέγξτε τις ρυθμίσεις');
         } catch {
             setRetrying(r => ({ ...r, [logId]: 'failed' }));
-            toast.error('Retry request failed');
+            toast.error('Πρόβλημα στη σύνδεση με το διακομιστή');
         } finally {
             setTimeout(() => setRetrying(r => { const n = { ...r }; delete n[logId]; return n; }), 3000);
         }
@@ -30,13 +30,13 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
     const getStatusInfo = (status) => {
         switch (status) {
             case 'RECOVERED':
-                return { icon: CheckCircle2, color: '#10b981', bg: '#f0fdf4', label: 'Recovered' };
+                return { icon: CheckCircle2, color: '#10b981', bg: '#f0fdf4', label: 'Επέστρεψε' };
             case 'RECOVERING':
-                return { icon: MessageSquare, color: '#f59e0b', bg: '#fffbeb', label: 'In progress' };
+                return { icon: MessageSquare, color: '#f59e0b', bg: '#fffbeb', label: 'Σε επικοινωνία' };
             case 'LOST':
-                return { icon: AlertCircle, color: '#ef4444', bg: '#fef2f2', label: 'Lost' };
+                return { icon: AlertCircle, color: '#ef4444', bg: '#fef2f2', label: 'Δεν απάντησε' };
             case 'DETECTED':
-                return { icon: PhoneMissed, color: 'var(--primary)', bg: 'var(--primary-light)', label: 'Detected' };
+                return { icon: PhoneMissed, color: 'var(--primary)', bg: 'var(--primary-light)', label: 'Νέα κλήση' };
             default:
                 return { icon: Clock, color: '#64748b', bg: '#f1f5f9', label: status };
         }
@@ -61,7 +61,7 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Sparkles size={15} className="text-primary" />
-                    Ζωντανή Ροή Ανάκτησης
+                    Πρόσφατη Δραστηριότητα
                 </h2>
                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>Ζωντανά</span>
             </div>
@@ -130,7 +130,7 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
                                     {log.smsStatus === 'failed' && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '6px', background: 'rgba(239,68,68,0.12)', flexShrink: 0 }}>
                                             <AlertCircle size={9} color="#dc2626" />
-                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#dc2626' }}>SMS Failed</span>
+                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#dc2626' }}>Αποτυχία SMS</span>
                                         </div>
                                     )}
                                     {/* dot + label */}
@@ -167,12 +167,12 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
                                         >
                                             <RefreshCw size={9} />
                                             {retrying[log.id] === 'retrying'
-                                                ? 'Retrying...'
+                                                ? 'Προσπάθεια...'
                                                 : retrying[log.id] === 'sent'
-                                                    ? '✓ Sent!'
+                                                    ? '✓ Εστάλη!'
                                                     : retrying[log.id] === 'failed'
-                                                        ? '✗ Failed again'
-                                                        : 'Retry SMS'}
+                                                        ? '✗ Απέτυχε'
+                                                        : 'Νέα Προσπάθεια'}
                                         </button>
                                     )}
                                 </div>

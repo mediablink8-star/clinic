@@ -120,9 +120,9 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h3 style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
-                        Patient Journey
+                        ΠΡΟΟΔΟΣ ΙΑΤΡΕΙΟΥ
                     </h3>
-                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>Funnel ανάκτησης ασθενών</p>
+                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>Συνολική απόδοση ιατρείου</p>
                 </div>
                 <div style={{
                     padding: '4px 10px',
@@ -132,7 +132,7 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
                     fontSize: '0.7rem',
                     fontWeight: 800,
                 }}>
-                    {convRate}% conversion
+                    {convRate}% επιτυχία
                 </div>
             </div>
 
@@ -153,7 +153,7 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
                                     <ChevronDown size={12} color="#cbd5e1" />
                                     {dropPct !== null && dropPct > 0 && (
                                         <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 600 }}>
-                                            -{dropPct}% drop
+                                            {dropPct}% απώλεια
                                         </span>
                                     )}
                                 </div>

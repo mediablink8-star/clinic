@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig } = require('../services/clinicService');
+const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus } = require('../services/clinicService');
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 
@@ -58,6 +58,16 @@ router.put('/ai-config', requireOwner, validate(aiConfigSchema), asyncHandler(as
         { userId: req.user.userId, ip: req.ip }
     );
     res.json({ success: true, aiConfig: data });
+}));
+
+// POST /api/clinic/toggle-status
+router.post('/toggle-status', requireOwner, asyncHandler(async (req, res) => {
+    const { isActive } = req.body;
+    const { data } = await updateClinicStatus(
+        { clinicId: req.clinicId, isActive },
+        { userId: req.user.userId, ip: req.ip }
+    );
+    res.json({ success: true, isActive: data.isActive });
 }));
 
 module.exports = router;

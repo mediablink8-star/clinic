@@ -145,7 +145,15 @@ const App = () => {
     retry: 1,
   });
 
-  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage || loadingSystemStats;
+  const { data: systemConfigStatus = { warnings: [] }, isLoading: loadingConfig } = useQuery({
+    queryKey: ['system-config'],
+    queryFn: () => axios.get(`${API_BASE}/system/config-status`, { headers: getHeaders() }).then(res => res.data),
+    enabled: !!token,
+    refetchInterval: 60000,
+    retry: 1,
+  });
+
+  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage || loadingSystemStats || loadingConfig;
 
   const safeTime = (dateStr) => {
     try {
@@ -190,18 +198,23 @@ const App = () => {
     queryClient.clear();
   };
 
-  const handleAnalyze = async (reason) => {
-    if (reason.length < 5) return;
-    setAnalyzing(true);
-    try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const resp = await axios.post(`${API_BASE}/analysis/analyze`, { reason }, { headers });
-      setAnalysis(resp.data);
-    } catch (err) {
-      console.error("AI analysis failed:", err);
-    } finally {
-      setAnalyzing(false);
-    }
+  let analysisTimeout = null;
+  const handleAnalyze = (reason) => {
+    if (reason.length < 10) return;
+    if (analysisTimeout) clearTimeout(analysisTimeout);
+    
+    analysisTimeout = setTimeout(async () => {
+      setAnalyzing(true);
+      try {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const resp = await axios.post(`${API_BASE}/analysis/analyze`, { reason }, { headers });
+        setAnalysis(resp.data);
+      } catch (err) {
+        console.error("AI analysis failed:", err);
+      } finally {
+        setAnalyzing(false);
+      }
+    }, 800);
   };
 
   const handleBook = async () => {
@@ -314,6 +327,12 @@ const App = () => {
           apiUsage={apiUsage}
           loading={loading}
           onRefresh={refreshRecovery}
+          onUpdate={(updated) => {
+            const next = { ...clinic, ...updated };
+            setClinic(next);
+            localStorage.setItem('clinic_data', JSON.stringify(next));
+          }}
+          warnings={systemConfigStatus.warnings || []}
         />;
       case 'appointments':
         return <Appointments appointments={appointments} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
@@ -322,7 +341,11 @@ const App = () => {
       case 'reports':
         return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
       case 'settings':
-        return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => setClinic({ ...clinic, ...updated })} />;
+        return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => {
+          const next = { ...clinic, ...updated };
+          setClinic(next);
+          localStorage.setItem('clinic_data', JSON.stringify(next));
+        }} />;
       case 'ai':
         if (clinic?.role === 'ASSISTANT') return <Dashboard
           clinic={clinic}
@@ -342,8 +365,17 @@ const App = () => {
           systemStats={systemStats}
           apiUsage={apiUsage}
           loading={loading}
+          onUpdate={(updated) => {
+            const next = { ...clinic, ...updated };
+            setClinic(next);
+            localStorage.setItem('clinic_data', JSON.stringify(next));
+          }}
         />;
-        return <AISettings clinic={clinic} token={token} onUpdate={(updated) => setClinic({ ...clinic, ...updated })} />;
+        return <AISettings clinic={clinic} token={token} onUpdate={(updated) => {
+          const next = { ...clinic, ...updated };
+          setClinic(next);
+          localStorage.setItem('clinic_data', JSON.stringify(next));
+        }} />;
       default:
         return <div>Σε κατασκευή...</div>;
     }
@@ -368,6 +400,7 @@ const App = () => {
         onNewAppointment={() => setShowModal(true)}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
+        warnings={systemConfigStatus.warnings || []}
       />
 
       <main className="main-content">

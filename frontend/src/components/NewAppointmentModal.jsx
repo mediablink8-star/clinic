@@ -76,7 +76,7 @@ const NewAppointmentModal = ({
                 <div style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {/* Patient */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                             <User size={12} /> Ασθενής
                         </label>
                         <select
@@ -96,7 +96,7 @@ const NewAppointmentModal = ({
 
                     {/* Reason */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                             <FileText size={12} /> Αιτία Επίσκεψης
                         </label>
                         <textarea
@@ -139,7 +139,7 @@ const NewAppointmentModal = ({
                     {/* Date + Time */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                         <div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Calendar size={12} /> Ημερομηνία
                             </label>
                             <input
@@ -155,7 +155,7 @@ const NewAppointmentModal = ({
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Clock size={12} /> Ώρα
                             </label>
                             <input
@@ -192,10 +192,10 @@ const NewAppointmentModal = ({
                         style={{
                             flex: 2, padding: '12px',
                             borderRadius: '14px', border: 'none',
-                            background: isValid
-                                ? 'linear-gradient(135deg, var(--primary) 0%, #2563eb 100%)'
-                                : 'rgba(226,232,240,0.8)',
-                            color: isValid ? 'white' : '#94a3b8',
+                            background: isValid 
+                                ? 'linear-gradient(135deg, var(--primary) 0%, #2563eb 100%)' 
+                                : 'var(--bg-subtle)',
+                            color: isValid ? 'white' : 'var(--text-light)',
                             fontSize: '0.9rem', fontWeight: '800',
                             cursor: isValid ? 'pointer' : 'not-allowed',
                             boxShadow: isValid ? '0 8px 20px -6px rgba(0,102,255,0.4)' : 'none',
