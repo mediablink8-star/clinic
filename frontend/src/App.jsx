@@ -98,7 +98,7 @@ const App = () => {
   });
 
   const { data: recoveryStats = { recovered: 0, pending: 0, revenue: 0 }, isLoading: loadingStats, refetch: refetchStats } = useQuery({
-    queryKey: ['recovery-stats', token],
+    queryKey: ['recovery-stats'],
     queryFn: async () => {
       const res = await axios.get(`${API_BASE}/recovery/stats`, { headers: getHeaders() });
       return res.data;
@@ -110,7 +110,7 @@ const App = () => {
   });
 
   const { data: recoveryLog = [], isLoading: loadingLog, refetch: refetchLog } = useQuery({
-    queryKey: ['recovery-log', token],
+    queryKey: ['recovery-log'],
     queryFn: async () => {
       const res = await axios.get(`${API_BASE}/recovery/log`, { headers: getHeaders() });
       return res.data;
@@ -126,6 +126,14 @@ const App = () => {
     queryFn: () => axios.get(`${API_BASE}/clinic/usage`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    retry: 1,
+  });
+
+  const { data: spending = { totalCreditsUsed: 0, monthCreditsUsed: 0, totalMessagesSent: 0 } } = useQuery({
+    queryKey: ['clinic-spending'],
+    queryFn: () => axios.get(`${API_BASE}/clinic/spending`, { headers: getHeaders() }).then(res => res.data),
+    enabled: !!token,
+    refetchInterval: 30000,
     retry: 1,
   });
 
@@ -299,10 +307,10 @@ const App = () => {
   const patientsCount = Array.isArray(patients) ? patients.length : 0;
 
   const refreshRecovery = () => {
-    refetchLog();
-    refetchStats();
-    queryClient.invalidateQueries({ queryKey: ['recovery-log'] });
-    queryClient.invalidateQueries({ queryKey: ['recovery-stats'] });
+    setTimeout(() => {
+      refetchLog();
+      refetchStats();
+    }, 300);
   };
 
   const renderContent = () => {
@@ -325,6 +333,7 @@ const App = () => {
           systemStatus={systemStatus}
           systemStats={systemStats}
           apiUsage={apiUsage}
+          spending={spending}
           loading={loading}
           onRefresh={refreshRecovery}
           onUpdate={(updated) => {

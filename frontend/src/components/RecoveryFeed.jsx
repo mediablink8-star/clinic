@@ -47,31 +47,8 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
         : [];
 
     return (
-        <div className="card-glass" style={{
-            background: muted ? 'rgba(248,250,252,0.65)' : 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            borderRadius: '24px',
-            border: '1px solid rgba(255,255,255,0.5)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.07)',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Sparkles size={15} className="text-primary" />
-                    Πρόσφατη Δραστηριότητα
-                </h2>
-                <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>Ζωντανά</span>
-            </div>
-
-            <div style={{
-                padding: '0.5rem',
-                overflowY: 'auto',
-                flex: 1
-            }}>
-                {sortedLogs.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            {sortedLogs.length === 0 ? (
                     <div style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         padding: '2.5rem 1.5rem', textAlign: 'center', gap: '0.5rem',
@@ -180,7 +157,6 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
                         })}
                     </div>
                 )}
-            </div>
         </div>
     );
 };

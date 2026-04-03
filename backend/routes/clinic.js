@@ -32,6 +32,33 @@ router.get('/usage', asyncHandler(async (req, res) => {
     logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_CLINIC_USAGE', entity: 'CLINIC', entityId: req.clinicId, ipAddress: req.ip }).catch(() => {});
 }));
 
+// GET /api/clinic/spending
+router.get('/spending', asyncHandler(async (req, res) => {
+    const prisma = require('../services/prisma');
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [totalResult, monthResult, countResult] = await Promise.all([
+        prisma.messageLog.aggregate({
+            where: { clinicId: req.clinicId, status: { in: ['SENT', 'SIMULATED'] } },
+            _sum: { cost: true }
+        }),
+        prisma.messageLog.aggregate({
+            where: { clinicId: req.clinicId, status: { in: ['SENT', 'SIMULATED'] }, timestamp: { gte: monthStart } },
+            _sum: { cost: true }
+        }),
+        prisma.messageLog.count({
+            where: { clinicId: req.clinicId, status: { in: ['SENT', 'SIMULATED'] } }
+        })
+    ]);
+
+    res.json({
+        totalCreditsUsed: totalResult._sum.cost || 0,
+        monthCreditsUsed: monthResult._sum.cost || 0,
+        totalMessagesSent: countResult
+    });
+}));
+
 // POST /api/clinic  (admin only)
 router.post('/', requireAdmin, validate(clinicUpdateSchema), asyncHandler(async (req, res) => {
     const { data } = await updateClinicAdmin(

@@ -244,7 +244,7 @@ const SimulateCallModal = ({ onClose, clinic }) => {
     );
 };
 
-const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic }) => {
+const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic, onRefresh }) => {
     const [showSMS, setShowSMS] = useState(false);
     const [showCall, setShowCall] = useState(false);
     const [showSimulate, setShowSimulate] = useState(false);
@@ -258,6 +258,7 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
                 callSid: `demo_${Date.now()}`
             }, { headers: { Authorization: `Bearer ${token}` } });
             setTestStatus('sent');
+            if (onRefresh) onRefresh();
             setTimeout(() => setTestStatus(null), 3000);
         } catch (err) {
             console.error('Test recovery failed:', err.response?.data || err.message);

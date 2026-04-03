@@ -3,16 +3,23 @@ services:
     name: clinic-backend
     env: node
     plan: free
+    rootDir: backend
     buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
     startCommand: node index.js
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false          # Paste your Neon postgres URL here
+      - key: REDIS_URL
+        sync: false          # Paste your Upstash redis URL here
       - key: JWT_SECRET
         sync: false
-      - key: GEMINI_API_KEY
+      - key: DB_ENCRYPTION_KEY
         sync: false
-      - key: VAPI_PRIVATE_KEY
+      - key: FRONTEND_URL
+        sync: false          # https://your-app.vercel.app
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
         sync: false
       - key: AUTOMATION_API_KEY
         sync: false
@@ -20,9 +27,3 @@ services:
         sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false
-      - key: FRONTEND_URL
-        sync: false
-      - key: DB_ENCRYPTION_KEY
-        sync: false
-      - key: NODE_ENV
-        value: production

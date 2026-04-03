@@ -52,6 +52,40 @@ const DashboardSkeleton = () => (
     </div>
 );
 
+const RightColumn = ({ children }) => {
+    const ref = React.useRef(null);
+    const [showHint, setShowHint] = React.useState(false);
+
+    React.useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const check = () => setShowHint(el.scrollTop < 20 && el.scrollHeight > el.clientHeight + 10);
+        // slight delay so layout is settled
+        const t = setTimeout(check, 300);
+        el.addEventListener('scroll', check);
+        window.addEventListener('resize', check);
+        return () => { clearTimeout(t); el.removeEventListener('scroll', check); window.removeEventListener('resize', check); };
+    }, []);
+
+    return (
+        <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0, overflowY: 'auto', paddingRight: '2px', position: 'relative' }}>
+            {children}
+            {showHint && (
+                <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                    padding: '6px 0 2px', pointerEvents: 'none',
+                    animation: 'scrollBounce 1.6s ease-in-out infinite'
+                }}>
+                    <span style={{ fontSize: '0.58rem', fontWeight: '700', color: 'var(--text-light)', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.5 }}>scroll για περισσότερα</span>
+                    <svg width="14" height="9" viewBox="0 0 14 9" fill="none" style={{ opacity: 0.4 }}>
+                        <path d="M1 1l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const SectionHeader = ({ children, icon: Icon }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
         {Icon && (
@@ -83,11 +117,13 @@ const Dashboard = ({
     recoveryLog = [],
     systemStatus = {},
     apiUsage = {},
+    spending = { totalCreditsUsed: 0, monthCreditsUsed: 0, totalMessagesSent: 0 },
     loading,
     warnings = [],
     notifications = [],
     upcomingAppointments = [],
-    onUpdate
+    onUpdate,
+    onRefresh
 }) => {
     const hasLoaded = React.useRef(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
@@ -220,11 +256,11 @@ const Dashboard = ({
                     size="compact"
                 />
                 <StatCard
-                    title="AI Activity"
-                    value={`${apiUsage.dailyUsed ?? 0}`}
+                    title="Χρεώσεις"
+                    value={`${spending.monthCreditsUsed}`}
                     icon={Zap}
                     color="#f59e0b"
-                    trendValue={apiUsage.creditsRemaining ? `${apiUsage.creditsRemaining} left` : '—'}
+                    trendValue={`${spending.totalMessagesSent} SMS`}
                     trendType="neutral"
                     size="compact"
                 />
@@ -240,32 +276,32 @@ const Dashboard = ({
             }}>
                 {/* Left Column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
-                    <div className="card-glass" style={{ borderRadius: '24px', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                         <div style={{ padding: '1rem 1.25rem 0.5rem' }}>
+                    <div className="card-glass" style={{ borderRadius: '24px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '0.75rem 1.25rem 0.4rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
-                         </div>
-                         <div style={{ flex: 1, padding: '0 0.5rem 0.5rem', overflowY: 'auto' }}>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.5rem 0.5rem', minHeight: 0 }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
-                         </div>
+                        </div>
                     </div>
-                    
-                    <div style={{ height: '240px', flexShrink: 0 }}>
+
+                    <div style={{ height: '200px', flexShrink: 0 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
 
                 {/* Right Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
+                <RightColumn>
                     <div style={{ flexShrink: 0 }}>
-                        <TodayStatus 
-                            missedCalls={missedCallsToday} 
-                            recovered={recoveryStats.recovered} 
-                            appointmentsToday={todayAppointments.length} 
-                            activeChats={activeConversations} 
+                        <TodayStatus
+                            missedCalls={missedCallsToday}
+                            recovered={recoveryStats.recovered}
+                            appointmentsToday={todayAppointments.length}
+                            activeChats={activeConversations}
                         />
                     </div>
 
-                    <div className="card-glass" style={{ borderRadius: '24px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
+                    <div className="card-glass" style={{ borderRadius: '24px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
@@ -274,86 +310,10 @@ const Dashboard = ({
                             patients={patients}
                             token={token}
                             clinic={clinic}
+                            onRefresh={onRefresh}
                         />
                     </div>
-
-                    <div className="card-glass" style={{ borderRadius: '24px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, minHeight: 0 }}>
-                        <SectionHeader icon={Calendar}>Επόμενα Ραντεβού</SectionHeader>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '4px' }}>
-                            {upcomingAppointments.length > 0 ? upcomingAppointments.slice(0, 5).map((apt, i) => (
-                                <div key={i} className="card-hover" style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '10px', 
-                                    padding: '8px 12px', 
-                                    background: 'var(--bg-subtle)', 
-                                    borderRadius: '16px', 
-                                    border: '1px solid var(--border)',
-                                    flexShrink: 0
-                                }}>
-                                    <div style={{ 
-                                        width: '40px', 
-                                        height: '40px', 
-                                        borderRadius: '12px', 
-                                        background: 'var(--primary-light)', 
-                                        color: 'var(--primary)', 
-                                        display: 'flex', 
-                                        flexDirection: 'column',
-                                        alignItems: 'center', 
-                                        justifyContent: 'center', 
-                                        fontSize: '0.65rem', 
-                                        fontWeight: '800' 
-                                    }}>
-                                        <Clock size={11} style={{ marginBottom: '1px' }} />
-                                        {new Date(apt.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', margin: 0 }}>{apt.patient?.name}</p>
-                                        <p style={{ fontSize: '0.7rem', color: 'var(--text-light)', margin: 0, fontWeight: 600 }}>{apt.reason}</p>
-                                    </div>
-                                    <ArrowUpRight size={14} color="var(--text-light)" />
-                                </div>
-                            )) : (
-                                <div style={{ textAlign: 'center', padding: '1rem' }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: 600 }}>Κανένα ραντεβού</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="card-glass" style={{ 
-                borderRadius: '24px', 
-                padding: '1rem', 
-                background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden',
-                flexShrink: 0
-            }}>
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: '900', marginBottom: '4px' }}>Χρειάζεστε Βοήθεια;</h4>
-                    <p style={{ fontSize: '0.7rem', opacity: 0.9, lineHeight: '1.4', marginBottom: '8px' }}>
-                        Η AI γραμματεία σας είναι έτοιμη.
-                    </p>
-                    <button 
-                        onClick={() => setCurrentTab('reports')} 
-                        style={{ 
-                            background: 'white', 
-                            color: 'var(--primary)', 
-                            border: 'none', 
-                            padding: '6px 12px', 
-                            borderRadius: '8px', 
-                            fontSize: '0.75rem', 
-                            fontWeight: '800', 
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Στατιστικά
-                    </button>
-                </div>
-                <Zap size={40} style={{ position: 'absolute', right: '-5px', bottom: '-5px', opacity: 0.15, transform: 'rotate(15deg)' }} />
+                </RightColumn>
             </div>
         </div>
     );
