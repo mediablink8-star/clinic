@@ -283,11 +283,11 @@ const App = () => {
   if (!clinic) {
     if (path === '/register') return <ClinicRegister onRegister={handleRegister} />;
     if (path === '/reset-password') return <ResetPassword />;
-    if (path === '/') return <ClinicLogin onLogin={handleLogin} />;
+    if (path === '/' || path === '/login') return <ClinicLogin onLogin={handleLogin} />;
     
     // If not one of the allowed public routes and not logged in, show login (default)
     // unless it's a completely unknown path
-    const publicPaths = ['/', '/register', '/reset-password', '/book'];
+    const publicPaths = ['/', '/login', '/register', '/reset-password', '/book'];
     if (!publicPaths.includes(path)) {
       return <NotFound />;
     }

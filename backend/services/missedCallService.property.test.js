@@ -5,7 +5,9 @@ const fc = require('fast-check');
 const { PrismaClient } = require('@prisma/client');
 const { markRecovered } = require('./missedCallService');
 
-const prisma = new PrismaClient();
+const RUN_DB_TESTS = process.env.RUN_DB_TESTS === 'true' && Boolean(process.env.DATABASE_URL);
+const prisma = RUN_DB_TESTS ? new PrismaClient() : null;
+const describeIfDb = RUN_DB_TESTS ? describe : describe.skip;
 
 // Helper: create a minimal clinic for testing
 async function createTestClinic(suffix) {
@@ -40,7 +42,7 @@ async function cleanup(clinicId) {
     await prisma.clinic.delete({ where: { id: clinicId } });
 }
 
-describe('Property 8: mark-recovered sets status and recoveredAt, and is idempotent', () => {
+describeIfDb('Property 8: mark-recovered sets status and recoveredAt, and is idempotent', () => {
     // Test with various non-recovered statuses
     const nonRecoveredStatuses = ['DETECTED', 'RECOVERING', 'LOST'];
 
@@ -129,5 +131,7 @@ describe('Property 8: mark-recovered sets status and recoveredAt, and is idempot
 });
 
 afterAll(async () => {
-    await prisma.$disconnect();
+    if (prisma) {
+        await prisma.$disconnect();
+    }
 });

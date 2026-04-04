@@ -40,7 +40,8 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testTimeout": 60000
+    "testTimeout": 60000,
+    "testRegex": ".*\\.(test|spec)\\.js$"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

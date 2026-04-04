@@ -30,7 +30,7 @@ const ClinicRegister = ({ onRegister }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await axios.post(`${API_BASE}/auth/register`, formData);
+      const resp = await axios.post(`${API_BASE}/auth/register`, formData, { withCredentials: true });
       setSuccess(true);
       // Optional: Auto-login after 2 seconds or let user click a button
       setTimeout(() => {

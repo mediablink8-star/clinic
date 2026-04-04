@@ -90,7 +90,7 @@ app.use(limiter);
 app.use((req, res, next) => {
     if (req.url === '/api/auth/login') {
         console.log(`[DEBUG] Login Attempt - Content-Type: ${req.headers['content-type']}`);
-        console.log(`[DEBUG] Body:`, JSON.stringify(req.body));
+        console.log(`[DEBUG] Login Attempt - Email: ${req.body?.email || 'unknown'}`);
     }
     next();
 });

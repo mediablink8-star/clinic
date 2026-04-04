@@ -12,6 +12,17 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
 
+function getRefreshCookieOptions() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'None' : 'Lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+    };
+}
+
 router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
     const { clinicName, email, password, phone } = req.body;
 
@@ -67,12 +78,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
             }
         });
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         res.json({
             token: accessToken,
@@ -133,12 +139,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
             }
         });
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         res.json({
             token: accessToken,
@@ -201,7 +202,6 @@ router.post('/forgot-password', asyncHandler(async (req, res) => {
     }
 
     console.log(`[AUTH] Password reset token generated for: ${email}`);
-    console.log(`[AUTH] Reset Link: ${resetLink}`);
 
     res.json({ success: true, message: 'Instructions sent if email exists' });
 }));
@@ -267,12 +267,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
             role: storedToken.user.role
         });
 
-        res.cookie('refreshToken', newRefreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
 
         res.json({ token: accessToken });
     } catch (error) {
@@ -285,7 +280,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
     if (refreshToken) {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     }
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', getRefreshCookieOptions());
     res.json({ success: true });
 }));
 
@@ -366,12 +361,7 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         });
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         res.json({
             token: accessToken,
@@ -465,12 +455,7 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
             }
         });
 
-        res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
+        res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         res.json({
             token: accessToken,

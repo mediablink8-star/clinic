@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { getPublicClinic, bookAppointment } = require('../services/publicService');
+const { getPublicClinic, getAvailableSlots, bookAppointment } = require('../services/publicService');
 
 router.get('/clinic/:id', asyncHandler(async (req, res) => {
     const { data } = await getPublicClinic(req.params.id);

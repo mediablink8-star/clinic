@@ -125,11 +125,16 @@ const Dashboard = ({
     onUpdate,
     onRefresh
 }) => {
-    const hasLoaded = React.useRef(false);
+    const [hasLoaded, setHasLoaded] = React.useState(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
 
-    if (!hasLoaded.current && loading) return <DashboardSkeleton />;
-    if (!hasLoaded.current && !loading) hasLoaded.current = true;
+    React.useEffect(() => {
+        if (!loading) {
+            setHasLoaded(true);
+        }
+    }, [loading]);
+
+    if (!hasLoaded && loading) return <DashboardSkeleton />;
 
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλό απόγευμα' : 'Καλό βράδυ';
