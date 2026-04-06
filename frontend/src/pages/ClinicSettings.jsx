@@ -860,7 +860,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                             
                             <FormGroup label={
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                    <span>Missed Call Detection (Workflow 3)</span>
+                                    <span>Workflow 3 — Missed Call Recovery SMS</span>
                                     {formData.webhookMissedCall && (
                                         <button type="button" onClick={() => handleTestWebhook(formData.webhookMissedCall, 'Missed Call')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
                                             ΔΟΚΙΜΗ
@@ -870,90 +870,75 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                             }>
                                 <input 
                                     style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                    placeholder="https://.../missed-call-event"
+                                    placeholder="https://.../webhook/missed-call-recovery"
                                     value={formData.webhookMissedCall || ''}
                                     onChange={e => set('webhookMissedCall', e.target.value)}
                                 />
                                 <ErrorText message={webhookErrors.webhookMissedCall} />
                             </FormGroup>
-                            
-                            <FormRow>
-                                <FormGroup label={
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                        <span>Appointment Created (Workflow 1)</span>
-                                        {formData.webhookAppointment && (
-                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookAppointment, 'Appointment')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                                ΔΟΚΙΜΗ
-                                            </button>
-                                        )}
-                                    </div>
-                                }>
-                                    <input 
-                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                        placeholder="https://.../appointment-created"
-                                        value={formData.webhookAppointment || ''}
-                                        onChange={e => set('webhookAppointment', e.target.value)}
-                                    />
-                                    <ErrorText message={webhookErrors.webhookAppointment} />
-                                </FormGroup>
-                                <FormGroup label={
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                        <span>Reminders / Notifications (Workflow 4)</span>
-                                        {formData.webhookReminders && (
-                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookReminders, 'Reminders')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                                ΔΟΚΙΜΗ
-                                            </button>
-                                        )}
-                                    </div>
-                                }>
-                                    <input 
-                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                        placeholder="https://... (Cron Processor)"
-                                        value={formData.webhookReminders || ''}
-                                        onChange={e => set('webhookReminders', e.target.value)}
-                                    />
-                                    <ErrorText message={webhookErrors.webhookReminders} />
-                                </FormGroup>
-                            </FormRow>
-                            
-                            <FormRow>
-                                <FormGroup label={
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                        <span>Direct Dashboard SMS (Workflow 2)</span>
-                                        {formData.webhookDirectSms && (
-                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookDirectSms, 'Direct SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                                ΔΟΚΙΜΗ
-                                            </button>
-                                        )}
-                                    </div>
-                                }>
-                                    <input 
-                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                        placeholder="https://.../send-sms"
-                                        value={formData.webhookDirectSms || ''}
-                                        onChange={e => set('webhookDirectSms', e.target.value)}
-                                    />
-                                    <ErrorText message={webhookErrors.webhookDirectSms} />
-                                </FormGroup>
-                                <FormGroup label={
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                        <span>Inbound SMS / Replies (Workflow 5)</span>
-                                        {formData.webhookInboundSms && (
-                                            <button type="button" onClick={() => handleTestWebhook(formData.webhookInboundSms, 'Inbound SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                                ΔΟΚΙΜΗ
-                                            </button>
-                                        )}
-                                    </div>
-                                }>
-                                    <input 
-                                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                        placeholder="https://.../inbound-sms"
-                                        value={formData.webhookInboundSms || ''}
-                                        onChange={e => set('webhookInboundSms', e.target.value)}
-                                    />
-                                    <ErrorText message={webhookErrors.webhookInboundSms} />
-                                </FormGroup>
-                            </FormRow>
+
+                            <FormGroup label={
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>Workflow 1 — Appointment Confirmation SMS</span>
+                                    {formData.webhookAppointment && (
+                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookAppointment, 'Appointment')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                            ΔΟΚΙΜΗ
+                                        </button>
+                                    )}
+                                </div>
+                            }>
+                                <input 
+                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                    placeholder="https://.../webhook/appointment-created"
+                                    value={formData.webhookAppointment || ''}
+                                    onChange={e => set('webhookAppointment', e.target.value)}
+                                />
+                                <ErrorText message={webhookErrors.webhookAppointment} />
+                            </FormGroup>
+
+                            <FormGroup label={
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>Workflow 2 — Direct Dashboard SMS</span>
+                                    {formData.webhookDirectSms && (
+                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookDirectSms, 'Direct SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                            ΔΟΚΙΜΗ
+                                        </button>
+                                    )}
+                                </div>
+                            }>
+                                <input 
+                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                    placeholder="https://.../webhook/send-sms"
+                                    value={formData.webhookDirectSms || ''}
+                                    onChange={e => set('webhookDirectSms', e.target.value)}
+                                />
+                                <ErrorText message={webhookErrors.webhookDirectSms} />
+                            </FormGroup>
+
+                            <FormGroup label={
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>Workflow 5 — Inbound SMS Replies</span>
+                                    {formData.webhookInboundSms && (
+                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookInboundSms, 'Inbound SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
+                                            ΔΟΚΙΜΗ
+                                        </button>
+                                    )}
+                                </div>
+                            }>
+                                <input 
+                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
+                                    placeholder="https://.../webhook/inbound-sms"
+                                    value={formData.webhookInboundSms || ''}
+                                    onChange={e => set('webhookInboundSms', e.target.value)}
+                                />
+                                <ErrorText message={webhookErrors.webhookInboundSms} />
+                            </FormGroup>
+
+                            <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                <p style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '600', margin: 0 }}>
+                                    ℹ️ Workflow 4 — Scheduled SMS Processor δεν χρειάζεται webhook URL. Τρέχει αυτόματα κάθε 5 λεπτά και καλεί απευθείας το backend.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
