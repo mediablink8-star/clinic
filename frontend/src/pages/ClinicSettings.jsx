@@ -185,19 +185,19 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         error: ''
                     }
                 }));
-                showToast(`Webhook (${fieldName}) — HTTP ${res.data.status} σε ${res.data.latency}ms`);
+                showToast(`Webhook (${fieldName}) — HTTP ${res.data.status ?? '2xx'} σε ${res.data.latency ?? '?'}ms`);
             } else {
                 setTestState(prev => ({
                     ...prev,
                     [testKey]: {
                         status: 'error',
                         lastTested: new Date(),
-                        responseTime: res.data.latency,
-                        error: res.data.error,
-                        httpStatus: res.data.status
+                        responseTime: res.data.latency ?? null,
+                        error: res.data.error ?? 'Άγνωστο σφάλμα',
+                        httpStatus: res.data.status ?? null
                     }
                 }));
-                showToast(res.data.error || `Η δοκιμή του Webhook (${fieldName}) απέτυχε.`, 'error');
+                showToast(res.data.error ?? `Η δοκιμή του Webhook (${fieldName}) απέτυχε.`, 'error');
             }
         } catch (err) {
             const msg = err.code === 'ECONNABORTED'
@@ -987,8 +987,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                             }} />
                             <span style={{ fontSize: '0.8rem', fontWeight: '700', color: testState.webhook.status === 'success' ? '#166534' : '#991b1b' }}>
                                 {testState.webhook.status === 'success'
-                                    ? `Success (${testState.webhook.httpStatus}) • ${testState.webhook.responseTime}ms`
-                                    : testState.webhook.error || `Failed (${testState.webhook.httpStatus})`}
+                                    ? `HTTP ${testState.webhook.httpStatus ?? '2xx'} • ${testState.webhook.responseTime ?? '?'}ms`
+                                    : testState.webhook.error ?? `Failed (HTTP ${testState.webhook.httpStatus ?? '?'})`}
                             </span>
                         </div>
                     )}
