@@ -220,6 +220,26 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         fetchLogs();
         fetchUsage();
         fetchTeam();
+        // Always fetch fresh clinic data from DB to get webhook URLs and API keys
+        axios.get(`${API_BASE}/clinic`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => {
+                const fresh = res.data;
+                setFormData(prev => ({
+                    ...prev,
+                    webhookUrl: fresh.webhookUrl || '',
+                    webhookSecret: fresh.webhookSecret || '',
+                    webhookMissedCall: fresh.webhookMissedCall || '',
+                    webhookAppointment: fresh.webhookAppointment || '',
+                    webhookReminders: fresh.webhookReminders || '',
+                    webhookDirectSms: fresh.webhookDirectSms || '',
+                    webhookInboundSms: fresh.webhookInboundSms || '',
+                    apiKeys: fresh.apiKeys || {},
+                    aiConfig: typeof fresh.aiConfig === 'string'
+                        ? JSON.parse(fresh.aiConfig || '{}')
+                        : (fresh.aiConfig || {}),
+                }));
+            })
+            .catch(() => {});
     }, []);
 
     useEffect(() => {
