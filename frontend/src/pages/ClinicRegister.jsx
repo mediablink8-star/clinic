@@ -30,14 +30,25 @@ const ClinicRegister = ({ onRegister }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await axios.post(`${API_BASE}/auth/register`, formData);
+      const payload = {
+        ...formData,
+        phone: formData.phone.replace(/[\s()-]/g, '')
+      };
+      const resp = await axios.post(`${API_BASE}/auth/register`, payload, { withCredentials: true });
       setSuccess(true);
       // Optional: Auto-login after 2 seconds or let user click a button
       setTimeout(() => {
         onRegister(resp.data);
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Σφάλμα εγγραφής. Παρακαλώ δοκιμάστε ξανά.');
+      const apiError = err.response?.data?.error;
+      if (apiError === 'Registration could not be completed with the provided details.') {
+        setError('Δεν ήταν δυνατή η ολοκλήρωση της εγγραφής με αυτά τα στοιχεία. Αν έχετε ήδη λογαριασμό, δοκιμάστε σύνδεση ή επαναφορά κωδικού.');
+      } else if ((apiError || '').includes('Greek phone number')) {
+        setError('Χρησιμοποιήστε έγκυρο ελληνικό τηλέφωνο, π.χ. 2101234567 ή 6912345678.');
+      } else {
+        setError(apiError || 'Σφάλμα εγγραφής. Παρακαλώ δοκιμάστε ξανά.');
+      }
     } finally {
       setLoading(false);
     }
@@ -189,10 +200,15 @@ const ClinicRegister = ({ onRegister }) => {
                   required type="tel"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="2101234567"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="6912345678 ή 2101234567"
                   style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
+              <p style={{ marginTop: '6px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                Χρησιμοποιήστε ελληνικό τηλέφωνο, π.χ. 2101234567 ή 6912345678.
+              </p>
             </div>
 
             {/* Password */}

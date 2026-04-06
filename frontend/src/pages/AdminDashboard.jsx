@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Database, Plus, ShieldCheck, TrendingUp, Search } from 'lucide-react';
+import { getAccessToken } from '../lib/authSession';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ token }) {
     const [clinics, setClinics] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,9 +18,13 @@ export default function AdminDashboard() {
     }, []);
 
     const fetchUsage = async () => {
-        const token = localStorage.getItem('clinic_token');
+        const authToken = token || getAccessToken();
+        if (!authToken) {
+            setLoading(false);
+            return;
+        }
         try {
-            const config = { headers: { Authorization: `Bearer ${token}` } };
+            const config = { headers: { Authorization: `Bearer ${authToken}` } };
             const [usageRes, logsRes] = await Promise.all([
                 axios.get(`${API_BASE}/admin/usage`, config),
                 axios.get(`${API_BASE}/admin/logs`, config)
@@ -34,12 +39,16 @@ export default function AdminDashboard() {
     };
 
     const handleTopup = async (clinicId) => {
-        const token = localStorage.getItem('clinic_token');
+        const authToken = token || getAccessToken();
+        if (!authToken) {
+            alert('Session expired. Refresh the page and try again.');
+            return;
+        }
         try {
             await axios.post(`${API_BASE}/admin/add-credits`, {
                 clinicId,
                 amount: topupAmount
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            }, { headers: { Authorization: `Bearer ${authToken}` } });
             fetchUsage();
             setSelectedClinic(null);
             alert('Credits added successfully!');

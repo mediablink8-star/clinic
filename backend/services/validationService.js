@@ -1,11 +1,12 @@
 const Joi = require('joi');
 
 const greekPhoneRegex = /^(\+30)?[26][0-9\s\-\(\)]{8,14}$/;
+const greekPhoneMessage = 'Enter a valid Greek phone number, e.g. 2101234567 or 6912345678.';
 
 const patientSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
-        'string.pattern.base': 'Invalid Greek phone number format.'
+        'string.pattern.base': greekPhoneMessage
     }),
     email: Joi.string().email().allow(null, '')
 });
@@ -21,7 +22,7 @@ const appointmentSchema = Joi.object({
 const clinicUpdateSchema = Joi.object({
     name: Joi.string().min(2).max(100),
     phone: Joi.string().pattern(greekPhoneRegex).messages({
-        'string.pattern.base': 'Invalid Greek phone number format.'
+        'string.pattern.base': greekPhoneMessage
     }),
     email: Joi.string().email(),
     webhookUrl: Joi.string().uri().allow(null, ''),
@@ -39,7 +40,7 @@ const clinicUpdateSchema = Joi.object({
 const clinicInfoSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
-        'string.pattern.base': 'Invalid Greek phone number format.'
+        'string.pattern.base': greekPhoneMessage
     }),
     email: Joi.string().email().required(),
     location: Joi.string().max(200).allow(null, ''),
@@ -52,7 +53,7 @@ const aiConfigSchema = Joi.object({
     avgAppointmentValue: Joi.number().min(0),
     policies: Joi.string().allow(''),
     tone: Joi.string().valid('Professional', 'Friendly', 'Sales', 'Formal').required(),
-    languages: Joi.array().items(Joi.string().valid('Greek', 'English')).min(1).required()
+    languages: Joi.array().items(Joi.string().valid('Greek', 'English', 'Ελληνικά', 'Αγγλικά')).min(1).required()
 });
 
 const webhookSchema = Joi.object({
@@ -80,7 +81,7 @@ const registerSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
-        'string.pattern.base': 'Invalid Greek phone number format.'
+        'string.pattern.base': greekPhoneMessage
     }),
     agreedToTerms: Joi.boolean().valid(true).required()
 });

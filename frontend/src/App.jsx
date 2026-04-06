@@ -22,6 +22,7 @@ import ServerError from './pages/ServerError';
 import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -57,13 +58,14 @@ const App = () => {
     const savedClinic = localStorage.getItem('clinic_data');
     if (!savedClinic) return;
     // Attempt silent token refresh — cookie is sent automatically
-    axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
-      .then(res => {
-        setToken(res.data.token);
+    refreshAccessToken()
+      .then(refreshedToken => {
+        setToken(refreshedToken);
         setClinic(JSON.parse(savedClinic));
       })
       .catch(() => {
         // Refresh failed — clear stale clinic data and show login
+        clearAccessToken();
         localStorage.removeItem('clinic_data');
       });
   }, []);
@@ -166,6 +168,7 @@ const App = () => {
 
   const handleLogin = (loginData) => {
     const { token, clinic } = loginData;
+    setAccessToken(token);
     setToken(token);
     setClinic(clinic);
     // Only persist non-sensitive clinic metadata — token stays in memory only
@@ -175,6 +178,7 @@ const App = () => {
 
   const handleRegister = (registerData) => {
     const { token, clinic } = registerData;
+    setAccessToken(token);
     setToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
@@ -184,6 +188,7 @@ const App = () => {
 
   const handleLogout = () => {
     axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+    clearAccessToken();
     setToken(null);
     setClinic(null);
     localStorage.removeItem('clinic_data');
@@ -316,7 +321,7 @@ const App = () => {
           onRefresh={refreshRecovery}
         />;
       case 'appointments':
-        return <Appointments appointments={appointments} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
+        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
       case 'patients':
         return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':
