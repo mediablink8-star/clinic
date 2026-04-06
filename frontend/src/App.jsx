@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
+import { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -60,10 +61,10 @@ const App = () => {
     axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
       .then(res => {
         setToken(res.data.token);
+        setAuthToken(res.data.token);
         setClinic(JSON.parse(savedClinic));
       })
       .catch(() => {
-        // Refresh failed — clear stale clinic data and show login
         localStorage.removeItem('clinic_data');
       });
   }, []);
@@ -183,6 +184,7 @@ const App = () => {
   const handleLogin = (loginData) => {
     const { token, clinic } = loginData;
     setToken(token);
+    setAuthToken(token);
     setClinic(clinic);
     // Only persist non-sensitive clinic metadata — token stays in memory only
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
@@ -192,6 +194,7 @@ const App = () => {
   const handleRegister = (registerData) => {
     const { token, clinic } = registerData;
     setToken(token);
+    setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     setCurrentTab('settings');
@@ -201,6 +204,7 @@ const App = () => {
   const handleLogout = () => {
     axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
     setToken(null);
+    clearAuthToken();
     setClinic(null);
     localStorage.removeItem('clinic_data');
     queryClient.clear();
