@@ -963,7 +963,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <button
                             type="button"
                             className="btn btn-outline btn-sm"
-                            onClick={handleTestWebhook}
+                            onClick={() => handleTestWebhook(null, 'Global')}
                             disabled={testState.webhook.status === 'loading'}
                         >
                             {testState.webhook.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή Webhook'}
