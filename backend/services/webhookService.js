@@ -80,7 +80,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
     });
 
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
     const secret = webhookSecret || clinic?.webhookSecret;
     if (secret) {
         headers['X-Webhook-Signature'] = crypto

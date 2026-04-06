@@ -203,7 +203,8 @@ router.post('/test-webhook', asyncHandler(async (req, res) => {
         const response = await axios.post(targetUrl, payload, {
             headers: {
                 'Content-Type': 'application/json',
-                'X-Webhook-Signature': signature
+                'X-Webhook-Signature': signature,
+                'ngrok-skip-browser-warning': 'true'
             },
             timeout: 8000,
             // Accept any 2xx-5xx as a valid response (don't throw on 4xx/5xx)
