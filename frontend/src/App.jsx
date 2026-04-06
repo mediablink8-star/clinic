@@ -53,19 +53,33 @@ const App = () => {
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
 
-  // On mount: try to restore session via httpOnly refresh cookie (no localStorage token)
+  // On mount: try to restore session
   useEffect(() => {
     const savedClinic = localStorage.getItem('clinic_data');
+    const savedToken = localStorage.getItem('clinic_token');
     if (!savedClinic) return;
-    // Attempt silent token refresh — cookie is sent automatically
+
+    // If we have a saved token, restore immediately (it may still be valid)
+    if (savedToken) {
+      setToken(savedToken);
+      setAuthToken(savedToken);
+      setClinic(JSON.parse(savedClinic));
+    }
+
+    // Always attempt silent refresh to get a fresh token
     axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
       .then(res => {
         setToken(res.data.token);
         setAuthToken(res.data.token);
+        localStorage.setItem('clinic_token', res.data.token);
         setClinic(JSON.parse(savedClinic));
       })
       .catch(() => {
-        localStorage.removeItem('clinic_data');
+        // Refresh failed — if we had a saved token try to keep session alive
+        // Only clear if we have no token at all
+        if (!savedToken) {
+          localStorage.removeItem('clinic_data');
+        }
       });
   }, []);
 
@@ -186,8 +200,8 @@ const App = () => {
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
-    // Only persist non-sensitive clinic metadata — token stays in memory only
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
+    localStorage.setItem('clinic_token', token);
     queryClient.invalidateQueries();
   };
 
@@ -197,6 +211,7 @@ const App = () => {
     setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
+    localStorage.setItem('clinic_token', token);
     setCurrentTab('settings');
     queryClient.invalidateQueries();
   };
@@ -207,6 +222,7 @@ const App = () => {
     clearAuthToken();
     setClinic(null);
     localStorage.removeItem('clinic_data');
+    localStorage.removeItem('clinic_token');
     queryClient.clear();
   };
 
