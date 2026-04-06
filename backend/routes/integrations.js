@@ -188,7 +188,15 @@ router.post('/test-webhook', asyncHandler(async (req, res) => {
     const payload = {
         event: 'test.webhook',
         clinicId: req.clinicId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        data: {
+            phone: '+30690000000',
+            patientName: 'Test Patient',
+            date: new Date().toLocaleDateString('el-GR'),
+            time: '10:00',
+            appointmentId: 'test-connection-check'
+        },
+        clinic: { name: 'Test Clinic' }
     };
 
     const body = JSON.stringify(payload);
