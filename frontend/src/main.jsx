@@ -5,7 +5,8 @@ import './index.css'
 import App from './App.jsx'
 
 Sentry.init({
-  dsn: "https://placeholder@sentry.io/456",
+  dsn: import.meta.env.VITE_SENTRY_DSN || "",
+  enabled: !!import.meta.env.VITE_SENTRY_DSN,
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
