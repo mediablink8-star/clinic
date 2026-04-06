@@ -12,16 +12,26 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
 
-function getRefreshCookieOptions() {
-    const isProduction = process.env.NODE_ENV === 'production';
-    return {
+const isProduction = process.env.NODE_ENV === 'production';
+const refreshCookieMaxAge = 7 * 24 * 60 * 60 * 1000;
+const genericRegistrationError = 'Registration could not be completed with the provided details.';
+
+const getRefreshCookieOptions = () => ({
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: refreshCookieMaxAge,
+    path: '/'
+});
+
+const clearRefreshCookie = (res) => {
+    res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? 'None' : 'Lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: isProduction ? 'none' : 'lax',
         path: '/'
-    };
-}
+    });
+};
 
 router.post('/register', validate(registerSchema), asyncHandler(async (req, res) => {
     const { clinicName, email, password, phone } = req.body;
@@ -29,7 +39,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-        return res.status(400).json({ error: 'Email already registered' });
+        return res.status(400).json({ error: genericRegistrationError });
     }
 
     try {
@@ -94,6 +104,9 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
         });
     } catch (error) {
         console.error('Registration error:', error);
+        if (error?.code === 'P2002') {
+            return res.status(400).json({ error: genericRegistrationError });
+        }
         res.status(500).json({ error: 'Server error during registration' });
     }
 }));
@@ -280,7 +293,7 @@ router.post('/logout', asyncHandler(async (req, res) => {
     if (refreshToken) {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
     }
-    res.clearCookie('refreshToken', getRefreshCookieOptions());
+    clearRefreshCookie(res);
     res.json({ success: true });
 }));
 

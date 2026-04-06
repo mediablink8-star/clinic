@@ -12,6 +12,7 @@ const ClinicLogin = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mfaData, setMfaData] = useState({ required: false, token: '', code: '' });
+  const googleAuthConfigured = /^[\w-]+\.apps\.googleusercontent\.com$/.test((import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim());
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -72,11 +73,7 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await axios.post(
-        `${API_BASE}/auth/google`,
-        { idToken: credentialResponse.credential },
-        { withCredentials: true }
-      );
+      const resp = await axios.post(`${API_BASE}/auth/google`, { idToken: credentialResponse.credential }, { withCredentials: true });
       onLogin(resp.data);
     } catch {
       setError('Η σύνδεση μέσω Google απέτυχε.');
@@ -281,25 +278,25 @@ const ClinicLogin = ({ onLogin }) => {
                 </p>
               </div>
 
-              <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.15)', marginTop: '1rem' }}>
-                admin@clinicflow.com / password123
-              </p>
+              {googleAuthConfigured && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '1.5rem 0' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ή</span>
+                    <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                  </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '1.5rem 0' }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ή</span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setError('Η σύνδεση μέσω Google απέτυχε.')}
-                  useOneTap
-                  theme="filled_black"
-                  shape="pill"
-                />
-              </div>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setError('Η σύνδεση μέσω Google απέτυχε.')}
+                      useOneTap
+                      theme="filled_black"
+                      shape="pill"
+                    />
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>

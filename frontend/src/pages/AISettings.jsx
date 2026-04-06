@@ -121,7 +121,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 { headers: { Authorization: `Bearer ${token}` } });
             showToast('AI Key saved!');
         } catch (err) {
-            if (err.response?.status === 401) { localStorage.removeItem('clinic_token'); window.location.reload(); }
+            if (err.response?.status === 401) { window.location.reload(); }
             else showToast('Failed to save AI Key', 'error');
         } finally { setAiSaving(false); }
     };

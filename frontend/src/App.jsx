@@ -23,6 +23,7 @@ import ServerError from './pages/ServerError';
 import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -56,30 +57,23 @@ const App = () => {
   // On mount: try to restore session
   useEffect(() => {
     const savedClinic = localStorage.getItem('clinic_data');
-    const savedToken = localStorage.getItem('clinic_token');
     if (!savedClinic) return;
 
-    // If we have a saved token, restore immediately (it may still be valid)
-    if (savedToken) {
-      setToken(savedToken);
-      setAuthToken(savedToken);
-      setClinic(JSON.parse(savedClinic));
-    }
 
-    // Always attempt silent refresh to get a fresh token
-    axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
-      .then(res => {
-        setToken(res.data.token);
-        setAuthToken(res.data.token);
-        localStorage.setItem('clinic_token', res.data.token);
+        // Refresh failed — if we had a saved token try to keep session alive
+        // Only clear if we have no token at all
+    // Attempt silent token refresh — cookie is sent automatically
+    refreshAccessToken()
+      .then(refreshedToken => {
+        setToken(refreshedToken);
+        setAuthToken(refreshedToken);
         setClinic(JSON.parse(savedClinic));
       })
       .catch(() => {
-        // Refresh failed — if we had a saved token try to keep session alive
-        // Only clear if we have no token at all
-        if (!savedToken) {
-          localStorage.removeItem('clinic_data');
-        }
+        // Refresh failed — clear stale clinic data and show login
+        clearAccessToken();
+        clearAuthToken();
+        localStorage.removeItem('clinic_data');
       });
   }, []);
 
@@ -197,32 +191,32 @@ const App = () => {
 
   const handleLogin = (loginData) => {
     const { token, clinic } = loginData;
+    setAccessToken(token);
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
-    localStorage.setItem('clinic_token', token);
     queryClient.invalidateQueries();
   };
 
   const handleRegister = (registerData) => {
     const { token, clinic } = registerData;
+    setAccessToken(token);
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
-    localStorage.setItem('clinic_token', token);
     setCurrentTab('settings');
     queryClient.invalidateQueries();
   };
 
   const handleLogout = () => {
     axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+    clearAccessToken();
     setToken(null);
     clearAuthToken();
     setClinic(null);
     localStorage.removeItem('clinic_data');
-    localStorage.removeItem('clinic_token');
     queryClient.clear();
   };
 
@@ -364,7 +358,7 @@ const App = () => {
           warnings={systemConfigStatus.warnings || []}
         />;
       case 'appointments':
-        return <Appointments appointments={appointments} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
+        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
       case 'patients':
         return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':

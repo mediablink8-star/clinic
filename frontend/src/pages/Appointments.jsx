@@ -5,7 +5,7 @@ import MessageModal from '../components/MessageModal';
 
 const STATUS_OPTIONS = ['Όλα', 'CONFIRMED', 'PENDING', 'CANCELLED'];
 
-const Appointments = ({ appointments, onConfirm, onCancel }) => {
+const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Όλα');
@@ -136,6 +136,7 @@ const Appointments = ({ appointments, onConfirm, onCancel }) => {
                 isOpen={!!selectedPatient} 
                 onClose={() => setSelectedPatient(null)} 
                 patient={selectedPatient || {}} 
+                token={token}
             />
         </section>
     );

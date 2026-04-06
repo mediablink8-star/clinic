@@ -1,6 +1,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import { Sparkles, MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw } from 'lucide-react';
+import { getAccessToken } from '../lib/authSession';
 
 const RecoveryFeed = ({ logs = [], muted = false, token }) => {
     const [retrying, setRetrying] = React.useState({});
@@ -9,7 +10,11 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
         const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-        const authToken = token || localStorage.getItem('clinic_token');
+        const authToken = token || getAccessToken();
+        if (!authToken) {
+            toast.error('Session expired. Refresh the page and try again.');
+            return;
+        }
         try {
             const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
                 method: 'POST',

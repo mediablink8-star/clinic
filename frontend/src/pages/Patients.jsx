@@ -175,7 +175,7 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                 )}
             </div>
 
-            <MessageModal isOpen={!!selectedPatient} onClose={() => setSelectedPatient(null)} patient={selectedPatient || {}} />
+            <MessageModal isOpen={!!selectedPatient} onClose={() => setSelectedPatient(null)} patient={selectedPatient || {}} token={token} />
 
             {showNewPatient && (
                 <NewPatientModal token={token} onClose={() => setShowNewPatient(false)} onCreated={onPatientCreated} />
