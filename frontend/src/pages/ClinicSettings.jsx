@@ -161,43 +161,58 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
         const testKey = specificUrl ? fieldName : 'webhook';
         setTestState(prev => ({ ...prev, [testKey]: { status: 'loading', error: '', httpStatus: null } }));
-        
+
         try {
             const res = await axios.post(`${API_BASE}/integrations/test-webhook`, {
                 url: urlToTest,
-                secret: formData.webhookSecret
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
+                // Never send masked secret — let backend use stored one
+                secret: (formData.webhookSecret && !formData.webhookSecret.startsWith('****'))
+                    ? formData.webhookSecret
+                    : undefined
+            }, {
+                headers: { 'Authorization': `Bearer ${token}` },
+                timeout: 12000 // 12s — backend takes up to 8s
+            });
 
             if (res.data.success) {
-                const successState = {
-                    status: 'success',
-                    lastTested: new Date(),
-                    responseTime: res.data.latency,
-                    httpStatus: res.data.status,
-                    error: ''
-                };
-                setTestState(prev => ({ ...prev, [testKey]: successState }));
-                showToast(`Το Webhook (${fieldName}) συνδέθηκε με επιτυχία!`);
+                setTestState(prev => ({
+                    ...prev,
+                    [testKey]: {
+                        status: 'success',
+                        lastTested: new Date(),
+                        responseTime: res.data.latency,
+                        httpStatus: res.data.status,
+                        error: ''
+                    }
+                }));
+                showToast(`Webhook (${fieldName}) — HTTP ${res.data.status} σε ${res.data.latency}ms`);
             } else {
-                const errorState = {
-                    status: 'error',
-                    lastTested: new Date(),
-                    responseTime: res.data.latency,
-                    error: res.data.error,
-                    httpStatus: res.data.status
-                };
-                setTestState(prev => ({ ...prev, [testKey]: errorState }));
+                setTestState(prev => ({
+                    ...prev,
+                    [testKey]: {
+                        status: 'error',
+                        lastTested: new Date(),
+                        responseTime: res.data.latency,
+                        error: res.data.error,
+                        httpStatus: res.data.status
+                    }
+                }));
                 showToast(res.data.error || `Η δοκιμή του Webhook (${fieldName}) απέτυχε.`, 'error');
             }
         } catch (err) {
-            const errorState = {
-                status: 'error',
-                lastTested: new Date(),
-                error: err.response?.data?.error || err.message,
-                httpStatus: err.response?.status
-            };
-            setTestState(prev => ({ ...prev, [testKey]: errorState }));
-            showToast(`Σφάλμα δικτύου κατά τη δοκιμή (${fieldName}).`, 'error');
+            const msg = err.code === 'ECONNABORTED'
+                ? 'Timeout — το αίτημα έληξε (>12s)'
+                : err.response?.data?.error || err.message || 'Σφάλμα δικτύου';
+            setTestState(prev => ({
+                ...prev,
+                [testKey]: {
+                    status: 'error',
+                    lastTested: new Date(),
+                    error: msg,
+                    httpStatus: err.response?.status
+                }
+            }));
+            showToast(`${fieldName}: ${msg}`, 'error');
         }
     };
 

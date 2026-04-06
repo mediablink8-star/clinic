@@ -160,32 +160,29 @@ router.post('/save-ai-key', asyncHandler(async (req, res) => {
 /**
  * @route POST /api/integrations/test-webhook
  * @desc  Tests the webhook URL by sending a signed POST request.
+ *        Fires once — no retries. Reports exact HTTP status back to client.
  */
 router.post('/test-webhook', asyncHandler(async (req, res) => {
     const { url, secret } = req.body;
 
-    // Reliability: Validate URL format
-    if (url) {
-        try {
-            const parsed = new URL(url);
-            if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
-        } catch {
-            return res.json({ success: false, error: 'Invalid Webhook URL format. Only HTTP/HTTPS allowed.' });
-        }
-    }
-
+    // Validate URL format
     const targetUrl = url || req.clinic.webhookUrl;
-    let targetSecret = secret;
-
-    // Resolve secret: if provided and not masked, use it. Otherwise use stored (and decrypt)
-    if (secret && secret !== '********') {
-        targetSecret = secret;
-    } else if (req.clinic.webhookSecret) {
-        targetSecret = decrypt(req.clinic.webhookSecret);
-    }
-
     if (!targetUrl) {
         return res.json({ success: false, error: 'No Webhook URL configured.' });
+    }
+    try {
+        const parsed = new URL(targetUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+    } catch {
+        return res.json({ success: false, error: 'Invalid Webhook URL format. Only HTTP/HTTPS allowed.' });
+    }
+
+    // Resolve secret — never use masked value
+    let targetSecret = '';
+    if (secret && secret !== '********' && !secret.startsWith('****')) {
+        targetSecret = secret;
+    } else if (req.clinic.webhookSecret) {
+        try { targetSecret = decrypt(req.clinic.webhookSecret); } catch { targetSecret = ''; }
     }
 
     const payload = {
@@ -196,64 +193,64 @@ router.post('/test-webhook', asyncHandler(async (req, res) => {
 
     const body = JSON.stringify(payload);
     const signature = crypto
-        .createHmac('sha256', targetSecret || '')
+        .createHmac('sha256', targetSecret || 'no-secret')
         .update(body)
         .digest('hex');
 
     const start = Date.now();
     try {
-        const response = await withRetries(async () => {
-            return await axios.post(targetUrl, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Webhook-Signature': signature
-                },
-                timeout: 5000
-            });
-        }, 'Webhook Test');
+        // Single attempt, 8s timeout — no retries for test calls
+        const response = await axios.post(targetUrl, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Webhook-Signature': signature
+            },
+            timeout: 8000,
+            // Accept any 2xx-5xx as a valid response (don't throw on 4xx/5xx)
+            validateStatus: (status) => status < 600
+        });
 
         const latency = Date.now() - start;
-        await logAction({
+        const success = response.status >= 200 && response.status < 300;
+
+        logAction({
             clinicId: req.clinicId,
             userId: req.user.userId,
             action: 'TEST_WEBHOOK_CONNECTION',
             entity: 'INTEGRATION',
-            details: { success: true, latency, status: response.status, url: targetUrl },
+            details: { success, latency, status: response.status, url: targetUrl },
             ipAddress: req.ip
-        });
-        res.json({
-            success: true,
+        }).catch(() => {});
+
+        return res.json({
+            success,
             status: response.status,
-            latency
+            latency,
+            error: success ? null : `Server returned HTTP ${response.status}`
         });
     } catch (err) {
         const latency = Date.now() - start;
-        console.error(`[INTEGRATION_ERROR] Webhook Test Failed:`, err);
-        await logAction({
+        logAction({
             clinicId: req.clinicId,
             userId: req.user.userId,
             action: 'TEST_WEBHOOK_CONNECTION',
             entity: 'INTEGRATION',
             details: { success: false, error: err.message, latency, url: targetUrl },
             ipAddress: req.ip
-        });
-        let errorMessage = 'Webhook test failed.';
+        }).catch(() => {});
 
-        if (err.code === 'ECONNABORTED') {
-            errorMessage = 'Timeout (URL took >5s to respond)';
-        } else if (err.response) {
-            errorMessage = `Invalid response (Status ${err.response.status})`;
-        } else if (err.request) {
-            errorMessage = 'Connection failed (Wait timed out or host unreachable)';
-        } else {
-            errorMessage = err.message;
+        let errorMessage = 'Connection failed.';
+        if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+            errorMessage = 'Timeout — URL took too long to respond (>8s)';
+        } else if (err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN') {
+            errorMessage = 'Host not found — check the URL is correct';
+        } else if (err.code === 'ECONNREFUSED') {
+            errorMessage = 'Connection refused — server is not accepting connections';
+        } else if (err.message) {
+            errorMessage = err.message.split('\n')[0].slice(0, 120);
         }
 
-        res.json({
-            success: false,
-            error: errorMessage,
-            latency
-        });
+        return res.json({ success: false, error: errorMessage, latency });
     }
 }));
 
