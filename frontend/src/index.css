@@ -256,6 +256,10 @@ body::before {
   max-width: 1440px;
   margin: 0 auto;
   min-width: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 header {
@@ -706,6 +710,12 @@ input:focus, textarea:focus, select:focus {
   }
 
   .dashboard-shell {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  .main-content {
     height: auto !important;
     overflow: visible !important;
   }

@@ -8,8 +8,8 @@ const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: '16px',
+            padding: '8px 10px',
+            borderRadius: '12px',
             background: '#f8fafc',
             border: '1px solid #f1f5f9',
             cursor: 'pointer',
@@ -17,22 +17,22 @@ const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
         }}
         className="hover-lift"
     >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
+                width: '26px',
+                height: '26px',
+                borderRadius: '8px',
                 background: bg,
                 color: color,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
             }}>
-                <Icon size={16} />
+                <Icon size={13} />
             </div>
             <div>
-                <p style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--secondary)', marginBottom: '2px' }}>{label}</p>
-                <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--secondary)', marginBottom: '1px' }}>{label}</p>
+                <p style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                     {action}
                 </p>
             </div>
@@ -50,13 +50,13 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
     return (
         <div className="card-glass" style={{
             background: 'white',
-            padding: '1.5rem',
-            borderRadius: '24px',
+            padding: '1rem 1.25rem',
+            borderRadius: '20px',
             border: '1px solid var(--border)',
             boxShadow: 'var(--shadow-md)',
             display: 'flex',
             flexDirection: 'column',
-            height: '100%'
+            gap: '0.5rem',
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -74,7 +74,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
                 </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {patientReplied > 0 && (
                     <AttentionItem 
                         icon={Reply} 
@@ -120,22 +120,6 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
                         Δεν υπάρχουν εκκρεμότητες 🎉
                     </div>
                 )}
-            </div>
-            
-            <div style={{ marginTop: 'auto', paddingTop: '1rem', textAlign: 'center' }}>
-                <button 
-                    onClick={() => onNavigate && onNavigate('appointments')}
-                    style={{ 
-                        fontSize: '0.7rem', 
-                        color: '#94a3b8', 
-                        fontWeight: '700', 
-                        background: 'none', 
-                        border: 'none', 
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                    }}>
-                    Προβολή όλων των εκκρεμοτήτων
-                </button>
             </div>
         </div>
     );

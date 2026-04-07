@@ -88,7 +88,7 @@ const RightColumn = ({ children }) => {
 };
 
 const SectionHeader = ({ children, icon: Icon }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.4rem' }}>
         {Icon && (
             <div style={{ padding: '6px', borderRadius: '8px', background: 'var(--primary-light)', color: 'var(--primary)' }}>
                 <Icon size={14} strokeWidth={2.5} />
@@ -163,17 +163,18 @@ const Dashboard = ({
     const activeConversations = logsArray.filter(l => l && l.status === 'RECOVERING').length;
 
     return (
-        <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+        <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {/* MINI HEADER */}
             <div className="dashboard-header" style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                padding: '0 4px'
+                padding: '0 4px',
+                flexShrink: 0
             }}>
-                <div className="dashboard-header__intro" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div className="dashboard-header__intro" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <h1 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.04em', margin: 0 }}>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.04em', margin: 0 }}>
                             {greeting}, {clinic?.name?.match(/^(Δρ\.|Dr\.)/i) ? clinic.name : `Δρ. ${clinic?.name || 'Συνάδελφε'}`}
                         </h1>
                         <button 
@@ -184,9 +185,9 @@ const Dashboard = ({
                                     : 'linear-gradient(135deg, rgba(254,242,242,0.9) 0%, rgba(239,68,68,0.12) 100%)', 
                                 color: clinic?.isActive ? '#10b981' : '#dc2626', 
                                 border: `1px solid ${clinic?.isActive ? 'rgba(255,255,255,0.32)' : 'rgba(239,68,68,0.35)'}`,
-                                padding: clinic?.isActive ? '4px 12px' : '5px 14px', 
+                                padding: clinic?.isActive ? '3px 10px' : '4px 12px', 
                                 borderRadius: '99px', 
-                                fontSize: clinic?.isActive ? '0.68rem' : '0.72rem', 
+                                fontSize: clinic?.isActive ? '0.65rem' : '0.68rem', 
                                 fontWeight: '800',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -210,9 +211,6 @@ const Dashboard = ({
                             {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : '⚠️ Automation paused – missed calls not being recovered'}
                         </button>
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-light)', fontWeight: '700', margin: 0, opacity: 0.8 }}>
-                        Δείτε τι συμβαίνει στο ιατρείο σας σήμερα.
-                    </p>
                 </div>
 
                 <div className="dashboard-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -227,12 +225,12 @@ const Dashboard = ({
                         backdropFilter: 'blur(20px) saturate(180%)',
                         boxShadow: 'var(--shadow-sm)'
                     }}>
-                        <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '6px 12px', fontSize: '0.8rem' }}>
-                            <LineChart size={16} />
+                        <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '5px 10px', fontSize: '0.78rem' }}>
+                            <LineChart size={15} />
                             Αναφορές
                         </button>
-                        <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '0.8rem' }}>
-                            <Plus size={16} strokeWidth={3} />
+                        <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '0.78rem' }}>
+                            <Plus size={15} strokeWidth={3} />
                             Νέο Ραντεβού
                         </button>
                         <div style={{ width: '1px', height: '18px', background: 'var(--border)' }} />
@@ -248,35 +246,11 @@ const Dashboard = ({
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
-                        <StatCard
-                            title="Αναπάντητες σήμερα"
-                            value={missedCallsToday}
-                            icon={PhoneMissed}
-                            color="#ef4444"
-                            size="compact"
-                        />
-                        <StatCard
-                            title="Ενεργές ανακτήσεις"
-                            value={activeConversations}
-                            icon={Zap}
-                            color="#f59e0b"
-                            size="compact"
-                        />
-                        <StatCard
-                            title="Κλεισμένα ραντεβού"
-                            value={recovered}
-                            icon={CheckCircle2}
-                            color="#10b981"
-                            size="compact"
-                        />
-                        <StatCard
-                            title="Ποσοστό ανάκτησης"
-                            value={`${recoveryRate}%`}
-                            icon={Activity}
-                            color="#6366f1"
-                            size="compact"
-                        />
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', flexShrink: 0 }}>
+                        <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
+                        <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
+                        <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
+                        <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
                         <StatCard
                             title="Έσοδα ανάκτησης"
                             value={`€${(recoveryStats.revenue || 0).toLocaleString()}`}
@@ -289,18 +263,18 @@ const Dashboard = ({
                 );
             })()}
 
-            {/* ULTRA COMPACT GRID */}
+            {/* MAIN GRID */}
             <div className="dashboard-main-grid" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1.4fr 1fr', 
-                gap: '1rem',
+                gap: '0.6rem',
                 flex: 1,
-                minHeight: 0 // Crucial for nested scroll
+                minHeight: 0
             }}>
                 {/* Left Column */}
-                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
-                    <div className="card-glass" style={{ borderRadius: '24px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '0.75rem 1.25rem 0.4rem', flexShrink: 0 }}>
+                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0 }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.5rem 0.5rem', minHeight: 0 }}>
@@ -308,13 +282,13 @@ const Dashboard = ({
                         </div>
                     </div>
 
-                    <div className="dashboard-revenue-card" style={{ height: '240px', flexShrink: 0 }}>
+                    <div className="dashboard-revenue-card" style={{ height: '210px', flexShrink: 0 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
 
                 {/* Right Column */}
-                <RightColumn>
+                <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0, overflow: 'hidden' }}>
                     <div style={{ flexShrink: 0 }}>
                         <NeedsAttention
                             pendingCount={recoveryStats.pending || 0}
@@ -330,19 +304,21 @@ const Dashboard = ({
                         />
                     </div>
 
-                    <div className="card-glass" style={{ borderRadius: '24px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
-                        <QuickActions
-                            onViewSchedule={() => setCurrentTab('appointments')}
-                            onAddPatient={() => setCurrentTab('patients')}
-                            onNewAppointment={() => setShowModal(true)}
-                            patients={patients}
-                            token={token}
-                            clinic={clinic}
-                            onRefresh={onRefresh}
-                        />
+                        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                            <QuickActions
+                                onViewSchedule={() => setCurrentTab('appointments')}
+                                onAddPatient={() => setCurrentTab('patients')}
+                                onNewAppointment={() => setShowModal(true)}
+                                patients={patients}
+                                token={token}
+                                clinic={clinic}
+                                onRefresh={onRefresh}
+                            />
+                        </div>
                     </div>
-                </RightColumn>
+                </div>
             </div>
         </div>
     );
