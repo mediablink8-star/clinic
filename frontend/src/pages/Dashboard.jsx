@@ -22,6 +22,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import NeedsAttention from '../components/NeedsAttention';
+import Opportunities from '../components/Opportunities';
 import RevenueCard from '../components/RevenueCard';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import Skeleton from '../components/Skeleton';
@@ -244,13 +245,22 @@ const Dashboard = ({
             {(() => {
                 const recovered = recoveryStats.recovered || 0;
                 const recoveryRate = missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0;
+                const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
+                const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
                         <StatCard
                             title="Αναπάντητες σήμερα"
                             value={missedCallsToday}
                             icon={PhoneMissed}
                             color="#ef4444"
+                            size="compact"
+                        />
+                        <StatCard
+                            title="Ενεργές ανακτήσεις"
+                            value={activeConversations}
+                            icon={Zap}
+                            color="#f59e0b"
                             size="compact"
                         />
                         <StatCard
@@ -270,6 +280,7 @@ const Dashboard = ({
                         <StatCard
                             title="Έσοδα ανάκτησης"
                             value={`€${(recoveryStats.revenue || 0).toLocaleString()}`}
+                            subtitle={potentialRevenue > 0 ? `Potential: €${potentialRevenue.toLocaleString()}` : null}
                             icon={Euro}
                             color="#0ea5e9"
                             size="compact"
@@ -297,7 +308,7 @@ const Dashboard = ({
                         </div>
                     </div>
 
-                    <div className="dashboard-revenue-card" style={{ height: '200px', flexShrink: 0 }}>
+                    <div className="dashboard-revenue-card" style={{ height: '240px', flexShrink: 0 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
@@ -307,6 +318,13 @@ const Dashboard = ({
                     <div style={{ flexShrink: 0 }}>
                         <NeedsAttention
                             pendingCount={recoveryStats.pending || 0}
+                            recoveryLog={logsArray}
+                            onNavigate={setCurrentTab}
+                        />
+                    </div>
+
+                    <div style={{ flexShrink: 0 }}>
+                        <Opportunities
                             recoveryLog={logsArray}
                             onNavigate={setCurrentTab}
                         />
