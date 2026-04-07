@@ -88,22 +88,35 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '12px',
-                                    padding: '11px 16px',
+                                    padding: '12px 16px',
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'var(--primary-light)'
+                                        ? 'linear-gradient(135deg, rgba(0,181,173,0.16) 0%, rgba(0,181,173,0.08) 100%)'
                                         : 'transparent',
-                                    borderRadius: '14px',
-                                    fontWeight: currentTab === item.id ? '800' : '600',
-                                    marginBottom: '2px',
+                                    borderRadius: '16px',
+                                    fontWeight: currentTab === item.id ? '800' : '650',
+                                    marginBottom: '4px',
                                     transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                    fontSize: '0.875rem',
-                                    border: `1px solid ${currentTab === item.id ? 'var(--primary-light)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 2px 10px rgba(37,99,235,0.05)' : 'none'
+                                    fontSize: '0.9rem',
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,181,173,0.18)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 10px 24px -16px rgba(0,181,173,0.6)' : 'none'
                                 }}
                             >
-                                <item.icon size={22} strokeWidth={currentTab === item.id ? 2.5 : 2} /> {item.label}
+                                <span className="nav-link__icon" style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '34px',
+                                    height: '34px',
+                                    borderRadius: '11px',
+                                    background: currentTab === item.id ? 'rgba(255,255,255,0.78)' : 'transparent',
+                                    color: currentTab === item.id ? 'var(--primary)' : 'currentColor',
+                                    transition: 'all 0.2s ease'
+                                }}>
+                                    <item.icon size={19} strokeWidth={currentTab === item.id ? 2.5 : 2.15} />
+                                </span>
+                                <span style={{ flex: 1 }}>{item.label}</span>
                             </a>
                         ))}
                     </div>
@@ -127,6 +140,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         cursor: 'pointer',
                         marginBottom: '12px',
                         transition: 'all 0.2s ease',
+                        boxShadow: 'var(--shadow-sm)'
                     }}
                 >
                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
@@ -206,7 +220,8 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.2s ease'
+                            transition: 'all 0.2s ease',
+                            boxShadow: 'var(--shadow-sm)'
                         }}
                         title="Αποσύνδεση"
                     >
