@@ -9,6 +9,7 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:worker\"",
     "dev:api": "nodemon index.js",
     "dev:worker": "nodemon worker.js",
+    "backfill:recovery-cases": "node scripts/backfillRecoveryCases.js",
     "test": "jest --runInBand --forceExit",
     "test:run": "jest --runInBand --forceExit --testPathPattern"
   },

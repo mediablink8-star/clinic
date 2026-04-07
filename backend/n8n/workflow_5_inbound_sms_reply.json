@@ -190,7 +190,9 @@
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
         "to": "={{ $node[\"Set Execution ID\"].json.from }}",
         "message": "=Ευχαριστούμε! Θα επικοινωνήσουμε μαζί σας σύντομα για να κλείσουμε το ραντεβού σας.",
-        "options": {}
+        "options": {
+          "statusCallback": "={{ $env.BACKEND_API_URL + '/webhook/provider/twilio/status?clinicId=' + encodeURIComponent($node[\"Set Execution ID\"].json.clinicId) + '&missedCallId=' + encodeURIComponent($node[\"Set Execution ID\"].json.missedCallId) }}"
+        }
       },
       "id": "node_reply_booking",
       "name": "Reply — Booking Confirmed",
@@ -228,9 +230,10 @@
           "string": [
             {
               "name": "log",
-              "value": "=Booking reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }}"
+              "value": "=Booking reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }} | twilioSid: {{ $json.sid || '' }}"
             },
-            { "name": "smsStatus", "value": "sent" }
+            { "name": "smsStatus", "value": "sent" },
+            { "name": "twilioSid", "value": "={{ $json.sid || '' }}" }
           ]
         }
       },
@@ -279,7 +282,9 @@
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
         "to": "={{ $node[\"Set Execution ID\"].json.from }}",
         "message": "=Ευχαριστούμε για την απάντησή σας. Θα επικοινωνήσουμε μαζί σας σύντομα.",
-        "options": {}
+        "options": {
+          "statusCallback": "={{ $env.BACKEND_API_URL + '/webhook/provider/twilio/status?clinicId=' + encodeURIComponent($node[\"Set Execution ID\"].json.clinicId) + '&missedCallId=' + encodeURIComponent($node[\"Set Execution ID\"].json.missedCallId) }}"
+        }
       },
       "id": "node_reply_other",
       "name": "Reply — General Acknowledgement",
@@ -317,9 +322,10 @@
           "string": [
             {
               "name": "log",
-              "value": "=General reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }}"
+              "value": "=General reply sent to {{ $node[\"Set Execution ID\"].json.from }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }} | twilioSid: {{ $json.sid || '' }}"
             },
-            { "name": "smsStatus", "value": "sent" }
+            { "name": "smsStatus", "value": "sent" },
+            { "name": "twilioSid", "value": "={{ $json.sid || '' }}" }
           ]
         }
       },

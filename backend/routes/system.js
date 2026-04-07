@@ -96,4 +96,88 @@ router.get('/stats', asyncHandler(async (req, res) => {
     });
 }));
 
+/**
+ * GET /api/system/recovery-shadow
+ * Compares legacy MissedCall metrics with the new recovery-tracking tables.
+ * Safe for rollout validation before switching dashboard reads.
+ */
+router.get('/recovery-shadow', asyncHandler(async (req, res) => {
+    const clinicId = req.clinicId;
+
+    const [
+        legacyTotalMissedCalls,
+        legacyActiveMissedCalls,
+        legacyRecoveredMissedCalls,
+        legacyFailedSms,
+        linkedRecoveryCases,
+        newTotalRecoveryCases,
+        newActiveRecoveryCases,
+        newRecoveredCases,
+        outboundMessages,
+        deliveredMessages,
+        failedMessages,
+        activityEvents,
+    ] = await Promise.all([
+        prisma.missedCall.count({ where: { clinicId } }),
+        prisma.missedCall.count({ where: { clinicId, status: { in: ['DETECTED', 'RECOVERING'] } } }),
+        prisma.missedCall.count({ where: { clinicId, status: 'RECOVERED' } }),
+        prisma.missedCall.count({ where: { clinicId, smsStatus: 'failed' } }),
+        prisma.recoveryCase.count({ where: { clinicId, missedCallId: { not: null } } }),
+        prisma.recoveryCase.count({ where: { clinicId } }),
+        prisma.recoveryCase.count({ where: { clinicId, state: { in: ['ACTIVE', 'ENGAGED'] } } }),
+        prisma.recoveryCase.count({ where: { clinicId, state: 'RECOVERED' } }),
+        prisma.message.count({ where: { clinicId, direction: 'OUTBOUND' } }),
+        prisma.message.count({ where: { clinicId, direction: 'OUTBOUND', status: 'DELIVERED' } }),
+        prisma.message.count({ where: { clinicId, direction: 'OUTBOUND', status: 'FAILED' } }),
+        prisma.activityEvent.count({ where: { clinicId } }),
+    ]);
+
+    const warnings = [];
+
+    if (linkedRecoveryCases !== legacyTotalMissedCalls) {
+        warnings.push({
+            key: 'missing_recovery_cases',
+            message: `Legacy missed calls (${legacyTotalMissedCalls}) do not match linked recovery cases (${linkedRecoveryCases}).`,
+        });
+    }
+
+    if (newRecoveredCases !== legacyRecoveredMissedCalls) {
+        warnings.push({
+            key: 'recovered_mismatch',
+            message: `Legacy recovered count (${legacyRecoveredMissedCalls}) does not match new recovered cases (${newRecoveredCases}).`,
+        });
+    }
+
+    if (failedMessages < legacyFailedSms) {
+        warnings.push({
+            key: 'failed_sms_gap',
+            message: `Legacy failed SMS count (${legacyFailedSms}) is greater than tracked failed outbound messages (${failedMessages}).`,
+        });
+    }
+
+    res.json({
+        legacy: {
+            totalMissedCalls: legacyTotalMissedCalls,
+            activeMissedCalls: legacyActiveMissedCalls,
+            recoveredMissedCalls: legacyRecoveredMissedCalls,
+            failedSms: legacyFailedSms,
+        },
+        tracking: {
+            linkedRecoveryCases,
+            totalRecoveryCases: newTotalRecoveryCases,
+            activeRecoveryCases: newActiveRecoveryCases,
+            recoveredCases: newRecoveredCases,
+            outboundMessages,
+            deliveredMessages,
+            failedMessages,
+            activityEvents,
+        },
+        parity: {
+            missedCallsCovered: linkedRecoveryCases === legacyTotalMissedCalls,
+            recoveredCountsMatch: newRecoveredCases === legacyRecoveredMissedCalls,
+            warnings,
+        }
+    });
+}));
+
 module.exports = router;

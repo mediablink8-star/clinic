@@ -4,9 +4,8 @@ const asyncHandler = require('../middleware/asyncHandler');
 const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { forwardInboundMessage } = require('../services/webhookService');
+const { recordInboundMessage } = require('../services/recoveryTrackingService');
 
-// POST /api/webhook/missed-call
-// Auth: HMAC via webhookAuth middleware (applied in index.js)
 router.post('/missed-call', asyncHandler(async (req, res) => {
     const { phone = '+30690000000', clinicId, callSid } = req.body;
 
@@ -21,19 +20,18 @@ router.post('/missed-call', asyncHandler(async (req, res) => {
     res.json({ success: true, ...data });
 }));
 
-/**
- * POST /api/webhook/sms
- * Receives inbound SMS messages from a provider (Twilio, etc.)
- * and forwards them to the clinic's configured n8n/Make webhook URL.
- *
- * Body (provider-agnostic normalized form):
- *   { clinicId, from, body, provider?, raw? }
- *
- * The `raw` field can carry the full provider payload for debugging.
- * Auth: HMAC via webhookAuth middleware (applied in index.js)
- */
 router.post('/sms', asyncHandler(async (req, res) => {
-    const { clinicId, from, body: messageBody, provider = 'sms', raw } = req.body;
+    const {
+        clinicId,
+        from,
+        body: messageBody,
+        provider = 'sms',
+        raw,
+        missedCallId = null,
+        recoveryCaseId = null,
+        providerMessageSid = null,
+        providerStatusRaw = null,
+    } = req.body;
 
     if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
     if (!from) return res.status(400).json({ error: 'from is required' });
@@ -42,8 +40,20 @@ router.post('/sms', asyncHandler(async (req, res) => {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
 
+    await recordInboundMessage({
+        clinicId,
+        fromPhone: from,
+        body: messageBody,
+        providerMessageSid,
+        providerStatusRaw: providerStatusRaw || provider,
+        missedCallId,
+        recoveryCaseId,
+    }).catch((err) => {
+        console.warn(`[SMS Inbound] Dual-write failed for clinicId=${clinicId}: ${err.message}`);
+    });
+
     if (!clinic.webhookUrl) {
-        console.log(`[SMS Inbound] clinicId=${clinicId} — no webhookUrl configured, skipping forward`);
+        console.log(`[SMS Inbound] clinicId=${clinicId} - no webhookUrl configured, skipping forward`);
         return res.json({ success: true, forwarded: false, reason: 'No webhook URL configured' });
     }
 

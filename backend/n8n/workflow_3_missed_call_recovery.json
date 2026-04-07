@@ -275,7 +275,9 @@
         "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
         "to": "={{ $node[\"Extract Clinic Context\"].json.phone }}",
         "message": "={{ $json.smsBody }}",
-        "options": {}
+        "options": {
+          "statusCallback": "={{ $env.BACKEND_API_URL + '/webhook/provider/twilio/status?clinicId=' + encodeURIComponent($node[\"Extract Clinic Context\"].json.clinicId) + '&missedCallId=' + encodeURIComponent($node[\"Extract Clinic Context\"].json.missedCallId) }}"
+        }
       },
       "id": "node_send_sms",
       "name": "Send Recovery SMS",
@@ -313,9 +315,10 @@
           "string": [
             {
               "name": "log",
-              "value": "=SMS sent to {{ $node[\"Extract Clinic Context\"].json.phone }} | executionId: {{ $node[\"Extract Clinic Context\"].json.executionId }} | entityType: missed_call | entityId: {{ $node[\"Extract Clinic Context\"].json.entityId }}"
+              "value": "=SMS sent to {{ $node[\"Extract Clinic Context\"].json.phone }} | executionId: {{ $node[\"Extract Clinic Context\"].json.executionId }} | entityType: missed_call | entityId: {{ $node[\"Extract Clinic Context\"].json.entityId }} | twilioSid: {{ $json.sid || '' }}"
             },
-            { "name": "smsStatus", "value": "sent" }
+            { "name": "smsStatus", "value": "sent" },
+            { "name": "twilioSid", "value": "={{ $json.sid || '' }}" }
           ]
         }
       },

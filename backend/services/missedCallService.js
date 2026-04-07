@@ -2,12 +2,19 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { checkWorkingHours } = require('./workingHours');
 const AppError = require('../errors/AppError');
+const {
+    ensureRecoveryCaseForMissedCall,
+    recordOutboundMessageForMissedCall,
+    markRecoveryCaseRecovered,
+} = require('./recoveryTrackingService');
 
 async function handleMissedCall({ phone, clinicId, callSid }) {
-    // Dedup by callSid — scoped to clinicId
     if (callSid) {
         const existing = await prisma.missedCall.findFirst({ where: { callSid, clinicId } });
-        if (existing) return { success: true, data: { duplicate: true, missedCallId: existing.id } };
+        if (existing) {
+            await ensureRecoveryCaseForMissedCall(existing.id);
+            return { success: true, data: { duplicate: true, missedCallId: existing.id } };
+        }
     }
 
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
@@ -29,15 +36,16 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
             status: 'RECOVERING',
             smsStatus: withinHours ? 'pending' : 'scheduled',
             scheduledSmsAt: withinHours ? null : scheduledAt,
-            estimatedRevenue: 80
+            estimatedRevenue: 80,
         }
     });
+
+    await ensureRecoveryCaseForMissedCall(missedCall.id);
 
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
     }
 
-    // Mark processing
     await prisma.missedCall.update({
         where: { id: missedCall.id },
         data: { smsStatus: 'processing' }
@@ -51,7 +59,6 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', scheduledSmsAt: null } };
     }
 
-    // Attempt webhook — always log outcome, never silent
     let webhookResult;
     try {
         webhookResult = await triggerWebhook(
@@ -73,14 +80,18 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
             : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
     });
 
+    await recordOutboundMessageForMissedCall({
+        missedCallId: missedCall.id,
+        status: webhookResult.success ? 'QUEUED' : 'FAILED',
+        providerStatusRaw: webhookResult.success ? 'workflow_queued' : 'workflow_failed',
+        fromPhone: clinic.phone || null,
+        toPhone: phone,
+        errorMessage: webhookResult.success ? null : (webhookResult.error || 'Webhook failed'),
+    });
+
     return { success: true, data: { missedCallId: missedCall.id, smsStatus: finalSmsStatus, scheduledSmsAt: null } };
 }
 
-/**
- * Process all missed calls that were scheduled for later delivery.
- * Called by the cron worker — contains ALL delivery logic.
- * Returns count of processed items.
- */
 async function processScheduledMissedCalls() {
     const now = new Date();
     const due = await prisma.missedCall.findMany({
@@ -98,6 +109,8 @@ async function processScheduledMissedCalls() {
             console.log(`[ScheduledWorker] Skipping clinic ${clinic.id} (status: INACTIVE)`);
             continue;
         }
+
+        await ensureRecoveryCaseForMissedCall(mc.id);
 
         await prisma.missedCall.update({
             where: { id: mc.id },
@@ -133,6 +146,15 @@ async function processScheduledMissedCalls() {
                 : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
         });
 
+        await recordOutboundMessageForMissedCall({
+            missedCallId: mc.id,
+            status: webhookResult.success ? 'QUEUED' : 'FAILED',
+            providerStatusRaw: webhookResult.success ? 'workflow_queued' : 'workflow_failed',
+            fromPhone: clinic.phone || null,
+            toPhone: mc.fromNumber,
+            errorMessage: webhookResult.success ? null : (webhookResult.error || 'Webhook failed'),
+        });
+
         processed++;
     }
 
@@ -149,6 +171,8 @@ async function retrySms({ clinicId, missedCallId }) {
 
     const clinic = mc.clinic;
     if (!clinic.webhookUrl) throw new AppError('NO_WEBHOOK', 'No webhook URL configured', 400);
+
+    await ensureRecoveryCaseForMissedCall(mc.id);
 
     await prisma.missedCall.update({ where: { id: mc.id }, data: { smsStatus: 'processing', smsError: null } });
 
@@ -172,24 +196,37 @@ async function retrySms({ clinicId, missedCallId }) {
             : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
     });
 
+    await recordOutboundMessageForMissedCall({
+        missedCallId: mc.id,
+        status: webhookResult.success ? 'QUEUED' : 'FAILED',
+        providerStatusRaw: webhookResult.success ? 'workflow_queued' : 'workflow_failed',
+        fromPhone: clinic.phone || null,
+        toPhone: mc.fromNumber,
+        errorMessage: webhookResult.success ? null : (webhookResult.error || 'Webhook failed'),
+    });
+
     return { success: webhookResult.success, data: { missedCallId: mc.id, smsStatus: webhookResult.success ? 'sent' : 'failed' } };
 }
 
 async function markRecovered({ clinicId, missedCallId }) {
-    const existing = await prisma.missedCall.findUnique({
+    const existing = await prisma.missedCall.findFirst({
         where: { id: missedCallId, clinicId }
     });
     if (!existing) throw new AppError('NOT_FOUND', 'MissedCall not found', 404);
 
-    // Idempotent: already recovered, return success without DB write
     if (existing.status === 'RECOVERED') {
+        await markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt: existing.recoveredAt || new Date() });
         return { success: true, data: { missedCallId: existing.id, status: 'RECOVERED' } };
     }
 
+    const recoveredAt = new Date();
     const updated = await prisma.missedCall.update({
         where: { id: missedCallId },
-        data: { status: 'RECOVERED', recoveredAt: new Date() }
+        data: { status: 'RECOVERED', recoveredAt }
     });
+
+    await markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt: recoveredAt });
+
     return { success: true, data: { missedCallId: updated.id, status: updated.status } };
 }
 

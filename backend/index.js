@@ -184,6 +184,10 @@ app.use('/api/voice', voiceRouter);
 
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
 
+// Provider-facing webhook callbacks (e.g. Twilio delivery receipts)
+const providerWebhooksRouter = require('./routes/providerWebhooks');
+app.use('/api/webhook/provider', webhookLimiter, providerWebhooksRouter);
+
 // --- WEBHOOK ROUTES ---
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);

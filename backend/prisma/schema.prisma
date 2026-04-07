@@ -46,6 +46,10 @@ model Clinic {
   messageLogs   MessageLog[]
   auditLogs     AuditLog[]
   missedCalls   MissedCall[]
+  recoveryCases RecoveryCase[]
+  conversations Conversation[]
+  messages      Message[]
+  activityEvents ActivityEvent[]
   
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -101,6 +105,7 @@ model Patient {
   email        String?
   appointments Appointment[]
   missedCalls  MissedCall[]
+  recoveryCases RecoveryCase[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -219,6 +224,7 @@ model MissedCall {
   aiConversation   String?          // Stored JSON of SMS history
   lastSmsSentAt    DateTime?
   recoveredAt      DateTime?
+  recoveryCase     RecoveryCase?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -234,4 +240,130 @@ enum MissedCallStatus {
   RECOVERING
   RECOVERED
   LOST
+}
+
+enum RecoveryCaseState {
+  ACTIVE
+  ENGAGED
+  RECOVERED
+  CLOSED_NO_RESPONSE
+  CLOSED_OPTED_OUT
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  RECEIVED
+}
+
+enum ActivityEventType {
+  MISSED_CALL_DETECTED
+  OUTBOUND_SMS_QUEUED
+  OUTBOUND_SMS_SENT
+  OUTBOUND_SMS_DELIVERED
+  OUTBOUND_SMS_FAILED
+  INBOUND_SMS_RECEIVED
+  PATIENT_REPLIED
+  CASE_RECOVERED
+  CASE_CLOSED
+}
+
+model RecoveryCase {
+  id             String            @id @default(cuid())
+  clinicId       String
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId      String?
+  patient        Patient?          @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  missedCallId   String?           @unique
+  missedCall     MissedCall?       @relation(fields: [missedCallId], references: [id], onDelete: SetNull)
+  patientPhone   String
+  state          RecoveryCaseState @default(ACTIVE)
+  recoveredAt    DateTime?
+  closedAt       DateTime?
+  lastActivityAt DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  conversation   Conversation?
+  activityEvents ActivityEvent[]
+
+  @@index([clinicId, state, lastActivityAt])
+  @@index([clinicId, patientPhone])
+  @@index([clinicId, createdAt])
+  @@index([patientId])
+}
+
+model Conversation {
+  id             String       @id @default(cuid())
+  clinicId       String
+  clinic         Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  recoveryCaseId String       @unique
+  recoveryCase   RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  patientPhone   String
+  clinicPhone    String?
+  lastMessageAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  messages       Message[]
+  activityEvents ActivityEvent[]
+
+  @@index([clinicId, lastMessageAt])
+  @@index([clinicId, patientPhone])
+}
+
+model Message {
+  id                 String           @id @default(cuid())
+  clinicId           String
+  clinic             Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  conversationId     String
+  conversation       Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction          MessageDirection
+  status             MessageStatus
+  body               String?
+  fromPhone          String?
+  toPhone            String?
+  providerMessageSid String?          @unique
+  providerStatusRaw  String?
+  errorCode          String?
+  errorMessage       String?
+  queuedAt           DateTime?
+  sentAt             DateTime?
+  deliveredAt        DateTime?
+  failedAt           DateTime?
+  receivedAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  activityEvents     ActivityEvent[]
+
+  @@index([conversationId, createdAt])
+  @@index([clinicId, status, createdAt])
+  @@index([clinicId, direction, createdAt])
+}
+
+model ActivityEvent {
+  id             String            @id @default(cuid())
+  clinicId       String
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  recoveryCaseId String
+  recoveryCase   RecoveryCase      @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  messageId      String?
+  message        Message?          @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  type           ActivityEventType
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([recoveryCaseId, createdAt])
+  @@index([clinicId, type, createdAt])
 }
