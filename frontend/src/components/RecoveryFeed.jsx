@@ -18,7 +18,15 @@ const EVENT = {
 const getEvent = (log) => {
     if (log.smsStatus === 'failed') return EVENT.SMS_FAILED;
     if (log.smsStatus === 'pending' || log.smsStatus === 'scheduled') return EVENT.PENDING;
-    if (log.smsStatus === 'sent' && log.status === 'RECOVERING') return EVENT.SMS_SENT;
+    // Patient replied = RECOVERING + aiConversation has inbound message
+    if (log.status === 'RECOVERING') {
+        try {
+            const conv = log.aiConversation ? JSON.parse(log.aiConversation) : null;
+            const hasReply = Array.isArray(conv) && conv.some(m => m.role === 'user' || m.direction === 'inbound' || m.from === 'patient');
+            if (hasReply) return EVENT.RECOVERING; // "Ασθενής απάντησε"
+        } catch { /* fall through */ }
+        if (log.smsStatus === 'sent' || log.smsStatus === 'simulated') return EVENT.SMS_SENT;
+    }
     return EVENT[log.status] || EVENT.DETECTED;
 };
 

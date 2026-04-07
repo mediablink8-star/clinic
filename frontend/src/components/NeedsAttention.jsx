@@ -43,8 +43,17 @@ const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
 
 const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
     // Only items requiring MANUAL human action
+    // patientReplied: RECOVERING + aiConversation has content (patient sent a message back)
     const failedSms = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.smsStatus === 'failed').length : 0;
-    const patientReplied = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.patientReplied || l.status === 'PATIENT_REPLIED').length : 0;
+    const patientReplied = Array.isArray(recoveryLog) ? recoveryLog.filter(l => {
+        if (!l) return false;
+        // Patient has replied if there's a conversation with inbound content
+        if (l.status !== 'RECOVERING') return false;
+        try {
+            const conv = l.aiConversation ? JSON.parse(l.aiConversation) : null;
+            return Array.isArray(conv) && conv.some(m => m.role === 'user' || m.direction === 'inbound' || m.from === 'patient');
+        } catch { return false; }
+    }).length : 0;
     const total = failedSms + patientReplied + (pendingCount > 0 ? 1 : 0);
 
     return (

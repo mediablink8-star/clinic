@@ -19,10 +19,12 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
     const recovered = stats?.recovered || 0;
     const avgValue = recovered > 0 ? Math.round(revenue / recovered) : 0;
 
-    // Funnel data
+    // Funnel data — based on actual MissedCall fields
     const missed = logs.length || 0;
-    const smsSent = logs.filter(l => l && ['RECOVERING', 'RECOVERED', 'LOST'].includes(l.status)).length;
-    const replied = logs.filter(l => l && ['RECOVERING', 'RECOVERED'].includes(l.status)).length;
+    const smsSent = logs.filter(l => l && (l.smsStatus === 'sent' || l.smsStatus === 'simulated')).length;
+    const replied = logs.filter(l => l && l.status === 'RECOVERING' && l.aiConversation && (() => {
+        try { const c = JSON.parse(l.aiConversation); return Array.isArray(c) && c.some(m => m.role === 'user' || m.direction === 'inbound'); } catch { return false; }
+    })()).length;
     const booked = recovered;
     const top = missed || 1;
 

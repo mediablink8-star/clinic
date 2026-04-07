@@ -117,6 +117,7 @@ const Dashboard = ({
     recoveryStats = { recovered: 0, pending: 0, revenue: 0 },
     recoveryLog = [],
     systemStatus = {},
+    systemStats = {},
     apiUsage = {},
     spending = { totalCreditsUsed: 0, monthCreditsUsed: 0, totalMessagesSent: 0 },
     loading,
@@ -140,7 +141,7 @@ const Dashboard = ({
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλό απόγευμα' : 'Καλό βράδυ';
 
-    const missedCallsToday = logsArray.filter(l => {
+    const missedCallsToday = systemStats.missedCallsToday ?? logsArray.filter(l => {
         if (!l || !l.createdAt) return false;
         const d = new Date(l.createdAt);
         return d.toDateString() === new Date().toDateString();
@@ -242,7 +243,7 @@ const Dashboard = ({
             {/* COMPACT STATS STRIP */}
             {(() => {
                 const recovered = recoveryStats.recovered || 0;
-                const recoveryRate = missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0;
+                const recoveryRate = systemStats.recoveryRate ?? (missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0);
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
@@ -291,7 +292,7 @@ const Dashboard = ({
                 <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0, overflow: 'hidden' }}>
                     <div style={{ flexShrink: 0 }}>
                         <NeedsAttention
-                            pendingCount={recoveryStats.pending || 0}
+                            pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}
                             recoveryLog={logsArray}
                             onNavigate={setCurrentTab}
                         />

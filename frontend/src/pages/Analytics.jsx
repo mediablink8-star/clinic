@@ -38,7 +38,7 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
     const logs = Array.isArray(recoveryLog) ? recoveryLog : [];
 
     const totalMissed = logs.length;
-    const smsSent = logs.filter(l => l.smsStatus && l.smsStatus !== 'pending').length;
+    const smsSent = logs.filter(l => l.smsStatus === 'sent' || l.smsStatus === 'simulated').length;
     const smsFailed = logs.filter(l => l.smsStatus === 'failed').length;
     const responded = logs.filter(l => ['RECOVERING', 'RECOVERED'].includes(l.status)).length;
     const booked = recoveryStats.recovered || 0;
