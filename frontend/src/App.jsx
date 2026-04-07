@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
+import { Menu } from 'lucide-react';
 import { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,6 +43,21 @@ const App = () => {
   const [token, setToken] = useState(null);
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const nextIsMobile = window.innerWidth <= 1024;
+      setIsMobile(nextIsMobile);
+      if (!nextIsMobile) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -327,6 +343,13 @@ const App = () => {
     }, 300);
   };
 
+  const handleSetCurrentTab = (tab) => {
+    setCurrentTab(tab);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   const renderContent = () => {
     switch (currentTab) {
       case 'dashboard':
@@ -417,16 +440,42 @@ const App = () => {
       />
       <Sidebar
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={handleSetCurrentTab}
         clinic={clinic}
         onLogout={handleLogout}
         onNewAppointment={() => setShowModal(true)}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         warnings={systemConfigStatus.warnings || []}
+        isMobile={isMobile}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
+      {isMobile && isSidebarOpen && (
+        <button
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close navigation menu"
+        />
+      )}
+
       <main className="main-content">
+        {isMobile && (
+          <div className="mobile-topbar card-glass">
+            <button
+              className="mobile-menu-button"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="mobile-topbar__text">
+              <span className="mobile-topbar__label">ClinicFlow</span>
+              <strong>{clinic?.name || 'Clinic'}</strong>
+            </div>
+          </div>
+        )}
         <ErrorBoundary>
           {renderContent()}
         </ErrorBoundary>

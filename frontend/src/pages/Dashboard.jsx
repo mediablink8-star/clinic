@@ -28,8 +28,8 @@ import Skeleton from '../components/Skeleton';
 import NotificationBell from '../components/NotificationBell';
 
 const DashboardSkeleton = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="dashboard-skeleton" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="dashboard-skeleton__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <Skeleton width="320px" height="40px" borderRadius="12px" />
                 <Skeleton width="240px" height="18px" borderRadius="8px" />
@@ -39,10 +39,10 @@ const DashboardSkeleton = () => (
                 <Skeleton width="48px" height="48px" borderRadius="16px" />
             </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+        <div className="dashboard-skeleton__stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
             {[...Array(4)].map((_, i) => <Skeleton key={i} height="120px" borderRadius="24px" />)}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        <div className="dashboard-skeleton__grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
             <Skeleton height="400px" borderRadius="32px" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <Skeleton height="190px" borderRadius="32px" />
@@ -68,7 +68,7 @@ const RightColumn = ({ children }) => {
     }, []);
 
     return (
-        <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0, overflowY: 'auto', paddingRight: '2px', position: 'relative' }}>
+        <div ref={ref} className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0, overflowY: 'auto', paddingRight: '2px', position: 'relative' }}>
             {children}
             {showHint && (
                 <div style={{
@@ -162,15 +162,15 @@ const Dashboard = ({
     const activeConversations = logsArray.filter(l => l && l.status === 'RECOVERING').length;
 
     return (
-        <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: 'calc(100vh - 4rem)', overflow: 'hidden' }}>
+        <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
             {/* MINI HEADER */}
-            <div style={{ 
+            <div className="dashboard-header" style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 padding: '0 4px'
             }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div className="dashboard-header__intro" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <h1 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.04em', margin: 0 }}>
                             {greeting}, {clinic?.name?.match(/^(Δρ\.|Dr\.)/i) ? clinic.name : `Δρ. ${clinic?.name || 'Συνάδελφε'}`}
@@ -211,8 +211,8 @@ const Dashboard = ({
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ 
+                <div className="dashboard-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="dashboard-action-bar" style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
                         gap: '8px', 
@@ -238,7 +238,7 @@ const Dashboard = ({
             </div>
 
             {/* COMPACT STATS STRIP */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+            <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                 <StatCard
                     title="Αναπάντητες (24h)"
                     value={missedCallsToday}
@@ -278,7 +278,7 @@ const Dashboard = ({
             </div>
 
             {/* ULTRA COMPACT GRID */}
-            <div style={{ 
+            <div className="dashboard-main-grid" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1.4fr 1fr', 
                 gap: '1rem',
@@ -286,7 +286,7 @@ const Dashboard = ({
                 minHeight: 0 // Crucial for nested scroll
             }}>
                 {/* Left Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
+                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minHeight: 0 }}>
                     <div className="card-glass" style={{ borderRadius: '24px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ padding: '0.75rem 1.25rem 0.4rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
@@ -296,7 +296,7 @@ const Dashboard = ({
                         </div>
                     </div>
 
-                    <div style={{ height: '200px', flexShrink: 0 }}>
+                    <div className="dashboard-revenue-card" style={{ height: '200px', flexShrink: 0 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>

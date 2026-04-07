@@ -149,7 +149,7 @@ const NewAppointmentModal = ({
                     </div>
 
                     {/* Date + Time */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="modal-two-column" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                         <div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Calendar size={12} /> Ημερομηνία
@@ -186,7 +186,7 @@ const NewAppointmentModal = ({
                 </div>
 
                 {/* Footer */}
-                <div style={{ padding: '1rem 1.75rem 1.5rem', display: 'flex', gap: '0.75rem', position: 'relative' }}>
+                <div className="modal-footer-actions" style={{ padding: '1rem 1.75rem 1.5rem', display: 'flex', gap: '0.75rem', position: 'relative' }}>
                     <button
                         onClick={onClose}
                         style={{

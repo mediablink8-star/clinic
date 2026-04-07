@@ -22,7 +22,7 @@ const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge
     const iconColor = (isPrimary || isAi || isTest) ? 'white' : 'var(--primary)';
 
     return (
-        <button onClick={onClick} style={{ width: '100%', padding: (isPrimary || isAi) ? '1rem' : '0.75rem', borderRadius: '14px', border, background: bg, backdropFilter: 'blur(8px)', color, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: (isPrimary || isAi) ? '800' : '600', fontSize: (isPrimary || isAi) ? '0.9rem' : '0.82rem', cursor: 'pointer', boxShadow: shadow, transition: 'all 0.2s ease', position: 'relative', opacity: isPrimary ? 1 : 0.9 }}>
+        <button className={`quick-action-btn ${isPrimary || isAi ? 'quick-action-btn--wide' : ''}`} onClick={onClick} style={{ width: '100%', flex: (isPrimary || isAi) ? undefined : 1, padding: (isPrimary || isAi) ? '1rem' : '0.75rem', borderRadius: '14px', border, background: bg, backdropFilter: 'blur(8px)', color, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: (isPrimary || isAi) ? '800' : '600', fontSize: (isPrimary || isAi) ? '0.9rem' : '0.82rem', cursor: 'pointer', boxShadow: shadow, transition: 'all 0.2s ease', position: 'relative', opacity: isPrimary ? 1 : 0.9 }}>
             <div style={{ background: iconBg, padding: (isPrimary || isAi) ? '8px' : '7px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon size={(isPrimary || isAi) ? 18 : 16} color={iconColor} />
             </div>
@@ -271,7 +271,7 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
         <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                 <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="quick-actions-row" style={{ display: 'flex', gap: '0.5rem' }}>
                     <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient} variant="secondary" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
                     <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />

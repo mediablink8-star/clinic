@@ -1,8 +1,8 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X } from 'lucide-react';
 import logo from '../assets/logo.png';
 
-const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode }) => {
+const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
     const navSections = [
         {
             label: 'Κύρια Μενού',
@@ -28,7 +28,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
     ];
 
     return (
-        <aside className="sidebar" style={{
+        <aside className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isOpen ? 'sidebar-open' : ''}`} style={{
             width: '260px',
             background: 'linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.46) 100%)',
             backdropFilter: 'blur(34px) saturate(190%)',
@@ -36,6 +36,14 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             borderRight: '1px solid rgba(255,255,255,0.42)',
             boxShadow: 'var(--shadow-sm)'
         }}>
+            {isMobile && (
+                <div className="sidebar-mobile__header">
+                    <span className="sidebar-mobile__title">ClinicFlow</span>
+                    <button className="sidebar-mobile__close" onClick={onClose} aria-label="Close navigation menu">
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
             <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
                 <div style={{
                     display: 'flex',
@@ -57,7 +65,10 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.56) 100%)',
                     border: '1px solid rgba(255,255,255,0.26)',
                     boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
-                }} onClick={onNewAppointment}>
+                }} onClick={() => {
+                    onNewAppointment();
+                    if (isMobile && onClose) onClose();
+                }}>
                     <Plus size={18} /> Νέο Ραντεβού
                 </button>
             </div>
@@ -84,6 +95,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                 onClick={(e) => {
                                     e.preventDefault();
                                     setCurrentTab(item.id);
+                                    if (isMobile && onClose) onClose();
                                 }}
                                 style={{
                                     display: 'flex',

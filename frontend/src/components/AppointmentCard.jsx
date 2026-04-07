@@ -24,9 +24,9 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
 
             <div className="apt-main" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flex: 1 }}>
                 {/* Time block */}
-                <div style={{
-                    minWidth: '80px',
-                    display: 'flex',
+                    <div className="apt-time" style={{
+                        minWidth: '80px',
+                        display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     background: isUrgent ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)',
@@ -42,7 +42,7 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                 </div>
 
                 {/* Patient info */}
-                <div>
+                    <div className="apt-patient">
                     <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1e293b', marginBottom: '3px', letterSpacing: '-0.3px' }}>
                         {appointment.patient?.name || 'Άγνωστος'}
                     </h3>
@@ -53,7 +53,7 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
 
                 {/* Reason + AI tag */}
                 {appointment.reason && (
-                    <div style={{ flex: 1, paddingLeft: '1rem', borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
+                    <div className="apt-reason" style={{ flex: 1, paddingLeft: '1rem', borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
                         <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.5', fontWeight: '500' }}>
                             {appointment.reason}
                         </p>
@@ -80,7 +80,7 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
             </div>
 
             {/* Right side */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div className="apt-side" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {isUrgent && (
                         <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 0 3px rgba(239,68,68,0.2)', animation: 'pulse 2s infinite' }} />
@@ -91,7 +91,7 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                 </div>
 
                 {showActions && (
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="apt-actions" style={{ display: 'flex', gap: '6px' }}>
                         <button
                             title="Αποστολή Μηνύματος"
                             onClick={() => onMessage && onMessage(appointment.patient)}

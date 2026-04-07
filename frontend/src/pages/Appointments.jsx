@@ -52,9 +52,9 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                 }}></div>
             </header>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div className="appointments-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Όλα τα Ραντεβού</h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="appointments-toolbar__controls" style={{ display: 'flex', gap: '10px' }}>
                     <div style={{ position: 'relative' }}>
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                         <input
