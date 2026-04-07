@@ -244,11 +244,8 @@ const Dashboard = ({
             {(() => {
                 const recovered = recoveryStats.recovered || 0;
                 const recoveryRate = missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0;
-                const failedSms = logsArray.filter(l => l.smsStatus === 'failed').length;
-                const patientReplied = logsArray.filter(l => l.patientReplied || l.status === 'PATIENT_REPLIED').length;
-                const needsAttention = activeConversations + failedSms + patientReplied + (recoveryStats.pending > 0 ? 1 : 0);
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                         <StatCard
                             title="Αναπάντητες σήμερα"
                             value={missedCallsToday}
@@ -276,15 +273,6 @@ const Dashboard = ({
                             icon={Euro}
                             color="#0ea5e9"
                             size="compact"
-                        />
-                        <StatCard
-                            title="Χρειάζεται προσοχή"
-                            value={needsAttention}
-                            icon={AlertTriangle}
-                            color={needsAttention > 0 ? '#f59e0b' : '#10b981'}
-                            highlighted={needsAttention > 0}
-                            size="compact"
-                            onClick={needsAttention > 0 ? () => setCurrentTab('appointments') : undefined}
                         />
                     </div>
                 );
