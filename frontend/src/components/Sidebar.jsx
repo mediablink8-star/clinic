@@ -30,10 +30,10 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
     return (
         <aside className="sidebar" style={{
             width: '260px',
-            background: 'var(--sidebar-bg)',
-            backdropFilter: 'blur(32px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            borderRight: '1px solid var(--border)',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.46) 100%)',
+            backdropFilter: 'blur(34px) saturate(190%)',
+            WebkitBackdropFilter: 'blur(34px) saturate(190%)',
+            borderRight: '1px solid rgba(255,255,255,0.42)',
             boxShadow: 'var(--shadow-sm)'
         }}>
             <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
@@ -54,8 +54,9 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     justifyContent: 'center',
                     padding: '14px',
                     borderRadius: '14px',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
-                    boxShadow: '0 10px 15px -3px var(--primary-glow)'
+                    background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.56) 100%)',
+                    border: '1px solid rgba(255,255,255,0.26)',
+                    boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
                 }} onClick={onNewAppointment}>
                     <Plus size={18} /> Νέο Ραντεβού
                 </button>
@@ -92,7 +93,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'linear-gradient(135deg, rgba(0,181,173,0.16) 0%, rgba(0,181,173,0.08) 100%)'
+                                        ? 'linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(0,181,173,0.14) 100%)'
                                         : 'transparent',
                                     borderRadius: '16px',
                                     fontWeight: currentTab === item.id ? '800' : '650',
@@ -135,12 +136,13 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         justifyContent: 'space-between',
                         padding: '10px 14px',
                         borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-subtle)',
+                        border: '1px solid rgba(255,255,255,0.18)',
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)',
                         cursor: 'pointer',
                         marginBottom: '12px',
                         transition: 'all 0.2s ease',
-                        boxShadow: 'var(--shadow-sm)'
+                        boxShadow: 'var(--shadow-sm)',
+                        backdropFilter: 'blur(16px) saturate(160%)'
                     }}
                 >
                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
@@ -183,10 +185,10 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     gap: '12px',
                     padding: '12px',
                     background: 'var(--card-bg)',
-                    backdropFilter: 'blur(12px)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
                     borderRadius: '16px',
                     boxShadow: 'var(--shadow-sm)',
-                    border: '1px solid var(--border)'
+                    border: '1px solid rgba(255,255,255,0.26)'
                 }}>
                     <div className="avatar" style={{
                         width: '40px',
@@ -212,7 +214,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         onClick={onLogout}
                         style={{
                             background: 'var(--bg-subtle)',
-                            border: '1px solid var(--border)',
+                            border: '1px solid rgba(255,255,255,0.16)',
                             borderRadius: '10px',
                             padding: '8px',
                             cursor: 'pointer',
@@ -221,7 +223,8 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                             alignItems: 'center',
                             justifyContent: 'center',
                             transition: 'all 0.2s ease',
-                            boxShadow: 'var(--shadow-sm)'
+                            boxShadow: 'var(--shadow-sm)',
+                            backdropFilter: 'blur(14px) saturate(160%)'
                         }}
                         title="Αποσύνδεση"
                     >

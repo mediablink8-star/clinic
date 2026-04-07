@@ -29,21 +29,32 @@ const NewAppointmentModal = ({
                 onClick={e => e.stopPropagation()}
                 style={{
                     width: '100%', maxWidth: '520px',
-                    background: 'var(--modal-bg)',
-                    backdropFilter: 'blur(24px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                    background: 'var(--glass-surface-strong)',
+                    backdropFilter: 'blur(32px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(200%)',
                     borderRadius: '28px',
-                    border: '1px solid var(--modal-border)',
+                    border: '1px solid rgba(255,255,255,0.56)',
                     boxShadow: '0 32px 64px -12px rgba(5,11,27,0.25), 0 0 0 1px rgba(255,255,255,0.5)',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    position: 'relative'
                 }}
             >
+                <div
+                    aria-hidden="true"
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'var(--glass-sheen)',
+                        pointerEvents: 'none'
+                    }}
+                />
                 {/* Header */}
                 <div style={{
                     padding: '1.5rem 1.75rem 1.25rem',
                     borderBottom: '1px solid var(--border)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    background: 'var(--modal-header-bg)'
+                    background: 'var(--glass-control-soft)',
+                    position: 'relative'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
@@ -63,9 +74,10 @@ const NewAppointmentModal = ({
                         onClick={onClose}
                         style={{
                             width: '32px', height: '32px', borderRadius: '8px',
-                            background: 'var(--cancel-bg)', border: '1px solid var(--cancel-border)',
+                            background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.36)',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: 'var(--cancel-color)', transition: 'all 0.15s'
+                            color: 'var(--cancel-color)', transition: 'all 0.15s',
+                            backdropFilter: 'blur(16px) saturate(160%)'
                         }}
                     >
                         <X size={16} />
@@ -73,7 +85,7 @@ const NewAppointmentModal = ({
                 </div>
 
                 {/* Body */}
-                <div style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                     {/* Patient */}
                     <div>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
@@ -174,14 +186,16 @@ const NewAppointmentModal = ({
                 </div>
 
                 {/* Footer */}
-                <div style={{ padding: '1rem 1.75rem 1.5rem', display: 'flex', gap: '0.75rem' }}>
+                <div style={{ padding: '1rem 1.75rem 1.5rem', display: 'flex', gap: '0.75rem', position: 'relative' }}>
                     <button
                         onClick={onClose}
                         style={{
                             flex: 1, padding: '12px',
-                            borderRadius: '14px', border: '1px solid var(--cancel-border)',
-                            background: 'var(--cancel-bg)', fontSize: '0.9rem',
-                            fontWeight: '700', color: 'var(--cancel-color)', cursor: 'pointer'
+                            borderRadius: '14px', border: '1px solid rgba(255,255,255,0.34)',
+                            background: 'var(--glass-control)', fontSize: '0.9rem',
+                            fontWeight: '700', color: 'var(--cancel-color)', cursor: 'pointer',
+                            backdropFilter: 'blur(18px) saturate(160%)',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.28)'
                         }}
                     >
                         Ακύρωση
@@ -191,15 +205,16 @@ const NewAppointmentModal = ({
                         disabled={!isValid}
                         style={{
                             flex: 2, padding: '12px',
-                            borderRadius: '14px', border: 'none',
+                            borderRadius: '14px', border: '1px solid rgba(255,255,255,0.22)',
                             background: isValid 
-                                ? 'linear-gradient(135deg, var(--primary) 0%, #2563eb 100%)' 
-                                : 'var(--bg-subtle)',
+                                ? 'linear-gradient(135deg, rgba(0,181,173,0.82) 0%, rgba(37,99,235,0.62) 100%)' 
+                                : 'var(--glass-control-soft)',
                             color: isValid ? 'white' : 'var(--text-light)',
                             fontSize: '0.9rem', fontWeight: '800',
                             cursor: isValid ? 'pointer' : 'not-allowed',
-                            boxShadow: isValid ? '0 8px 20px -6px rgba(0,102,255,0.4)' : 'none',
-                            transition: 'all 0.2s'
+                            boxShadow: isValid ? '0 12px 26px -12px rgba(0,102,255,0.42), inset 0 1px 0 rgba(255,255,255,0.26)' : 'none',
+                            transition: 'all 0.2s',
+                            backdropFilter: 'blur(18px) saturate(180%)'
                         }}
                     >
                         Καταχώρηση Ραντεβού

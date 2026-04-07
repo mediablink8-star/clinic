@@ -178,9 +178,11 @@ const Dashboard = ({
                         <button 
                             onClick={handleToggleActive}
                             style={{ 
-                                background: clinic?.isActive ? 'rgba(16,185,129,0.1)' : 'rgba(100,116,139,0.1)', 
+                                background: clinic?.isActive
+                                    ? 'linear-gradient(135deg, rgba(255,255,255,0.46) 0%, rgba(16,185,129,0.14) 100%)'
+                                    : 'linear-gradient(135deg, rgba(255,255,255,0.36) 0%, rgba(100,116,139,0.12) 100%)', 
                                 color: clinic?.isActive ? '#10b981' : '#64748b', 
-                                border: `1px solid ${clinic?.isActive ? '#10b981' : '#64748b'}44`,
+                                border: `1px solid ${clinic?.isActive ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.24)'}`,
                                 padding: '4px 12px', 
                                 borderRadius: '99px', 
                                 fontSize: '0.68rem', 
@@ -190,7 +192,9 @@ const Dashboard = ({
                                 gap: '6px',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
-                                outline: 'none'
+                                outline: 'none',
+                                backdropFilter: 'blur(18px) saturate(180%)',
+                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.24)'
                             }}>
                             <div className={clinic?.isActive ? "status-pulse" : ""} style={{ 
                                 margin: 0, 
@@ -213,9 +217,11 @@ const Dashboard = ({
                         alignItems: 'center', 
                         gap: '8px', 
                         padding: '4px', 
-                        background: 'var(--bg-subtle)', 
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.14) 100%)', 
                         borderRadius: '12px',
-                        border: '1px solid var(--border)'
+                        border: '1px solid rgba(255,255,255,0.28)',
+                        backdropFilter: 'blur(20px) saturate(180%)',
+                        boxShadow: 'var(--shadow-sm)'
                     }}>
                         <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '6px 12px', fontSize: '0.8rem' }}>
                             <LineChart size={16} />
