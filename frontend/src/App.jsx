@@ -16,6 +16,7 @@ import Dashboard from './pages/Dashboard';
 import Appointments from './pages/Appointments';
 import Patients from './pages/Patients';
 import Reports from './pages/Reports';
+import Analytics from './pages/Analytics';
 import PatientBooking from './pages/PatientBooking';
 import NotFound from './pages/NotFound';
 import ServerError from './pages/ServerError';
@@ -386,6 +387,8 @@ const App = () => {
         return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':
         return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
+      case 'analytics':
+        return <Analytics recoveryLog={recoveryLog} recoveryStats={recoveryStats} spending={spending} systemStats={systemStats} />;
       case 'settings':
         return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, PhoneCall, Zap, RefreshCw, MessageSquare, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
+import { Brain, PhoneCall, Zap, RefreshCw } from 'lucide-react';
 
 const services = [
     {

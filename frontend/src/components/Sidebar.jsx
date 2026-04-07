@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2 } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
@@ -16,6 +16,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             label: 'Εργαλεία',
             items: [
                 ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'Τεχνητή Νοημοσύνη', icon: Brain }] : []),
+                { id: 'analytics', label: 'Recovery Analytics', icon: BarChart2 },
                 { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
             ]
         },

@@ -21,7 +21,7 @@ import StatCard from '../components/StatCard';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
-import TodayStatus from '../components/TodayStatus';
+import NeedsAttention from '../components/NeedsAttention';
 import RevenueCard from '../components/RevenueCard';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import Skeleton from '../components/Skeleton';
@@ -317,11 +317,10 @@ const Dashboard = ({
                 {/* Right Column */}
                 <RightColumn>
                     <div style={{ flexShrink: 0 }}>
-                        <TodayStatus
-                            missedCalls={missedCallsToday}
-                            recovered={recoveryStats.recovered}
-                            appointmentsToday={todayAppointments.length}
-                            activeChats={activeConversations}
+                        <NeedsAttention
+                            pendingCount={recoveryStats.pending || 0}
+                            recoveryLog={logsArray}
+                            onNavigate={setCurrentTab}
                         />
                     </div>
 
