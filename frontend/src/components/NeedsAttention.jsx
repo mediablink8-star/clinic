@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, AlertCircle, ChevronRight, Clock, Reply, PhoneOff } from 'lucide-react';
+import { AlertCircle, ChevronRight, Clock, Reply, PhoneOff } from 'lucide-react';
 
 const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
     <div 
@@ -42,10 +42,10 @@ const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
 );
 
 const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
-    const recovering = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.status === 'RECOVERING').length : 0;
+    // Only items requiring MANUAL human action
     const failedSms = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.smsStatus === 'failed').length : 0;
     const patientReplied = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.patientReplied || l.status === 'PATIENT_REPLIED').length : 0;
-    const total = recovering + failedSms + patientReplied + (pendingCount > 0 ? 1 : 0);
+    const total = failedSms + patientReplied + (pendingCount > 0 ? 1 : 0);
 
     return (
         <div className="card-glass" style={{
@@ -92,16 +92,6 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
                         bg="#fef2f2" 
                         label={`${failedSms} αποτυχία αποστολής SMS`}
                         action="ΕΠΑΝΑΛΗΨΗ"
-                        onClick={() => onNavigate && onNavigate('dashboard')}
-                    />
-                )}
-                {recovering > 0 && (
-                    <AttentionItem 
-                        icon={MessageSquare} 
-                        color="#d97706" 
-                        bg="#fffbeb" 
-                        label={`${recovering} ασθενής σε ανάκτηση`}
-                        action="ΔΕΙΤΕ ΤΗ ΡΟΗ"
                         onClick={() => onNavigate && onNavigate('dashboard')}
                     />
                 )}

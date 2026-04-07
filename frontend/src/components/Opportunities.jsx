@@ -9,9 +9,10 @@ const Opportunities = ({ recoveryLog = [], onNavigate }) => {
     const activeRecoveries = logs.filter(l => l && l.status === 'RECOVERING').length;
     const awaitingReply = logs.filter(l => l && l.status === 'RECOVERING' && l.smsStatus === 'sent').length;
 
+    // Pipeline order: missed → active (automation sending SMS) → awaiting reply
     const items = [
-        { icon: PhoneMissed, color: '#ef4444', bg: '#fef2f2', label: `${missedThisWeek} αναπάντητες αυτή την εβδομάδα` },
-        { icon: Zap,         color: '#f59e0b', bg: '#fffbeb', label: `${activeRecoveries} ενεργές ανακτήσεις` },
+        { icon: PhoneMissed,   color: '#ef4444', bg: '#fef2f2', label: `${missedThisWeek} αναπάντητες αυτή την εβδομάδα` },
+        { icon: Zap,           color: '#f59e0b', bg: '#fffbeb', label: `${activeRecoveries} ενεργές ανακτήσεις` },
         { icon: MessageCircle, color: '#6366f1', bg: '#eef2ff', label: `${awaitingReply} αναμένουν απάντηση` },
     ];
 
@@ -30,7 +31,10 @@ const Opportunities = ({ recoveryLog = [], onNavigate }) => {
                 <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
                     <TrendingUp size={15} /> ΕΥΚΑΙΡΙΕΣ
                 </h3>
-                <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>7 ημέρες</span>
+                <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 4px rgba(16,185,129,0.6)' }} />
+                    Automation ενεργό
+                </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
