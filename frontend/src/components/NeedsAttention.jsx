@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, AlertCircle, ChevronRight, Clock } from 'lucide-react';
+import { MessageSquare, AlertCircle, ChevronRight, Clock, Reply, PhoneOff } from 'lucide-react';
 
 const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
     <div 
@@ -43,7 +43,9 @@ const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
 
 const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
     const recovering = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.status === 'RECOVERING').length : 0;
-    const total = recovering + (pendingCount > 0 ? 1 : 0);
+    const failedSms = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.smsStatus === 'failed').length : 0;
+    const patientReplied = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.patientReplied || l.status === 'PATIENT_REPLIED').length : 0;
+    const total = recovering + failedSms + patientReplied + (pendingCount > 0 ? 1 : 0);
 
     return (
         <div className="card-glass" style={{
@@ -58,7 +60,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AlertCircle size={16} /> ΠΡΟΣΟΧΗ
+                    <AlertCircle size={16} /> ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ
                 </h3>
                 <span style={{ 
                     fontSize: '0.65rem', 
@@ -73,6 +75,26 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {patientReplied > 0 && (
+                    <AttentionItem 
+                        icon={Reply} 
+                        color="#3b82f6" 
+                        bg="#eff6ff" 
+                        label={`${patientReplied} ασθενής απάντησε`}
+                        action="ΑΠΑΝΤΗΣΤΕ ΤΩΡΑ"
+                        onClick={() => onNavigate && onNavigate('dashboard')}
+                    />
+                )}
+                {failedSms > 0 && (
+                    <AttentionItem 
+                        icon={PhoneOff} 
+                        color="#dc2626" 
+                        bg="#fef2f2" 
+                        label={`${failedSms} αποτυχία αποστολής SMS`}
+                        action="ΕΠΑΝΑΛΗΨΗ"
+                        onClick={() => onNavigate && onNavigate('dashboard')}
+                    />
+                )}
                 {recovering > 0 && (
                     <AttentionItem 
                         icon={MessageSquare} 

@@ -180,12 +180,12 @@ const Dashboard = ({
                             style={{ 
                                 background: clinic?.isActive
                                     ? 'linear-gradient(135deg, rgba(255,255,255,0.46) 0%, rgba(16,185,129,0.14) 100%)'
-                                    : 'linear-gradient(135deg, rgba(255,255,255,0.36) 0%, rgba(100,116,139,0.12) 100%)', 
-                                color: clinic?.isActive ? '#10b981' : '#64748b', 
-                                border: `1px solid ${clinic?.isActive ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.24)'}`,
-                                padding: '4px 12px', 
+                                    : 'linear-gradient(135deg, rgba(254,242,242,0.9) 0%, rgba(239,68,68,0.12) 100%)', 
+                                color: clinic?.isActive ? '#10b981' : '#dc2626', 
+                                border: `1px solid ${clinic?.isActive ? 'rgba(255,255,255,0.32)' : 'rgba(239,68,68,0.35)'}`,
+                                padding: clinic?.isActive ? '4px 12px' : '5px 14px', 
                                 borderRadius: '99px', 
-                                fontSize: '0.68rem', 
+                                fontSize: clinic?.isActive ? '0.68rem' : '0.72rem', 
                                 fontWeight: '800',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -194,16 +194,19 @@ const Dashboard = ({
                                 transition: 'all 0.2s',
                                 outline: 'none',
                                 backdropFilter: 'blur(18px) saturate(180%)',
-                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.24)'
+                                boxShadow: clinic?.isActive
+                                    ? 'inset 0 1px 0 rgba(255,255,255,0.24)'
+                                    : '0 0 0 3px rgba(239,68,68,0.15), inset 0 1px 0 rgba(255,255,255,0.24)'
                             }}>
                             <div className={clinic?.isActive ? "status-pulse" : ""} style={{ 
                                 margin: 0, 
                                 width: '6px', 
                                 height: '6px', 
                                 borderRadius: '50%',
-                                background: clinic?.isActive ? '#10b981' : '#64748b' 
+                                background: clinic?.isActive ? '#10b981' : '#dc2626',
+                                animation: clinic?.isActive ? undefined : 'none'
                             }} />
-                            {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : 'WORKFLOWS PAUSED'}
+                            {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : '⚠️ Automation paused – missed calls not being recovered'}
                         </button>
                     </div>
                     <p style={{ fontSize: '0.82rem', color: 'var(--text-light)', fontWeight: '700', margin: 0, opacity: 0.8 }}>
@@ -249,7 +252,7 @@ const Dashboard = ({
                     size="compact"
                 />
                 <StatCard
-                    title="Ανακτήθηκαν"
+                    title="Κλεισμένα ραντεβού"
                     value={recoveryStats.recovered || 0}
                     icon={CheckCircle2}
                     color="#10b981"

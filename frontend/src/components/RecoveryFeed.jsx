@@ -32,19 +32,35 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
             setTimeout(() => setRetrying(r => { const n = { ...r }; delete n[logId]; return n; }), 3000);
         }
     };
-    const getStatusInfo = (status) => {
+    const getStatusInfo = (status, smsStatus) => {
+        // SMS delivery status takes priority for coloring
+        if (smsStatus === 'failed') return { icon: AlertCircle, color: '#ef4444', bg: '#fef2f2', label: 'Αποτυχία', dot: '#ef4444' };
+        if (smsStatus === 'pending' || smsStatus === 'scheduled') return { icon: Clock, color: '#d97706', bg: '#fffbeb', label: 'Εκκρεμεί', dot: '#f59e0b' };
         switch (status) {
             case 'RECOVERED':
-                return { icon: CheckCircle2, color: '#10b981', bg: '#f0fdf4', label: 'Επέστρεψε' };
+                return { icon: CheckCircle2, color: '#10b981', bg: '#f0fdf4', label: 'Κλείστηκε ραντεβού', dot: '#10b981' };
             case 'RECOVERING':
-                return { icon: MessageSquare, color: '#f59e0b', bg: '#fffbeb', label: 'Σε επικοινωνία' };
+                return { icon: MessageSquare, color: '#f59e0b', bg: '#fffbeb', label: 'Σε επικοινωνία', dot: '#f59e0b' };
             case 'LOST':
-                return { icon: AlertCircle, color: '#ef4444', bg: '#fef2f2', label: 'Δεν απάντησε' };
+                return { icon: AlertCircle, color: '#ef4444', bg: '#fef2f2', label: 'Δεν απάντησε', dot: '#ef4444' };
             case 'DETECTED':
-                return { icon: PhoneMissed, color: 'var(--primary)', bg: 'var(--primary-light)', label: 'Νέα κλήση' };
+                return { icon: PhoneMissed, color: 'var(--primary)', bg: 'var(--primary-light)', label: 'Νέα κλήση', dot: '#6366f1' };
             default:
-                return { icon: Clock, color: '#64748b', bg: '#f1f5f9', label: status };
+                return { icon: Clock, color: '#64748b', bg: '#f1f5f9', label: status, dot: '#94a3b8' };
         }
+    };
+
+    // Format phone: +306912345678 → +30 694 *** 5678
+    const formatPhone = (num) => {
+        if (!num) return 'Άγνωστος';
+        const clean = num.replace(/\D/g, '');
+        if (clean.length < 8) return num;
+        const prefix = clean.startsWith('30') ? '+30' : `+${clean.slice(0, 2)}`;
+        const local = clean.startsWith('30') ? clean.slice(2) : clean.slice(2);
+        if (local.length >= 7) {
+            return `${prefix} ${local.slice(0, 3)} *** ${local.slice(-4)}`;
+        }
+        return `${prefix} ${local.slice(0, 3)}***${local.slice(-2)}`;
     };
 
     const sortedLogs = Array.isArray(logs)
@@ -86,11 +102,15 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         {sortedLogs.map((log) => {
-                            const { icon: StatusIcon, color, bg, label } = getStatusInfo(log.status);
+                            const { icon: StatusIcon, color, bg, label, dot } = getStatusInfo(log.status, log.smsStatus);
                             const time = new Date(log.createdAt).toLocaleTimeString('el-GR', {
                                 hour: '2-digit',
                                 minute: '2-digit'
                             });
+                            // patient replied overrides everything
+                            const isReplied = log.patientReplied || log.status === 'PATIENT_REPLIED';
+                            const dotColor = isReplied ? '#3b82f6' : dot;
+                            const displayLabel = isReplied ? 'Απάντησε ασθενής' : label;
 
                             return (
                                 <div key={log.id} className="animate-fade" style={{
@@ -104,22 +124,14 @@ const RecoveryFeed = ({ logs = [], muted = false, token }) => {
                                     gap: '8px',
                                     flexWrap: 'wrap',
                                 }}>
-                                    {/* phone number */}
+                                    {/* colored status dot */}
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dotColor, flexShrink: 0, boxShadow: `0 0 4px ${dotColor}80` }} />
+                                    {/* phone number — masked, production-style */}
                                     <span style={{ fontWeight: '600', fontSize: '0.75rem', color: 'var(--secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                        {log.fromNumber}
+                                        {formatPhone(log.fromNumber)}
                                     </span>
-                                    {/* SMS Failed badge */}
-                                    {log.smsStatus === 'failed' && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '6px', background: 'rgba(239,68,68,0.12)', flexShrink: 0 }}>
-                                            <AlertCircle size={9} color="#dc2626" />
-                                            <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#dc2626' }}>Αποτυχία SMS</span>
-                                        </div>
-                                    )}
-                                    {/* dot + label */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }} />
-                                        <span style={{ fontSize: '0.62rem', fontWeight: '500', color: '#64748b' }}>{label}</span>
-                                    </div>
+                                    {/* status label */}
+                                    <span style={{ fontSize: '0.62rem', fontWeight: '600', color: dotColor, flexShrink: 0 }}>{displayLabel}</span>
                                     {/* time */}
                                     <span style={{ fontSize: '0.58rem', color: '#b0bec5', fontWeight: '400', flexShrink: 0 }}>{time}</span>
                                     {/* error message */}
