@@ -126,7 +126,8 @@ const Dashboard = ({
     notifications = [],
     upcomingAppointments = [],
     onUpdate,
-    onRefresh
+    onRefresh,
+    onNotificationAction
 }) => {
     const [hasLoaded, setHasLoaded] = React.useState(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
@@ -236,7 +237,7 @@ const Dashboard = ({
                             Νέο Ραντεβού
                         </button>
                         <div style={{ width: '1px', height: '18px', background: 'var(--border)' }} />
-                        <NotificationBell warnings={warnings} notifications={notifications} />
+                        <NotificationBell warnings={warnings} notifications={notifications} onAction={onNotificationAction} />
                     </div>
                 </div>
             </div>

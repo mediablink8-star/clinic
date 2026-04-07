@@ -214,8 +214,91 @@ const App = () => {
     id: n.id,
     text: n.message,
     time: safeTime(n.createdAt),
-    type: n.type
+    type: n.type,
+    category: 'system'
   }));
+
+  // Build unified notification feed from all data sources
+  const unifiedNotifications = React.useMemo(() => {
+    const items = [];
+
+    // 1. Stale recoveries — no reply in 24h
+    if (recoveryInsights?.staleNoReply?.length > 0) {
+      items.push({
+        id: 'stale-batch',
+        category: 'followup',
+        icon: 'send',
+        color: '#7c3aed',
+        title: `${recoveryInsights.staleNoReply.length} ασθενείς δεν απάντησαν (24h+)`,
+        subtitle: 'Αποστολή follow-up SMS',
+        action: 'followup',
+        time: 'τώρα',
+        urgent: true,
+        data: recoveryInsights.staleNoReply
+      });
+    }
+
+    // 2. Patient engaged (replied)
+    if (recoveryInsights?.patientEngaged?.length > 0) {
+      recoveryInsights.patientEngaged.slice(0, 5).forEach(mc => {
+        items.push({
+          id: `engaged-${mc.id}`,
+          category: 'reply',
+          icon: 'reply',
+          color: '#3b82f6',
+          title: `${mc.patientName || mc.phone} απάντησε`,
+          subtitle: 'Ο ασθενής περιμένει απάντηση',
+          action: 'view_recovery',
+          time: mc.lastSmsSentAt ? safeTime(mc.lastSmsSentAt) : '',
+          urgent: true,
+          data: mc
+        });
+      });
+    }
+
+    // 3. Recovered appointments (booked via recovery)
+    const recentRecovered = Array.isArray(recoveryLog)
+      ? recoveryLog.filter(l => l?.status === 'RECOVERED' && l?.recoveredAt &&
+          new Date(l.recoveredAt) > new Date(Date.now() - 24 * 60 * 60 * 1000))
+      : [];
+    recentRecovered.slice(0, 5).forEach(mc => {
+      items.push({
+        id: `recovered-${mc.id}`,
+        category: 'booked',
+        icon: 'check',
+        color: '#10b981',
+        title: `Ραντεβού κλείστηκε — ${mc.patient?.name || mc.fromNumber}`,
+        subtitle: 'Ανάκτηση επιτυχής',
+        action: 'view_appointments',
+        time: safeTime(mc.recoveredAt),
+        urgent: false,
+        data: mc
+      });
+    });
+
+    // 4. Failed SMS
+    if (recoveryInsights?.failedSms?.length > 0) {
+      recoveryInsights.failedSms.slice(0, 3).forEach(mc => {
+        items.push({
+          id: `failed-${mc.id}`,
+          category: 'failed',
+          icon: 'alert',
+          color: '#ef4444',
+          title: `Αποτυχία SMS — ${mc.patientName || mc.phone}`,
+          subtitle: mc.smsError || 'Αποτυχία αποστολής',
+          action: 'retry_sms',
+          time: '',
+          urgent: true,
+          data: mc
+        });
+      });
+    }
+
+    // 5. System notifications (appointment reminders etc)
+    notifications.forEach(n => items.push({ ...n, category: n.category || 'system', icon: 'bell', color: 'var(--primary)', urgent: false }));
+
+    return items;
+  }, [recoveryInsights, recoveryLog, notifications]);
 
   const handleLogin = (loginData) => {
     const { token, clinic } = loginData;
@@ -374,7 +457,7 @@ const App = () => {
           patientsCount={patientsCount}
           patients={patients}
           token={token}
-          notifications={notifications}
+          notifications={unifiedNotifications}
           recoveryStats={recoveryStats}
           recoveryLog={recoveryLog}
           recoveryInsights={recoveryInsights}
@@ -386,6 +469,19 @@ const App = () => {
           spending={spending}
           loading={loading}
           onRefresh={refreshRecovery}
+          onNotificationAction={(action, data) => {
+            if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
+            if (action === 'view_appointments') handleSetCurrentTab('appointments');
+            if (action === 'retry_sms' && data?.id) {
+              axios.post(`${API_BASE}/recovery/${data.id}/retry`, {}, { headers: getHeaders() })
+                .then(() => { refetchLog(); refetchStats(); }).catch(() => {});
+            }
+            if (action === 'followup' && Array.isArray(data)) {
+              Promise.all(data.slice(0, 10).map(mc =>
+                axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, { headers: getHeaders() }).catch(() => {})
+              )).then(() => setTimeout(() => { refetchLog(); refetchStats(); }, 1000));
+            }
+          }}
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
