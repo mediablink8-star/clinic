@@ -256,10 +256,15 @@ body::before {
   max-width: 1440px;
   margin: 0 auto;
   min-width: 0;
+  overflow-y: auto;
+}
+
+/* Dashboard-specific: lock to viewport height, no page scroll */
+.main-content:has(.dashboard-shell) {
   height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 header {
@@ -713,11 +718,6 @@ input:focus, textarea:focus, select:focus {
     height: auto !important;
     overflow: visible !important;
     flex: none !important;
-  }
-
-  .main-content {
-    height: auto !important;
-    overflow: visible !important;
   }
 
   .dashboard-header,
