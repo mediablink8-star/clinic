@@ -138,12 +138,23 @@ const App = () => {
   const { data: recoveryLog = [], isLoading: loadingLog, refetch: refetchLog } = useQuery({
     queryKey: ['recovery-log'],
     queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/log`, { headers: getHeaders() });
+      const res = await axios.get(`${API_BASE}/recovery/log?limit=200`, { headers: getHeaders() });
       return res.data;
     },
     enabled: !!token,
     refetchInterval: 15000,
     staleTime: 0,
+    retry: 1,
+  });
+
+  const { data: recoveryInsights = { staleNoReply: [], patientEngaged: [], failedSms: [], summary: {} } } = useQuery({
+    queryKey: ['recovery-insights'],
+    queryFn: async () => {
+      const res = await axios.get(`${API_BASE}/recovery/insights`, { headers: getHeaders() });
+      return res.data;
+    },
+    enabled: !!token,
+    refetchInterval: 60000,
     retry: 1,
   });
 
@@ -366,6 +377,7 @@ const App = () => {
           notifications={notifications}
           recoveryStats={recoveryStats}
           recoveryLog={recoveryLog}
+          recoveryInsights={recoveryInsights}
           setCurrentTab={setCurrentTab}
           setShowModal={setShowModal}
           systemStatus={systemStatus}
@@ -408,6 +420,7 @@ const App = () => {
           notifications={notifications}
           recoveryStats={recoveryStats}
           recoveryLog={recoveryLog}
+          recoveryInsights={recoveryInsights}
           setCurrentTab={setCurrentTab}
           setShowModal={setShowModal}
           systemStatus={systemStatus}

@@ -116,6 +116,7 @@ const Dashboard = ({
     setShowModal,
     recoveryStats = { recovered: 0, pending: 0, revenue: 0 },
     recoveryLog = [],
+    recoveryInsights = {},
     systemStatus = {},
     systemStats = {},
     apiUsage = {},
@@ -294,6 +295,8 @@ const Dashboard = ({
                         <NeedsAttention
                             pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}
                             recoveryLog={logsArray}
+                            recoveryInsights={recoveryInsights}
+                            token={token}
                             onNavigate={setCurrentTab}
                         />
                     </div>

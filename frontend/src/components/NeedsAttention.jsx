@@ -1,121 +1,143 @@
-import React from 'react';
-import { AlertCircle, ChevronRight, Clock, Reply, PhoneOff } from 'lucide-react';
+import { AlertCircle, ChevronRight, Clock, Reply, PhoneOff, Send } from 'lucide-react';
+import axios from 'axios';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
-const AttentionItem = ({ icon: Icon, color, bg, label, action, onClick }) => (
-    <div 
-        onClick={onClick}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+const AttentionItem = ({ icon: Icon, color, bg, label, sublabel, action, onClick, loading }) => (
+    <div
+        onClick={!loading ? onClick : undefined}
         style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 10px',
-            borderRadius: '12px',
-            background: '#f8fafc',
-            border: '1px solid #f1f5f9',
-            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 10px', borderRadius: '12px',
+            background: bg, border: `1px solid ${color}18`,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.6 : 1,
             transition: 'all 0.2s ease'
         }}
         className="hover-lift"
     >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '8px',
-                background: bg,
-                color: color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-            }}>
+            <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={13} />
             </div>
             <div>
                 <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--secondary)', marginBottom: '1px' }}>{label}</p>
-                <p style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                    {action}
-                </p>
+                {sublabel && <p style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{sublabel}</p>}
             </div>
         </div>
-        <ChevronRight size={14} color="#cbd5e1" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.62rem', fontWeight: '700', color, flexShrink: 0 }}>
+            {loading ? '...' : action}
+            {!loading && <ChevronRight size={11} color={color} />}
+        </div>
     </div>
 );
 
-const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], onNavigate }) => {
-    // Only items requiring MANUAL human action
-    // patientReplied: RECOVERING + aiConversation has content (patient sent a message back)
-    const failedSms = Array.isArray(recoveryLog) ? recoveryLog.filter(l => l.smsStatus === 'failed').length : 0;
-    const patientReplied = Array.isArray(recoveryLog) ? recoveryLog.filter(l => {
-        if (!l) return false;
-        // Patient has replied if there's a conversation with inbound content
-        if (l.status !== 'RECOVERING') return false;
-        try {
-            const conv = l.aiConversation ? JSON.parse(l.aiConversation) : null;
-            return Array.isArray(conv) && conv.some(m => m.role === 'user' || m.direction === 'inbound' || m.from === 'patient');
-        } catch { return false; }
-    }).length : 0;
-    const total = failedSms + patientReplied + (pendingCount > 0 ? 1 : 0);
+const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {}, token, onNavigate }) => {
+    const [sending, setSending] = useState({});
+
+    const { staleNoReply = [], patientEngaged = [], failedSms: failedInsights = [], summary = {} } = recoveryInsights;
+
+    // Fallback counts from log if insights not loaded yet
+    const failedSmsCount = summary.failedCount ?? (Array.isArray(recoveryLog) ? recoveryLog.filter(l => l?.smsStatus === 'failed').length : 0);
+    const patientRepliedCount = summary.engagedCount ?? 0;
+    const staleCount = summary.staleCount ?? 0;
+
+    const total = staleCount + patientRepliedCount + failedSmsCount + (pendingCount > 0 ? 1 : 0);
+
+    const sendFollowUps = async () => {
+        if (!staleNoReply.length) return;
+        setSending(s => ({ ...s, followup: true }));
+        let sent = 0;
+        for (const mc of staleNoReply.slice(0, 10)) {
+            try {
+                await axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                sent++;
+            } catch { /* continue */ }
+        }
+        setSending(s => ({ ...s, followup: false }));
+        if (sent > 0) toast.success(`Follow-up SMS εστάλη σε ${sent} ασθενείς`);
+        else toast.error('Αποτυχία αποστολής follow-up');
+    };
 
     return (
         <div className="card-glass" style={{
-            background: 'white',
-            padding: '1rem 1.25rem',
-            borderRadius: '20px',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-md)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
+            background: 'white', padding: '1rem 1.25rem', borderRadius: '20px',
+            border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)',
+            display: 'flex', flexDirection: 'column', gap: '0.5rem',
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AlertCircle size={16} /> ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <AlertCircle size={15} /> ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ
                 </h3>
-                <span style={{ 
-                    fontSize: '0.65rem', 
-                    fontWeight: '700', 
-                    padding: '4px 8px', 
-                    background: total > 0 ? '#fef3c7' : '#f0fdf4', 
-                    color: total > 0 ? '#b45309' : '#15803d', 
-                    borderRadius: '6px' 
+                <span style={{
+                    fontSize: '0.62rem', fontWeight: '700', padding: '3px 7px',
+                    background: total > 0 ? '#fef3c7' : '#f0fdf4',
+                    color: total > 0 ? '#b45309' : '#15803d', borderRadius: '6px'
                 }}>
                     {total > 0 ? `${total} ΕΚΚΡΕΜΟΤΗΤΕΣ` : 'ΟΛΑ ΟΚ'}
                 </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {patientReplied > 0 && (
-                    <AttentionItem 
-                        icon={Reply} 
-                        color="#3b82f6" 
-                        bg="#eff6ff" 
-                        label={`${patientReplied} ασθενής απάντησε`}
-                        action="ΑΠΑΝΤΗΣΤΕ ΤΩΡΑ"
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {/* Stale — no reply in 24h — most important, show first */}
+                {staleCount > 0 && (
+                    <AttentionItem
+                        icon={Send}
+                        color="#7c3aed"
+                        bg="#f5f3ff"
+                        label={`${staleCount} ασθενείς δεν απάντησαν (24h+)`}
+                        sublabel="ΑΠΟΣΤΟΛΗ FOLLOW-UP"
+                        action="Στείλε τώρα"
+                        loading={sending.followup}
+                        onClick={sendFollowUps}
+                    />
+                )}
+
+                {/* Patient replied — needs human response */}
+                {patientRepliedCount > 0 && (
+                    <AttentionItem
+                        icon={Reply}
+                        color="#3b82f6"
+                        bg="#eff6ff"
+                        label={`${patientRepliedCount} ασθενής απάντησε`}
+                        sublabel="ΑΠΑΝΤΗΣΤΕ ΤΩΡΑ"
+                        action="Δείτε"
                         onClick={() => onNavigate && onNavigate('dashboard')}
                     />
                 )}
-                {failedSms > 0 && (
-                    <AttentionItem 
-                        icon={PhoneOff} 
-                        color="#dc2626" 
-                        bg="#fef2f2" 
-                        label={`${failedSms} αποτυχία αποστολής SMS`}
-                        action="ΕΠΑΝΑΛΗΨΗ"
+
+                {/* Failed SMS */}
+                {failedSmsCount > 0 && (
+                    <AttentionItem
+                        icon={PhoneOff}
+                        color="#dc2626"
+                        bg="#fef2f2"
+                        label={`${failedSmsCount} αποτυχία αποστολής SMS`}
+                        sublabel="ΕΠΑΝΑΛΗΨΗ"
+                        action="Retry"
                         onClick={() => onNavigate && onNavigate('dashboard')}
                     />
                 )}
+
+                {/* Pending appointments */}
                 {pendingCount > 0 && (
-                    <AttentionItem 
-                        icon={Clock} 
-                        color="#d97706" 
-                        bg="#fffbeb" 
+                    <AttentionItem
+                        icon={Clock}
+                        color="#d97706"
+                        bg="#fffbeb"
                         label={`${pendingCount} εκκρεμή ραντεβού`}
-                        action="ΔΕΙΤΕ ΤΑ ΡΑΝΤΕΒΟΥ"
+                        sublabel="ΕΠΙΒΕΒΑΙΩΣΗ"
+                        action="Δείτε"
                         onClick={() => onNavigate && onNavigate('appointments')}
                     />
                 )}
+
                 {total === 0 && (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.8rem' }}>
+                    <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.78rem' }}>
                         Δεν υπάρχουν εκκρεμότητες 🎉
                     </div>
                 )}
