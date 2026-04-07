@@ -4,19 +4,20 @@ services:
     env: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npx prisma generate
+    buildCommand: npm install && npm run prisma:generate
     startCommand: node index.js
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        sync: false          # Paste your Neon postgres URL here
+        sync: false
       - key: REDIS_URL
-        sync: false          # Paste your Upstash redis URL here
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: DB_ENCRYPTION_KEY
         sync: false
       - key: FRONTEND_URL
-        sync: false          # https://your-app.vercel.app
+        sync: false
       - key: NODE_ENV
         value: production
       - key: GEMINI_API_KEY
@@ -24,6 +25,8 @@ services:
       - key: AUTOMATION_API_KEY
         sync: false
       - key: WEBHOOK_SECRET
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
         sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false

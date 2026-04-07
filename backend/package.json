@@ -9,6 +9,9 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:worker\"",
     "dev:api": "nodemon index.js",
     "dev:worker": "nodemon worker.js",
+    "prisma:generate": "prisma generate",
+    "migrate:status": "prisma migrate status",
+    "migrate:deploy": "prisma migrate deploy",
     "backfill:recovery-cases": "node scripts/backfillRecoveryCases.js",
     "test": "jest --runInBand --forceExit",
     "test:run": "jest --runInBand --forceExit --testPathPattern"
