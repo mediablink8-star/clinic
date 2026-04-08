@@ -100,13 +100,13 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
 
     return (
         <section className="animate-fade">
-            <header style={{ marginBottom: 'var(--section-gap)', padding: '2rem', background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)', borderRadius: '24px', color: 'white', boxShadow: 'var(--shadow-lg)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <header className="page-header">
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1.5px', marginBottom: '8px', color: 'white' }}>Αρχείο Ασθενών</h1>
-                        <p style={{ fontSize: '1.1rem', fontWeight: '600', opacity: 0.8 }}>Λεπτομερές ιστορικό ασθενών και στοιχεία επικοινωνίας.</p>
+                        <h1>Αρχείο Ασθενών</h1>
+                        <p style={{ fontWeight: '600', opacity: 0.8 }}>Λεπτομερές ιστορικό ασθενών και στοιχεία επικοινωνίας.</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="hidden-mobile" style={{ gap: '8px' }}>
                         <button onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
                             <Download size={16} />
                             Εξαγωγή CSV
@@ -134,12 +134,12 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                     </div>
                 ) : (
                     filtered.map((p, idx) => (
-                        <div key={p.id} className="animate-fade card-hover" style={{
+                        <div key={p.id} className="animate-fade card-hover patient-card-responsive" style={{
                             animationDelay: `${idx * 0.05}s`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '1.25rem 1.5rem',
+                            padding: '1rem 1.25rem',
                             background: 'var(--glass-surface)',
                             backdropFilter: 'blur(12px)',
                             WebkitBackdropFilter: 'blur(12px)',
@@ -148,16 +148,16 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                             boxShadow: 'var(--shadow-sm)',
                             transition: 'all 0.25s ease'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                                <div style={{ background: 'rgba(99,102,241,0.1)', width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <User color="var(--primary)" size={20} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
+                                <div style={{ background: 'rgba(99,102,241,0.1)', width: '38px', height: '38px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <User color="var(--primary)" size={18} />
                                 </div>
-                                <div>
-                                    <h3 style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--secondary)', marginBottom: '3px' }}>{p.name}</h3>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: '500' }}>{p.phone}{p.email ? ` • ${p.email}` : ''}</p>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <h3 style={{ fontWeight: '800', fontSize: '0.9rem', color: 'var(--secondary)', marginBottom: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</h3>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.phone}</p>
                                 </div>
-                                <div style={{ marginLeft: '1.5rem', padding: '4px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px' }}>
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                <div className="hidden-mobile" style={{ marginLeft: '1rem', padding: '4px 10px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px' }}>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: '700', whiteSpace: 'nowrap' }}>
                                         {p.appointments?.length || 0} ραντεβού
                                     </p>
                                 </div>

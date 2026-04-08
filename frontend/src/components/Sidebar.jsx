@@ -53,7 +53,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     width: '100%',
                     padding: '5px'
                 }}>
-                    <img src={logo} alt="Media Blink" style={{ height: '110px', width: 'auto', objectFit: 'contain' }} />
+                    <img src={logo} alt="Media Blink" style={{ height: isMobile ? '80px' : '110px', width: 'auto', objectFit: 'contain' }} />
                 </div>
             </div>
 
@@ -78,13 +78,13 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 {navSections.map((section, si) => (
                     <div key={section.label} style={{ marginBottom: si < navSections.length - 1 ? '8px' : 0 }}>
                         <div style={{
-                            fontSize: '0.65rem',
+                            fontSize: isMobile ? '0.6rem' : '0.65rem',
                             fontWeight: '800',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase',
                             color: 'var(--text-light)',
                             opacity: 0.5,
-                            padding: '10px 20px 4px 20px',
+                            padding: isMobile ? '8px 20px 4px 20px' : '10px 20px 4px 20px',
                         }}>
                             {section.label}
                         </div>

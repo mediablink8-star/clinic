@@ -23,20 +23,10 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
 
     return (
         <section className="animate-fade">
-            <header style={{
-                marginBottom: 'var(--section-gap)',
-                padding: '2rem',
-                background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)',
-                borderRadius: '24px',
-                color: 'white',
-                boxShadow: 'var(--shadow-lg)',
-                position: 'relative',
-                overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.05)'
-            }}>
+            <header className="page-header">
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                    <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1.5px', marginBottom: '8px', color: 'white' }}>Πρόγραμμα Ραντεβού</h1>
-                    <p style={{ fontSize: '1.1rem', fontWeight: '600', opacity: 0.8 }}>Διαχείριση και ανασκόπηση όλων των προγραμματισμένων επισκέψεων.</p>
+                    <h1>Πρόγραμμα Ραντεβού</h1>
+                    <p style={{ fontWeight: '600', opacity: 0.8 }}>Διαχείριση και ανασκόπηση όλων των προγραμματισμένων επισκέψεων.</p>
                 </div>
                 {/* Subtle background element */}
                 <div style={{
