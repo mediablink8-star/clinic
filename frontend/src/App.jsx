@@ -47,6 +47,7 @@ const App = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -77,11 +78,12 @@ const App = () => {
   // On mount: try to restore session
   useEffect(() => {
     const savedClinic = localStorage.getItem('clinic_data');
-    if (!savedClinic) return;
+    
+    if (!savedClinic) {
+      setAuthLoading(false);
+      return;
+    }
 
-
-        // Refresh failed — if we had a saved token try to keep session alive
-        // Only clear if we have no token at all
     // Attempt silent token refresh — cookie is sent automatically
     refreshAccessToken()
       .then(refreshedToken => {
@@ -90,10 +92,14 @@ const App = () => {
         setClinic(JSON.parse(savedClinic));
       })
       .catch(() => {
-        // Refresh failed — clear stale clinic data and show login
+        // Refresh failed — clear stale clinic data
         clearAccessToken();
         clearAuthToken();
         localStorage.removeItem('clinic_data');
+      })
+      .finally(() => {
+        // Crucial: check is done, allow UI to render
+        setAuthLoading(false);
       });
   }, []);
 
@@ -435,6 +441,24 @@ const App = () => {
   // Public Patient Booking View
   if (path === '/book') {
     return <PatientBooking />;
+  }
+
+  // Session Restoration Guard
+  if (authLoading) {
+    return (
+      <div className="splash-screen">
+        <div className="splash-logo-container">
+          <div style={{ background: 'var(--primary)', padding: '16px', borderRadius: '20px', boxShadow: '0 20px 40px var(--primary-glow)' }}>
+            <Building2 color="white" size={48} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ color: 'white', fontSize: '1.75rem', fontWeight: 900, marginBottom: '4px', letterSpacing: '-0.03em' }}>ClinicFlow</h1>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Επαλήθευση σύνδεσης...</p>
+          </div>
+          <div className="splash-spinner" />
+        </div>
+      </div>
+    );
   }
 
   // Handle other public routes if needed, otherwise check auth
