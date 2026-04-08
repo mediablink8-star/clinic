@@ -139,7 +139,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                                     }}>
                                         <AlertTriangle size={13} color="#f59e0b" style={{ flexShrink: 0, marginTop: '1px' }} />
                                         <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text)', lineHeight: 1.4 }}>
-                                            {w}
+                                            {typeof w === 'object' ? w.message : w}
                                         </span>
                                     </div>
                                 ))}
