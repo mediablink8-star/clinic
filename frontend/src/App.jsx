@@ -34,6 +34,10 @@ const App = () => {
   const queryClient = useQueryClient();
   // Simple Routing
   const [path, setPath] = useState(window.location.pathname);
+  const [clinic, setClinic] = useState(null);
+  const [token, setToken] = useState(null);
+  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
   useEffect(() => {
     const handleLocationChange = () => setPath(window.location.pathname);
@@ -41,10 +45,6 @@ const App = () => {
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
 
-  const [clinic, setClinic] = useState(null);
-  const [token, setToken] = useState(null);
-  const [currentTab, setCurrentTab] = useState('dashboard');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -61,6 +61,21 @@ const App = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const routeTab = {
+      '/dashboard': 'dashboard',
+      '/appointments': 'appointments',
+      '/patients': 'patients',
+      '/reports': 'reports',
+      '/settings': 'settings',
+      '/ai': 'ai'
+    }[path];
+
+    if (routeTab) {
+      setCurrentTab(routeTab);
+    }
+  }, [path]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -469,14 +484,7 @@ const App = () => {
     
     // If not one of the allowed public routes and not logged in, show login (default)
     // unless it's a completely unknown path
-    const publicPaths = ['/', '/login', '/register', '/reset-password', '/book'];
-    if (!publicPaths.includes(path)) {
-      return <NotFound />;
-    }
-    return <ClinicLogin onLogin={handleLogin} />;
-  }
-
-  // Filter Logic
+    const publicPaths = ['/', '/login', '/register', '/reset-password', '/book', '/dashboard', '/appointments', '/patients', '/reports', '/settings', '/ai'];
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const apts = Array.isArray(appointments) ? appointments : [];

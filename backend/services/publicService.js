@@ -34,18 +34,24 @@ async function getAvailableSlots(clinicId, dateStr) {
     const workingHours = JSON.parse(clinic.workingHours || '{}');
     const dayName = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
-    // Map full day names to shorthand used in settings if necessary
+    // Support different working-hours formats: weekdays/saturday/sunday or explicit day names.
     const dayKey = dayName === 'saturday' ? 'saturday' : (dayName === 'sunday' ? 'sunday' : 'weekdays');
-    const hours = workingHours[dayKey];
+    const titleCaseDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    const hours = workingHours[dayKey] || workingHours[dayName] || workingHours[titleCaseDay];
 
     if (!hours || hours === 'Closed') return [];
 
-    // Parse "09:00 - 18:00"
-    const [startH, endH] = hours.split(' - ').map(h => parseInt(h.split(':')[0]));
-    
-    // Get existing appointments for this day
-    const dayStart = new Date(`${dateStr}T00:00:00.000Z`);
-    const dayEnd = new Date(`${dateStr}T23:59:59.999Z`);
+    // Parse "09:00 - 18:00" or "09:00-18:00"
+    const [startStr, endStr] = hours.split('-').map(str => str.trim());
+    if (!startStr || !endStr) return [];
+
+    const [startH, endH] = [startStr, endStr].map(h => parseInt(h.split(':')[0], 10));
+    if (Number.isNaN(startH) || Number.isNaN(endH)) return [];
+
+    // Use local date boundaries for the requested day.
+    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
+    const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
     
     const appointments = await prisma.appointment.findMany({
         where: {

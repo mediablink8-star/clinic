@@ -47,7 +47,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     }
 
     // Verify patient belongs to this clinic
-    const patient = await prisma.patient.findUnique({ where: { id: patientId, clinicId } });
+    const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } });
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
@@ -80,12 +80,12 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
 async function updateAppointmentStatus({ clinicId, appointmentId, status }, actor) {
     if (!status) throw new AppError('VALIDATION_ERROR', 'status is required', 400);
 
-    const existing = await prisma.appointment.findUnique({ where: { id: appointmentId, clinicId } });
+    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId } });
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
         const updated = await tx.appointment.update({
-            where: { id: appointmentId, clinicId },
+            where: { id: appointmentId },
             data: { status }
         });
         await logAction({
@@ -104,11 +104,11 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
 }
 
 async function deleteAppointment({ clinicId, appointmentId }, actor) {
-    const existing = await prisma.appointment.findUnique({ where: { id: appointmentId, clinicId } });
+    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId } });
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
 
     await prisma.$transaction(async (tx) => {
-        await tx.appointment.delete({ where: { id: appointmentId, clinicId } });
+        await tx.appointment.delete({ where: { id: appointmentId } });
         await logAction({
             clinicId,
             userId: actor.userId,
