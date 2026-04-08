@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical, Zap } from 'lucide-react';
 import axios from 'axios';
 
@@ -64,7 +65,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
         }
     };
 
-    return (
+    return createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -131,7 +132,8 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -141,7 +143,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
         p.name?.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search)
     );
 
-    return (
+    return createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -175,7 +177,8 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                     ))}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -203,7 +206,7 @@ const SimulateCallModal = ({ onClose, clinic }) => {
         }
     };
 
-    return (
+    return createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '460px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -240,7 +243,8 @@ const SimulateCallModal = ({ onClose, clinic }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
