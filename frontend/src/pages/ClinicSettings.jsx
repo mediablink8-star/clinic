@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../lib/api';
 import {
     Save, Globe, Zap, BarChart2, Activity,
     Shield, CheckCircle, XCircle, Loader, Check,
@@ -163,14 +164,13 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTestState(prev => ({ ...prev, [testKey]: { status: 'loading', error: '', httpStatus: null } }));
 
         try {
-            const res = await axios.post(`${API_BASE}/integrations/test-webhook`, {
+            const res = await api.post('/integrations/test-webhook', {
                 url: urlToTest,
                 // Never send masked secret — let backend use stored one
                 secret: (formData.webhookSecret && !formData.webhookSecret.startsWith('****'))
                     ? formData.webhookSecret
                     : undefined
             }, {
-                headers: { 'Authorization': `Bearer ${token}` },
                 timeout: 12000 // 12s — backend takes up to 8s
             });
 

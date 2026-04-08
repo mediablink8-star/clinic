@@ -62,7 +62,7 @@ async function getAvailableSlots(clinicId, dateStr) {
         select: { startTime: true }
     });
 
-    const bookedHours = appointments.map(a => a.startTime.getUTCHours());
+    const bookedHours = appointments.map(a => a.startTime.getHours());
     
     const slots = [];
     for (let h = startH; h < endH; h++) {

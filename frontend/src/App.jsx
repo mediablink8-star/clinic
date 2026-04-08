@@ -124,7 +124,7 @@ const App = () => {
 
   // React Queries
   const { data: appointments = [], isLoading: loadingApts, refetch: refetchApts } = useQuery({
-    queryKey: ['appointments'],
+    queryKey: ['appointments', token],
     queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
@@ -485,6 +485,10 @@ const App = () => {
     // If not one of the allowed public routes and not logged in, show login (default)
     // unless it's a completely unknown path
     const publicPaths = ['/', '/login', '/register', '/reset-password', '/book', '/dashboard', '/appointments', '/patients', '/reports', '/settings', '/ai'];
+    if (publicPaths.includes(path)) return <ClinicLogin onLogin={handleLogin} />;
+    return <NotFound />;
+  }
+
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const apts = Array.isArray(appointments) ? appointments : [];
