@@ -127,7 +127,8 @@ const Dashboard = ({
     upcomingAppointments = [],
     onUpdate,
     onRefresh,
-    onNotificationAction
+    onNotificationAction,
+    isMobile = false
 }) => {
     const [hasLoaded, setHasLoaded] = React.useState(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);

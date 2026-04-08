@@ -525,6 +525,7 @@ const App = () => {
           apiUsage={apiUsage}
           spending={spending}
           loading={loading}
+          isMobile={isMobile}
           onRefresh={refreshRecovery}
           onNotificationAction={(action, data) => {
             if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
@@ -584,6 +585,7 @@ const App = () => {
           systemStats={systemStats}
           apiUsage={apiUsage}
           loading={loading}
+          isMobile={isMobile}
           warnings={systemConfigStatus.warnings || []}
           onRefresh={refreshRecovery}
           onUpdate={(updated) => {
