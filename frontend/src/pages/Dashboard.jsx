@@ -166,7 +166,7 @@ const Dashboard = ({
     const activeConversations = logsArray.filter(l => l && l.status === 'RECOVERING').length;
 
     return (
-        <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {/* MINI HEADER */}
             <div className="dashboard-header" style={{ 
                 display: 'flex', 
@@ -253,7 +253,7 @@ const Dashboard = ({
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem', flexShrink: 0 }}>
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem' }}>
                         <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
                         <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
                         <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
@@ -274,17 +274,15 @@ const Dashboard = ({
             <div className="dashboard-main-grid" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1.4fr 1fr', 
-                gap: '0.6rem',
-                flex: 1,
-                minHeight: 0
+                gap: '0.6rem'
             }}>
                 {/* Left Column */}
-                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0 }}>
-                    <div className="card-glass" style={{ borderRadius: '20px', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.5rem 0.5rem', minHeight: 0 }}>
+                        <div className="dashboard-feed-container" style={{ padding: '0 0.5rem 0.5rem' }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
                         </div>
                     </div>
@@ -295,7 +293,7 @@ const Dashboard = ({
                 </div>
 
                 {/* Right Column */}
-                <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0, overflow: 'hidden' }}>
+                <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div style={{ flexShrink: 0 }}>
                         <NeedsAttention
                             pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}
@@ -313,9 +311,9 @@ const Dashboard = ({
                         />
                     </div>
 
-                    <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
-                        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                        <div className="dashboard-actions-container">
                             <QuickActions
                                 onViewSchedule={() => setCurrentTab('appointments')}
                                 onAddPatient={() => setCurrentTab('patients')}

@@ -259,12 +259,18 @@ body::before {
   overflow-y: auto;
 }
 
-/* Dashboard-specific: lock to viewport height, no page scroll */
 .main-content:has(.dashboard-shell) {
   height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.dashboard-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 header {
@@ -824,17 +830,39 @@ input:focus, textarea:focus, select:focus {
   .quick-action-btn {
     min-width: calc(50% - 0.25rem);
   }
+
+  .dashboard-shell {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 640px) {
   .main-content {
     padding: 0.75rem;
+    height: auto !important;
+    overflow-y: visible !important;
   }
 
   .dashboard-stats-grid,
   .dashboard-skeleton__stats {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 0.5rem !important;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
   }
+  .dashboard-stats-grid::-webkit-scrollbar { display: none; }
+  .dashboard-stats-grid > * { flex: 0 0 160px; }
 
   .dashboard-header h1,
   header h1 {
