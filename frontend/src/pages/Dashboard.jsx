@@ -177,7 +177,7 @@ const Dashboard = ({
                 position: 'relative',
                 zIndex: 50
             }}>
-                <div className="dashboard-header__intro" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <div className="dashboard-header__intro hidden-mobile" style={{ flexDirection: 'column', gap: '1px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.04em', margin: 0 }}>
                             {greeting}, {clinic?.name?.match(/^(Δρ\.|Dr\.)/i) ? clinic.name : `Δρ. ${clinic?.name || 'Συνάδελφε'}`}
@@ -253,7 +253,7 @@ const Dashboard = ({
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.6rem' }}>
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
                         <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
                         <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
                         <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
@@ -274,7 +274,7 @@ const Dashboard = ({
             <div className="dashboard-main-grid" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1.4fr 1fr', 
-                gap: '0.6rem'
+                gap: '0.5rem'
             }}>
                 {/* Left Column */}
                 <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
