@@ -5,6 +5,7 @@ const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken
 const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
 const { triggerWebhook } = require('../services/webhookService');
 const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../services/emailService');
 const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
@@ -199,8 +200,15 @@ router.post('/forgot-password', asyncHandler(async (req, res) => {
 
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
 
-    // Send via Webhook (to n8n for email delivery)
-    if (user.clinic.webhookUrl) {
+    let emailSent = false;
+    try {
+        emailSent = await sendPasswordResetEmail(user.email, resetLink);
+    } catch (err) {
+        console.error('[AUTH] Failed to send direct email:', err.message);
+    }
+
+    // Fallback: Send via Webhook (to n8n) if direct email setup fails but webhooks are active
+    if (!emailSent && user.clinic.webhookUrl) {
         triggerWebhook(
             'auth.password_reset',
             {
