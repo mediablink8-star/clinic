@@ -971,3 +971,61 @@ html[data-theme="dark"] body {
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(99,102,241,0.45);
 }
+
+/* --- LOGINS MOBILE --- */
+.login-layout {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
+  overflow: hidden;
+}
+.login-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem;
+  position: relative;
+  z-index: 1;
+}
+.login-right {
+  width: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 900px) {
+  .login-layout {
+    flex-direction: column;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+  .login-left {
+    padding: 3rem 1.5rem 1.5rem;
+    flex: none;
+    align-items: center;
+    text-align: center;
+  }
+  .login-left h2 {
+    font-size: 2.2rem !important;
+  }
+  .login-left p {
+    text-align: center;
+  }
+  .login-features {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem !important;
+  }
+  .login-right {
+    width: 100%;
+    padding: 1rem;
+    align-items: flex-start;
+  }
+}

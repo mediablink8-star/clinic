@@ -83,27 +83,13 @@ const ClinicLogin = ({ onLogin }) => {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <div className="login-layout">
       {/* Background glows */}
       <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
       {/* Left panel — branding */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '4rem',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div className="login-left">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '3rem' }}>
           <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', display: 'flex' }}>
             <Building2 color="white" size={28} />
@@ -120,7 +106,7 @@ const ClinicLogin = ({ onLogin }) => {
           Διαχείριση ραντεβού, ανάκτηση χαμένων κλήσεων και αυτόματη επικοινωνία με ασθενείς — όλα σε ένα.
         </p>
 
-        <div style={{ display: 'flex', gap: '2rem', marginTop: '3rem' }}>
+        <div className="login-features" style={{ display: 'flex', gap: '2rem', marginTop: '3rem' }}>
           {[['SMS', 'Αυτόματα'], ['AI', 'Ανάλυση'], ['24/7', 'Ανάκτηση']].map(([val, lbl]) => (
             <div key={val}>
               <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-1px' }}>{val}</p>
@@ -131,15 +117,7 @@ const ClinicLogin = ({ onLogin }) => {
       </div>
 
       {/* Right panel — form */}
-      <div style={{
-        width: '480px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div className="login-right">
         <div style={{
           width: '100%',
           background: 'rgba(255,255,255,0.05)',
