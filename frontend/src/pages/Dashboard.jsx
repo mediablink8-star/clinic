@@ -173,7 +173,9 @@ const Dashboard = ({
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 padding: '0 4px',
-                flexShrink: 0
+                flexShrink: 0,
+                position: 'relative',
+                zIndex: 50
             }}>
                 <div className="dashboard-header__intro" style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -226,7 +228,9 @@ const Dashboard = ({
                         borderRadius: '12px',
                         border: '1px solid rgba(255,255,255,0.28)',
                         backdropFilter: 'blur(20px) saturate(180%)',
-                        boxShadow: 'var(--shadow-sm)'
+                        boxShadow: 'var(--shadow-sm)',
+                        position: 'relative',
+                        zIndex: 51
                     }}>
                         <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '5px 10px', fontSize: '0.78rem' }}>
                             <LineChart size={15} />
