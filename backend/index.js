@@ -77,23 +77,18 @@ app.use(cors(corsOptions));
 
 app.use(express.static('public'));
 
-/*
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000, // Increased for development/testing
-    message: { error: 'Too many requests, please try again later.' }
-});
-app.use(limiter);
-*/
 
-// Debug Logging After Parsing
-app.use((req, res, next) => {
-    if (req.url === '/api/auth/login') {
-        console.log(`[DEBUG] Login Attempt - Content-Type: ${req.headers['content-type']}`);
-        console.log(`[DEBUG] Login Attempt - Email: ${req.body?.email || 'unknown'}`);
-    }
-    next();
-});
+
+// Debug Logging (development only)
+if (process.env.NODE_ENV !== 'production') {
+    app.use((req, res, next) => {
+        if (req.url === '/api/auth/login') {
+            console.log(`[DEBUG] Login Attempt - Content-Type: ${req.headers['content-type']}`);
+            console.log(`[DEBUG] Login Attempt - Email: ${req.body?.email || 'unknown'}`);
+        }
+        next();
+    });
+}
 
 const { verifyToken } = require('./services/authService');
 const asyncHandler = require('./middleware/asyncHandler');

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { Menu } from 'lucide-react';
 import { setAuthToken, clearAuthToken } from './lib/api';
 
@@ -70,6 +71,8 @@ const App = () => {
   const [newAppt, setNewAppt] = useState({ patientId: '', reason: '', date: '', time: '' });
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const analysisTimeoutRef = useRef(null);
 
   // On mount: try to restore session
   useEffect(() => {
@@ -331,26 +334,26 @@ const App = () => {
     queryClient.clear();
   };
 
-  let analysisTimeout = null;
-  const handleAnalyze = (reason) => {
+  const handleAnalyze = useCallback((reason) => {
     if (reason.length < 10) return;
-    if (analysisTimeout) clearTimeout(analysisTimeout);
-    
-    analysisTimeout = setTimeout(async () => {
+    if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
+    analysisTimeoutRef.current = setTimeout(async () => {
       setAnalyzing(true);
       try {
         const headers = { 'Authorization': `Bearer ${token}` };
         const resp = await axios.post(`${API_BASE}/analysis/analyze`, { reason }, { headers });
         setAnalysis(resp.data);
       } catch (err) {
-        console.error("AI analysis failed:", err);
+        console.error('AI analysis failed:', err);
       } finally {
         setAnalyzing(false);
       }
     }, 800);
-  };
+  }, [token]);
 
   const handleBook = async () => {
+    if (booking) return;
+    setBooking(true);
     try {
       const startTime = new Date(`${newAppt.date}T${newAppt.time}`);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
@@ -368,8 +371,12 @@ const App = () => {
       setNewAppt({ patientId: '', reason: '', date: '', time: '' });
       setAnalysis(null);
       refetchApts();
+      toast.success('Το ραντεβού καταχωρήθηκε!');
     } catch (err) {
-      alert("Σφάλμα κατά την κράτηση!");
+      const msg = err.response?.data?.error || 'Σφάλμα κατά την κράτηση ραντεβού.';
+      toast.error(msg);
+    } finally {
+      setBooking(false);
     }
   };
 
@@ -380,21 +387,47 @@ const App = () => {
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       refetchApts();
+      toast.success('Ραντεβού επιβεβαιώθηκε!');
     } catch (err) {
       console.error('Confirm failed:', err);
+      toast.error('Αποτυχία επιβεβαίωσης.');
       refetchApts();
     }
   };
 
   const handleCancelAppointment = async (id) => {
-    if (!window.confirm('Να ακυρωθεί το ραντεβού;')) return;
+    const confirmed = await new Promise(resolve => {
+      toast(
+        (t) => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
+            Ακύρωση ραντεβού;
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(true); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
+            >
+              Ναι
+            </button>
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(false); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+            >
+              Όχι
+            </button>
+          </span>
+        ),
+        { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
+      );
+    });
+    if (!confirmed) return;
     try {
       await axios.delete(`${API_BASE}/appointments/${id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       refetchApts();
+      toast.success('Ραντεβού ακυρώθηκε.');
     } catch (err) {
       console.error('Cancel failed:', err);
+      toast.error('Αποτυχία ακύρωσης.');
       refetchApts();
     }
   };
@@ -474,12 +507,16 @@ const App = () => {
             if (action === 'view_appointments') handleSetCurrentTab('appointments');
             if (action === 'retry_sms' && data?.id) {
               axios.post(`${API_BASE}/recovery/${data.id}/retry`, {}, { headers: getHeaders() })
-                .then(() => { refetchLog(); refetchStats(); }).catch(() => {});
+                .then(() => { refetchLog(); refetchStats(); toast.success('SMS επαναστάλθηκε!'); })
+                .catch(() => toast.error('Αποτυχία επανάληψης SMS.'));
             }
             if (action === 'followup' && Array.isArray(data)) {
               Promise.all(data.slice(0, 10).map(mc =>
                 axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, { headers: getHeaders() }).catch(() => {})
-              )).then(() => setTimeout(() => { refetchLog(); refetchStats(); }, 1000));
+              )).then(() => {
+                setTimeout(() => { refetchLog(); refetchStats(); }, 1000);
+                toast.success('Follow-up SMS εστάλη!');
+              });
             }
           }}
           onUpdate={(updated) => {
@@ -490,7 +527,7 @@ const App = () => {
           warnings={systemConfigStatus.warnings || []}
         />;
       case 'appointments':
-        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} />;
+        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} />;
       case 'patients':
         return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':
@@ -513,7 +550,7 @@ const App = () => {
           patientsCount={patientsCount}
           patients={patients}
           token={token}
-          notifications={notifications}
+          notifications={unifiedNotifications}
           recoveryStats={recoveryStats}
           recoveryLog={recoveryLog}
           recoveryInsights={recoveryInsights}
@@ -523,6 +560,8 @@ const App = () => {
           systemStats={systemStats}
           apiUsage={apiUsage}
           loading={loading}
+          warnings={systemConfigStatus.warnings || []}
+          onRefresh={refreshRecovery}
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
@@ -535,7 +574,22 @@ const App = () => {
           localStorage.setItem('clinic_data', JSON.stringify(next));
         }} />;
       default:
-        return <div>Σε κατασκευή...</div>;
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            height: '60vh', flexDirection: 'column', gap: '1rem'
+          }}>
+            <div style={{
+              padding: '2rem 2.5rem', borderRadius: '20px',
+              background: 'var(--glass-surface)', border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-md)', textAlign: 'center'
+            }}>
+              <p style={{ fontSize: '1.5rem', marginBottom: '8px' }}>🚧</p>
+              <p style={{ fontWeight: '800', color: 'var(--secondary)', marginBottom: '4px' }}>Σε κατασκευή</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-light)' }}>Αυτή η ενότητα είναι σύντομα διαθέσιμη.</p>
+            </div>
+          </div>
+        );
     }
   };
 
@@ -545,9 +599,14 @@ const App = () => {
         position="top-right"
         toastOptions={{
           duration: 3000,
-          style: { fontSize: '0.82rem', fontWeight: 700, borderRadius: '10px', padding: '10px 14px' },
-          success: { style: { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' } },
-          error:   { style: { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' } },
+          style: {
+            fontSize: '0.82rem', fontWeight: 700, borderRadius: '12px', padding: '10px 14px',
+            background: 'var(--modal-bg)', color: 'var(--text)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-lg)',
+          },
+          success: { iconTheme: { primary: '#10b981', secondary: 'white' } },
+          error:   { iconTheme: { primary: '#ef4444', secondary: 'white' } },
         }}
       />
       <Sidebar
@@ -595,7 +654,7 @@ const App = () => {
 
       {showModal && (
         <NewAppointmentModal
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setAnalysis(null); }}
           patients={patients}
           newAppt={newAppt}
           setNewAppt={setNewAppt}
@@ -603,6 +662,7 @@ const App = () => {
           analyzing={analyzing}
           analysis={analysis}
           onBook={handleBook}
+          booking={booking}
         />
       )}
     </div>

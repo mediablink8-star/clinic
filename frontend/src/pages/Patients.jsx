@@ -122,15 +122,15 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
 
             <div style={{ marginBottom: '2rem' }}>
                 <div style={{ position: 'relative', maxWidth: '400px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                    <input type="text" placeholder="Αναζήτηση ασθενή..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.875rem' }} />
+                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input type="text" placeholder="Αναζήτηση ασθενή..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem' }} />
                 </div>
             </div>
 
             <div className="appointment-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filtered.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(248,250,252,0.8)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{search ? 'Δεν βρέθηκαν αποτελέσματα.' : 'Δεν βρέθηκαν ασθενείς.'}</p>
+                    <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-subtle)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
+                        <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>{search ? 'Δεν βρέθηκαν αποτελέσματα.' : 'Δεν βρέθηκαν ασθενείς.'}</p>
                     </div>
                 ) : (
                     filtered.map((p, idx) => (
@@ -140,12 +140,12 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '1.25rem 1.5rem',
-                            background: 'rgba(255,255,255,0.7)',
+                            background: 'var(--glass-surface)',
                             backdropFilter: 'blur(12px)',
                             WebkitBackdropFilter: 'blur(12px)',
                             borderRadius: '18px',
-                            border: '1px solid rgba(255,255,255,0.6)',
-                            boxShadow: '0 4px 20px rgba(15,23,42,0.06)',
+                            border: '1px solid var(--border)',
+                            boxShadow: 'var(--shadow-sm)',
                             transition: 'all 0.25s ease'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
@@ -153,8 +153,8 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                                     <User color="var(--primary)" size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ fontWeight: '800', fontSize: '0.95rem', color: '#1e293b', marginBottom: '3px' }}>{p.name}</h3>
-                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '500' }}>{p.phone}{p.email ? ` • ${p.email}` : ''}</p>
+                                    <h3 style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--secondary)', marginBottom: '3px' }}>{p.name}</h3>
+                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: '500' }}>{p.phone}{p.email ? ` • ${p.email}` : ''}</p>
                                 </div>
                                 <div style={{ marginLeft: '1.5rem', padding: '4px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: '8px' }}>
                                     <p style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '700', whiteSpace: 'nowrap' }}>
@@ -166,7 +166,7 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
                                 <button onClick={() => setSelectedPatient(p)} title="Αποστολή Μηνύματος" style={{ padding: '8px', borderRadius: '10px', border: '1px solid rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.06)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                     <MessageSquare size={16} />
                                 </button>
-                                <button onClick={() => setCurrentTab('appointments')} title="Προβολή Ραντεβού" style={{ padding: '8px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.03)', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <button onClick={() => setCurrentTab('appointments')} title="Προβολή Ραντεβού" style={{ padding: '8px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text-light)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                                     <Clock size={16} />
                                 </button>
                             </div>

@@ -121,17 +121,6 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
                     >
                         {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                     </button>
-                    <button
-                        onClick={e => {
-                            e.stopPropagation();
-                            localStorage.setItem(STORAGE_KEY, 'true');
-                            setDismissed(true);
-                        }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px', display: 'flex' }}
-                        title="Απόκρυψη"
-                    >
-                        <X size={14} />
-                    </button>
                 </div>
             </div>
 

@@ -65,7 +65,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], recoveryInsights =
 
     return (
         <div className="card-glass" style={{
-            background: 'white', padding: '1rem 1.25rem', borderRadius: '20px',
+            padding: '1rem 1.25rem', borderRadius: '20px',
             border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)',
             display: 'flex', flexDirection: 'column', gap: '0.5rem',
         }}>

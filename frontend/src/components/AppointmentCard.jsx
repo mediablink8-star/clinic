@@ -9,17 +9,17 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
     return (
         <div className={`appointment-card animate-fade${isUrgent ? ' urgent' : ''}`} style={{
             animationDelay: delay,
-            background: 'rgba(255,255,255,0.7)',
+            background: isUrgent ? 'rgba(239,68,68,0.04)' : 'var(--glass-surface)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
             padding: '1.5rem 1.75rem',
             borderRadius: '20px',
-            border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.6)'}`,
+            border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 4px 24px rgba(15,23,42,0.06)',
+            boxShadow: 'var(--shadow-sm)',
         }}>
 
             <div className="apt-main" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flex: 1 }}>
@@ -43,18 +43,18 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
 
                 {/* Patient info */}
                     <div className="apt-patient">
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1e293b', marginBottom: '3px', letterSpacing: '-0.3px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '3px', letterSpacing: '-0.3px' }}>
                         {appointment.patient?.name || 'Άγνωστος'}
                     </h3>
-                    <p style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>
+                    <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', fontWeight: '600' }}>
                         {appointment.patient?.phone}
                     </p>
                 </div>
 
                 {/* Reason + AI tag */}
                 {appointment.reason && (
-                    <div className="apt-reason" style={{ flex: 1, paddingLeft: '1rem', borderLeft: '1px solid rgba(0,0,0,0.06)' }}>
-                        <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: '1.5', fontWeight: '500' }}>
+                    <div className="apt-reason" style={{ flex: 1, paddingLeft: '1rem', borderLeft: '1px solid var(--border)' }}>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-light)', lineHeight: '1.5', fontWeight: '500' }}>
                             {appointment.reason}
                         </p>
                         {appointment.aiClassification && (

@@ -211,7 +211,7 @@ const Dashboard = ({
                                 background: clinic?.isActive ? '#10b981' : '#dc2626',
                                 animation: clinic?.isActive ? undefined : 'none'
                             }} />
-                            {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : '⚠️ Automation paused – missed calls not being recovered'}
+                            {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : '⚠️ Αυτοματισμός σε παύση — αναπάντητες κλήσεις δεν ανακτώνται'}
                         </button>
                     </div>
                 </div>

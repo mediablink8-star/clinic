@@ -9,6 +9,7 @@ const ClinicLogin = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [forgotPassword, setForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [mfaData, setMfaData] = useState({ required: false, token: '', code: '' });
@@ -38,8 +39,7 @@ const ClinicLogin = ({ onLogin }) => {
     setError('');
     try {
         await axios.post(`${API_BASE}/auth/forgot-password`, { email: resetEmail });
-        alert('Αν το email υπάρχει στο σύστημά μας, θα λάβετε οδηγίες επαναφοράς σύντομα.');
-        setForgotPassword(false);
+        setResetSent(true);
     } catch (err) {
         setError(err.response?.data?.error || 'Σφάλμα κατά την αποστολή του email.');
     } finally {
@@ -192,6 +192,18 @@ const ClinicLogin = ({ onLogin }) => {
               {error && <div style={{ background: 'rgba(239,68,68,0.15)', color: '#fca5a5', padding: '10px 14px', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.85rem', border: '1px solid rgba(239,68,68,0.2)' }}>{error}</div>}
 
               {forgotPassword ? (
+                  resetSent ? (
+                    <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                      <p style={{ fontSize: '0.95rem', fontWeight: '800', color: 'white', marginBottom: '8px' }}>Εστάλθηκε!</p>
+                      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)', marginBottom: '1.5rem', lineHeight: 1.6 }}>Αν το email υπάρχει στο σύστημα, θα λάβετε οδηγίες επαναφοράς σύντομα.</p>
+                      <button type="button" onClick={() => { setForgotPassword(false); setResetSent(false); setResetEmail(''); }} style={{ padding: '12px 24px', borderRadius: '14px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer' }}>
+                        Επιστροφή στη Σύνδεση
+                      </button>
+                    </div>
+                  ) : (
                   <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                       <div>
                           <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
@@ -213,6 +225,7 @@ const ClinicLogin = ({ onLogin }) => {
                           Επιστροφή στη Σύνδεση
                       </button>
                   </form>
+                  )
               ) : (
                   <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {/* Email */}

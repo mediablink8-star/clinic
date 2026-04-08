@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Search, Filter, ChevronDown } from 'lucide-react';
+import { Search, Filter, ChevronDown, Plus } from 'lucide-react';
 import AppointmentCard from '../components/AppointmentCard';
 import MessageModal from '../components/MessageModal';
 
 const STATUS_OPTIONS = ['Όλα', 'CONFIRMED', 'PENDING', 'CANCELLED'];
 
-const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
+const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointment }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Όλα');
@@ -52,11 +52,11 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                 }}></div>
             </header>
 
-            <div className="appointments-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Όλα τα Ραντεβού</h2>
-                <div className="appointments-toolbar__controls" style={{ display: 'flex', gap: '10px' }}>
+            <div className="appointments-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '0.75rem' }}>
+                <h2 style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Όλα τα Ραντεβού</h2>
+                <div className="appointments-toolbar__controls" style={{ display: 'flex', gap: '10px', flex: 1, justifyContent: 'flex-end' }}>
                     <div style={{ position: 'relative' }}>
-                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input
                             type="text"
                             placeholder="Αναζήτηση..."
@@ -65,10 +65,11 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                             style={{
                                 padding: '10px 12px 10px 38px',
                                 borderRadius: '12px',
-                                border: '1px solid rgba(0,0,0,0.08)',
+                                border: '1px solid var(--input-border, rgba(0,0,0,0.08))',
                                 fontSize: '0.85rem',
                                 width: '220px',
-                                background: 'rgba(255,255,255,0.7)',
+                                background: 'var(--input-bg, rgba(255,255,255,0.7))',
+                                color: 'var(--text)',
                                 backdropFilter: 'blur(8px)',
                             }}
                         />
@@ -91,8 +92,9 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                             {showFilter && (
                                 <div style={{
                                     position: 'absolute', top: '110%', right: 0, zIndex: 50,
-                                    background: 'white', borderRadius: '12px', boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-                                    border: '1px solid rgba(0,0,0,0.06)', overflow: 'hidden', minWidth: '140px'
+                                    background: 'var(--modal-bg)',
+                                    borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
+                                    border: '1px solid var(--modal-border)', overflow: 'hidden', minWidth: '140px'
                                 }}>
                                     {STATUS_OPTIONS.map(opt => (
                                         <button key={opt} onClick={() => { setStatusFilter(opt); setShowFilter(false); }}
@@ -100,8 +102,8 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                                                 display: 'block', width: '100%', padding: '9px 16px',
                                                 textAlign: 'left', border: 'none', cursor: 'pointer',
                                                 fontSize: '0.82rem', fontWeight: '600',
-                                                background: statusFilter === opt ? 'var(--primary-light)' : 'white',
-                                                color: statusFilter === opt ? 'var(--primary)' : '#374151'
+                                                background: statusFilter === opt ? 'var(--primary-light)' : 'transparent',
+                                                color: statusFilter === opt ? 'var(--primary)' : 'var(--text)',
                                             }}>
                                             {opt === 'CONFIRMED' ? 'Επιβεβαιωμένα' : opt === 'PENDING' ? 'Εκκρεμή' : opt === 'CANCELLED' ? 'Ακυρωμένα' : opt}
                                         </button>
@@ -109,6 +111,16 @@ const Appointments = ({ appointments, token, onConfirm, onCancel }) => {
                                 </div>
                             )}
                         </div>
+                        {onNewAppointment && (
+                            <button
+                                onClick={onNewAppointment}
+                                className="btn btn-primary"
+                                style={{ padding: '10px 14px', borderRadius: '12px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                            >
+                                <Plus size={14} strokeWidth={3} />
+                                Νέο Ραντεβού
+                            </button>
+                        )}
                 </div>
             </div>
 

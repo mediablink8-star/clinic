@@ -9,7 +9,8 @@ const NewAppointmentModal = ({
     onAnalyze,
     analyzing,
     analysis,
-    onBook
+    onBook,
+    booking = false,
 }) => {
     const isValid = newAppt.patientId && newAppt.reason && newAppt.date && newAppt.time;
 
@@ -202,22 +203,28 @@ const NewAppointmentModal = ({
                     </button>
                     <button
                         onClick={onBook}
-                        disabled={!isValid}
+                        disabled={!isValid || booking}
                         style={{
                             flex: 2, padding: '12px',
                             borderRadius: '14px', border: '1px solid rgba(255,255,255,0.22)',
-                            background: isValid 
-                                ? 'linear-gradient(135deg, rgba(0,181,173,0.82) 0%, rgba(37,99,235,0.62) 100%)' 
+                            background: isValid && !booking
+                                ? 'linear-gradient(135deg, rgba(0,181,173,0.82) 0%, rgba(37,99,235,0.62) 100%)'
                                 : 'var(--glass-control-soft)',
-                            color: isValid ? 'white' : 'var(--text-light)',
+                            color: isValid && !booking ? 'white' : 'var(--text-light)',
                             fontSize: '0.9rem', fontWeight: '800',
-                            cursor: isValid ? 'pointer' : 'not-allowed',
-                            boxShadow: isValid ? '0 12px 26px -12px rgba(0,102,255,0.42), inset 0 1px 0 rgba(255,255,255,0.26)' : 'none',
+                            cursor: isValid && !booking ? 'pointer' : 'not-allowed',
+                            boxShadow: isValid && !booking ? '0 12px 26px -12px rgba(0,102,255,0.42), inset 0 1px 0 rgba(255,255,255,0.26)' : 'none',
                             transition: 'all 0.2s',
-                            backdropFilter: 'blur(18px) saturate(180%)'
+                            backdropFilter: 'blur(18px) saturate(180%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         }}
                     >
-                        Καταχώρηση Ραντεβού
+                        {booking ? (
+                            <>
+                                <svg style={{ animation: 'spin 1s linear infinite', width: 15, height: 15 }} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="10" strokeLinecap="round"/></svg>
+                                Καταχώρηση...
+                            </>
+                        ) : 'Καταχώρηση Ραντεβού'}
                     </button>
                 </div>
             </div>

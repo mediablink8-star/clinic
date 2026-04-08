@@ -40,7 +40,7 @@ const patientLabel = (log) => {
     const num = log.fromNumber || '';
     const clean = num.replace(/\D/g, '');
     if (clean.length < 6) return 'Άγνωστος';
-    const local = clean.startsWith('30') ? clean.slice(2) : clean.slice(2);
+    const local = clean.startsWith('30') ? clean.slice(2) : clean;
     return local.length >= 7
         ? `+30 ${local.slice(0, 3)} *** ${local.slice(-4)}`
         : `+30 ${local.slice(0, 3)}***`;
@@ -94,13 +94,14 @@ const RecoveryFeed = ({ logs = [], token }) => {
             <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 padding: '2rem 1rem', textAlign: 'center', gap: '0.5rem',
-                borderRadius: '14px', background: 'linear-gradient(180deg, #f8fafc, #f1f5f9)',
-                border: '1px dashed #e2e8f0'
+                borderRadius: '14px',
+                background: 'var(--bg-subtle)',
+                border: '1px dashed var(--border)'
             }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <PhoneMissed size={16} color="#10b981" />
                 </div>
-                <p style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', margin: 0 }}>Σύστημα έτοιμο</p>
+                <p style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--text-light)', margin: 0 }}>Σύστημα έτοιμο</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '3px 9px', borderRadius: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
                     <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 4px rgba(16,185,129,0.5)' }} />
                     <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#059669' }}>Παρακολούθηση ενεργή</span>
