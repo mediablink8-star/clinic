@@ -621,6 +621,10 @@ const App = () => {
 
   return (
     <div className="layout">
+      {/* Liquid Glass Background Elements */}
+      <div className="liquid-bg-blob" style={{ top: '-10%', left: '-10%', background: 'rgba(0,181,173,0.15)' }} />
+      <div className="liquid-bg-blob" style={{ bottom: '-10%', right: '-10%', background: 'rgba(99,102,241,0.12)', animationDelay: '-5s' }} />
+      
       <Toaster
         position="top-right"
         toastOptions={{

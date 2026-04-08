@@ -254,7 +254,7 @@ const Dashboard = ({
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
+                    <div className="dashboard-stats-grid animate-entry stagger-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
                         <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
                         <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
                         <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
@@ -278,7 +278,7 @@ const Dashboard = ({
                 gap: '0.5rem'
             }}>
                 {/* Left Column */}
-                <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <div className="dashboard-left-column animate-entry stagger-2" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div className="card-glass" style={{ 
                         borderRadius: '20px', 
                         display: 'flex', 
@@ -300,7 +300,7 @@ const Dashboard = ({
                 </div>
 
                 {/* Right Column */}
-                <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <div className="dashboard-right-column animate-entry stagger-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div style={{ flexShrink: 0 }}>
                         <NeedsAttention
                             pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}

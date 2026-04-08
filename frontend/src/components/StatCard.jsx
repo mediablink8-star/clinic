@@ -7,9 +7,9 @@ const StatCard = ({ icon: Icon, color, bg, title, value, subtitle, trendValue, t
 
     return (
         <div
-            className={`card-glass stat-card animate-fade group ${highlighted ? 'stat-card--highlighted' : ''}`}
+            className={`card-glass stat-card animate-entry group ${highlighted ? 'stat-card--highlighted' : ''}`}
             style={{
-                animationDelay: delay,
+                animationDelay: delay || '0.1s',
                 padding: isCompact ? '0.75rem 1rem' : '1.25rem',
                 borderRadius: isCompact ? '20px' : '24px',
                 display: 'flex',
@@ -20,7 +20,8 @@ const StatCard = ({ icon: Icon, color, bg, title, value, subtitle, trendValue, t
                 flex: 1,
                 borderLeft: highlighted ? `4px solid ${color}` : undefined,
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                background: isCompact ? 'var(--glass-surface)' : `linear-gradient(135deg, var(--glass-surface) 0%, ${color}08 100%)`
             }}
             onClick={onClick}
         >
