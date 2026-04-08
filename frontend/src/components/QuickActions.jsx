@@ -116,7 +116,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
                             <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>{message.length} chars</p>
                         </div>
                         {status && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: status.type === 'success' ? '#f0fdf4' : '#fef2f2', color: status.type === 'success' ? '#10b981' : '#ef4444', fontSize: '0.8rem', fontWeight: '600' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: status.type === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: status.type === 'success' ? '#10b981' : '#ef4444', fontSize: '0.8rem', fontWeight: '600', border: `1px solid ${status.type === 'success' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
                                 {status.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
                                 {status.text}
                             </div>
@@ -146,10 +146,10 @@ const CallPatientModal = ({ patients = [], onClose }) => {
             <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ background: '#f0fdf4', padding: '8px', borderRadius: '10px' }}><Phone size={18} color="#10b981" /></div>
+                        <div style={{ background: 'rgba(16,185,129,0.1)', padding: '8px', borderRadius: '10px' }}><Phone size={18} color="#10b981" /></div>
                         <div>
                             <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Call Patient</h2>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Select a patient to call</p>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-light)', margin: 0 }}>Select a patient to call</p>
                         </div>
                     </div>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
@@ -164,13 +164,13 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                     ) : filtered.map(p => (
                         <a key={p.id} href={`tel:${p.phone}`} onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', textDecoration: 'none', color: 'var(--text)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: '#10b981', flexShrink: 0 }}>{p.name?.charAt(0)}</div>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: '#10b981', flexShrink: 0 }}>{p.name?.charAt(0)}</div>
                                 <div>
                                     <p style={{ fontWeight: '700', fontSize: '0.875rem', margin: 0 }}>{p.name}</p>
-                                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>{p.phone}</p>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{p.phone}</p>
                                 </div>
                             </div>
-                            <div style={{ background: '#f0fdf4', padding: '7px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={15} color="#10b981" /></div>
+                            <div style={{ background: 'rgba(16,185,129,0.1)', padding: '7px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={15} color="#10b981" /></div>
                         </a>
                     ))}
                 </div>
@@ -229,8 +229,8 @@ const SimulateCallModal = ({ onClose, clinic }) => {
                         <span style={{ color: '#64748b' }}>// payload sent to n8n</span>{'\n'}
                         {JSON.stringify({ event: 'missed_call', phone, clinicId: clinic?.id || 'test-clinic', callSid: 'sim_...', timestamp: '...', source: 'simulate_button' }, null, 2)}
                     </div>
-                    {status === 'error' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: '#fef2f2', color: '#ef4444', fontSize: '0.8rem', fontWeight: '600' }}><AlertCircle size={15} /> {errMsg || 'Failed to reach webhook'}</div>}
-                    {status === 'sent' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: '#f0fdf4', color: '#10b981', fontSize: '0.8rem', fontWeight: '600' }}><CheckCircle2 size={15} /> Webhook triggered successfully!</div>}
+                    {status === 'error' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.8rem', fontWeight: '600', border: '1px solid rgba(239,68,68,0.2)' }}><AlertCircle size={15} /> {errMsg || 'Failed to reach webhook'}</div>}
+                    {status === 'sent' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '0.8rem', fontWeight: '600', border: '1px solid rgba(16,185,129,0.2)' }}><CheckCircle2 size={15} /> Webhook triggered successfully!</div>}
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Cancel</button>
                         <button onClick={handleSimulate} disabled={!url.trim() || status === 'sending' || status === 'sent'} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: 'white', cursor: (!url.trim() || status === 'sending') ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (!url.trim() || status === 'sending') ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -282,6 +282,12 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
                         icon={FlaskConical}
                         label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Δοκιμή SMS Ανάκτησης'}
                         onClick={handleTestRecovery}
+                        variant="test"
+                    />
+                    <QuickActionBtn
+                        icon={Zap}
+                        label="Προσομοίωση Webhook..."
+                        onClick={() => setShowSimulate(true)}
                         variant="test"
                     />
                 </div>
