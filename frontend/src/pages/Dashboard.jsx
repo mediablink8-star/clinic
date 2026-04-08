@@ -278,7 +278,13 @@ const Dashboard = ({
             }}>
                 {/* Left Column */}
                 <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="card-glass" style={{ 
+                        borderRadius: '20px', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        flex: isMobile ? 'none' : 1,
+                        minHeight: isMobile ? 'auto' : '520px'
+                    }}>
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
