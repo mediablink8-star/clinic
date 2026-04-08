@@ -40,6 +40,8 @@
   --glass-border: rgba(255,255,255,0.6);
   --glass-shadow: 0 24px 54px -20px rgba(15, 23, 42, 0.22), 0 12px 24px -15px rgba(15, 23, 42, 0.1);
   --glass-glow: 0 0 0 1px rgba(255,255,255,0.35), inset 0 1px 0 rgba(255,255,255,0.45);
+  --glass-prism: 1px solid rgba(255,255,255,0.1);
+  --glass-prism-shine: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
   
   /* High-Fidelity Easing (Physics-based) */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
@@ -386,36 +388,65 @@ header p { color: var(--text-light); font-weight: 550; }
   -webkit-backdrop-filter: var(--glass-strong);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-  transition: all 0.5s var(--ease-premium);
+  transition: all 0.6s var(--ease-premium);
   position: relative;
   overflow: hidden;
 }
+
+/* Frosted Grain Texture Layer */
 .card-glass::before {
   content: '';
   position: absolute;
   inset: 0;
   background: var(--glass-sheen);
+  filter: url(#glass-grain);
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.85;
   z-index: 0;
 }
+
+/* Prismatic Outer Edge & Light-Sweep Overlay */
 .card-glass::after {
   content: '';
   position: absolute;
-  inset: 1px;
+  inset: 0;
   border-radius: inherit;
-  border: 1px solid rgba(255,255,255,0.25);
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 45%, rgba(0,0,0,0.05) 100%) border-box;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
   pointer-events: none;
-  opacity: 0.9;
-  z-index: 0;
+  opacity: 0.95;
+  z-index: 1;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
 }
-.card-glass:hover {
-  transform: translateY(-4px) scale(1.005);
-  box-shadow: 0 40px 70px -30px rgba(15, 23, 42, 0.3), 0 20px 40px -20px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255,255,255,0.45);
-  border-color: rgba(255,255,255,0.8);
+
+/* Light Sweep Animation */
+.card-glass .light-sweep {
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: var(--glass-prism-shine);
+  transform: skewX(-25deg);
+  transition: none;
+  pointer-events: none;
+  z-index: 2;
 }
-.card-glass:active { transform: translateY(-1px) scale(0.995); }
+
+.card-glass:hover .light-sweep {
+  left: 150%;
+  transition: left 0.7s var(--ease-premium);
+}
+
+.card-glass:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 45px 85px -35px rgba(15, 23, 42, 0.35), 0 25px 45px -25px rgba(15, 23, 42, 0.25), var(--glass-glow);
+  border-color: rgba(255,255,255,0.85);
+}
+.card-glass:active { transform: translateY(-1px) scale(0.99); }
 
 /* ── Stat Cards ── */
 .stat-card {

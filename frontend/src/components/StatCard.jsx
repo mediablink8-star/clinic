@@ -25,6 +25,7 @@ const StatCard = ({ icon: Icon, color, bg, title, value, subtitle, trendValue, t
             }}
             onClick={onClick}
         >
+            <div className="light-sweep" />
             <div
                 aria-hidden="true"
                 style={{

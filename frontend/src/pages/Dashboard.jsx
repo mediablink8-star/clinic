@@ -286,6 +286,7 @@ const Dashboard = ({
                         flex: isMobile ? 'none' : 1,
                         minHeight: isMobile ? 'auto' : '460px'
                     }}>
+                        <div className="light-sweep" />
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>

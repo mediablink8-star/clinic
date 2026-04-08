@@ -621,9 +621,22 @@ const App = () => {
 
   return (
     <div className="layout">
-      {/* Liquid Glass Background Elements */}
-      <div className="liquid-bg-blob" style={{ top: '-10%', left: '-10%', background: 'rgba(0,181,173,0.15)' }} />
-      <div className="liquid-bg-blob" style={{ bottom: '-10%', right: '-10%', background: 'rgba(99,102,241,0.12)', animationDelay: '-5s' }} />
+      {/* High-Fidelity SVG Grain Filter (Hidden) */}
+      <svg style={{ position: 'fixed', opacity: 0, pointerEvents: 'none' }}>
+        <filter id="glass-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncA type="linear" slope="0.06" />
+          </feComponentTransfer>
+          <feBlend in="SourceGraphic" mode="overlay" />
+        </filter>
+      </svg>
+
+      {/* Liquid Glass Background Elements - Expanded for Desktop Depth */}
+      <div className="liquid-bg-blob" style={{ top: '-15%', left: '-5%', width: '70vw', height: '70vw', background: 'radial-gradient(circle, rgba(0,181,173,0.18) 0%, rgba(0,181,173,0) 70%)' }} />
+      <div className="liquid-bg-blob" style={{ bottom: '-10%', right: '-10%', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0) 70%)', animationDelay: '-5s' }} />
+      <div className="liquid-bg-blob" style={{ top: '20%', right: '10%', width: '40vw', height: '40vw', background: 'radial-gradient(circle, rgba(236,72,153,0.08) 0%, rgba(236,72,153,0) 70%)', animationDelay: '-12s' }} />
       
       <Toaster
         position="top-right"
