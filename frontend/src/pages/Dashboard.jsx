@@ -284,7 +284,7 @@ const Dashboard = ({
                         display: 'flex', 
                         flexDirection: 'column',
                         flex: isMobile ? 'none' : 1,
-                        minHeight: isMobile ? 'auto' : '520px'
+                        minHeight: isMobile ? 'auto' : '460px'
                     }}>
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
