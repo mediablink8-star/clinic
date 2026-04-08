@@ -112,7 +112,7 @@ const App = () => {
     queryKey: ['appointments'],
     queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
     retry: 1,
   });
 
@@ -128,7 +128,7 @@ const App = () => {
     queryKey: ['notifications'],
     queryFn: () => axios.get(`${API_BASE}/notifications`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
     retry: 1,
   });
 
@@ -139,7 +139,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
     staleTime: 0,
     retry: 1,
   });
@@ -151,7 +151,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
     staleTime: 0,
     retry: 1,
   });
