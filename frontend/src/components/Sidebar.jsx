@@ -61,11 +61,8 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 <button className="btn btn-primary" style={{
                     width: '100%',
                     justifyContent: 'center',
-                    padding: '14px',
+                    padding: '13px',
                     borderRadius: '14px',
-                    background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.56) 100%)',
-                    border: '1px solid rgba(255,255,255,0.26)',
-                    boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
                 }} onClick={() => {
                     onNewAppointment();
                     if (isMobile && onClose) onClose();
@@ -102,33 +99,33 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '12px',
-                                    padding: '12px 16px',
+                                    padding: '10px 14px',
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(0,181,173,0.14) 100%)'
+                                        ? 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(99,102,241,0.06) 100%)'
                                         : 'transparent',
-                                    borderRadius: '16px',
-                                    fontWeight: currentTab === item.id ? '800' : '650',
-                                    marginBottom: '4px',
+                                    borderRadius: '14px',
+                                    fontWeight: currentTab === item.id ? '700' : '600',
+                                    marginBottom: '2px',
                                     transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                    fontSize: '0.9rem',
-                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,181,173,0.18)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 10px 24px -16px rgba(0,181,173,0.6)' : 'none'
+                                    fontSize: '0.875rem',
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(99,102,241,0.15)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 4px 16px -8px rgba(99,102,241,0.35)' : 'none'
                                 }}
                             >
                                 <span className="nav-link__icon" style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '34px',
-                                    height: '34px',
-                                    borderRadius: '11px',
-                                    background: currentTab === item.id ? 'rgba(255,255,255,0.78)' : 'transparent',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '10px',
+                                    background: currentTab === item.id ? 'rgba(99,102,241,0.12)' : 'transparent',
                                     color: currentTab === item.id ? 'var(--primary)' : 'currentColor',
                                     transition: 'all 0.2s ease'
                                 }}>
-                                    <item.icon size={19} strokeWidth={currentTab === item.id ? 2.5 : 2.15} />
+                                    <item.icon size={18} strokeWidth={currentTab === item.id ? 2.4 : 2} />
                                 </span>
                                 <span style={{ flex: 1 }}>{item.label}</span>
                             </a>

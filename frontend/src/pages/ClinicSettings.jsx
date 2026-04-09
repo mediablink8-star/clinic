@@ -470,10 +470,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             <header style={{
                 marginBottom: '1.75rem',
                 padding: '1.75rem 2rem',
-                background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)',
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e1b4b 100%)',
                 borderRadius: '24px',
                 color: 'white',
-                boxShadow: 'var(--shadow-lg)',
+                boxShadow: '0 16px 40px -12px rgba(99,102,241,0.4)',
                 position: 'relative',
                 overflow: 'hidden'
             }}>

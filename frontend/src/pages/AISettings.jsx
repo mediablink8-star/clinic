@@ -137,8 +137,9 @@ const AISettings = ({ clinic, token, onUpdate }) => {
         <div className="animate-fade" style={{ maxWidth: '860px', paddingBottom: '3rem' }}>
             <header style={{
                 marginBottom: '1.75rem', padding: '1.75rem 2rem',
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
-                borderRadius: '24px', color: 'white', boxShadow: 'var(--shadow-lg)'
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e1b4b 100%)',
+                borderRadius: '24px', color: 'white',
+                boxShadow: '0 16px 40px -12px rgba(99,102,241,0.4)'
             }}>
                 <h1 style={{ fontSize: '1.9rem', fontWeight: '900', letterSpacing: '-1px', marginBottom: '4px', color: 'white' }}>
                     Ρυθμίσεις AI
