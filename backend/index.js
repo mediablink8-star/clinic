@@ -40,6 +40,15 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
     message: { error: 'Too many login attempts, please try again later.' }
 });
+
+// Very strict limiter for password reset to prevent email abuse
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many password reset requests. Please try again in an hour.' }
+});
 const cookieParser = require('cookie-parser');
 const { reminderWorker, connection } = require('./services/queueService');
 
@@ -142,7 +151,23 @@ const requireOwner = (req, res, next) => {
 // --- ROUTES ---
 
 // Public / Health
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', async (req, res) => {
+    const checks = { status: 'ok', db: 'unknown', redis: 'unknown' };
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        checks.db = 'ok';
+    } catch {
+        checks.db = 'error';
+        checks.status = 'degraded';
+    }
+    try {
+        const { connection } = require('./services/queueService');
+        checks.redis = connection && connection.status === 'ready' ? 'ok' : 'disabled';
+    } catch {
+        checks.redis = 'disabled';
+    }
+    res.status(checks.status === 'ok' ? 200 : 503).json(checks);
+});
 
 // Apply general rate limit to all /api routes
 app.use('/api', apiLimiter);

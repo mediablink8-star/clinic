@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical, Zap } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+import api from '../lib/api';
 
 const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge }) => {
     const isPrimary = variant === 'primary';
@@ -49,7 +48,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
         setSending(true);
         setStatus(null);
         try {
-            const resp = await axios.post(`${API_BASE}/messages/send`, { patientId: selected.id, message: message.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+            const resp = await api.post('/messages/send', { patientId: selected.id, message: message.trim() });
             if (resp.data.success) {
                 const s = resp.data.deliveryStatus;
                 const isError = s === 'FAILED';
@@ -257,10 +256,10 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
     const handleTestRecovery = async () => {
         setTestStatus('sending');
         try {
-            await axios.post(`${API_BASE}/recovery/test-trigger`, {
+            await api.post('/recovery/test-trigger', {
                 phone: '+30690000000',
                 callSid: `demo_${Date.now()}`
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            });
             setTestStatus('sent');
             if (onRefresh) onRefresh();
             setTimeout(() => setTestStatus(null), 3000);

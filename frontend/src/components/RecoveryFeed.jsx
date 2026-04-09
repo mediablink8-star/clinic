@@ -1,7 +1,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import { MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw, Reply } from 'lucide-react';
-import { getAccessToken } from '../lib/authSession';
+import api from '../lib/api';
 
 // Outcome-focused event config — label comes first
 const EVENT = {
@@ -64,15 +64,9 @@ const RecoveryFeed = ({ logs = [], token }) => {
     const handleRetry = async (logId) => {
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
-        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-        const authToken = token || getAccessToken();
-        if (!authToken) { toast.error('Session expired.'); return; }
         try {
-            const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
-            });
-            const data = await res.json();
+            const res = await api.post(`/recovery/${logId}/retry`);
+            const data = res.data;
             const status = data.data?.smsStatus === 'sent' ? 'sent' : 'failed';
             setRetrying(r => ({ ...r, [logId]: status }));
             if (status === 'sent') toast.success('Το SMS στάλθηκε!');

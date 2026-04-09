@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { Menu, Building2 } from 'lucide-react';
-import { setAuthToken, clearAuthToken } from './lib/api';
+import api, { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -27,8 +26,6 @@ import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const App = () => {
   const queryClient = useQueryClient();
@@ -118,41 +115,34 @@ const App = () => {
       });
   }, []);
 
-  const getHeaders = () => {
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  };
-
-  // React Queries
+  // React Queries — all use the shared `api` instance (withCredentials + auto token refresh)
   const { data: appointments = [], isLoading: loadingApts, refetch: refetchApts } = useQuery({
     queryKey: ['appointments', token],
-    queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/appointments').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: patients = [], isLoading: loadingPatients } = useQuery({
-    queryKey: ['patients'],
-    queryFn: () => axios.get(`${API_BASE}/patients`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['patients', token],
+    queryFn: () => api.get('/patients').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: rawNotifications = [], isLoading: loadingNotifs } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => axios.get(`${API_BASE}/notifications`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['notifications', token],
+    queryFn: () => api.get('/notifications').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: recoveryStats = { recovered: 0, pending: 0, revenue: 0 }, isLoading: loadingStats, refetch: refetchStats } = useQuery({
-    queryKey: ['recovery-stats'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/stats`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryKey: ['recovery-stats', token],
+    queryFn: () => api.get('/recovery/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     staleTime: 0,
@@ -160,11 +150,8 @@ const App = () => {
   });
 
   const { data: recoveryLog = [], isLoading: loadingLog, refetch: refetchLog } = useQuery({
-    queryKey: ['recovery-log'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/log?limit=200`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryKey: ['recovery-log', token],
+    queryFn: () => api.get('/recovery/log?limit=200').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     staleTime: 0,
@@ -172,51 +159,48 @@ const App = () => {
   });
 
   const { data: recoveryInsights = { staleNoReply: [], patientEngaged: [], failedSms: [], summary: {} } } = useQuery({
-    queryKey: ['recovery-insights'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/insights`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryKey: ['recovery-insights', token],
+    queryFn: () => api.get('/recovery/insights').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: apiUsage = {}, isLoading: loadingUsage } = useQuery({
-    queryKey: ['api-usage'],
-    queryFn: () => axios.get(`${API_BASE}/clinic/usage`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['api-usage', token],
+    queryFn: () => api.get('/clinic/usage').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: spending = { totalCreditsUsed: 0, monthCreditsUsed: 0, totalMessagesSent: 0 } } = useQuery({
-    queryKey: ['clinic-spending'],
-    queryFn: () => axios.get(`${API_BASE}/clinic/spending`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['clinic-spending', token],
+    queryFn: () => api.get('/clinic/spending').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
     retry: 1,
   });
 
   const { data: systemStatus = {}, isLoading: loadingSystem } = useQuery({
-    queryKey: ['system-status'],
-    queryFn: () => axios.get(`${API_BASE}/system/status`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['system-status', token],
+    queryFn: () => api.get('/system/status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
   });
 
   const { data: systemStats = {}, isLoading: loadingSystemStats } = useQuery({
-    queryKey: ['system-stats'],
-    queryFn: () => axios.get(`${API_BASE}/system/stats`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['system-stats', token],
+    queryFn: () => api.get('/system/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
     retry: 1,
   });
 
   const { data: systemConfigStatus = { warnings: [] }, isLoading: loadingConfig } = useQuery({
-    queryKey: ['system-config'],
-    queryFn: () => axios.get(`${API_BASE}/system/config-status`, { headers: getHeaders() }).then(res => res.data),
+    queryKey: ['system-config', token],
+    queryFn: () => api.get('/system/config-status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -346,7 +330,7 @@ const App = () => {
   };
 
   const handleLogout = () => {
-    axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+    api.post('/auth/logout').catch(() => {});
     clearAccessToken();
     setToken(null);
     clearAuthToken();
@@ -361,8 +345,7 @@ const App = () => {
     analysisTimeoutRef.current = setTimeout(async () => {
       setAnalyzing(true);
       try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        const resp = await axios.post(`${API_BASE}/analysis/analyze`, { reason }, { headers });
+        const resp = await api.post('/analysis/analyze', { reason });
         setAnalysis(resp.data);
       } catch (err) {
         console.error('AI analysis failed:', err);
@@ -370,7 +353,7 @@ const App = () => {
         setAnalyzing(false);
       }
     }, 800);
-  }, [token]);
+  }, []);
 
   const handleBook = async () => {
     if (booking) return;
@@ -379,13 +362,11 @@ const App = () => {
       const startTime = new Date(`${newAppt.date}T${newAppt.time}`);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
-      await axios.post(`${API_BASE}/appointments`, {
+      await api.post('/appointments', {
         patientId: newAppt.patientId,
         reason: newAppt.reason,
         startTime,
         endTime
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       setShowModal(false);
@@ -403,10 +384,7 @@ const App = () => {
 
   const handleConfirmAppointment = async (id) => {
     try {
-      await axios.put(`${API_BASE}/appointments/${id}/status`,
-        { status: 'CONFIRMED' },
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      await api.put(`/appointments/${id}/status`, { status: 'CONFIRMED' });
       refetchApts();
       toast.success('Ραντεβού επιβεβαιώθηκε!');
     } catch (err) {
@@ -441,9 +419,7 @@ const App = () => {
     });
     if (!confirmed) return;
     try {
-      await axios.delete(`${API_BASE}/appointments/${id}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      await api.delete(`/appointments/${id}`);
       refetchApts();
       toast.success('Ραντεβού ακυρώθηκε.');
     } catch (err) {
@@ -543,13 +519,13 @@ const App = () => {
             if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
             if (action === 'view_appointments') handleSetCurrentTab('appointments');
             if (action === 'retry_sms' && data?.id) {
-              axios.post(`${API_BASE}/recovery/${data.id}/retry`, {}, { headers: getHeaders() })
+              api.post(`/recovery/${data.id}/retry`)
                 .then(() => { refetchLog(); refetchStats(); toast.success('SMS επαναστάλθηκε!'); })
                 .catch(() => toast.error('Αποτυχία επανάληψης SMS.'));
             }
             if (action === 'followup' && Array.isArray(data)) {
               Promise.all(data.slice(0, 10).map(mc =>
-                axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, { headers: getHeaders() }).catch(() => {})
+                api.post(`/recovery/${mc.id}/followup`).catch(() => {})
               )).then(() => {
                 setTimeout(() => { refetchLog(); refetchStats(); }, 1000);
                 toast.success('Follow-up SMS εστάλη!');

@@ -15,10 +15,8 @@ import {
     Power,
     Check
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import StatCard from '../components/StatCard';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import NeedsAttention from '../components/NeedsAttention';
@@ -154,10 +152,7 @@ const Dashboard = ({
         const nextState = !clinic?.isActive;
         if (onUpdate) onUpdate({ isActive: nextState });
         try {
-            await axios.post(`${API_BASE}/clinic/toggle-status`, 
-                { isActive: nextState }, 
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await api.post('/clinic/toggle-status', { isActive: nextState });
         } catch (err) {
             if (onUpdate) onUpdate({ isActive: !nextState });
             console.error("Status toggle failed:", err);

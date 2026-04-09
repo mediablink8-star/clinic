@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Lock, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const ResetPassword = () => {
   const [token, setToken] = useState('');
@@ -36,7 +34,7 @@ const ResetPassword = () => {
     setLoading(true);
     setError('');
     try {
-      await axios.post(`${API_BASE}/auth/reset-password`, { token, password });
+      await api.post('/auth/reset-password', { token, password });
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Σφάλμα κατά την επαναφορά. Το διακριτικό μπορεί να έχει λήξει.');

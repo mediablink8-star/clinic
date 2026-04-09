@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Building2, Mail, Lock, Phone, ArrowRight, CheckCircle2 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const ClinicRegister = ({ onRegister }) => {
   const [formData, setFormData] = useState({
@@ -34,7 +32,7 @@ const ClinicRegister = ({ onRegister }) => {
         ...formData,
         phone: formData.phone.replace(/[\s()-]/g, '')
       };
-      const resp = await axios.post(`${API_BASE}/auth/register`, payload, { withCredentials: true });
+      const resp = await api.post('/auth/register', payload);
       setSuccess(true);
       // Optional: Auto-login after 2 seconds or let user click a button
       setTimeout(() => {

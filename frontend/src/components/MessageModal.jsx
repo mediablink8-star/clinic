@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Send, X, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { getAccessToken } from '../lib/authSession';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+import api from '../lib/api';
 
 const MessageModal = ({ isOpen, onClose, patient, token }) => {
   const [message, setMessage] = useState('');
@@ -14,19 +11,12 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
 
   const handleSend = async () => {
     if (!message.trim()) return;
-    const authToken = token || getAccessToken();
-    if (!authToken) {
-      setStatus({ type: 'error', text: 'Η συνεδρία σας έληξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.' });
-      return;
-    }
     setSending(true);
     setStatus({ type: null, text: '' });
     try {
-      const resp = await axios.post(`${API_BASE}/messages/send`, {
+      const resp = await api.post('/messages/send', {
         patientId: patient.id,
         message: message.trim()
-      }, {
-        headers: { Authorization: `Bearer ${authToken}` }
       });
 
       if (resp.data.success) {

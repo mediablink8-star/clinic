@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin } from 'lucide-react';
 
 const PatientBooking = () => {
@@ -12,14 +12,12 @@ const PatientBooking = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-
     useEffect(() => {
         const fetchSlots = async () => {
             if (!formData.date || !clinicId) return;
             setSlotsLoading(true);
             try {
-                const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}`);
+                const resp = await api.get(`/public/clinic/${clinicId}/slots?date=${formData.date}`);
                 setAvailableSlots(resp.data.data);
             } catch (err) {
                 console.error("Failed to fetch slots:", err);
@@ -33,7 +31,7 @@ const PatientBooking = () => {
     useEffect(() => {
         const fetchClinic = async () => {
             try {
-                const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}`);
+                const resp = await api.get(`/public/clinic/${clinicId}`);
                 setClinic(resp.data);
             } catch (err) {
                 setError("Το ιατρείο δεν βρέθηκε.");
@@ -48,7 +46,7 @@ const PatientBooking = () => {
         setError(null);
         try {
             const startTime = new Date(`${formData.date}T${formData.time}`);
-            await axios.post(`${API_BASE}/public/book`, { ...formData, clinicId, startTime });
+            await api.post('/public/book', { ...formData, clinicId, startTime });
             setStep(3);
         } catch (err) {
             if (err.response?.status === 409) {

@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Database, Plus, ShieldCheck, TrendingUp, Search } from 'lucide-react';
-import { getAccessToken } from '../lib/authSession';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 export default function AdminDashboard({ token }) {
     const [clinics, setClinics] = useState([]);
@@ -18,16 +15,10 @@ export default function AdminDashboard({ token }) {
     }, []);
 
     const fetchUsage = async () => {
-        const authToken = token || getAccessToken();
-        if (!authToken) {
-            setLoading(false);
-            return;
-        }
         try {
-            const config = { headers: { Authorization: `Bearer ${authToken}` } };
             const [usageRes, logsRes] = await Promise.all([
-                axios.get(`${API_BASE}/admin/usage`, config),
-                axios.get(`${API_BASE}/admin/logs`, config)
+                api.get('/admin/usage'),
+                api.get('/admin/logs')
             ]);
             setClinics(usageRes.data);
             setLogs(logsRes.data);
@@ -39,16 +30,11 @@ export default function AdminDashboard({ token }) {
     };
 
     const handleTopup = async (clinicId) => {
-        const authToken = token || getAccessToken();
-        if (!authToken) {
-            alert('Session expired. Refresh the page and try again.');
-            return;
-        }
         try {
-            await axios.post(`${API_BASE}/admin/add-credits`, {
+            await api.post('/admin/add-credits', {
                 clinicId,
                 amount: topupAmount
-            }, { headers: { Authorization: `Bearer ${authToken}` } });
+            });
             fetchUsage();
             setSelectedClinic(null);
             alert('Credits added successfully!');

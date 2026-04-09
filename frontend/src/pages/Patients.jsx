@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { User, Clock, Search, MessageSquare, UserPlus, X, Download } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import MessageModal from '../components/MessageModal';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const NewPatientModal = ({ onClose, onCreated, token }) => {
     const [form, setForm] = useState({ name: '', phone: '', email: '' });
@@ -19,9 +17,7 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post(`${API_BASE}/patients`, form, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/patients', form);
             onCreated();
             onClose();
         } catch (err) {

@@ -32,7 +32,10 @@ async function getAvailableSlots(clinicId, dateStr) {
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
     const workingHours = JSON.parse(clinic.workingHours || '{}');
-    const dayName = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    // Parse date parts directly to avoid UTC-vs-local day-of-week mismatch
+    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
+    const localDate = new Date(year, month - 1, day);
+    const dayName = localDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
     // Support different working-hours formats: weekdays/saturday/sunday or explicit day names.
     const dayKey = dayName === 'saturday' ? 'saturday' : (dayName === 'sunday' ? 'sunday' : 'weekdays');
@@ -49,7 +52,6 @@ async function getAvailableSlots(clinicId, dateStr) {
     if (Number.isNaN(startH) || Number.isNaN(endH)) return [];
 
     // Use local date boundaries for the requested day.
-    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
     const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
     const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
     

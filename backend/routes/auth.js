@@ -9,9 +9,18 @@ const { sendPasswordResetEmail } = require('../services/emailService');
 const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
+const rateLimit = require('express-rate-limit');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
+
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many password reset requests. Please try again in an hour.' }
+});
 
 const isProduction = process.env.NODE_ENV === 'production';
 const refreshCookieMaxAge = 7 * 24 * 60 * 60 * 1000;
@@ -174,7 +183,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/forgot-password', asyncHandler(async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, res) => {
     const { email } = req.body;
     
     const user = await prisma.user.findUnique({ 

@@ -1,9 +1,7 @@
 import { AlertCircle, ChevronRight, Clock, Reply, PhoneOff, Send } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const AttentionItem = ({ icon: Icon, color, bg, label, sublabel, action, onClick, loading }) => (
     <div
@@ -52,9 +50,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], recoveryInsights =
         let sent = 0;
         for (const mc of staleNoReply.slice(0, 10)) {
             try {
-                await axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post(`/recovery/${mc.id}/followup`);
                 sent++;
             } catch { /* continue */ }
         }

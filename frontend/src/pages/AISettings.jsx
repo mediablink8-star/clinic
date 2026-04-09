@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Brain, Key, Activity, Save, Check } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
@@ -95,7 +93,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     };
 
     useEffect(() => {
-        axios.get(`${API_BASE}/system/status`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/system/status')
             .then(r => setSystemStatus(r.data))
             .catch(() => {});
     }, []);
@@ -105,9 +103,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
 
     const handleTestAI = async () => {        setAiTest({ status: 'loading', latency: null });
         try {
-            const res = await axios.post(`${API_BASE}/integrations/test-ai`,
-                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini },
-                { headers: { Authorization: `Bearer ${token}` } });
+            const res = await api.post('/integrations/test-ai',
+                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini });
             if (res.data.success) { setAiTest({ status: 'connected', latency: res.data.latency }); showToast('AI Provider connected!'); }
             else { setAiTest({ status: 'failed', error: res.data.error }); showToast(res.data.error || 'Connection failed.', 'error'); }
         } catch (e) { setAiTest({ status: 'failed', error: e.message }); showToast('Connection failed.', 'error'); }
@@ -116,9 +113,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const handleSaveAIKey = async () => {
         setAiSaving(true);
         try {
-            await axios.post(`${API_BASE}/integrations/save-ai-key`,
-                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini },
-                { headers: { Authorization: `Bearer ${token}` } });
+            await api.post('/integrations/save-ai-key',
+                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini });
             showToast('AI Key saved!');
         } catch (err) {
             if (err.response?.status === 401) { window.location.reload(); }
@@ -129,8 +125,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const handleSaveAiConfig = async () => {
         setAiConfigSaving(true);
         try {
-            await axios.put(`${API_BASE}/clinic/ai-config`, formData.aiConfig,
-                { headers: { Authorization: `Bearer ${token}` } });
+            await api.put('/clinic/ai-config', formData.aiConfig);
             showToast('AI Configuration updated!');
             if (onUpdate) onUpdate({ aiConfig: JSON.stringify(formData.aiConfig) });
         } catch (err) {

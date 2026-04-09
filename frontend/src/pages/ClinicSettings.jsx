@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import api from '../lib/api';
 import {
     Save, Globe, Zap, BarChart2, Activity,
@@ -7,11 +6,6 @@ import {
     Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
-
-/* ─────────────────────────────────────────────────────────
-   Layout primitives
- ───────────────────────────────────────────────────────── */
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
         background: 'var(--card-bg)',
@@ -221,7 +215,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         fetchUsage();
         fetchTeam();
         // Always fetch fresh clinic data from DB to get webhook URLs and API keys
-        axios.get(`${API_BASE}/clinic`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/clinic')
             .then(res => {
                 const fresh = res.data;
                 setFormData(prev => ({
@@ -296,7 +290,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 webhookDirectSms: formData.webhookDirectSms,
                 webhookInboundSms: formData.webhookInboundSms
             };
-            await axios.post(`${API_BASE}/integrations/save-webhook`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
+            await api.post('/integrations/save-webhook', payload);
             showToast('Webhook settings saved!');
             if (onUpdate) onUpdate(payload);
         } catch (err) {
@@ -321,13 +315,13 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setSavingInfo(true);
         setInfoSaved(false);
         try {
-            await axios.put(`${API_BASE}/clinic/settings`, {
+            await api.put('/clinic/settings', {
                 name: formData.name,
                 phone: formData.phone,
                 email: formData.email,
                 location: formData.location,
                 timezone: formData.timezone
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
+            });
             setInfoSaved(true);
             showToast('Clinic information updated!');
             if (onUpdate) onUpdate(formData);
@@ -341,7 +335,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const fetchTeam = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/team`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await api.get('/team');
             setTeamMembers(res.data);
         } catch { /* silently fail */ }
     };
@@ -355,7 +349,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
         setInviteLoading(true);
         try {
-            await axios.post(`${API_BASE}/team`, inviteForm, { headers: { Authorization: `Bearer ${token}` } });
+            await api.post('/team', inviteForm);
             showToast('Μέλος προστέθηκε!');
             setShowInvite(false);
             setInviteForm({ name: '', email: '', role: 'RECEPTIONIST', password: '' });
@@ -370,7 +364,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const handleRemoveMember = async (id, email) => {
         if (!window.confirm(`Αφαίρεση ${email};`)) return;
         try {
-            await axios.delete(`${API_BASE}/team/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+            await api.delete(`/team/${id}`);
             showToast('Μέλος αφαιρέθηκε.');
             fetchTeam();
         } catch (err) {
@@ -380,7 +374,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleChangeRole = async (id, role) => {
         try {
-            await axios.put(`${API_BASE}/team/${id}`, { role }, { headers: { Authorization: `Bearer ${token}` } });
+            await api.put(`/team/${id}`, { role });
             showToast('Ρόλος ενημερώθηκε.');
             fetchTeam();
         } catch (err) {
@@ -390,9 +384,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const fetchLogs = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/audit-logs`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get('/audit-logs');
             setLogs(res.data);
         } catch (err) {
             console.error('Failed to fetch audit logs:', err);
@@ -401,9 +393,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const fetchUsage = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/clinic/usage`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get('/clinic/usage');
             setUsageData(res.data);
         } catch (err) {
             console.error('Failed to fetch usage data:', err);
@@ -440,9 +430,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleStartMfaSetup = async () => {
         try {
-            const res = await axios.post(`${API_BASE}/auth/mfa/setup`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.post('/auth/mfa/setup');
             setMfaSetup({ ...mfaSetup, step: 'QR', secret: res.data.secret, qrImageUrl: res.data.qrImageUrl });
         } catch {
             showToast('Failed to start MFA setup.', 'error');
@@ -451,10 +439,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleVerifyMfa = async () => {
         try {
-            await axios.post(`${API_BASE}/auth/mfa/verify`, {
+            await api.post('/auth/mfa/verify', {
                 secret: mfaSetup.secret,
                 code: mfaSetup.code
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
+            });
             showToast('MFA enabled successfully!');
             setMfaSetup({ step: '', secret: '', qrImageUrl: '', code: '' });
             if (onUpdate) onUpdate({ mfaEnabled: true });
@@ -466,9 +454,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const handleDisableMfa = async () => {
         if (!window.confirm('Are you sure you want to disable MFA?')) return;
         try {
-            await axios.post(`${API_BASE}/auth/mfa/disable`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await api.post('/auth/mfa/disable');
             showToast('MFA disabled.');
             if (onUpdate) onUpdate({ mfaEnabled: false });
         } catch {
