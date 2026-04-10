@@ -35,7 +35,6 @@ const reminderQueue = new Queue('reminders', {
 // 2. Define Worker Logic
 const reminderWorker = new Worker('reminders', async (job) => {
     const { notificationId } = job.data;
-    console.log(`[BullMQ] Processing notification ${notificationId}...`);
 
     // All business logic lives in notificationService
     const { processNotification } = require('./notificationService');
@@ -44,7 +43,6 @@ const reminderWorker = new Worker('reminders', async (job) => {
     if (!result.success) {
         console.warn(`[BullMQ] Notification ${notificationId} skipped: ${result.reason}`);
     }
-
     return result;
 }, {
     connection,
@@ -55,9 +53,7 @@ const reminderWorker = new Worker('reminders', async (job) => {
 
 const queueEvents = new QueueEvents('reminders', { connection });
 
-queueEvents.on('completed', ({ jobId }) => {
-    console.log(`[BullMQ] Job ${jobId} completed successfully`);
-});
+queueEvents.on('completed', () => {});
 
 queueEvents.on('failed', ({ jobId, failedReason }) => {
     console.error(`[BullMQ] Job ${jobId} failed: ${failedReason}`);
@@ -65,8 +61,7 @@ queueEvents.on('failed', ({ jobId, failedReason }) => {
 
 const safeAddReminder = async (data) => {
     if (connection.status !== 'ready') {
-        console.error(`[Queue] Redis is not ready. Delaying background job.`);
-        // Note: BullMQ handles queueing even offline, but we add a warning.
+        console.warn(`[Queue] Redis is not ready. Job may be delayed.`);
     }
     try {
         return await reminderQueue.add('reminder-job', data);

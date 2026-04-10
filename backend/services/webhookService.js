@@ -67,7 +67,6 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
 
     if (!targetUrl) {
-        console.log(`[Webhook] Skipped: No webhookUrl configured for event ${eventType}.`);
         return { success: false, reason: 'No URL' };
     }
 
@@ -94,17 +93,13 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`[Webhook] ${eventType} → attempt ${attempt}/${maxRetries} to ${targetUrl}`);
             await sendOnce(targetUrl, body, headers);
             const duration = Date.now() - startTime;
-            console.log(`[Webhook] ${eventType} delivered in ${duration}ms (attempt ${attempt})`);
             return { success: true, duration, attempts: attempt };
         } catch (err) {
             lastError = err;
-            console.warn(`[Webhook] ${eventType} attempt ${attempt} failed: ${err.message}`);
             if (attempt < maxRetries) {
-                const delay = baseDelay * Math.pow(2, attempt - 1); // 500, 1000, 2000...
-                console.log(`[Webhook] Retrying in ${delay}ms...`);
+                const delay = baseDelay * Math.pow(2, attempt - 1);
                 await sleep(delay);
             }
         }
@@ -115,7 +110,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     return { success: false, error: lastError.message, duration, attempts: maxRetries };
 }
 
-module.exports = { triggerWebhook };
+
 
 /**
  * Forwards an inbound message (e.g. from WhatsApp) to the clinic's configured webhook URL.

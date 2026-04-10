@@ -4,11 +4,10 @@ const prisma = require('../services/prisma');
 const { triggerWebhook } = require('../services/webhookService');
 const asyncHandler = require('../middleware/asyncHandler');
 
-router.post('/simulate-vapi', asyncHandler(async (req, res) => {
-    // req.clinic and req.clinicId are now attached by mandatory requireClinic middleware in index.js
+router.post('/simulate-booking', asyncHandler(async (req, res) => {
     const clinic = req.clinic;
 
-    // Mock Vapi Payload
+    // Mock booking payload for testing
     const mockPayload = {
         message: {
             type: "tool-calls",
@@ -28,12 +27,7 @@ router.post('/simulate-vapi', asyncHandler(async (req, res) => {
         }
     };
 
-    console.log(`[TEST] Simulating Vapi Call for ${clinic.name}...`);
 
-    // We can forward this to the actual Vapi route handler logic
-    // OR just duplicate the logic here for safety/simplicity in testing
-    // Let's call the internal logic by fetch or just execute the creation directly.
-    // Executing directly is cleaner for a "Test Button".
 
     try {
         // 1. Create Appointment for TOMORROW at 10:00 AM
@@ -101,7 +95,6 @@ router.post('/simulate-vapi', asyncHandler(async (req, res) => {
         });
 
     } catch (error) {
-        console.error('[TEST] Simulation Failed:', error);
         res.status(500).json({ error: error.message });
     }
 }));

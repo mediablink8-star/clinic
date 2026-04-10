@@ -6,7 +6,6 @@ function getModel(apiKey) {
   const genAI = new GoogleGenerativeAI(apiKey || process.env.GEMINI_API_KEY);
   return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
-const clinic = require('../config/clinic.json');
 
 /**
  * Processes a Greek speech transcript from a phone call.
@@ -61,7 +60,7 @@ async function processVoiceIntent(transcript, clinic) {
 
     return cleanedResult;
   } catch (error) {
-    console.error('Voice processing error detailed:', error);
+    console.error('[VoiceProcessor] Error:', error.message);
     // Robust fallback for demos
     const normalized = transcript.toLowerCase();
     const intent = normalized.includes('κλεισ') || normalized.includes('ραντεβ') ? 'BOOK' :

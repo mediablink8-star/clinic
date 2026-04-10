@@ -41,14 +41,7 @@ const authLimiter = rateLimit({
     message: { error: 'Too many login attempts, please try again later.' }
 });
 
-// Very strict limiter for password reset to prevent email abuse
-const passwordResetLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many password reset requests. Please try again in an hour.' }
-});
+
 const cookieParser = require('cookie-parser');
 const { reminderWorker, connection } = require('./services/queueService');
 
@@ -84,20 +77,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.static('public'));
 
 
-
-// Debug Logging (development only)
-if (process.env.NODE_ENV !== 'production') {
-    app.use((req, res, next) => {
-        if (req.url === '/api/auth/login') {
-            console.log(`[DEBUG] Login Attempt - Content-Type: ${req.headers['content-type']}`);
-            console.log(`[DEBUG] Login Attempt - Email: ${req.body?.email || 'unknown'}`);
-        }
-        next();
-    });
-}
 
 const { verifyToken } = require('./services/authService');
 const asyncHandler = require('./middleware/asyncHandler');
@@ -140,13 +121,7 @@ const requireRole = (role) => {
 // Admin middleware for global control
 const requireAdmin = [requireAuth, requireRole('ADMIN')];
 
-// Owner middleware — clinic-level owner or system admin
-const requireOwner = (req, res, next) => {
-    if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
-    }
-    next();
-};
+
 
 // --- ROUTES ---
 
@@ -199,7 +174,6 @@ app.use('/api/team', requireAuth, teamRouter);
 
 // Unauthenticated Webhooks (Self-protected via HMAC inside)
 const voiceRouter = require('./routes/voice');
-const webhookAuth = require('./middleware/webhookAuth');
 app.use('/api/voice', voiceRouter);
 
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
@@ -209,6 +183,7 @@ const providerWebhooksRouter = require('./routes/providerWebhooks');
 app.use('/api/webhook/provider', webhookLimiter, providerWebhooksRouter);
 
 // --- WEBHOOK ROUTES ---
+const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
 

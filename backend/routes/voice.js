@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
 const asyncHandler = require('../middleware/asyncHandler');
+const { processVoiceIntent } = require('../services/voiceProcessor');
 
 router.post('/twilio', asyncHandler(async (req, res) => {
     const twilio = require('twilio');
@@ -33,7 +34,6 @@ router.post('/twilio', asyncHandler(async (req, res) => {
         // Process speech
         try {
             const result = await processVoiceIntent(SpeechResult, clinic);
-            console.log(`[TWILIO VOICE] Intent: ${result.intent} from ${From}`);
             
             twiml.say({ language: 'el-GR' }, result.suggestedResponse);
             
@@ -48,11 +48,9 @@ router.post('/twilio', asyncHandler(async (req, res) => {
                 // Small prompt to continue the conversation
                 gather.say({ language: 'el-GR' }, 'Θέλετε κάτι άλλο;');
             } else {
-                // Example of ending or transferring call
-                // twiml.say({ language: 'el-GR' }, 'Σας ευχαριστούμε.');
+                twiml.say({ language: 'el-GR' }, 'Σας ευχαριστούμε. Καλή σας μέρα!');
             }
-        } catch (err) {
-            console.error(err);
+        } catch {
             twiml.say({ language: 'el-GR' }, 'Συγγνώμη, δεν σας κατάλαβα. Παρακαλώ επαναλάβετε.');
             twiml.redirect(`/api/voice/twilio?clinicId=${clinic.id}`);
         }
@@ -60,6 +58,5 @@ router.post('/twilio', asyncHandler(async (req, res) => {
 
     res.type('text/xml').send(twiml.toString());
 }));
-
 
 module.exports = router;

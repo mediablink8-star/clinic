@@ -16,7 +16,6 @@ const getTransporter = async () => {
 
     // Development auto-fallback for easy local testing without credentials
     if (process.env.NODE_ENV !== 'production') {
-        console.log('[EmailService] SMTP credentials missing. Using Ethereal fallback for development.');
         const testAccount = await nodemailer.createTestAccount();
         return nodemailer.createTransport({
             host: 'smtp.ethereal.email',

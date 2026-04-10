@@ -1,17 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const automationAuth = require('../middleware/automationAuth');
 const { handleMissedCall, processScheduledMissedCalls, markRecovered } = require('../services/missedCallService');
 const { getDueNotifications, processNotification } = require('../services/notificationService');
-
-/**
- * All responses follow:
- *   SUCCESS: { success: true, data: { ... } }
- *   FAILURE: { error: { code, message } }  (via global error handler + AppError)
- */
-
-router.use(automationAuth);
 
 /**
  * POST /api/automation/missed-call

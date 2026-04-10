@@ -319,7 +319,7 @@ router.post('/google', asyncHandler(async (req, res) => {
     try {
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: process.env.GOOGLE_CLIENT_ID || '825946112933-2jkgj8mj9n7lkk2p9r48m8v9n5h9j9j9.apps.googleusercontent.com',
+            audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
         const { sub: googleId, email, name, picture } = payload;
@@ -503,7 +503,6 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
         res.status(500).json({ error: 'MFA login failed' });
     }
 }));
-
 
 router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
     try {

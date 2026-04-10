@@ -19,7 +19,6 @@ import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import PatientBooking from './pages/PatientBooking';
 import NotFound from './pages/NotFound';
-import ServerError from './pages/ServerError';
 
 // Components
 import Sidebar from './components/Sidebar';
