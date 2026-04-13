@@ -373,7 +373,7 @@ const Dashboard = ({
                     </div>
 
                     <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem' }}>
-                        <SectionHeader icon={Power}>Automation & System Health</SectionHeader>
+                        <SectionHeader icon={Power}>System Health</SectionHeader>
                         <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }}>
                             Workflows: <strong>{systemStatus?.workflowsActive ? 'Active' : 'Paused'}</strong>
                             <div style={{ color: 'var(--text-light)' }}>

@@ -33,7 +33,7 @@ const Opportunities = ({ recoveryLog = [], onNavigate }) => {
                 </h3>
                 <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 4px rgba(16,185,129,0.6)' }} />
-                    Automation ενεργό
+                    Σύστημα ενεργό
                 </span>
             </div>
 
