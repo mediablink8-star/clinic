@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, PhoneCall, Zap, RefreshCw } from 'lucide-react';
+import { Brain, PhoneCall, Zap, RefreshCw, MessageSquare, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 
 const services = [
     {
@@ -12,12 +12,12 @@ const services = [
         actionTab: 'ai',
     },
     {
-        key: 'webhook',
+        key: 'platform',
         icon: Zap,
-        label: 'Συγχρονισμός Ιατρείου',
+        label: 'Platform Integrations',
         check: s => s?.webhookConfigured,
-        offlineLabel: 'Αποσυνδεδεμένο',
-        actionLabel: 'Σύνδεση',
+        offlineLabel: 'Backend config required',
+        actionLabel: 'Ρυθμίσεις',
         actionTab: 'settings',
     },
     {

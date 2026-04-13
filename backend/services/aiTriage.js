@@ -1,14 +1,14 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { decrypt } = require('./encryptionService');
 const { logAction } = require('./auditService');
+const { assertWithinAiLimit, incrementAiUsage } = require('./usageService');
 
 /**
  * Initializes the Gemini client with a specific API key.
  * @param {string} apiKey - The raw (decrypted) API key.
  * @returns {object} - The generative model instance.
  */
-function getModel(apiKey) {
-    const genAI = new GoogleGenerativeAI(apiKey || process.env.GEMINI_API_KEY);
+function getModel() {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 
@@ -20,6 +20,7 @@ function getModel(apiKey) {
  */
 async function classifyAppointment(reason, clinic) {
     try {
+        await assertWithinAiLimit(clinic.id);
         const servicesList = JSON.parse(clinic.services).map(s => s.name).join(', ');
         const aiConfig = JSON.parse(clinic.aiConfig || '{}');
 
@@ -43,9 +44,7 @@ async function classifyAppointment(reason, clinic) {
       }
     `;
 
-        const clinicKeys = JSON.parse(clinic.apiKeys || '{}');
-        const decryptedApiKey = clinicKeys.gemini ? decrypt(clinicKeys.gemini) : null;
-        const model = getModel(decryptedApiKey);
+        const model = getModel();
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
@@ -61,6 +60,7 @@ async function classifyAppointment(reason, clinic) {
             entityId: null,
             details: { priority: cleanedResult.priority }
         });
+        await incrementAiUsage(clinic.id);
 
         return cleanedResult;
     } catch (error) {

@@ -1,9 +1,9 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { decrypt } = require('./encryptionService');
 const { logAction } = require('./auditService');
+const { assertWithinAiLimit, incrementAiUsage } = require('./usageService');
 
-function getModel(apiKey) {
-  const genAI = new GoogleGenerativeAI(apiKey || process.env.GEMINI_API_KEY);
+function getModel() {
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 
@@ -13,6 +13,7 @@ function getModel(apiKey) {
  */
 async function processVoiceIntent(transcript, clinic) {
   try {
+    await assertWithinAiLimit(clinic.id);
     const aiConfig = JSON.parse(clinic.aiConfig || '{}');
     const prompt = `
       You are an AI dental receptionist for "${clinic.name}" in ${clinic.location}.
@@ -40,9 +41,7 @@ async function processVoiceIntent(transcript, clinic) {
       - Checkup or cleaning is NORMAL.
     `;
 
-    const clinicKeys = JSON.parse(clinic.apiKeys || '{}');
-    const decryptedApiKey = clinicKeys.gemini ? decrypt(clinicKeys.gemini) : null;
-    const model = getModel(decryptedApiKey);
+    const model = getModel();
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
@@ -57,6 +56,7 @@ async function processVoiceIntent(transcript, clinic) {
       entityId: null,
       details: { intent: cleanedResult.intent }
     });
+    await incrementAiUsage(clinic.id);
 
     return cleanedResult;
   } catch (error) {

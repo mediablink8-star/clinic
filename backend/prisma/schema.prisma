@@ -35,8 +35,12 @@ model Clinic {
   dailyMessageCap    Int           @default(300)
   dailyUsedCount     Int           @default(0)
   lastResetDay       DateTime      @default(now())
-  apiKeys            String       @default("{}") // Stores encrypted JSON of API keys
   aiConfig           String       @default("{}") // Stores JSON of AI configuration (tone, services, value, etc)
+  smsCount           Int           @default(0)
+  aiRequestCount     Int           @default(0)
+  lastResetDate      DateTime      @default(now())
+  smsMonthlyLimit    Int           @default(500)
+  aiMonthlyLimit     Int           @default(1000)
   timezone           String       @default("Europe/Athens")
   
   users        User[]

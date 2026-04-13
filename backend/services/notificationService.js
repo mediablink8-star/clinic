@@ -1,6 +1,7 @@
 const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
+const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 
 /**
  * Process a single queued notification job.
@@ -32,6 +33,7 @@ async function processNotification(notificationId) {
             throw new AppError('DAILY_CAP_REACHED', 'Daily message cap reached', 429);
         }
 
+        await assertWithinSmsLimit(clinic.id);
         // Deduct credits atomically with log creation
         await tx.clinic.update({
             where: { id: clinic.id },
@@ -40,6 +42,7 @@ async function processNotification(notificationId) {
                 dailyUsedCount: { increment: dailyCost }
             }
         });
+        await incrementSmsUsage(clinic.id, tx);
 
         const log = await tx.messageLog.create({
             data: { clinicId: clinic.id, type: notification.type, cost: dailyCost, status: 'PENDING' }

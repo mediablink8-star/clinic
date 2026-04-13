@@ -2,6 +2,7 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
+const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 
 async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', clinic }, actor) {
     const patient = await prisma.patient.findUnique({
@@ -12,6 +13,7 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
     if (clinic.messageCredits <= 0) {
         throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
     }
+    await assertWithinSmsLimit(clinicId);
 
     // Attempt webhook delivery — always structured, never silent
     let webhookResult = { success: true };
@@ -40,6 +42,7 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
             where: { id: clinicId },
             data: { messageCredits: { decrement: 1 }, dailyUsedCount: { increment: 1 } }
         });
+        await incrementSmsUsage(clinicId, tx);
         return tx.messageLog.create({
             data: {
                 clinicId,

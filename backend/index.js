@@ -165,10 +165,6 @@ app.use('/api/recovery', requireAuth, recoveryRouter);
 const testRouter = require('./routes/test');
 app.use('/api/test', requireAdmin, testRouter);
 
-// Integrations (Protected)
-const integrationsRouter = require('./routes/integrations');
-app.use('/api/integrations', requireAuth, integrationsRouter);
-
 const teamRouter = require('./routes/team');
 app.use('/api/team', requireAuth, teamRouter);
 
@@ -186,6 +182,9 @@ app.use('/api/webhook/provider', webhookLimiter, providerWebhooksRouter);
 const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
+
+const twilioWebhooksRouter = require('./routes/twilioWebhooks');
+app.use('/webhooks/twilio', webhookLimiter, twilioWebhooksRouter);
 
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');
@@ -247,7 +246,7 @@ app.listen(port, () => {
     console.log('\n=== System Check ===');
     console.log(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
     console.log(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
-    console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing — AI features use per-clinic keys only'}`);
+    console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing GEMINI_API_KEY'}`);
     console.log(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
     console.log(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
     console.log(`  Worker:         ✅ Running (embedded)`);

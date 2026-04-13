@@ -16,9 +16,9 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
         },
         {
             key: 'ai',
-            label: 'Σύνδεση AI (Gemini)',
+            label: 'Ενεργοποίηση AI assistant',
             done: !!(systemStatus?.aiConfigured),
-            hint: 'Ρυθμίσεις AI → Πάροχος AI',
+            hint: 'Ρυθμίσεις AI → Παραμετροποίηση συμπεριφοράς',
         },
         {
             key: 'recovery',

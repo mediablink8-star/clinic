@@ -23,8 +23,8 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
         const deliveryStatus = resp.data.deliveryStatus;
         const statusMessages = {
           SENT: 'Το μήνυμα στάλθηκε επιτυχώς!',
-          SIMULATED: 'Προσομοίωση αποστολής (δεν έχει ρυθμιστεί webhook).',
-          FAILED: 'Η αποστολή απέτυχε. Ελέγξτε τις ρυθμίσεις SMS.',
+          SIMULATED: 'Το μήνυμα καταχωρήθηκε για αποστολή.',
+          FAILED: 'Η αποστολή απέτυχε. Δοκιμάστε ξανά αργότερα.',
         };
         setStatus({ type: deliveryStatus === 'FAILED' ? 'error' : 'success', text: statusMessages[deliveryStatus] || 'Αποστολή ολοκληρώθηκε.' });
         if (deliveryStatus !== 'FAILED') {

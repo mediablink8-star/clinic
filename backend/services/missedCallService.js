@@ -7,6 +7,7 @@ const {
     recordOutboundMessageForMissedCall,
     markRecoveryCaseRecovered,
 } = require('./recoveryTrackingService');
+const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 
 async function handleMissedCall({ phone, clinicId, callSid }) {
     if (callSid) {
@@ -60,6 +61,8 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
 
     let webhookResult;
     try {
+        await assertWithinSmsLimit(clinicId);
+        await incrementSmsUsage(clinicId);
         webhookResult = await triggerWebhook(
             'missed_call.detected',
             { phone, missedCallId: missedCall.id, clinicId },
@@ -126,6 +129,8 @@ async function processScheduledMissedCalls() {
 
         let webhookResult;
         try {
+            await assertWithinSmsLimit(mc.clinicId);
+            await incrementSmsUsage(mc.clinicId);
             webhookResult = await triggerWebhook(
                 'missed_call.detected',
                 { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId },
@@ -176,6 +181,8 @@ async function retrySms({ clinicId, missedCallId }) {
 
     let webhookResult;
     try {
+        await assertWithinSmsLimit(clinicId);
+        await incrementSmsUsage(clinicId);
         webhookResult = await triggerWebhook(
             'missed_call.detected',
             { phone: mc.fromNumber, missedCallId: mc.id, clinicId },

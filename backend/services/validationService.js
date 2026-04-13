@@ -33,8 +33,7 @@ const clinicUpdateSchema = Joi.object({
     webhookInboundSms: Joi.string().uri().allow(null, ''),
     workingHours: Joi.object(),
     services: Joi.array().items(Joi.string()),
-    policies: Joi.array().items(Joi.string()),
-    apiKeys: Joi.object()
+    policies: Joi.array().items(Joi.string())
 });
 
 const clinicInfoSchema = Joi.object({
@@ -54,16 +53,6 @@ const aiConfigSchema = Joi.object({
     policies: Joi.string().allow(''),
     tone: Joi.string().valid('Professional', 'Friendly', 'Sales', 'Formal').required(),
     languages: Joi.array().items(Joi.string().valid('Greek', 'English', 'Ελληνικά', 'Αγγλικά')).min(1).required()
-});
-
-const webhookSchema = Joi.object({
-    url: Joi.string().uri().allow(null, ''),
-    secret: Joi.string().min(8).max(100).allow(null, '').message('Webhook Secret must be at least 8 characters if provided.'),
-    webhookMissedCall: Joi.string().uri().allow(null, ''),
-    webhookAppointment: Joi.string().uri().allow(null, ''),
-    webhookReminders: Joi.string().uri().allow(null, ''),
-    webhookDirectSms: Joi.string().uri().allow(null, ''),
-    webhookInboundSms: Joi.string().uri().allow(null, '')
 });
 
 const loginSchema = Joi.object({
@@ -105,7 +94,6 @@ module.exports = {
     clinicUpdateSchema,
     clinicInfoSchema,
     aiConfigSchema,
-    webhookSchema,
     loginSchema,
     resetPasswordSchema,
     registerSchema,

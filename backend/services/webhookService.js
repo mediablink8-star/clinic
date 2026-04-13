@@ -13,7 +13,7 @@ async function sendOnce(webhookUrl, body, headers) {
 
 /**
  * Builds a sanitized clinic context object safe to include in outbound webhook payloads.
- * Strips sensitive fields (apiKeys, webhookSecret, etc.) before sending.
+ * Strips sensitive fields before sending.
  * @param {object} clinic - Prisma Clinic record
  * @returns {object}
  */
