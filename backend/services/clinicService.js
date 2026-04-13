@@ -29,6 +29,13 @@ async function getClinicUsage(clinicId) {
         }
     });
     if (!usage) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+    const smsMonthlyLimit = usage.smsMonthlyLimit || DEFAULT_SMS_LIMIT;
+    const aiMonthlyLimit = usage.aiMonthlyLimit || DEFAULT_AI_LIMIT;
+    const smsUsagePercent = Math.min(100, Math.round((usage.smsCount / Math.max(1, smsMonthlyLimit)) * 100));
+    const aiUsagePercent = Math.min(100, Math.round((usage.aiRequestCount / Math.max(1, aiMonthlyLimit)) * 100));
+    const usageWarnings = [];
+    if (smsUsagePercent >= 80) usageWarnings.push({ type: 'sms', percent: smsUsagePercent, message: 'SMS usage above 80%' });
+    if (aiUsagePercent >= 80) usageWarnings.push({ type: 'ai', percent: aiUsagePercent, message: 'AI usage above 80%' });
 
     return {
         success: true,
@@ -41,8 +48,16 @@ async function getClinicUsage(clinicId) {
             smsCount: usage.smsCount,
             aiRequestCount: usage.aiRequestCount,
             lastResetDate: usage.lastResetDate,
-            smsMonthlyLimit: usage.smsMonthlyLimit || DEFAULT_SMS_LIMIT,
-            aiMonthlyLimit: usage.aiMonthlyLimit || DEFAULT_AI_LIMIT
+            smsMonthlyLimit,
+            aiMonthlyLimit,
+            smsUsagePercent,
+            aiUsagePercent,
+            usageWarnings,
+            limitsReached: {
+                sms: usage.smsCount >= smsMonthlyLimit,
+                ai: usage.aiRequestCount >= aiMonthlyLimit
+            },
+            planLabel: 'Included in your plan'
         }
     };
 }

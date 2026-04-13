@@ -34,8 +34,10 @@ async function analyzeSentiment(text, clinic) {
         if (response.includes('NEGATIVE')) return 'NEGATIVE';
         return 'NEUTRAL';
     } catch (error) {
+        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+            throw error;
+        }
         console.error('Sentiment analysis error:', error);
-        // Robust fallback
         const normalized = text.toLowerCase();
         if (normalized.includes('καλ') || normalized.includes('ευχαριστ') || normalized.includes('τελει')) return 'POSITIVE';
         if (normalized.includes('κακ') || normalized.includes('ακριβ') || normalized.includes('αργ')) return 'NEGATIVE';

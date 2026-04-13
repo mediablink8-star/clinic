@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { logAction } = require('./auditService');
 const { assertWithinAiLimit, incrementAiUsage } = require('./usageService');
+const AppError = require('../errors/AppError');
 
 /**
  * Initializes the Gemini client with a specific API key.
@@ -64,7 +65,21 @@ async function classifyAppointment(reason, clinic) {
 
         return cleanedResult;
     } catch (error) {
+        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+            throw error;
+        }
         console.error('Gemini error, using fallback:', error.message);
+        throw new AppError('AI_PROVIDER_ERROR', 'AI provider request failed', 502, { type: 'ai' });
+    }
+}
+
+async function classifyAppointmentWithFallback(reason, clinic) {
+    try {
+        return await classifyAppointment(reason, clinic);
+    } catch (error) {
+        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+            throw error;
+        }
         // Realistic fallback for mock data
         const normalized = reason.toLowerCase();
         // Better Greek keyword matching for roots
@@ -82,5 +97,5 @@ async function classifyAppointment(reason, clinic) {
     }
 }
 
-module.exports = { classifyAppointment };
+module.exports = { classifyAppointment: classifyAppointmentWithFallback };
 

@@ -233,6 +233,32 @@ if (process.env.SENTRY_BACKEND_DSN) {
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     console.error(`[ERROR] ${req.method} ${req.url} —`, err.message || err);
     const status = err.status || err.statusCode || 500;
+    if (err.code === 'USAGE_LIMIT_REACHED') {
+        return res.status(429).json({
+            error: 'USAGE_LIMIT_REACHED',
+            type: err.details?.type || 'sms'
+        });
+    }
+    if (err.code === 'TWILIO_SEND_FAILED') {
+        return res.status(502).json({
+            error: 'TWILIO_SEND_FAILED',
+            type: 'sms',
+            message: err.details?.reason || 'SMS provider failed'
+        });
+    }
+    if (err.code === 'RATE_LIMITED') {
+        return res.status(429).json({
+            error: 'RATE_LIMITED',
+            type: err.details?.type || 'sms'
+        });
+    }
+    if (err.code === 'AI_PROVIDER_ERROR') {
+        return res.status(502).json({
+            error: 'AI_PROVIDER_ERROR',
+            type: 'ai',
+            message: err.message
+        });
+    }
     res.status(status).json({
         error: err.message || 'Internal server error',
         code: err.code || 'INTERNAL_ERROR'

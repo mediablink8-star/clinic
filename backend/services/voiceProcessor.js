@@ -60,8 +60,10 @@ async function processVoiceIntent(transcript, clinic) {
 
     return cleanedResult;
   } catch (error) {
+    if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+      throw error;
+    }
     console.error('[VoiceProcessor] Error:', error.message);
-    // Robust fallback for demos
     const normalized = transcript.toLowerCase();
     const intent = normalized.includes('κλεισ') || normalized.includes('ραντεβ') ? 'BOOK' :
       normalized.includes('ακυρ') ? 'CANCEL' : 'INFO';

@@ -1,102 +1,115 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical } from 'lucide-react';
+import { RefreshCw, Send, PhoneIncoming, FlaskConical } from 'lucide-react';
 import api from '../lib/api';
 
-const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline' }) => (
-    <button onClick={onClick} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border)', background: variant === 'primary' ? 'var(--primary)' : 'var(--bg-subtle)', color: variant === 'primary' ? 'white' : 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
-        <Icon size={16} /> {label}
+const ActionButton = ({ icon: Icon, label, onClick, disabled = false, loading = false }) => (
+    <button
+        onClick={onClick}
+        disabled={disabled || loading}
+        style={{
+            width: '100%',
+            padding: '0.7rem 0.8rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+            background: disabled ? 'var(--bg-subtle)' : 'var(--card-bg)',
+            color: disabled ? 'var(--text-light)' : 'var(--text)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.8 : 1,
+            transition: 'all 0.15s ease'
+        }}
+        onMouseEnter={(e) => {
+            if (!disabled) e.currentTarget.style.background = 'var(--primary-light)';
+        }}
+        onMouseLeave={(e) => {
+            if (!disabled) e.currentTarget.style.background = 'var(--card-bg)';
+        }}
+    >
+        <Icon size={15} className={loading ? 'animate-spin' : ''} />
+        {label}
     </button>
 );
 
-const SendSMSModal = ({ patients = [], onClose }) => {
-    const [search, setSearch] = useState('');
-    const [selected, setSelected] = useState(null);
-    const [message, setMessage] = useState('');
-    const [status, setStatus] = useState(null);
+const QuickActions = ({ patients = [], onRefresh }) => {
+    const [loading, setLoading] = useState({ sms: false, missed: false, refresh: false });
+    const [notice, setNotice] = useState(null);
 
-    const filtered = patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search));
+    const setBusy = (key, value) => setLoading((prev) => ({ ...prev, [key]: value }));
+    const hasPatients = Array.isArray(patients) && patients.length > 0;
 
-    const handleSend = async () => {
-        if (!selected || !message.trim()) return;
+    const triggerTestSms = async () => {
+        if (!hasPatients) {
+            setNotice({ type: 'info', text: 'No data yet. Add a patient first to run test SMS.' });
+            return;
+        }
+        const target = patients[0];
+        setBusy('sms', true);
         try {
-            const resp = await api.post('/messages/send', { patientId: selected.id, message: message.trim() });
-            setStatus(resp.data.success ? { type: 'success', text: 'Message sent.' } : { type: 'error', text: 'Send failed.' });
-            if (resp.data.success) setTimeout(onClose, 1200);
+            await api.post('/messages/send', {
+                patientId: target.id,
+                message: 'ClinicFlow test SMS: system checks are healthy.'
+            });
+            setNotice({ type: 'success', text: `Test SMS queued for ${target.name}.` });
         } catch (err) {
-            setStatus({ type: 'error', text: err.response?.data?.error || 'Error sending message.' });
+            setNotice({ type: 'error', text: err.response?.data?.error || 'Test SMS failed.' });
+        } finally {
+            setBusy('sms', false);
         }
     };
 
-    return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'var(--modal-bg)', borderRadius: '20px', padding: '1rem', width: '100%', maxWidth: '440px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Send SMS</strong><button onClick={onClose}><X size={16} /></button></div>
-                {!selected ? (
-                    <>
-                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient..." style={{ width: '100%', marginTop: '0.75rem' }} />
-                        {filtered.map(p => <button key={p.id} onClick={() => setSelected(p)} style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: '0.5rem' }}>{p.name} ({p.phone})</button>)}
-                    </>
-                ) : (
-                    <>
-                        <p>{selected.name} ({selected.phone})</p>
-                        <textarea value={message} onChange={e => setMessage(e.target.value)} style={{ width: '100%', minHeight: '100px' }} />
-                        {status && <div style={{ color: status.type === 'success' ? '#10b981' : '#ef4444' }}>{status.text}</div>}
-                        <button className="btn btn-primary" onClick={handleSend}>Send</button>
-                    </>
-                )}
-            </div>
-        </div>,
-        document.body
-    );
-};
-
-const CallPatientModal = ({ patients = [], onClose }) => {
-    const [search, setSearch] = useState('');
-    const filtered = patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search));
-    return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'var(--modal-bg)', borderRadius: '20px', padding: '1rem', width: '100%', maxWidth: '420px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>Call Patient</strong><button onClick={onClose}><X size={16} /></button></div>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient..." style={{ width: '100%', marginTop: '0.75rem' }} />
-                {filtered.map(p => <a key={p.id} href={`tel:${p.phone}`} onClick={onClose} style={{ display: 'block', marginTop: '0.5rem' }}>{p.name} ({p.phone})</a>)}
-            </div>
-        </div>, document.body
-    );
-};
-
-const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], onRefresh }) => {
-    const [showSMS, setShowSMS] = useState(false);
-    const [showCall, setShowCall] = useState(false);
-    const [testStatus, setTestStatus] = useState(null);
-
-    const handleTestRecovery = async () => {
-        setTestStatus('sending');
+    const simulateMissedCall = async () => {
+        setBusy('missed', true);
         try {
-            await api.post('/recovery/test-trigger', { phone: '+30690000000', callSid: `demo_${Date.now()}` });
-            setTestStatus('sent');
+            await api.post('/recovery/test-trigger', {
+                phone: '+30690000000',
+                callSid: `simulate_${Date.now()}`
+            });
+            setNotice({ type: 'success', text: 'Missed call simulation executed.' });
+        } catch (err) {
+            setNotice({ type: 'error', text: err.response?.data?.error || 'Simulation failed.' });
+        } finally {
+            setBusy('missed', false);
+        }
+    };
+
+    const refreshData = async () => {
+        setBusy('refresh', true);
+        try {
             if (onRefresh) onRefresh();
-            setTimeout(() => setTestStatus(null), 2000);
-        } catch {
-            setTestStatus('error');
-            setTimeout(() => setTestStatus(null), 2000);
+            setNotice({ type: 'success', text: 'Data refresh requested.' });
+        } finally {
+            setBusy('refresh', false);
         }
     };
 
     return (
-        <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient} />
-                    <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} />
-                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <ActionButton icon={Send} label="Trigger test SMS" onClick={triggerTestSms} loading={loading.sms} />
+            <ActionButton icon={PhoneIncoming} label="Simulate missed call" onClick={simulateMissedCall} loading={loading.missed} />
+            <ActionButton icon={RefreshCw} label="Refresh data" onClick={refreshData} loading={loading.refresh} />
+            {!hasPatients && (
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', border: '1px dashed var(--border)', borderRadius: '10px', padding: '0.55rem 0.65rem' }}>
+                    No data yet. Add at least one patient to test outbound SMS.
                 </div>
-                <QuickActionBtn icon={FlaskConical} label={testStatus === 'sending' ? 'Αποστολή...' : 'Δοκιμή SMS Ανάκτησης'} onClick={handleTestRecovery} />
-            </div>
-            {showSMS && <SendSMSModal patients={patients} onClose={() => setShowSMS(false)} />}
-            {showCall && <CallPatientModal patients={patients} onClose={() => setShowCall(false)} />}
-        </>
+            )}
+            {notice && (
+                <div style={{
+                    marginTop: '0.25rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '9px',
+                    padding: '0.5rem 0.65rem',
+                    background: notice.type === 'success' ? 'rgba(16,185,129,0.08)' : notice.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.08)',
+                    color: notice.type === 'success' ? '#047857' : notice.type === 'error' ? '#b91c1c' : '#4338ca',
+                }}>
+                    <FlaskConical size={12} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                    {notice.text}
+                </div>
+            )}
+        </div>
     );
 };
 

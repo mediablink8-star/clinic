@@ -125,16 +125,17 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
     if (!mc) return res.status(404).json({ error: 'Not found' });
     if (!mc.clinic.webhookUrl) return res.status(400).json({ error: 'No webhook configured' });
 
-    const { triggerWebhook } = require('../services/webhookService');
+    const { sendManagedSms } = require('../services/messagingService');
     let result;
     try {
-        result = await triggerWebhook(
-            'missed_call.followup',
-            { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId, isFollowUp: true },
-            mc.clinic.webhookUrl,
-            mc.clinic.webhookSecret,
-            { maxRetries: 2, baseDelay: 500 }
-        );
+        await sendManagedSms({
+            clinicId: mc.clinicId,
+            clinic: mc.clinic,
+            eventType: 'missed_call.followup',
+            payload: { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId, isFollowUp: true },
+            logType: 'SMS',
+        });
+        result = { success: true };
     } catch (err) {
         result = { success: false, error: err.message };
     }

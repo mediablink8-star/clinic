@@ -4,11 +4,12 @@ class AppError extends Error {
      * @param {string} message - Human-readable message
      * @param {number} status  - HTTP status code
      */
-    constructor(code, message, status = 500) {
+    constructor(code, message, status = 500, details = null) {
         super(message);
         this.name = 'AppError';
         this.code = code;
         this.status = status;
+        this.details = details;
     }
 }
 

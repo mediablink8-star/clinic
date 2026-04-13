@@ -4,39 +4,34 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 
-async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', clinic }, actor) {
-    const patient = await prisma.patient.findUnique({
-        where: { id: patientId, clinicId }
-    });
-    if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
-
+async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = true }) {
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     if (clinic.messageCredits <= 0) {
         throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
     }
     await assertWithinSmsLimit(clinicId);
 
-    // Attempt webhook delivery — always structured, never silent
     let webhookResult = { success: true };
     if (clinic.webhookUrl) {
         try {
             webhookResult = await triggerWebhook(
-                'message.direct_send',
-                { patientId, patientName: patient.name, phone: patient.phone, message, type },
+                eventType,
+                payload,
                 clinic.webhookUrl,
                 clinic.webhookSecret,
-                { awaitResponse: true }
+                { awaitResponse: true, clinic }
             );
         } catch (err) {
-            // Webhook call itself threw — treat as failed delivery, do not swallow
             webhookResult = { success: false, message: err.message };
         }
+    } else if (!treatMissingWebhookAsSimulated) {
+        webhookResult = { success: false, message: 'No webhook URL configured' };
     }
 
     const deliveryStatus = clinic.webhookUrl
         ? (webhookResult.success ? 'SENT' : 'FAILED')
-        : 'SIMULATED';
+        : (treatMissingWebhookAsSimulated ? 'SIMULATED' : 'FAILED');
 
-    // Atomic: decrement credits + create log in one transaction
     const log = await prisma.$transaction(async (tx) => {
         await tx.clinic.update({
             where: { id: clinicId },
@@ -46,12 +41,32 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         return tx.messageLog.create({
             data: {
                 clinicId,
-                type,
+                type: logType,
                 status: deliveryStatus,
                 cost: 1,
                 error: webhookResult.success ? null : (webhookResult.message || 'Webhook failed')
             }
         });
+    });
+
+    if (deliveryStatus === 'FAILED') {
+        throw new AppError('TWILIO_SEND_FAILED', 'TWILIO_SEND_FAILED', 502, { type: 'sms', reason: webhookResult.message || 'Delivery failed' });
+    }
+    return { logId: log.id, deliveryStatus };
+}
+
+async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', clinic }, actor) {
+    const patient = await prisma.patient.findFirst({
+        where: { id: patientId, clinicId }
+    });
+    if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
+    const result = await sendManagedSms({
+        clinicId,
+        clinic,
+        eventType: 'message.direct_send',
+        payload: { patientId, patientName: patient.name, phone: patient.phone, message, type },
+        logType: type,
+        treatMissingWebhookAsSimulated: true,
     });
 
     await logAction({
@@ -60,11 +75,11 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         action: 'SEND_DIRECT_MESSAGE',
         entity: 'PATIENT',
         entityId: patientId,
-        details: { message, status: deliveryStatus },
+        details: { message, status: result.deliveryStatus },
         ipAddress: actor.ip
     });
 
-    return { success: true, data: { logId: log.id, deliveryStatus } };
+    return { success: true, data: { logId: result.logId, deliveryStatus: result.deliveryStatus } };
 }
 
-module.exports = { sendDirectMessage };
+module.exports = { sendDirectMessage, sendManagedSms };

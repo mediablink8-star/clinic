@@ -19,7 +19,7 @@ router.post('/send', asyncHandler(async (req, res) => {
         { clinicId: req.clinicId, patientId, message, type, clinic: req.clinic },
         { userId: req.user.userId, ip: req.ip }
     );
-    res.json(data);
+    res.json({ success: true, ...data });
 }));
 
 module.exports = router;

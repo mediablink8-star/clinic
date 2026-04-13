@@ -24,13 +24,21 @@ router.get('/config-status', asyncHandler(async (req, res) => {
 }));
 
 router.get('/status', asyncHandler(async (req, res) => {
+    const lastExecution = await prisma.messageLog.findFirst({
+        where: { clinicId: req.clinicId },
+        orderBy: { timestamp: 'desc' },
+        select: { timestamp: true }
+    });
+
     res.json({
         redis: connection ? connection.status === 'ready' : false,
         worker: reminderWorker ? reminderWorker.isRunning() : false,
         aiConfigured: !!process.env.GEMINI_API_KEY,
         twilioConfigured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
         voiceConfigured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
-        webhookConfigured: !!process.env.WEBHOOK_SECRET
+        webhookConfigured: !!process.env.WEBHOOK_SECRET,
+        workflowsActive: !!(reminderWorker && reminderWorker.isRunning()),
+        lastExecutionAt: lastExecution?.timestamp || null
     });
 
     logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_SYSTEM_STATUS', entity: 'SYSTEM', ipAddress: req.ip }).catch(() => {});

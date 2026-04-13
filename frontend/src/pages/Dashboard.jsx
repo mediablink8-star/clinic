@@ -25,6 +25,7 @@ import RevenueCard from '../components/RevenueCard';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import Skeleton from '../components/Skeleton';
 import NotificationBell from '../components/NotificationBell';
+import SystemStatus from '../components/SystemStatus';
 
 const DashboardSkeleton = () => (
     <div className="dashboard-skeleton" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -129,6 +130,7 @@ const Dashboard = ({
     isMobile = false
 }) => {
     const [hasLoaded, setHasLoaded] = React.useState(false);
+    const [backendHealth, setBackendHealth] = React.useState({ status: 'unknown' });
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
 
     React.useEffect(() => {
@@ -136,6 +138,12 @@ const Dashboard = ({
             setHasLoaded(true);
         }
     }, [loading]);
+
+    React.useEffect(() => {
+        api.get('/health')
+            .then((res) => setBackendHealth({ status: res.data?.status || 'ok' }))
+            .catch(() => setBackendHealth({ status: 'error' }));
+    }, []);
 
     if (!hasLoaded && loading) return <DashboardSkeleton />;
 
@@ -160,6 +168,9 @@ const Dashboard = ({
     };
 
     const activeConversations = logsArray.filter(l => l && l.status === 'RECOVERING').length;
+    const smsPercent = apiUsage?.smsUsagePercent ?? 0;
+    const aiPercent = apiUsage?.aiUsagePercent ?? 0;
+    const usageExceeded = !!(apiUsage?.limitsReached?.sms || apiUsage?.limitsReached?.ai);
 
     return (
         <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
@@ -318,16 +329,65 @@ const Dashboard = ({
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
                         <div className="dashboard-actions-container">
                             <QuickActions
-                                onViewSchedule={() => setCurrentTab('appointments')}
-                                onAddPatient={() => setCurrentTab('patients')}
-                                onNewAppointment={() => setShowModal(true)}
                                 patients={patients}
-                                token={token}
-                                clinic={clinic}
                                 onRefresh={onRefresh}
                             />
                         </div>
                     </div>
+
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                        <SectionHeader icon={Receipt}>Usage & Limits</SectionHeader>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{apiUsage?.planLabel || 'Included in your plan'}</div>
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
+                                <span>SMS</span>
+                                <span>{apiUsage?.smsCount ?? 0} / {apiUsage?.smsMonthlyLimit ?? 0}</span>
+                            </div>
+                            <div style={{ height: '8px', borderRadius: '999px', background: 'var(--border)' }}>
+                                <div style={{ height: '100%', width: `${smsPercent}%`, borderRadius: '999px', background: smsPercent >= 80 ? '#f59e0b' : 'var(--primary)' }} />
+                            </div>
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '4px' }}>
+                                <span>AI</span>
+                                <span>{apiUsage?.aiRequestCount ?? 0} / {apiUsage?.aiMonthlyLimit ?? 0}</span>
+                            </div>
+                            <div style={{ height: '8px', borderRadius: '999px', background: 'var(--border)' }}>
+                                <div style={{ height: '100%', width: `${aiPercent}%`, borderRadius: '999px', background: aiPercent >= 80 ? '#f59e0b' : '#6366f1' }} />
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-light)' }}>
+                            Reset date: {apiUsage?.lastResetDate ? new Date(apiUsage.lastResetDate).toLocaleDateString() : 'No data yet'}
+                        </div>
+                        {Array.isArray(apiUsage?.usageWarnings) && apiUsage.usageWarnings.length > 0 && (
+                            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '10px', padding: '0.55rem', fontSize: '0.74rem', color: '#b45309' }}>
+                                {apiUsage.usageWarnings.map((w) => `${w.type.toUpperCase()} at ${w.percent}%`).join(' • ')}
+                            </div>
+                        )}
+                        {usageExceeded && (
+                            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '0.55rem' }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#b91c1c' }}>Usage limit reached</div>
+                                <button className="btn btn-primary btn-sm" style={{ marginTop: '0.45rem' }}>Contact support / Upgrade</button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem' }}>
+                        <SectionHeader icon={Power}>Automation & System Health</SectionHeader>
+                        <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }}>
+                            Workflows: <strong>{systemStatus?.workflowsActive ? 'Active' : 'Paused'}</strong>
+                            <div style={{ color: 'var(--text-light)' }}>
+                                Last execution: {systemStatus?.lastExecutionAt ? new Date(systemStatus.lastExecutionAt).toLocaleString() : 'No data yet'}
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gap: '0.35rem', fontSize: '0.78rem' }}>
+                            <div>Twilio: {systemStatus?.twilioConfigured ? 'Connected' : 'Error'}</div>
+                            <div>AI: {systemStatus?.aiConfigured ? 'Connected' : 'Error'}</div>
+                            <div>Backend: {backendHealth.status === 'ok' ? 'Healthy' : 'Error'}</div>
+                        </div>
+                    </div>
+
+                    <SystemStatus status={systemStatus} stats={systemStats} setCurrentTab={setCurrentTab} />
                 </div>
             </div>
         </div>

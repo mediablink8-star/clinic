@@ -1,5 +1,4 @@
 const prisma = require('./prisma');
-const { triggerWebhook } = require('./webhookService');
 const { checkWorkingHours } = require('./workingHours');
 const AppError = require('../errors/AppError');
 const {
@@ -7,7 +6,7 @@ const {
     recordOutboundMessageForMissedCall,
     markRecoveryCaseRecovered,
 } = require('./recoveryTrackingService');
-const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
+const { sendManagedSms } = require('./messagingService');
 
 async function handleMissedCall({ phone, clinicId, callSid }) {
     if (callSid) {
@@ -61,15 +60,14 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
 
     let webhookResult;
     try {
-        await assertWithinSmsLimit(clinicId);
-        await incrementSmsUsage(clinicId);
-        webhookResult = await triggerWebhook(
-            'missed_call.detected',
-            { phone, missedCallId: missedCall.id, clinicId },
-            clinic.webhookUrl,
-            clinic.webhookSecret,
-            { maxRetries: 3, baseDelay: 500 }
-        );
+        await sendManagedSms({
+            clinicId,
+            clinic,
+            eventType: 'missed_call.detected',
+            payload: { phone, missedCallId: missedCall.id, clinicId },
+            logType: 'SMS',
+        });
+        webhookResult = { success: true };
     } catch (err) {
         webhookResult = { success: false, error: err.message };
     }
@@ -129,15 +127,14 @@ async function processScheduledMissedCalls() {
 
         let webhookResult;
         try {
-            await assertWithinSmsLimit(mc.clinicId);
-            await incrementSmsUsage(mc.clinicId);
-            webhookResult = await triggerWebhook(
-                'missed_call.detected',
-                { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId },
-                clinic.webhookUrl,
-                clinic.webhookSecret,
-                { maxRetries: 3, baseDelay: 500 }
-            );
+            await sendManagedSms({
+                clinicId: mc.clinicId,
+                clinic,
+                eventType: 'missed_call.detected',
+                payload: { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId },
+                logType: 'SMS',
+            });
+            webhookResult = { success: true };
         } catch (err) {
             webhookResult = { success: false, error: err.message };
         }
@@ -181,15 +178,14 @@ async function retrySms({ clinicId, missedCallId }) {
 
     let webhookResult;
     try {
-        await assertWithinSmsLimit(clinicId);
-        await incrementSmsUsage(clinicId);
-        webhookResult = await triggerWebhook(
-            'missed_call.detected',
-            { phone: mc.fromNumber, missedCallId: mc.id, clinicId },
-            clinic.webhookUrl,
-            clinic.webhookSecret,
-            { maxRetries: 3, baseDelay: 500 }
-        );
+        await sendManagedSms({
+            clinicId,
+            clinic,
+            eventType: 'missed_call.detected',
+            payload: { phone: mc.fromNumber, missedCallId: mc.id, clinicId },
+            logType: 'SMS',
+        });
+        webhookResult = { success: true };
     } catch (err) {
         webhookResult = { success: false, error: err.message };
     }

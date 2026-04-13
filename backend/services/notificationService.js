@@ -1,7 +1,6 @@
 const prisma = require('./prisma');
-const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
-const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
+const { sendManagedSms } = require('./messagingService');
 
 /**
  * Process a single queued notification job.
@@ -24,61 +23,43 @@ async function processNotification(notificationId) {
         }
 
         const clinic = notification.clinic;
-        const dailyCost = 1;
-
-        if (clinic.messageCredits < dailyCost) {
+        if (clinic.messageCredits < 1) {
             throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
         }
         if (clinic.dailyUsedCount >= clinic.dailyMessageCap) {
             throw new AppError('DAILY_CAP_REACHED', 'Daily message cap reached', 429);
         }
 
-        await assertWithinSmsLimit(clinic.id);
-        // Deduct credits atomically with log creation
-        await tx.clinic.update({
-            where: { id: clinic.id },
-            data: {
-                messageCredits: { decrement: dailyCost },
-                dailyUsedCount: { increment: dailyCost }
-            }
-        });
-        await incrementSmsUsage(clinic.id, tx);
-
-        const log = await tx.messageLog.create({
-            data: { clinicId: clinic.id, type: notification.type, cost: dailyCost, status: 'PENDING' }
-        });
-
-        return { notification, clinic, log };
+        return { notification, clinic };
     });
 
     // Already processed — not an error, just skip
     if (!result.notification) return { success: false, reason: result.reason };
 
-    const { notification, clinic, log } = result;
+    const { notification, clinic } = result;
 
     // Trigger webhook outside transaction — network call must not hold a DB connection
     try {
-        await triggerWebhook(
-            'notification.send',
-            {
+        await sendManagedSms({
+            clinicId: clinic.id,
+            clinic,
+            eventType: 'notification.send',
+            payload: {
                 notificationId: notification.id,
                 type: notification.type,
                 message: notification.message,
                 clinicName: clinic.name
             },
-            clinic.webhookUrl
-        );
+            logType: notification.type,
+        });
 
-        await prisma.$transaction([
-            prisma.messageLog.update({ where: { id: log.id }, data: { status: 'SENT' } }),
-            prisma.notification.update({ where: { id: notification.id }, data: { status: 'SENT', sentAt: new Date() } })
-        ]);
+        await prisma.notification.update({ where: { id: notification.id }, data: { status: 'SENT', sentAt: new Date() } });
 
         return { success: true };
     } catch (sendError) {
-        await prisma.messageLog.update({
-            where: { id: log.id },
-            data: { status: 'FAILED', error: sendError.message }
+        await prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: 'FAILED' }
         });
         // Re-throw so BullMQ can retry
         throw new AppError('DELIVERY_FAILED', sendError.message, 502);

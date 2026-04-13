@@ -126,14 +126,28 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { clinic: true }
+            include: {
+                clinic: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatarUrl: true
+                    }
+                }
+            }
         });
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const isMatch = await comparePassword(password, user.passwordHash);
+        let isMatch = false;
+        try {
+            isMatch = await comparePassword(password, user.passwordHash);
+        } catch (compareError) {
+            console.warn(`[AUTH] Password compare failed for ${email}: ${compareError.message}`);
+            isMatch = false;
+        }
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -188,7 +202,16 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
     
     const user = await prisma.user.findUnique({ 
         where: { email },
-        include: { clinic: true }
+        include: {
+            clinic: {
+                select: {
+                    id: true,
+                    name: true,
+                    webhookUrl: true,
+                    webhookSecret: true
+                }
+            }
+        }
     });
 
     if (!user) {
@@ -466,7 +489,15 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: decoded.userId },
-            include: { clinic: true }
+            include: {
+                clinic: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatarUrl: true
+                    }
+                }
+            }
         });
 
         if (!user || !user.mfaSecret) return res.status(401).json({ error: 'Invalid request' });
