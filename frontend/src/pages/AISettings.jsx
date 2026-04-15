@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Brain, Key, Activity, Save, Check } from 'lucide-react';
+import { Brain, Activity, Check } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -59,32 +59,12 @@ const inputStyle = {
     boxSizing: 'border-box', background: 'var(--bg-subtle)', color: 'var(--text)'
 };
 
-const StatusBadge = ({ status, latency }) => {
-    let cfg = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
-    if (status === 'connected') cfg = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
-    if (status === 'failed')    cfg = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε',   dot: '#ef4444' };
-    if (status === 'loading')   cfg = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
-    return (
-        <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '4px 12px', borderRadius: '99px',
-            background: cfg.bg, color: cfg.color, fontSize: '0.75rem', fontWeight: '700'
-        }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: cfg.dot }} />
-            {cfg.text}
-            {latency && <span style={{ opacity: 0.6 }}>({latency}ms)</span>}
-        </div>
-    );
-};
-
 const AISettings = ({ clinic, token, onUpdate }) => {
     const isOwner = ['OWNER', 'ADMIN'].includes(clinic?.role);
     const [formData, setFormData] = useState({
         ...clinic,
         aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
     });
-    const [aiTest, setAiTest]         = useState({ status: 'idle', latency: null });
-    const [aiSaving, setAiSaving]     = useState(false);
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [systemStatus, setSystemStatus] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -101,30 +81,6 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     }, []);
 
     const set    = (key, val) => setFormData(p => ({ ...p, [key]: val }));
-    const setKey = (key, val) => setFormData(p => ({ ...p, apiKeys: { ...p.apiKeys, [key]: val } }));
-
-    const handleTestAI = async () => {        setAiTest({ status: 'loading', latency: null });
-        try {
-            const res = await axios.post(`${API_BASE}/integrations/test-ai`,
-                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini },
-                { headers: { Authorization: `Bearer ${token}` } });
-            if (res.data.success) { setAiTest({ status: 'connected', latency: res.data.latency }); showToast('AI Provider connected!'); }
-            else { setAiTest({ status: 'failed', error: res.data.error }); showToast(res.data.error || 'Connection failed.', 'error'); }
-        } catch (e) { setAiTest({ status: 'failed', error: e.message }); showToast('Connection failed.', 'error'); }
-    };
-
-    const handleSaveAIKey = async () => {
-        setAiSaving(true);
-        try {
-            await axios.post(`${API_BASE}/integrations/save-ai-key`,
-                { provider: formData.aiProvider || 'gemini', key: formData.apiKeys?.gemini },
-                { headers: { Authorization: `Bearer ${token}` } });
-            showToast('AI Key saved!');
-        } catch (err) {
-            if (err.response?.status === 401) { window.location.reload(); }
-            else showToast('Failed to save AI Key', 'error');
-        } finally { setAiSaving(false); }
-    };
 
     const handleSaveAiConfig = async () => {
         setAiConfigSaving(true);
@@ -200,46 +156,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                     </div>
                 ))}
             </div>
-            <SectionCard id="ai-s1" number="1" icon={<Key size={15} color="#7c3aed" />} iconBg="#f3f0ff"
-                title="Συνδέσεις API" subtitle="Προσθέστε τα κλειδιά σας μία φορά — δεν χρειάζεται ξανά ρύθμιση">
-                {/* AI Provider */}
-                <div style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', maxWidth: '480px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                        <h3 style={{ fontSize: '0.9rem', fontWeight: '800', margin: 0 }}>Πάροχος AI</h3>
-                        <StatusBadge status={aiTest.status} latency={aiTest.latency} />
-                    </div>
-                    {aiTest.status === 'failed' && aiTest.error && (
-                        <div style={{ marginBottom: '1rem', padding: '0.6rem 0.9rem', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '0.78rem', color: '#991b1b' }}>
-                            {aiTest.error}
-                        </div>
-                    )}
-                    <FormGroup label="Πάροχος">
-                        <select style={inputStyle} value={formData.aiProvider || 'gemini'} onChange={e => set('aiProvider', e.target.value)}>
-                            <option value="gemini">Gemini (Google)</option>
-                            <option value="openai" disabled>OpenAI (Μελλοντικά)</option>
-                        </select>
-                    </FormGroup>
-                    <FormGroup label="Κλειδί API">
-                        <input style={inputStyle} type="password" value={formData.apiKeys?.gemini || ''} onChange={e => setKey('gemini', e.target.value)} placeholder="AIza..." />
-                        {formData.apiKeys?.gemini && /[^\x00-\x7F]/.test(formData.apiKeys.gemini) && (
-                            <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '6px 10px' }}>
-                                ⚠ Το κλειδί περιέχει μη έγκυρους χαρακτήρες. Πληκτρολογήστε το χειροκίνητα.
-                            </div>
-                        )}
-                    </FormGroup>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button type="button" className="btn btn-outline btn-sm" onClick={handleTestAI} disabled={aiTest.status === 'loading'} style={{ flex: 1 }}>
-                            {aiTest.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή'}
-                        </button>
-                        <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAIKey} disabled={aiSaving || !isOwner} style={{ flex: 1 }}>
-                            {aiSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
-                        </button>
-                    </div>
-                </div>
-            </SectionCard>
-
-            {/* Section 2 — AI Knowledge Config */}
-            <SectionCard id="ai-s2" number="2" icon={<Brain size={15} color="#0891b2" />} iconBg="#ecfeff"
+            {/* Section 1 — AI Knowledge Config */}
+            <SectionCard id="ai-s2" number="1" icon={<Brain size={15} color="#0891b2" />} iconBg="#ecfeff"
                 title="Ρυθμίσεις Γνώσης AI" subtitle="Ορίστε τη λογική του βοηθού — μετά τρέχει μόνος του">
                 <FormGroup label="Υπηρεσίες Ιατρείου">
                     <textarea style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
@@ -340,8 +258,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* Section 3 — System Status */}
-            <SectionCard id="ai-s3" number="3" icon={<Activity size={15} color="#10b981" />} iconBg="#ecfdf5"
+            {/* Section 2 — System Status */}
+            <SectionCard id="ai-s3" number="2" icon={<Activity size={15} color="#10b981" />} iconBg="#ecfdf5"
                 title="Κατάσταση Συστήματος" subtitle="Παρακολούθηση σύνδεσης σε πραγματικό χρόνο">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     {[

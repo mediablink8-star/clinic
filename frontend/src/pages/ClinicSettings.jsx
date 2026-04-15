@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Save, Globe, Zap, BarChart2, Activity,
-    Shield, CheckCircle, XCircle, Loader, Check,
+    Globe, BarChart2, Activity,
+    Shield, Loader, Check,
     Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
 
@@ -110,9 +110,8 @@ const SECTIONS = [
     { id: 's1', number: '1', label: 'Γενικά', icon: <Globe size={14} color="var(--primary)" />, iconBg: 'var(--primary-light)', title: 'Γενικές Πληροφορίες Ιατρείου', subtitle: 'Όνομα, στοιχεία επικοινωνίας και τοποθεσία' },
     { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
     { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
-    { id: 's5', number: '4', label: 'Αυτοματισμοί', icon: <Zap size={14} color="#d97706" />, iconBg: '#fffbeb', title: 'Αυτοματισμοί / Webhooks', subtitle: 'Σύνδεση με εξωτερικές υπηρεσίες' },
-    { id: 's6', number: '5', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
-    { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
+    { id: 's8', number: '5', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
@@ -126,17 +125,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('s1');
-    const [logs, setLogs] = useState([]);
-    const [mfaSetup, setMfaSetup] = useState({ step: '', secret: '', qrImageUrl: '', code: '' });
-
-    const [testState, setTestState] = useState({
-        webhook: { status: 'idle', lastTested: null, responseTime: null, error: '', httpStatus: null }
-    });
-    const [webhookSaving, setWebhookSaving] = useState(false);
-    const [showAdvancedWebhooks, setShowAdvancedWebhooks] = useState(false);
-    const [usageData, setUsageData] = useState(null);
-    const [loadingUsage, setLoadingUsage] = useState(true);
-    const [webhookErrors, setWebhookErrors] = useState({});
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // Team management state
@@ -152,94 +140,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    const handleTestWebhook = async (specificUrl = null, fieldName = 'Global') => {
-        const urlToTest = specificUrl || formData.webhookUrl;
-        if (!urlToTest) {
-            showToast(`Παρακαλώ εισάγετε ένα URL για δοκιμή (${fieldName}).`, 'error');
-            return;
-        }
-
-        const testKey = specificUrl ? fieldName : 'webhook';
-        setTestState(prev => ({ ...prev, [testKey]: { status: 'loading', error: '', httpStatus: null } }));
-
-        try {
-            const res = await axios.post(`${API_BASE}/integrations/test-webhook`, {
-                url: urlToTest,
-                // Never send masked secret — let backend use stored one
-                secret: (formData.webhookSecret && !formData.webhookSecret.startsWith('****'))
-                    ? formData.webhookSecret
-                    : undefined
-            }, {
-                headers: { 'Authorization': `Bearer ${token}` },
-                timeout: 12000 // 12s — backend takes up to 8s
-            });
-
-            if (res.data.success) {
-                setTestState(prev => ({
-                    ...prev,
-                    [testKey]: {
-                        status: 'success',
-                        lastTested: new Date(),
-                        responseTime: res.data.latency,
-                        httpStatus: res.data.status,
-                        error: ''
-                    }
-                }));
-                showToast(`Webhook (${fieldName}) — HTTP ${res.data.status ?? '2xx'} σε ${res.data.latency ?? '?'}ms`);
-            } else {
-                setTestState(prev => ({
-                    ...prev,
-                    [testKey]: {
-                        status: 'error',
-                        lastTested: new Date(),
-                        responseTime: res.data.latency ?? null,
-                        error: res.data.error ?? 'Άγνωστο σφάλμα',
-                        httpStatus: res.data.status ?? null
-                    }
-                }));
-                showToast(res.data.error ?? `Η δοκιμή του Webhook (${fieldName}) απέτυχε.`, 'error');
-            }
-        } catch (err) {
-            const msg = err.code === 'ECONNABORTED'
-                ? 'Timeout — το αίτημα έληξε (>12s)'
-                : err.response?.data?.error || err.message || 'Σφάλμα δικτύου';
-            setTestState(prev => ({
-                ...prev,
-                [testKey]: {
-                    status: 'error',
-                    lastTested: new Date(),
-                    error: msg,
-                    httpStatus: err.response?.status
-                }
-            }));
-            showToast(`${fieldName}: ${msg}`, 'error');
-        }
-    };
-
     useEffect(() => {
         fetchLogs();
         fetchUsage();
         fetchTeam();
-        // Always fetch fresh clinic data from DB to get webhook URLs and API keys
-        axios.get(`${API_BASE}/clinic`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => {
-                const fresh = res.data;
-                setFormData(prev => ({
-                    ...prev,
-                    webhookUrl: fresh.webhookUrl || '',
-                    webhookSecret: fresh.webhookSecret || '',
-                    webhookMissedCall: fresh.webhookMissedCall || '',
-                    webhookAppointment: fresh.webhookAppointment || '',
-                    webhookReminders: fresh.webhookReminders || '',
-                    webhookDirectSms: fresh.webhookDirectSms || '',
-                    webhookInboundSms: fresh.webhookInboundSms || '',
-                    apiKeys: fresh.apiKeys || {},
-                    aiConfig: typeof fresh.aiConfig === 'string'
-                        ? JSON.parse(fresh.aiConfig || '{}')
-                        : (fresh.aiConfig || {}),
-                }));
-            })
-            .catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -261,50 +165,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     };
 
     const set = (key, val) => setFormData(prev => ({ ...prev, [key]: val }));
-    const setKey = (key, val) => setFormData(prev => ({ ...prev, apiKeys: { ...prev.apiKeys, [key]: val } }));
-
-    const handleSaveWebhook = async () => {
-        const errors = {};
-        if (!formData.webhookUrl && !showAdvancedWebhooks) {
-            errors.url = 'Το Webhook URL είναι υποχρεωτικό.';
-        }
-        
-        if (formData.webhookUrl) {
-            try { new URL(formData.webhookUrl); } catch { errors.url = 'Μη έγκυρη μορφή URL.'; }
-        }
-        
-        // Basic validation for overrides if shown
-        if (showAdvancedWebhooks) {
-            ['webhookMissedCall', 'webhookAppointment', 'webhookReminders', 'webhookDirectSms', 'webhookInboundSms'].forEach(key => {
-                if (formData[key]) {
-                    try { new URL(formData[key]); } catch { errors[key] = 'Μη έγκυρη μορφή URL.'; }
-                }
-            });
-        }
-
-        setWebhookErrors(errors);
-        if (Object.keys(errors).length > 0) return;
-
-        setWebhookSaving(true);
-        try {
-            const payload = {
-                url: formData.webhookUrl,
-                secret: formData.webhookSecret,
-                webhookMissedCall: formData.webhookMissedCall,
-                webhookAppointment: formData.webhookAppointment,
-                webhookReminders: formData.webhookReminders,
-                webhookDirectSms: formData.webhookDirectSms,
-                webhookInboundSms: formData.webhookInboundSms
-            };
-            await axios.post(`${API_BASE}/integrations/save-webhook`, payload, { headers: { 'Authorization': `Bearer ${token}` } });
-            showToast('Webhook settings saved!');
-            if (onUpdate) onUpdate(payload);
-        } catch (err) {
-            showToast(err.response?.data?.error || 'Failed to save webhook settings', 'error');
-        } finally {
-            setWebhookSaving(false);
-        }
-    };
 
     const handleSaveClinicInfo = async () => {
         const errors = {};
@@ -825,183 +685,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* 4 · Αυτοματισμοί */}
-            <SectionCard id="s5" number="4" icon={<Zap size={15} color="#d97706" />} iconBg="#fffbeb"
-                title="Αυτοματισμοί" subtitle="Webhooks και εξωτερικοί κανόνες (Make / n8n)">
-                <FormRow>
-                    <FormGroup label="Webhook URL" flex="2 1 300px">
-                        <input
-                            style={{ ...inputStyle, fontFamily: 'monospace', borderColor: webhookErrors.url ? '#dc2626' : undefined }}
-                            placeholder="https://hook.make.com/..."
-                            value={formData.webhookUrl || ''}
-                            onChange={e => set('webhookUrl', e.target.value)}
-                        />
-                        <ErrorText message={webhookErrors.url} />
-                    </FormGroup>
-                    <FormGroup label="Webhook Secret" flex="1 1 200px">
-                        <input
-                            style={{ ...inputStyle, fontFamily: 'monospace' }}
-                            type="password"
-                            placeholder="Secret for signing..."
-                            value={formData.webhookSecret || ''}
-                            onChange={e => set('webhookSecret', e.target.value)}
-                        />
-                    </FormGroup>
-                </FormRow>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
-                    Τα εισερχόμενα αιτήματα θα υπογράφονται με HMAC-SHA256 στην κεφαλίδα <code>X-Webhook-Signature</code>.
-                </p>
-
-                {/* Advanced Webhooks Toggle */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <button 
-                        type="button" 
-                        onClick={() => setShowAdvancedWebhooks(!showAdvancedWebhooks)}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '6px', 
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '700',
-                            padding: 0
-                        }}
-                    >
-                        <ChevronDown size={14} style={{ transform: showAdvancedWebhooks ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                        {showAdvancedWebhooks ? 'Απόκρυψη Προχωρημένων Ρυθμίσεων' : 'Εξειδικευμένα Webhooks ανά Ενέργεια'}
-                    </button>
-                    
-                    {showAdvancedWebhooks && (
-                        <div style={{ 
-                            marginTop: '1rem', padding: '1.25rem', borderRadius: '16px', 
-                            background: 'rgba(99,102,241,0.03)', border: '1px solid rgba(99,102,241,0.08)',
-                            display: 'flex', flexDirection: 'column', gap: '1rem'
-                        }}>
-                            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                                Εάν οριστούν, αυτά τα URL θα υπερισχύουν του καθολικού Webhook URL για τις συγκεκριμένες ενέργειες.
-                            </p>
-                            
-                            <FormGroup label={
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                    <span>Workflow 3 — Missed Call Recovery SMS</span>
-                                    {formData.webhookMissedCall && (
-                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookMissedCall, 'Missed Call')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                            ΔΟΚΙΜΗ
-                                        </button>
-                                    )}
-                                </div>
-                            }>
-                                <input 
-                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                    placeholder="https://.../webhook/missed-call-recovery"
-                                    value={formData.webhookMissedCall || ''}
-                                    onChange={e => set('webhookMissedCall', e.target.value)}
-                                />
-                                <ErrorText message={webhookErrors.webhookMissedCall} />
-                            </FormGroup>
-
-                            <FormGroup label={
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                    <span>Workflow 1 — Appointment Confirmation SMS</span>
-                                    {formData.webhookAppointment && (
-                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookAppointment, 'Appointment')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                            ΔΟΚΙΜΗ
-                                        </button>
-                                    )}
-                                </div>
-                            }>
-                                <input 
-                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                    placeholder="https://.../webhook/appointment-created"
-                                    value={formData.webhookAppointment || ''}
-                                    onChange={e => set('webhookAppointment', e.target.value)}
-                                />
-                                <ErrorText message={webhookErrors.webhookAppointment} />
-                            </FormGroup>
-
-                            <FormGroup label={
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                    <span>Workflow 2 — Direct Dashboard SMS</span>
-                                    {formData.webhookDirectSms && (
-                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookDirectSms, 'Direct SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                            ΔΟΚΙΜΗ
-                                        </button>
-                                    )}
-                                </div>
-                            }>
-                                <input 
-                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                    placeholder="https://.../webhook/send-sms"
-                                    value={formData.webhookDirectSms || ''}
-                                    onChange={e => set('webhookDirectSms', e.target.value)}
-                                />
-                                <ErrorText message={webhookErrors.webhookDirectSms} />
-                            </FormGroup>
-
-                            <FormGroup label={
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                    <span>Workflow 5 — Inbound SMS Replies</span>
-                                    {formData.webhookInboundSms && (
-                                        <button type="button" onClick={() => handleTestWebhook(formData.webhookInboundSms, 'Inbound SMS')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer', padding: '2px 5px' }}>
-                                            ΔΟΚΙΜΗ
-                                        </button>
-                                    )}
-                                </div>
-                            }>
-                                <input 
-                                    style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.8rem' }}
-                                    placeholder="https://.../webhook/inbound-sms"
-                                    value={formData.webhookInboundSms || ''}
-                                    onChange={e => set('webhookInboundSms', e.target.value)}
-                                />
-                                <ErrorText message={webhookErrors.webhookInboundSms} />
-                            </FormGroup>
-
-                            <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                                <p style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '600', margin: 0 }}>
-                                    ℹ️ Workflow 4 — Scheduled SMS Processor δεν χρειάζεται webhook URL. Τρέχει αυτόματα κάθε 5 λεπτά και καλεί απευθείας το backend.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button
-                            type="button"
-                            className="btn btn-outline btn-sm"
-                            onClick={() => handleTestWebhook(null, 'Global')}
-                            disabled={testState.webhook.status === 'loading'}
-                        >
-                            {testState.webhook.status === 'loading' ? 'Δοκιμή...' : 'Δοκιμή Webhook'}
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={handleSaveWebhook}
-                            disabled={webhookSaving}
-                            style={{ minWidth: '80px' }}
-                        >
-                            {webhookSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}
-                        </button>
-                    </div>
-
-                    {testState.webhook.status !== 'idle' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                background: testState.webhook.status === 'success' ? '#22c55e' : '#ef4444'
-                            }} />
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: testState.webhook.status === 'success' ? '#166534' : '#991b1b' }}>
-                                {testState.webhook.status === 'success'
-                                    ? `HTTP ${testState.webhook.httpStatus ?? '2xx'} • ${testState.webhook.responseTime ?? '?'}ms`
-                                    : testState.webhook.error ?? `Failed (HTTP ${testState.webhook.httpStatus ?? '?'})`}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </SectionCard>
-
-            {/* 5 · Usage & Limits */}
-            <SectionCard id="s6" number="5" icon={<BarChart2 size={15} color="#4f46e5" />} iconBg="#eef2ff"
+            {/* 4 · Usage & Limits */}
+            <SectionCard id="s6" number="4" icon={<BarChart2 size={15} color="#4f46e5" />} iconBg="#eef2ff"
                 title="Χρήση & Όρια" subtitle="Παρακολούθηση μηνυμάτων και AI σε πραγματικό χρόνο">
                 {!usageData ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '8px' }}>
