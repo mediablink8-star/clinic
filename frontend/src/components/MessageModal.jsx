@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { Send, X, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
-import api from '../lib/api';
+import { getAccessToken } from '../lib/authSession';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const MessageModal = ({ isOpen, onClose, patient, token }) => {
   const [message, setMessage] = useState('');
@@ -11,20 +14,27 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
 
   const handleSend = async () => {
     if (!message.trim()) return;
+    const authToken = token || getAccessToken();
+    if (!authToken) {
+      setStatus({ type: 'error', text: 'Η συνεδρία σας έληξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.' });
+      return;
+    }
     setSending(true);
     setStatus({ type: null, text: '' });
     try {
-      const resp = await api.post('/messages/send', {
+      const resp = await axios.post(`${API_BASE}/messages/send`, {
         patientId: patient.id,
         message: message.trim()
+      }, {
+        headers: { Authorization: `Bearer ${authToken}` }
       });
 
       if (resp.data.success) {
         const deliveryStatus = resp.data.deliveryStatus;
         const statusMessages = {
           SENT: 'Το μήνυμα στάλθηκε επιτυχώς!',
-          SIMULATED: 'Το μήνυμα καταχωρήθηκε για αποστολή.',
-          FAILED: 'Η αποστολή απέτυχε. Δοκιμάστε ξανά αργότερα.',
+          SIMULATED: 'Προσομοίωση αποστολής (δεν έχει ρυθμιστεί webhook).',
+          FAILED: 'Η αποστολή απέτυχε. Ελέγξτε τις ρυθμίσεις SMS.',
         };
         setStatus({ type: deliveryStatus === 'FAILED' ? 'error' : 'success', text: statusMessages[deliveryStatus] || 'Αποστολή ολοκληρώθηκε.' });
         if (deliveryStatus !== 'FAILED') {

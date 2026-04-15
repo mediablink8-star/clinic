@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import api from '../lib/api';
+import axios from 'axios';
 import { Building2, Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const ClinicLogin = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -18,7 +20,7 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await api.post('/auth/login', credentials);
+      const resp = await axios.post(`${API_BASE}/auth/login`, credentials, { withCredentials: true });
       if (resp.data.mfaRequired) {
         setMfaData({ required: true, token: resp.data.mfaToken, code: '' });
       } else {
@@ -36,7 +38,7 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-        await api.post('/auth/forgot-password', { email: resetEmail });
+        await axios.post(`${API_BASE}/auth/forgot-password`, { email: resetEmail });
         setResetSent(true);
     } catch (err) {
         setError(err.response?.data?.error || 'Σφάλμα κατά την αποστολή του email.');
@@ -55,10 +57,10 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await api.post('/auth/mfa/login-verify', {
+      const resp = await axios.post(`${API_BASE}/auth/mfa/login-verify`, {
         mfaToken: mfaData.token,
         code: mfaData.code
-      });
+      }, { withCredentials: true });
       onLogin(resp.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Ο κωδικός MFA είναι λανθασμένος.');
@@ -71,7 +73,7 @@ const ClinicLogin = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const resp = await api.post('/auth/google', { idToken: credentialResponse.credential });
+      const resp = await axios.post(`${API_BASE}/auth/google`, { idToken: credentialResponse.credential }, { withCredentials: true });
       onLogin(resp.data);
     } catch {
       setError('Η σύνδεση μέσω Google απέτυχε.');

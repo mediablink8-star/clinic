@@ -71,40 +71,43 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                 </div>
             </header>
 
-            {/* Main grid — 2x2 Layout for balance */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-                {/* Top Left: Funnel */}
+            {/* Main grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+                {/* Funnel — full RecoveryFunnel component */}
                 <SectionCard title="Recovery Funnel — 30 ημέρες">
                     <RecoveryFunnel logs={logs} stats={recoveryStats} />
                 </SectionCard>
 
-                {/* Top Right: Conversion Metrics */}
-                <SectionCard title="Ποσοστά Μετατροπής">
-                    <MetricRow icon={PhoneMissed}    label="Αναπάντητες κλήσεις"   value={totalMissed}           color="#ef4444" />
-                    <MetricRow icon={MessageSquare}  label="SMS εστάλησαν"          value={smsSent}               color="#f59e0b" />
-                    <MetricRow icon={MessageCircle}  label="Ασθενείς απάντησαν"     value={responded}             color="#6366f1" />
-                    <MetricRow icon={CalendarCheck}  label="Ραντεβού κλείστηκαν"    value={booked}                color="#10b981" />
-                    <MetricRow icon={TrendingUp}     label="Ποσοστό ανάκτησης"      value={`${recoveryRate}%`}    color="#10b981" />
-                    <MetricRow icon={MessageSquare}  label="Ποσοστό παράδοσης SMS"  value={`${smsDeliveryRate}%`} color="#6366f1" />
-                    <MetricRow icon={MessageCircle}  label="Ποσοστό απόκρισης"      value={`${responseRate}%`}    color="#6366f1" />
-                    {smsFailed > 0 && <MetricRow icon={AlertTriangle} label="Αποτυχίες SMS" value={smsFailed} warn />}
-                </SectionCard>
+                {/* Right column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Conversion metrics */}
+                    <SectionCard title="Ποσοστά Μετατροπής">
+                        <MetricRow icon={PhoneMissed}    label="Αναπάντητες κλήσεις"   value={totalMissed}           color="#ef4444" />
+                        <MetricRow icon={MessageSquare}  label="SMS εστάλησαν"          value={smsSent}               color="#f59e0b" />
+                        <MetricRow icon={MessageCircle}  label="Ασθενείς απάντησαν"     value={responded}             color="#6366f1" />
+                        <MetricRow icon={CalendarCheck}  label="Ραντεβού κλείστηκαν"    value={booked}                color="#10b981" />
+                        <MetricRow icon={TrendingUp}     label="Ποσοστό ανάκτησης"      value={`${recoveryRate}%`}    color="#10b981" />
+                        <MetricRow icon={MessageSquare}  label="Ποσοστό παράδοσης SMS"  value={`${smsDeliveryRate}%`} color="#6366f1" />
+                        <MetricRow icon={MessageCircle}  label="Ποσοστό απόκρισης"      value={`${responseRate}%`}    color="#6366f1" />
+                        {smsFailed > 0 && <MetricRow icon={AlertTriangle} label="Αποτυχίες SMS" value={smsFailed} warn />}
+                    </SectionCard>
 
-                {/* Bottom Left: Revenue Metrics */}
-                <SectionCard title="Έσοδα Ανάκτησης">
-                    <MetricRow icon={Euro}          label="Συνολικά έσοδα"          value={`€${(recoveryStats.revenue || 0).toLocaleString()}`} color="#0ea5e9" />
-                    <MetricRow icon={CalendarCheck} label="Κλεισμένα ραντεβού"      value={booked}                                              color="#10b981" />
-                    <MetricRow icon={Euro}          label="Μέση αξία ραντεβού"       value={`€${avgRevenue}`}                                    color="#6366f1" />
-                </SectionCard>
+                    {/* Revenue metrics */}
+                    <SectionCard title="Έσοδα Ανάκτησης">
+                        <MetricRow icon={Euro}          label="Συνολικά έσοδα"          value={`€${(recoveryStats.revenue || 0).toLocaleString()}`} color="#0ea5e9" />
+                        <MetricRow icon={CalendarCheck} label="Κλεισμένα ραντεβού"      value={booked}                                              color="#10b981" />
+                        <MetricRow icon={Euro}          label="Μέση αξία ραντεβού"       value={`€${avgRevenue}`}                                    color="#6366f1" />
+                    </SectionCard>
 
-                {/* Bottom Right: SMS / Technical */}
-                <SectionCard title="Τεχνικά — SMS & Χρεώσεις">
-                    <MetricRow icon={Zap}   label="Credits χρησιμοποιήθηκαν (μήνας)" value={spending.monthCreditsUsed ?? '—'}  color="#f59e0b" />
-                    <MetricRow icon={Zap}   label="Σύνολο SMS απεστάλησαν"            value={spending.totalMessagesSent ?? '—'} color="#f59e0b" />
-                    {systemStats.pendingNotifications > 0 && (
-                        <MetricRow icon={Clock} label="Εκκρεμείς ειδοποιήσεις" value={systemStats.pendingNotifications} warn />
-                    )}
-                </SectionCard>
+                    {/* SMS / technical */}
+                    <SectionCard title="Τεχνικά — SMS & Χρεώσεις">
+                        <MetricRow icon={Zap}   label="Credits χρησιμοποιήθηκαν (μήνας)" value={spending.monthCreditsUsed ?? '—'}  color="#f59e0b" />
+                        <MetricRow icon={Zap}   label="Σύνολο SMS απεστάλησαν"            value={spending.totalMessagesSent ?? '—'} color="#f59e0b" />
+                        {systemStats.pendingNotifications > 0 && (
+                            <MetricRow icon={Clock} label="Εκκρεμείς ειδοποιήσεις" value={systemStats.pendingNotifications} warn />
+                        )}
+                    </SectionCard>
+                </div>
             </div>
         </section>
     );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, PhoneCall, Zap, RefreshCw, MessageSquare, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
+import { Brain, PhoneCall, Zap, RefreshCw } from 'lucide-react';
 
 const services = [
     {
@@ -12,12 +12,12 @@ const services = [
         actionTab: 'ai',
     },
     {
-        key: 'platform',
+        key: 'webhook',
         icon: Zap,
-        label: 'Platform Integrations',
+        label: 'Συγχρονισμός Ιατρείου',
         check: s => s?.webhookConfigured,
-        offlineLabel: 'Backend config required',
-        actionLabel: 'Ρυθμίσεις',
+        offlineLabel: 'Αποσυνδεδεμένο',
+        actionLabel: 'Σύνδεση',
         actionTab: 'settings',
     },
     {
@@ -65,11 +65,11 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
         else if (svc.actionTab && setCurrentTab) setCurrentTab(svc.actionTab);
     };
 
-    const hasStats = Object.keys(stats || {}).length > 0;
+    const hasStats = Object.keys(stats).length > 0;
 
     return (
         <div className="grid-cell-glass" style={{
-            background: 'var(--card-bg)',
+            background: 'rgba(255,255,255,0.65)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             borderRadius: '20px',
@@ -175,11 +175,6 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
                         <MetricPill icon={Clock} label="Εκκρεμείς Ειδοποιήσεις" value={stats.pendingNotifications ?? ''} color="#f59e0b" />
                         <MetricPill icon={TrendingUp} label="Ποσοστό Ανάκτησης" value={`${stats.recoveryRate ?? 0}%`} color="var(--primary)" />
                     </div>
-                </div>
-            )}
-            {!hasStats && (
-                <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'var(--text-light)', border: '1px dashed var(--border)', borderRadius: '10px', padding: '0.55rem' }}>
-                    No data yet. Activity metrics appear after first workflow run.
                 </div>
             )}
 

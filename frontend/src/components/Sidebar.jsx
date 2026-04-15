@@ -53,7 +53,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     width: '100%',
                     padding: '5px'
                 }}>
-                    <img src={logo} alt="Media Blink" style={{ height: isMobile ? '80px' : '110px', width: 'auto', objectFit: 'contain' }} />
+                    <img src={logo} alt="Media Blink" style={{ height: '110px', width: 'auto', objectFit: 'contain' }} />
                 </div>
             </div>
 
@@ -61,8 +61,11 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 <button className="btn btn-primary" style={{
                     width: '100%',
                     justifyContent: 'center',
-                    padding: '13px',
+                    padding: '14px',
                     borderRadius: '14px',
+                    background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.56) 100%)',
+                    border: '1px solid rgba(255,255,255,0.26)',
+                    boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
                 }} onClick={() => {
                     onNewAppointment();
                     if (isMobile && onClose) onClose();
@@ -75,13 +78,13 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 {navSections.map((section, si) => (
                     <div key={section.label} style={{ marginBottom: si < navSections.length - 1 ? '8px' : 0 }}>
                         <div style={{
-                            fontSize: isMobile ? '0.6rem' : '0.65rem',
+                            fontSize: '0.65rem',
                             fontWeight: '800',
                             letterSpacing: '0.1em',
                             textTransform: 'uppercase',
                             color: 'var(--text-light)',
                             opacity: 0.5,
-                            padding: isMobile ? '8px 20px 4px 20px' : '10px 20px 4px 20px',
+                            padding: '10px 20px 4px 20px',
                         }}>
                             {section.label}
                         </div>
@@ -99,33 +102,33 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '12px',
-                                    padding: '10px 14px',
+                                    padding: '12px 16px',
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(99,102,241,0.06) 100%)'
+                                        ? 'linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(0,181,173,0.14) 100%)'
                                         : 'transparent',
-                                    borderRadius: '14px',
-                                    fontWeight: currentTab === item.id ? '700' : '600',
-                                    marginBottom: '2px',
+                                    borderRadius: '16px',
+                                    fontWeight: currentTab === item.id ? '800' : '650',
+                                    marginBottom: '4px',
                                     transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                    fontSize: '0.875rem',
-                                    border: `1px solid ${currentTab === item.id ? 'rgba(99,102,241,0.15)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 4px 16px -8px rgba(99,102,241,0.35)' : 'none'
+                                    fontSize: '0.9rem',
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,181,173,0.18)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 10px 24px -16px rgba(0,181,173,0.6)' : 'none'
                                 }}
                             >
                                 <span className="nav-link__icon" style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '10px',
-                                    background: currentTab === item.id ? 'rgba(99,102,241,0.12)' : 'transparent',
+                                    width: '34px',
+                                    height: '34px',
+                                    borderRadius: '11px',
+                                    background: currentTab === item.id ? 'rgba(255,255,255,0.78)' : 'transparent',
                                     color: currentTab === item.id ? 'var(--primary)' : 'currentColor',
                                     transition: 'all 0.2s ease'
                                 }}>
-                                    <item.icon size={18} strokeWidth={currentTab === item.id ? 2.4 : 2} />
+                                    <item.icon size={19} strokeWidth={currentTab === item.id ? 2.5 : 2.15} />
                                 </span>
                                 <span style={{ flex: 1 }}>{item.label}</span>
                             </a>
