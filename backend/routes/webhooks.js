@@ -62,20 +62,42 @@ router.post('/sms', asyncHandler(async (req, res) => {
     res.json({ success: result.success, forwarded: result.success, ...(result.error ? { error: result.error } : {}) });
 }));
 
-// Alias used by n8n inbound SMS workflow
+// Used by n8n inbound SMS workflow — resolves clinicId from Twilio number, missedCallId from active case
 router.post('/inbound-sms', asyncHandler(async (req, res) => {
-    const {
+    let {
         clinicId,
         from,
+        to,
         body: messageBody,
         missedCallId = null,
         recoveryCaseId = null,
         providerMessageSid = null,
     } = req.body;
 
-    if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
     if (!from) return res.status(400).json({ error: 'from is required' });
     if (!messageBody) return res.status(400).json({ error: 'body is required' });
+
+    // Resolve clinicId from Twilio "To" number if not explicitly provided
+    if (!clinicId && to) {
+        const clinic = await prisma.clinic.findFirst({ where: { phone: to } });
+        if (clinic) clinicId = clinic.id;
+    }
+
+    if (!clinicId) return res.status(400).json({ error: 'clinicId could not be resolved' });
+
+    // Resolve missedCallId from most recent active recovery case for this phone
+    if (!missedCallId) {
+        const activeCase = await prisma.recoveryCase.findFirst({
+            where: {
+                clinicId,
+                patientPhone: from,
+                state: { in: ['ACTIVE', 'ENGAGED'] },
+            },
+            orderBy: { lastActivityAt: 'desc' },
+            select: { missedCallId: true },
+        });
+        if (activeCase?.missedCallId) missedCallId = activeCase.missedCallId;
+    }
 
     const result = await recordInboundMessage({
         clinicId,

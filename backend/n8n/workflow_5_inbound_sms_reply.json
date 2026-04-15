@@ -16,6 +16,36 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.headers['user-agent'] || '' }}",
+              "operation": "contains",
+              "value2": "TwilioProxy"
+            }
+          ]
+        }
+      },
+      "id": "node_twilio_check",
+      "name": "Is Twilio Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"Forbidden\" }",
+        "options": { "responseCode": 403 }
+      },
+      "id": "node_forbidden",
+      "name": "Return 403",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 480]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"received\": true }",
         "options": { "responseCode": 200 }
@@ -24,7 +54,7 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -33,9 +63,7 @@
             { "name": "from", "value": "={{ $json.body.From || $json.body.from }}" },
             { "name": "to", "value": "={{ $json.body.To || $json.body.to }}" },
             { "name": "body", "value": "={{ $json.body.Body || $json.body.body }}" },
-            { "name": "messageSid", "value": "={{ $json.body.MessageSid || $json.body.SmsSid || '' }}" },
-            { "name": "clinicId", "value": "={{ $json.query.clinicId || $json.body.clinicId || '' }}" },
-            { "name": "missedCallId", "value": "={{ $json.query.missedCallId || $json.body.missedCallId || '' }}" }
+            { "name": "messageSid", "value": "={{ $json.body.MessageSid || $json.body.SmsSid || '' }}" }
           ]
         }
       },
@@ -43,14 +71,14 @@
       "name": "Set Variables",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [900, 300]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
             { "value1": "={{ $json.from }}", "operation": "isNotEmpty" },
-            { "value1": "={{ $json.clinicId }}", "operation": "isNotEmpty" }
+            { "value1": "={{ $json.body }}", "operation": "isNotEmpty" }
           ]
         }
       },
@@ -58,7 +86,7 @@
       "name": "Has Required Fields?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 300]
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -72,8 +100,6 @@
             { "name": "from", "value": "={{ $node[\"Set Variables\"].json.from }}" },
             { "name": "to", "value": "={{ $node[\"Set Variables\"].json.to }}" },
             { "name": "body", "value": "={{ $node[\"Set Variables\"].json.body }}" },
-            { "name": "clinicId", "value": "={{ $node[\"Set Variables\"].json.clinicId }}" },
-            { "name": "missedCallId", "value": "={{ $node[\"Set Variables\"].json.missedCallId }}" },
             { "name": "providerMessageSid", "value": "={{ $node[\"Set Variables\"].json.messageSid }}" }
           ]
         },
@@ -83,7 +109,7 @@
       "name": "Forward to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1120, 200],
+      "position": [1340, 200],
       "continueOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
@@ -96,7 +122,7 @@
       "parameters": {
         "values": {
           "string": [
-            { "name": "result", "value": "skipped — missing from or clinicId" }
+            { "name": "result", "value": "skipped — missing from or body" }
           ]
         }
       },
@@ -104,12 +130,18 @@
       "name": "Skip",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1120, 420]
+      "position": [1340, 420]
     }
   ],
   "connections": {
     "Receive Inbound SMS": {
-      "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Is Twilio Request?", "type": "main", "index": 0 }]]
+    },
+    "Is Twilio Request?": {
+      "main": [
+        [{ "node": "Respond 200", "type": "main", "index": 0 }],
+        [{ "node": "Return 403", "type": "main", "index": 0 }]
+      ]
     },
     "Respond 200": {
       "main": [[{ "node": "Set Variables", "type": "main", "index": 0 }]]
