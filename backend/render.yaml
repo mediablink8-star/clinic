@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npm run prisma:generate && npx prisma migrate deploy
+    buildCommand: npm install && npm run prisma:generate && npx prisma migrate resolve --rolled-back 20260415000000_add_recovery_tables; npx prisma migrate deploy
     startCommand: node index.js
     healthCheckPath: /api/health
     envVars:
