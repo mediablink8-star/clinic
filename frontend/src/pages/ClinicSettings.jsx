@@ -125,6 +125,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('s1');
+    const [logs, setLogs] = useState([]);
+    const [mfaSetup, setMfaSetup] = useState({ step: '', secret: '', qrImageUrl: '', code: '' });
+    const [usageData, setUsageData] = useState(null);
+    const [loadingUsage, setLoadingUsage] = useState(true);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // Team management state
