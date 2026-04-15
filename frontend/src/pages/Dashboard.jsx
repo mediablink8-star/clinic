@@ -278,11 +278,11 @@ const Dashboard = ({
             }}>
                 {/* Left Column */}
                 <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: '480px' }}>
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
-                        <div className="dashboard-feed-container" style={{ padding: '0 0.5rem 0.5rem' }}>
+                        <div className="dashboard-feed-container" style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto' }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
                         </div>
                     </div>
