@@ -62,4 +62,32 @@ router.post('/sms', asyncHandler(async (req, res) => {
     res.json({ success: result.success, forwarded: result.success, ...(result.error ? { error: result.error } : {}) });
 }));
 
+// Alias used by n8n inbound SMS workflow
+router.post('/inbound-sms', asyncHandler(async (req, res) => {
+    const {
+        clinicId,
+        from,
+        body: messageBody,
+        missedCallId = null,
+        recoveryCaseId = null,
+        providerMessageSid = null,
+    } = req.body;
+
+    if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
+    if (!from) return res.status(400).json({ error: 'from is required' });
+    if (!messageBody) return res.status(400).json({ error: 'body is required' });
+
+    const result = await recordInboundMessage({
+        clinicId,
+        fromPhone: from,
+        body: messageBody,
+        providerMessageSid,
+        providerStatusRaw: 'inbound',
+        missedCallId,
+        recoveryCaseId,
+    });
+
+    res.json({ success: true, ...result });
+}));
+
 module.exports = router;

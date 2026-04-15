@@ -7,6 +7,48 @@ const {
     markRecoveryCaseRecovered,
 } = require('./recoveryTrackingService');
 const { sendManagedSms } = require('./messagingService');
+const https = require('https');
+const http = require('http');
+
+/**
+ * Non-blocking fire-and-forget trigger to n8n.
+ * Never throws — failures are logged only.
+ */
+function triggerN8n(path, payload) {
+    const baseUrl = process.env.N8N_WEBHOOK_URL;
+    if (!baseUrl) return;
+
+    const url = `${baseUrl.replace(/\/$/, '')}${path}`;
+    const body = JSON.stringify(payload);
+    const secret = process.env.WEBHOOK_SECRET || '';
+
+    try {
+        const parsed = new URL(url);
+        const lib = parsed.protocol === 'https:' ? https : http;
+        const req = lib.request({
+            hostname: parsed.hostname,
+            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+            path: parsed.pathname + parsed.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+                'x-api-key': secret,
+            },
+        }, (res) => {
+            res.resume(); // drain response
+            if (res.statusCode >= 400) {
+                console.warn(`[N8N] ${path} responded ${res.statusCode}`);
+            }
+        });
+        req.on('error', (err) => console.warn(`[N8N] trigger failed: ${err.message}`));
+        req.setTimeout(8000, () => { req.destroy(); console.warn(`[N8N] ${path} timeout`); });
+        req.write(body);
+        req.end();
+    } catch (err) {
+        console.warn(`[N8N] trigger error: ${err.message}`);
+    }
+}
 
 async function handleMissedCall({ phone, clinicId, callSid }) {
     if (callSid) {
@@ -40,6 +82,14 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
     });
 
     await ensureRecoveryCaseForMissedCall(missedCall.id);
+
+    // Non-blocking trigger to n8n missed call recovery workflow
+    triggerN8n('/missed-call', {
+        clinicId,
+        missedCallId: missedCall.id,
+        phone,
+        name: null,
+    });
 
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };

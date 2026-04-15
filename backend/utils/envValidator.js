@@ -12,7 +12,8 @@ function validateEnv() {
     const recommended = [
         'WEBHOOK_SECRET',
         'AUTOMATION_API_KEY',
-        'GEMINI_API_KEY'
+        'GEMINI_API_KEY',
+        'N8N_WEBHOOK_URL',
     ];
 
     let allRequiredPresent = true;
