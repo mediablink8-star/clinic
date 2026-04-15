@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
-import { Menu } from 'lucide-react';
+import { Menu, Building2 } from 'lucide-react';
 import { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
