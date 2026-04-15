@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone, FlaskConical, Zap } from 'lucide-react';
+import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge }) => {
     const isPrimary = variant === 'primary';
-    const isSecondary = variant === 'secondary';
     const isAi = variant === 'ai';
-    const isTest = variant === 'test';
 
     const bg = isPrimary ? 'linear-gradient(135deg, var(--primary) 0%, #009a93 100%)'
         : isAi ? 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
-        : isTest ? 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)'
         : 'var(--bg-subtle)';
 
-    const color = (isPrimary || isAi || isTest) ? 'white' : 'var(--secondary)';
-    const border = (isPrimary || isAi || isTest) ? 'none' : '1px solid var(--border)';
-    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : isTest ? '0 6px 18px -4px rgba(16,185,129,0.35)' : 'var(--shadow-sm)';
-    const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : isTest ? 'rgba(52,211,153,0.25)' : 'var(--primary-light)';
-    const iconColor = (isPrimary || isAi || isTest) ? 'white' : 'var(--primary)';
+    const color = (isPrimary || isAi) ? 'white' : 'var(--secondary)';
+    const border = (isPrimary || isAi) ? 'none' : '1px solid var(--border)';
+    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : 'var(--shadow-sm)';
+    const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : 'var(--primary-light)';
+    const iconColor = (isPrimary || isAi) ? 'white' : 'var(--primary)';
 
     return (
         <button className={`quick-action-btn ${isPrimary || isAi ? 'quick-action-btn--wide' : ''}`} onClick={onClick} style={{ width: '100%', flex: (isPrimary || isAi) ? undefined : 1, padding: (isPrimary || isAi) ? '1rem' : '0.75rem', borderRadius: '14px', border, background: bg, backdropFilter: 'blur(8px)', color, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: (isPrimary || isAi) ? '800' : '600', fontSize: (isPrimary || isAi) ? '0.9rem' : '0.82rem', cursor: 'pointer', boxShadow: shadow, transition: 'all 0.2s ease', position: 'relative', opacity: isPrimary ? 1 : 0.9 }}>
@@ -182,94 +179,9 @@ const CallPatientModal = ({ patients = [], onClose }) => {
     );
 };
 
-const SimulateCallModal = ({ onClose, clinic }) => {
-    const [url, setUrl] = useState(() => localStorage.getItem('n8n_webhook_url') || '');
-    const [phone, setPhone] = useState('+30690000000');
-    const [status, setStatus] = useState(null);
-    const [errMsg, setErrMsg] = useState('');
-
-    const handleSave = () => localStorage.setItem('n8n_webhook_url', url);
-
-    const handleSimulate = async () => {
-        if (!url.trim()) return;
-        handleSave();
-        setStatus('sending');
-        setErrMsg('');
-        const payload = { event: 'missed_call', phone, clinicId: clinic?.id || 'test-clinic', callSid: `sim_${Date.now()}`, timestamp: new Date().toISOString(), source: 'simulate_button' };
-        try {
-            await axios.post(url.trim(), payload);
-            setStatus('sent');
-            setTimeout(() => { setStatus(null); onClose(); }, 2000);
-        } catch (err) {
-            setStatus('error');
-            setErrMsg(err?.response?.data?.message || err.message || 'Request failed');
-        }
-    };
-
-    return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '460px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid var(--modal-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', padding: '8px', borderRadius: '10px' }}><Zap size={18} color="white" /></div>
-                        <div>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Simulate Incoming Call</h2>
-                            <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>Fires a missed-call payload to your n8n webhook</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>n8n Webhook URL</label>
-                        <input type="url" placeholder="https://your-n8n.com/webhook/clinic-events" value={url} onChange={e => setUrl(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                        <label style={{ fontSize: '0.72rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Caller Phone (simulated)</label>
-                        <input type="text" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
-                    </div>
-                    <div style={{ background: '#0f172a', borderRadius: '10px', padding: '12px', fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'monospace', lineHeight: 1.6 }}>
-                        <span style={{ color: '#64748b' }}>// payload sent to n8n</span>{'\n'}
-                        {JSON.stringify({ event: 'missed_call', phone, clinicId: clinic?.id || 'test-clinic', callSid: 'sim_...', timestamp: '...', source: 'simulate_button' }, null, 2)}
-                    </div>
-                    {status === 'error' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '0.8rem', fontWeight: '600', border: '1px solid rgba(239,68,68,0.2)' }}><AlertCircle size={15} /> {errMsg || 'Failed to reach webhook'}</div>}
-                    {status === 'sent' && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '0.8rem', fontWeight: '600', border: '1px solid rgba(16,185,129,0.2)' }}><CheckCircle2 size={15} /> Webhook triggered successfully!</div>}
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Cancel</button>
-                        <button onClick={handleSimulate} disabled={!url.trim() || status === 'sending' || status === 'sent'} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: 'white', cursor: (!url.trim() || status === 'sending') ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', opacity: (!url.trim() || status === 'sending') ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                            <Zap size={15} />
-                            {status === 'sending' ? 'Firing...' : 'Fire Webhook'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-};
-
 const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic, onRefresh }) => {
     const [showSMS, setShowSMS] = useState(false);
     const [showCall, setShowCall] = useState(false);
-    const [showSimulate, setShowSimulate] = useState(false);
-    const [testStatus, setTestStatus] = useState(null);
-
-    const handleTestRecovery = async () => {
-        setTestStatus('sending');
-        try {
-            await axios.post(`${API_BASE}/recovery/test-trigger`, {
-                phone: '+30690000000',
-                callSid: `demo_${Date.now()}`
-            }, { headers: { Authorization: `Bearer ${token}` } });
-            setTestStatus('sent');
-            if (onRefresh) onRefresh();
-            setTimeout(() => setTestStatus(null), 3000);
-        } catch (err) {
-            console.error('Test recovery failed:', err.response?.data || err.message);
-            setTestStatus('error');
-            setTimeout(() => setTestStatus(null), 3000);
-        }
-    };
 
     return (
         <>
@@ -280,24 +192,8 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
                     <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
                 </div>
-                <div style={{ marginTop: '0.25rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>Εργαλεία Προγραμματιστή</div>
-                    <QuickActionBtn
-                        icon={FlaskConical}
-                        label={testStatus === 'sending' ? 'Αποστολή...' : testStatus === 'sent' ? '✓ Εστάλη!' : testStatus === 'error' ? '✗ Σφάλμα' : 'Δοκιμή SMS Ανάκτησης'}
-                        onClick={handleTestRecovery}
-                        variant="test"
-                    />
-                    <QuickActionBtn
-                        icon={Zap}
-                        label="Προσομοίωση Webhook..."
-                        onClick={() => setShowSimulate(true)}
-                        variant="test"
-                    />
-                </div>
             </div>
             {showSMS && <SendSMSModal patients={patients} token={token} onClose={() => setShowSMS(false)} />}
-            {showSimulate && <SimulateCallModal onClose={() => setShowSimulate(false)} clinic={clinic} />}
             {showCall && <CallPatientModal patients={patients} onClose={() => setShowCall(false)} />}
         </>
     );

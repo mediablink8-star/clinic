@@ -206,7 +206,7 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
                 <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6366f1', lineHeight: 1.4, margin: 0 }}>
                     {booked > 0
                         ? `${booked} ραντεβού ανακτήθηκαν από ${missed} αναπάντητες κλήσεις`
-                        : 'Δεν υπάρχουν δεδομένα ακόμα — δοκιμάστε Test Recovery SMS'}
+                        : 'Δεν υπάρχουν δεδομένα ακόμα'}
                 </p>
             </div>
         </div>
