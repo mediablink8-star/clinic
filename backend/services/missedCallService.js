@@ -89,7 +89,6 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         missedCallId: missedCall.id,
         phone,
         name: null,
-        twilioPhone: process.env.TWILIO_PHONE_NUMBER || '',
         backendUrl: process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com',
     });
 

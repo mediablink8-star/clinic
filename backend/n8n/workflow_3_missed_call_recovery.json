@@ -122,35 +122,32 @@
     },
     {
       "parameters": {
-        "operation": "send",
-        "from": "={{ $node[\"Set Variables\"].json.twilioPhone }}",
-        "to": "={{ $node[\"Set Variables\"].json.phone }}",
-        "message": "={{ $json.smsBody }}",
-        "options": {
-          "statusCallback": "={{ $node[\"Set Variables\"].json.backendUrl }}/api/webhook/provider/twilio/status?clinicId={{ encodeURIComponent($node[\"Set Variables\"].json.clinicId) }}&missedCallId={{ encodeURIComponent($node[\"Set Variables\"].json.missedCallId) }}"
-        }
+        "url": "https://rest.nexmo.com/sms/json",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "api_key", "value": "917c2dd5" },
+            { "name": "api_secret", "value": "1rAPIYt68kzGc9vu" },
+            { "name": "from", "value": "ClinicFlow" },
+            { "name": "to", "value": "={{ $node[\"Set Variables\"].json.phone }}" },
+            { "name": "text", "value": "={{ $json.smsBody }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
       },
       "id": "node_send_sms",
       "name": "Send Recovery SMS",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
       "position": [1560, 300],
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000,
-      "continueOnFail": true,
-      "credentials": {
-        "twilioApi": {
-          "id": "twilio_creds",
-          "name": "Twilio Account"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
+            { "value1": "={{ $json.messages[0]['status'] }}", "operation": "equal", "value2": "0" }
           ]
         }
       },
@@ -165,7 +162,7 @@
         "values": {
           "string": [
             { "name": "result", "value": "sent" },
-            { "name": "twilioSid", "value": "={{ $json.sid }}" }
+            { "name": "messageId", "value": "={{ $json.messages[0]['message-id'] }}" }
           ]
         }
       },
