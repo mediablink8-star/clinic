@@ -20,8 +20,8 @@ module.exports = function webhookAuth(req, res, next) {
         });
     }
 
-    // Mode 1: simple secret header
-    const headerSecret = req.headers['x-webhook-secret'];
+    // Mode 1: simple secret header (x-webhook-secret or x-api-key)
+    const headerSecret = req.headers['x-webhook-secret'] || req.headers['x-api-key'];
     if (headerSecret) {
         if (headerSecret === envSecret) return next();
         return res.status(401).json({ error: 'Invalid webhook secret' });

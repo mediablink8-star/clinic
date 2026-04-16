@@ -182,6 +182,7 @@ app.use('/api/webhook/provider', webhookLimiter, providerWebhooksRouter);
 const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
+app.use('/api/webhooks', webhookLimiter, webhookAuth, webhooksRouter);
 
 const twilioWebhooksRouter = require('./routes/twilioWebhooks');
 app.use('/webhooks/twilio', webhookLimiter, twilioWebhooksRouter);
