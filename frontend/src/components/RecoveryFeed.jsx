@@ -65,6 +65,9 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const [sending, setSending] = React.useState(false);
     const [patientData, setPatientData] = React.useState(log.patient || null);
     const [loadingPatient, setLoadingPatient] = React.useState(false);
+    const [savingPatient, setSavingPatient] = React.useState(false);
+    const [patientName, setPatientName] = React.useState('');
+    const [showNameInput, setShowNameInput] = React.useState(false);
     const authToken = token || getAccessToken();
 
     React.useEffect(() => {
@@ -102,19 +105,26 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     };
 
     const handleSavePatient = async () => {
+        if (!patientName.trim()) { setShowNameInput(true); return; }
+        setSavingPatient(true);
         try {
             const res = await fetch(`${API_BASE}/patients`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-                body: JSON.stringify({ name: phone, phone })
+                body: JSON.stringify({ name: patientName.trim(), phone })
             });
             const data = await res.json();
             if (data.id) {
                 toast.success('Ασθενής αποθηκεύτηκε!');
                 setPatientData(data);
+                setShowNameInput(false);
+            } else {
+                toast.error(data.error || 'Σφάλμα αποθήκευσης.');
             }
         } catch {
-            toast.error('Σφάλμα αποθήκευσης.');
+            toast.error('Σφάλμα σύνδεσης.');
+        } finally {
+            setSavingPatient(false);
         }
     };
 
@@ -158,10 +168,28 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                                 </div>
                             )}
                         </div>
-                        {!isKnownPatient && (
-                            <button onClick={handleSavePatient} style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: 'white', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <UserPlus size={11} /> Αποθήκευση
-                            </button>
+                        {!isKnownPatient && !patientData?.id && (
+                            <div style={{ marginLeft: 'auto' }}>
+                                {showNameInput ? (
+                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                        <input
+                                            autoFocus
+                                            value={patientName}
+                                            onChange={e => setPatientName(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleSavePatient()}
+                                            placeholder="Όνομα ασθενή"
+                                            style={{ padding: '4px 8px', borderRadius: '7px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.75rem', width: '130px', outline: 'none' }}
+                                        />
+                                        <button onClick={handleSavePatient} disabled={savingPatient} style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: '#10b981', color: 'white', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer' }}>
+                                            {savingPatient ? '...' : 'OK'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => setShowNameInput(true)} style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: 'white', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <UserPlus size={11} /> Αποθήκευση
+                                    </button>
+                                )}
+                            </div>
                         )}
                     </div>
 
