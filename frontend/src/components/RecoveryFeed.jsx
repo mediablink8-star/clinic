@@ -72,13 +72,20 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const isKnownPatient = !!(log.patient?.id || patientData?.id);
 
     React.useEffect(() => {
-        if (isKnownPatient && log.patient?.id && !patientData?.appointments) {
+        if (log.patient?.id) {
             setLoadingPatient(true);
             fetch(`${API_BASE}/patients/${log.patient.id}`, {
                 headers: { Authorization: `Bearer ${authToken}` }
             }).then(r => r.json()).then(d => setPatientData(d)).catch(() => {}).finally(() => setLoadingPatient(false));
+        } else if (log.fromNumber) {
+            fetch(`${API_BASE}/patients`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+            }).then(r => r.json()).then(data => {
+                const match = Array.isArray(data) ? data.find(p => p.phone === log.fromNumber) : null;
+                if (match) setPatientData(match);
+            }).catch(() => {});
         }
-    }, [log.patient?.id]);
+    }, [log.id]);
 
     const handleSendSms = async () => {
         if (!smsText.trim() || sending) return;
