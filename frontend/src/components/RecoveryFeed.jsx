@@ -273,7 +273,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
 
     return (
         <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 {sorted.map((log) => {
                     const ev = getEvent(log);
                     const Icon = ev.icon;
@@ -286,30 +286,50 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                             className="animate-fade"
                             onClick={() => setSelected(log)}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                padding: '0.38rem 0.7rem', borderRadius: '9px',
+                                display: 'flex', alignItems: 'center', gap: '10px',
+                                padding: '0.6rem 0.75rem', borderRadius: '12px',
                                 background: ev.bg, border: `1px solid ${ev.border}`,
                                 cursor: 'pointer', transition: 'opacity 0.15s',
                             }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                         >
-                            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: ev.dot, flexShrink: 0, boxShadow: `0 0 4px ${ev.dot}70` }} />
-                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--secondary)', whiteSpace: 'nowrap' }}>{ev.label}</span>
-                            <span style={{ fontSize: '0.65rem', color: '#cbd5e1', flexShrink: 0 }}>–</span>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                            <span style={{ fontSize: '0.6rem', color: '#b0bec5', fontWeight: '500', flexShrink: 0 }}>{fmtTime(log.updatedAt || log.createdAt)}</span>
-                            {isFailed && (
-                                <button
-                                    onClick={(e) => handleRetry(log.id, e)}
-                                    disabled={!!retrying[log.id]}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '5px', flexShrink: 0, border: '1px solid rgba(239,68,68,0.3)', background: retrying[log.id] === 'sent' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)', color: retrying[log.id] === 'sent' ? '#059669' : '#dc2626', fontSize: '0.6rem', fontWeight: '800', cursor: retrying[log.id] ? 'not-allowed' : 'pointer' }}
-                                >
-                                    <RefreshCw size={8} />
-                                    {retrying[log.id] === 'retrying' ? '...' : retrying[log.id] === 'sent' ? '✓' : 'Retry'}
-                                </button>
-                            )}
-                            <ChevronRight size={11} color="#cbd5e1" style={{ flexShrink: 0 }} />
+                            {/* Avatar */}
+                            <div style={{
+                                width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+                                background: ev.dot + '22', border: `1px solid ${ev.dot}44`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.8rem', fontWeight: '800', color: ev.dot,
+                            }}>
+                                {(log.patientName || log.patient?.name || '?')[0].toUpperCase()}
+                            </div>
+                            {/* Content */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap' }}>{name}</span>
+                                    <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: ev.dot, flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '600', color: ev.dot, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.label}</span>
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: 'var(--text-light)', fontWeight: '500' }}>
+                                    {log.fromNumber || '—'}
+                                </div>
+                            </div>
+                            {/* Right side */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '0.65rem', color: '#b0bec5', fontWeight: '500' }}>{fmtTime(log.updatedAt || log.createdAt)}</span>
+                                {isFailed ? (
+                                    <button
+                                        onClick={(e) => handleRetry(log.id, e)}
+                                        disabled={!!retrying[log.id]}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 8px', borderRadius: '5px', border: '1px solid rgba(239,68,68,0.3)', background: retrying[log.id] === 'sent' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)', color: retrying[log.id] === 'sent' ? '#059669' : '#dc2626', fontSize: '0.62rem', fontWeight: '800', cursor: retrying[log.id] ? 'not-allowed' : 'pointer' }}
+                                    >
+                                        <RefreshCw size={8} />
+                                        {retrying[log.id] === 'retrying' ? '...' : retrying[log.id] === 'sent' ? '✓' : 'Retry'}
+                                    </button>
+                                ) : (
+                                    <ChevronRight size={13} color="#cbd5e1" />
+                                )}
+                            </div>
                         </div>
                     );
                 })}
