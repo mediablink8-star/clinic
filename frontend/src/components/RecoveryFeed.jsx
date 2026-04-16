@@ -60,7 +60,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const ev = getEvent(log);
     const name = log.patientName || log.patient?.name || log.fromNumber;
     const phone = log.fromNumber;
-    const isKnownPatient = !!(log.patient?.id || patientData?.id);
+
     const [smsText, setSmsText] = React.useState('');
     const [sending, setSending] = React.useState(false);
     const [patientData, setPatientData] = React.useState(log.patient || null);
@@ -69,6 +69,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const [patientName, setPatientName] = React.useState('');
     const [showNameInput, setShowNameInput] = React.useState(false);
     const authToken = token || getAccessToken();
+    const isKnownPatient = !!(log.patient?.id || patientData?.id);
 
     React.useEffect(() => {
         if (isKnownPatient && log.patient?.id && !patientData?.appointments) {
@@ -261,6 +262,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
         const authToken = token || getAccessToken();
+    const isKnownPatient = !!(log.patient?.id || patientData?.id);
         if (!authToken) { toast.error('Session expired.'); return; }
         try {
             const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
