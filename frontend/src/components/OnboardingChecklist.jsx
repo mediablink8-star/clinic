@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, Circle, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, X, ExternalLink } from 'lucide-react';
 
 const STORAGE_KEY = 'onboarding_dismissed';
 
@@ -7,24 +7,31 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
 
+    const vonageNumber = clinic?.phone && clinic.phone !== '' && clinic.phone !== '+10000000000';
+    const hasRecovery = Array.isArray(recoveryLog) && recoveryLog.length > 0;
+
     const steps = [
         {
-            key: 'clinic',
-            label: 'Πληροφορίες ιατρείου',
-            done: !!(clinic?.name && clinic.name !== 'Local Health Clinic'),
-            hint: 'Ρυθμίσεις → Πληροφορίες',
+            key: 'vonage',
+            label: 'Αποκτήστε αριθμό Vonage',
+            done: !!vonageNumber,
+            hint: 'vonage.com → Numbers → Buy a number',
+            link: 'https://dashboard.nexmo.com/buy-numbers',
+            action: 'Αγορά αριθμού →',
         },
         {
-            key: 'ai',
-            label: 'Σύνδεση AI (Gemini)',
-            done: !!(systemStatus?.aiConfigured),
-            hint: 'Ρυθμίσεις AI → Πάροχος AI',
+            key: 'phone',
+            label: 'Καταχωρήστε τον αριθμό',
+            done: !!vonageNumber,
+            hint: 'Ρυθμίσεις → Γενικά → Τηλέφωνο',
+            action: null,
         },
         {
-            key: 'recovery',
-            label: 'Δοκιμή ανάκτησης SMS',
-            done: Array.isArray(recoveryLog) && recoveryLog.length > 0,
-            hint: 'Dashboard → Γρήγορες Ενέργειες → Test Recovery',
+            key: 'forward',
+            label: 'Ρυθμίστε προώθηση κλήσεων',
+            done: hasRecovery,
+            hint: 'Στο τηλέφωνό σας: Προώθηση αναπάντητων → αριθμός Vonage',
+            action: null,
         },
     ];
 
@@ -33,13 +40,12 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
     const allDone = completed === total;
     const pct = Math.round((completed / total) * 100);
 
-    // Auto-dismiss when all done
     useEffect(() => {
         if (allDone) {
             const t = setTimeout(() => {
                 localStorage.setItem(STORAGE_KEY, 'true');
                 setDismissed(true);
-            }, 2000);
+            }, 3000);
             return () => clearTimeout(t);
         }
     }, [allDone]);
@@ -127,22 +133,27 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             {/* Steps */}
             {!collapsed && (
                 <div style={{ display: 'flex', padding: '0.85rem 1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {steps.map((step) => (
+                    {steps.map((step, i) => (
                         <div key={step.key} style={{
-                            display: 'flex', alignItems: 'center', gap: '7px',
-                            padding: '6px 12px', borderRadius: '10px',
+                            display: 'flex', alignItems: 'flex-start', gap: '10px',
+                            padding: '10px 14px', borderRadius: '12px',
                             background: step.done ? 'rgba(16,185,129,0.07)' : 'rgba(248,250,252,0.8)',
                             border: `1px solid ${step.done ? 'rgba(16,185,129,0.2)' : 'rgba(226,232,240,0.8)'}`,
-                            flex: '1 1 180px',
-                            transition: 'all 0.2s ease',
+                            flex: '1 1 200px',
                         }}>
-                            {step.done
-                                ? <CheckCircle2 size={14} color="#10b981" style={{ flexShrink: 0 }} />
-                                : <Circle size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />
-                            }
-                            <div style={{ minWidth: 0 }}>
+                            <div style={{
+                                width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                                background: step.done ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.1)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '0.65rem', fontWeight: '900',
+                                color: step.done ? '#10b981' : '#6366f1',
+                                marginTop: '1px',
+                            }}>
+                                {step.done ? <CheckCircle2 size={13} color="#10b981" /> : i + 1}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{
-                                    fontSize: '0.78rem', fontWeight: '700',
+                                    fontSize: '0.8rem', fontWeight: '700',
                                     color: step.done ? '#065f46' : 'var(--text)',
                                     textDecoration: step.done ? 'line-through' : 'none',
                                     opacity: step.done ? 0.7 : 1,
@@ -150,9 +161,18 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
                                     {step.label}
                                 </div>
                                 {!step.done && (
-                                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '500', marginTop: '1px' }}>
+                                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: '500', marginTop: '3px', lineHeight: 1.4 }}>
                                         {step.hint}
                                     </div>
+                                )}
+                                {!step.done && step.link && (
+                                    <a href={step.link} target="_blank" rel="noreferrer" style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        marginTop: '6px', fontSize: '0.7rem', fontWeight: '700',
+                                        color: '#6366f1', textDecoration: 'none',
+                                    }}>
+                                        {step.action} <ExternalLink size={10} />
+                                    </a>
                                 )}
                             </div>
                         </div>
