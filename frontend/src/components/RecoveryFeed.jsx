@@ -11,9 +11,9 @@ const EVENT = {
     RECOVERING: { label: 'Ασθενής απάντησε',   icon: Reply,        dot: '#3b82f6', bg: 'rgba(59,130,246,0.07)',  border: 'rgba(59,130,246,0.15)' },
     DETECTED:   { label: 'Νέα αναπάντητη',     icon: PhoneMissed,  dot: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.12)'  },
     LOST:       { label: 'Δεν απάντησε',        icon: AlertCircle,  dot: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.12)' },
-    SMS_SENT:   { label: 'SMS εστάλη',          icon: MessageSquare,dot: '#f59e0b', bg: 'rgba(245,158,11,0.07)',  border: 'rgba(245,158,11,0.15)' },
+    SMS_SENT:   { label: 'SMS εστάλη',          icon: MessageSquare,dot: 'var(--primary)', bg: 'var(--primary-light)',  border: 'rgba(0,181,173,0.15)' },
     SMS_FAILED: { label: 'Αποτυχία SMS',        icon: AlertCircle,  dot: '#ef4444', bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.2)'   },
-    PENDING:    { label: 'SMS εκκρεμεί',        icon: Clock,        dot: '#d97706', bg: 'rgba(245,158,11,0.06)',  border: 'rgba(245,158,11,0.12)' },
+    PENDING:    { label: 'SMS εκκρεμεί',        icon: Clock,        dot: 'rgba(0,181,173,0.8)', bg: 'var(--primary-light)',  border: 'rgba(0,181,173,0.12)' },
 };
 
 const getEvent = (log) => {
@@ -164,10 +164,10 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
 
                 <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {/* Patient status */}
-                    <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: isKnownPatient ? 'rgba(16,185,129,0.07)' : 'rgba(245,158,11,0.07)', border: `1px solid ${isKnownPatient ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <User size={16} color={isKnownPatient ? '#10b981' : '#d97706'} />
+                    <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: isKnownPatient ? 'rgba(16,185,129,0.07)' : 'var(--primary-light)', border: `1px solid ${isKnownPatient ? 'rgba(16,185,129,0.2)' : 'rgba(0,181,173,0.2)'}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <User size={16} color={isKnownPatient ? '#10b981' : 'var(--primary)'} />
                         <div>
-                            <div style={{ fontSize: '0.78rem', fontWeight: '700', color: isKnownPatient ? '#065f46' : '#92400e' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: '700', color: isKnownPatient ? '#065f46' : 'var(--primary)' }}>
                                 {isKnownPatient ? 'Υπάρχων ασθενής' : 'Νέος / Άγνωστος ασθενής'}
                             </div>
                             {isKnownPatient && patientData?.appointments && (
@@ -193,7 +193,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                                         </button>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setShowNameInput(true)} style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: 'white', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <button onClick={() => setShowNameInput(true)} style={{ padding: '4px 10px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.6) 100%)', color: 'white', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <UserPlus size={11} /> Αποθήκευση
                                     </button>
                                 )}
