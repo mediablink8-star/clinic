@@ -7,28 +7,28 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
     const [collapsed, setCollapsed] = useState(false);
     const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
 
-    const vonageNumber = clinic?.phone && clinic.phone !== '' && clinic.phone !== '+10000000000';
+    const vonageNumber = !!(clinic?.phone && clinic.phone !== '' && clinic.phone !== '+10000000000');
     const hasRecovery = Array.isArray(recoveryLog) && recoveryLog.length > 0;
 
     const steps = [
         {
             key: 'vonage',
             label: 'Αποκτήστε αριθμό Vonage',
-            done: !!vonageNumber,
+            done: vonageNumber,
             hint: 'vonage.com → Numbers → Buy a number',
             link: 'https://dashboard.nexmo.com/buy-numbers',
             action: 'Αγορά αριθμού →',
         },
         {
             key: 'phone',
-            label: 'Καταχωρήστε τον αριθμό',
-            done: !!vonageNumber,
-            hint: 'Ρυθμίσεις → Γενικά → Τηλέφωνο',
+            label: 'Καταχωρήστε τον αριθμό στις Ρυθμίσεις',
+            done: vonageNumber,
+            hint: 'Ρυθμίσεις → Γενικά → Τηλέφωνο Ιατρείου',
             action: null,
         },
         {
             key: 'forward',
-            label: 'Ρυθμίστε προώθηση κλήσεων',
+            label: 'Ρυθμίστε προώθηση αναπάντητων κλήσεων',
             done: hasRecovery,
             hint: 'Στο τηλέφωνό σας: Προώθηση αναπάντητων → αριθμός Vonage',
             action: null,
@@ -45,7 +45,7 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             const t = setTimeout(() => {
                 localStorage.setItem(STORAGE_KEY, 'true');
                 setDismissed(true);
-            }, 3000);
+            }, 5000);
             return () => clearTimeout(t);
         }
     }, [allDone]);
