@@ -90,7 +90,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/api/webhooks/inbound-sms",
+        "url": "https://backend-l9el.onrender.com/api/webhooks/inbound-sms",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
