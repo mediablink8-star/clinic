@@ -73,10 +73,22 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
 
             {/* Main grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
-                {/* Funnel — full RecoveryFunnel component */}
-                <SectionCard title="Recovery Funnel — 30 ημέρες">
-                    <RecoveryFunnel logs={logs} stats={recoveryStats} />
-                </SectionCard>
+                {/* Left column */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Funnel — full RecoveryFunnel component */}
+                    <SectionCard title="Recovery Funnel — 30 ημέρες">
+                        <RecoveryFunnel logs={logs} stats={recoveryStats} />
+                    </SectionCard>
+
+                    {/* SMS / technical */}
+                    <SectionCard title="Τεχνικά — SMS & Χρεώσεις">
+                        <MetricRow icon={Zap}   label="Credits χρησιμοποιήθηκαν (μήνας)" value={spending.monthCreditsUsed ?? '—'}  color="#f59e0b" />
+                        <MetricRow icon={Zap}   label="Σύνολο SMS απεστάλησαν"            value={spending.totalMessagesSent ?? '—'} color="#f59e0b" />
+                        {systemStats.pendingNotifications > 0 && (
+                            <MetricRow icon={Clock} label="Εκκρεμείς ειδοποιήσεις" value={systemStats.pendingNotifications} warn />
+                        )}
+                    </SectionCard>
+                </div>
 
                 {/* Right column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -97,15 +109,6 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                         <MetricRow icon={Euro}          label="Συνολικά έσοδα"          value={`€${(recoveryStats.revenue || 0).toLocaleString()}`} color="#0ea5e9" />
                         <MetricRow icon={CalendarCheck} label="Κλεισμένα ραντεβού"      value={booked}                                              color="#10b981" />
                         <MetricRow icon={Euro}          label="Μέση αξία ραντεβού"       value={`€${avgRevenue}`}                                    color="#6366f1" />
-                    </SectionCard>
-
-                    {/* SMS / technical */}
-                    <SectionCard title="Τεχνικά — SMS & Χρεώσεις">
-                        <MetricRow icon={Zap}   label="Credits χρησιμοποιήθηκαν (μήνας)" value={spending.monthCreditsUsed ?? '—'}  color="#f59e0b" />
-                        <MetricRow icon={Zap}   label="Σύνολο SMS απεστάλησαν"            value={spending.totalMessagesSent ?? '—'} color="#f59e0b" />
-                        {systemStats.pendingNotifications > 0 && (
-                            <MetricRow icon={Clock} label="Εκκρεμείς ειδοποιήσεις" value={systemStats.pendingNotifications} warn />
-                        )}
                     </SectionCard>
                 </div>
             </div>
