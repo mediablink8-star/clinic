@@ -1,5 +1,20 @@
-﻿import React from 'react';
-import { PhoneMissed, Euro, Plus, Activity, LineChart, Zap } from 'lucide-react';
+import React from 'react';
+import {
+    PhoneMissed,
+    CheckCircle2,
+    Receipt,
+    Euro,
+    Calendar,
+    ArrowUpRight,
+    AlertTriangle,
+    Zap,
+    Clock,
+    Plus,
+    Activity,
+    LineChart,
+    Power,
+    Check
+} from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 
@@ -62,7 +77,7 @@ const RightColumn = ({ children }) => {
                     padding: '6px 0 2px', pointerEvents: 'none',
                     animation: 'scrollBounce 1.6s ease-in-out infinite'
                 }}>
-                    <span style={{ fontSize: '0.58rem', fontWeight: '700', color: 'var(--text-light)', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.5 }}>scroll خ³خ¹خ± د€خµدپخ¹دƒدƒدŒد„خµدپخ±</span>
+                    <span style={{ fontSize: '0.58rem', fontWeight: '700', color: 'var(--text-light)', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.5 }}>scroll για περισσότερα</span>
                     <svg width="14" height="9" viewBox="0 0 14 9" fill="none" style={{ opacity: 0.4 }}>
                         <path d="M1 1l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -126,7 +141,7 @@ const Dashboard = ({
     if (!hasLoaded && loading) return <DashboardSkeleton />;
 
     const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'خڑخ±خ»خ·خ¼خ­دپخ±' : hour < 18 ? 'خڑخ±خ»دŒ خ±د€دŒخ³خµد…خ¼خ±' : 'خڑخ±خ»دŒ خ²دپخ¬خ´د…';
+    const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλό απόγευμα' : 'Καλό βράδυ';
 
     const missedCallsToday = systemStats.missedCallsToday ?? logsArray.filter(l => {
         if (!l || !l.createdAt) return false;
@@ -165,7 +180,7 @@ const Dashboard = ({
                 <div className="dashboard-header__intro hidden-mobile" style={{ flexDirection: 'column', gap: '1px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.04em', margin: 0 }}>
-                            {greeting}, {clinic?.name?.match(/^(خ”دپ\.|Dr\.)/i) ? clinic.name : `خ”دپ. ${clinic?.name || 'خ£د…خ½خ¬خ´خµخ»د†خµ'}`}
+                            {greeting}, {clinic?.name?.match(/^(Δρ\.|Dr\.)/i) ? clinic.name : `Δρ. ${clinic?.name || 'Συνάδελφε'}`}
                         </h1>
                         <button 
                             onClick={handleToggleActive}
@@ -198,7 +213,7 @@ const Dashboard = ({
                                 background: clinic?.isActive ? '#10b981' : '#dc2626',
                                 animation: clinic?.isActive ? undefined : 'none'
                             }} />
-                            {clinic?.isActive ? 'خ£خ¥خ£خ¤خ—خœخ‘ خ•خ‌خ•خ،خ“خں' : 'âڑ ï¸ڈ خ‘د…د„خ؟خ¼خ±د„خ¹دƒخ¼دŒد‚ دƒخµ د€خ±دچدƒخ· â€” خ±خ½خ±د€خ¬خ½د„خ·د„خµد‚ خ؛خ»خ®دƒخµخ¹د‚ خ´خµخ½ خ±خ½خ±خ؛د„دژخ½د„خ±خ¹'}
+                            {clinic?.isActive ? 'ΣΥΣΤΗΜΑ ΕΝΕΡΓΟ' : '⚠️ Αυτοματισμός σε παύση — αναπάντητες κλήσεις δεν ανακτώνται'}
                         </button>
                     </div>
                 </div>
@@ -219,11 +234,11 @@ const Dashboard = ({
                     }}>
                         <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '5px 10px', fontSize: '0.78rem' }}>
                             <LineChart size={15} />
-                            خ‘خ½خ±د†خ؟دپخ­د‚
+                            Αναφορές
                         </button>
                         <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '0.78rem' }}>
                             <Plus size={15} strokeWidth={3} />
-                            خ‌خ­خ؟ خ،خ±خ½د„خµخ²خ؟دچ
+                            Νέο Ραντεβού
                         </button>
                         <div style={{ width: '1px', height: '18px', background: 'var(--border)' }} />
                         <NotificationBell warnings={warnings} notifications={notifications} onAction={onNotificationAction} />
@@ -238,15 +253,15 @@ const Dashboard = ({
                 const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
                 const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: '0.4rem' }}>
-                        <StatCard title="خ‘خ½خ±د€خ¬خ½د„خ·د„خµد‚ دƒخ®خ¼خµدپخ±" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
-                        <StatCard title="خ•خ½خµدپخ³خ­د‚ خ±خ½خ±خ؛د„خ®دƒخµخ¹د‚" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
-                        <StatCard title="خڑخ»خµخ¹دƒخ¼خ­خ½خ± دپخ±خ½د„خµخ²خ؟دچ" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
-                        <StatCard title="خ خ؟دƒخ؟دƒد„دŒ خ±خ½خ¬خ؛د„خ·دƒخ·د‚" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
+                        <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
+                        <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
+                        <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
+                        <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
                         <StatCard
-                            title="خˆدƒخ؟خ´خ± خ±خ½خ¬خ؛د„خ·دƒخ·د‚"
-                            value={`â‚¬${(recoveryStats.revenue || 0).toLocaleString()}`}
-                            subtitle={potentialRevenue > 0 ? `Potential: â‚¬${potentialRevenue.toLocaleString()}` : null}
+                            title="Έσοδα ανάκτησης"
+                            value={`€${(recoveryStats.revenue || 0).toLocaleString()}`}
+                            subtitle={potentialRevenue > 0 ? `Potential: €${potentialRevenue.toLocaleString()}` : null}
                             icon={Euro}
                             color="#0ea5e9"
                             size="compact"
@@ -265,7 +280,7 @@ const Dashboard = ({
                 <div className="dashboard-left-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: '480px' }}>
                         <div style={{ padding: '0.6rem 1rem 0.3rem', flexShrink: 0 }}>
-                            <SectionHeader icon={Activity}>Live خ”دپخ±دƒد„خ·دپخ¹دŒد„خ·د„خ±</SectionHeader>
+                            <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
                         <div className="dashboard-feed-container" style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto' }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} />
@@ -297,7 +312,7 @@ const Dashboard = ({
                     </div>
 
                     <div className="card-glass" style={{ borderRadius: '20px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        <SectionHeader icon={Zap}>خ“دپخ®خ³خ؟دپخµد‚ خ•خ½خ­دپخ³خµخ¹خµد‚</SectionHeader>
+                        <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
                         <div className="dashboard-actions-container">
                             <QuickActions
                                 onViewSchedule={() => setCurrentTab('appointments')}
@@ -317,4 +332,3 @@ const Dashboard = ({
 };
 
 export default Dashboard;
-
