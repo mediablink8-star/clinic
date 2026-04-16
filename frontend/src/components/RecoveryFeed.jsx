@@ -317,6 +317,19 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     const name = patientLabel(log);
                     const isFailed = log.smsStatus === 'failed';
 
+                    // Get reply preview from aiConversation
+                    let replyPreview = null;
+                    try {
+                        const conv = typeof log.aiConversation === 'string' ? JSON.parse(log.aiConversation) : (log.aiConversation || []);
+                        const inbound = Array.isArray(conv) && [...conv].reverse().find(m => m.role === 'user' || m.direction === 'inbound' || m.from === 'patient');
+                        if (inbound && (inbound.content || inbound.body || inbound.text)) {
+                            replyPreview = String(inbound.content || inbound.body || inbound.text).slice(0, 55);
+                            if (String(inbound.content || inbound.body || inbound.text).length > 55) replyPreview += '...';
+                        }
+                    } catch { /* ignore */ }
+                    
+                    const revenue = log.estimatedRevenue || (log.status === 'RECOVERED' || log.status === 'RECOVERING' ? 150 : null);
+
                     return (
                         <div
                             key={log.id}
@@ -347,14 +360,32 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                                     <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: ev.dot, flexShrink: 0 }} />
                                     <span style={{ fontSize: '0.72rem', fontWeight: '600', color: ev.dot, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.label}</span>
                                 </div>
-                                <div style={{ fontSize: '0.68rem', color: 'var(--text-light)', fontWeight: '500' }}>
-                                    {log.fromNumber || '—'}
-                                </div>
+                                {replyPreview ? (
+                                    <div style={{ fontSize: '0.68rem', color: '#3b82f6', fontWeight: '600', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        "{replyPreview}"
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-light)', fontWeight: '500' }}>
+                                        {log.fromNumber || '—'}
+                                    </div>
+                                )}
                             </div>
                             {/* Right side */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                                 <span style={{ fontSize: '0.65rem', color: '#b0bec5', fontWeight: '500' }}>{fmtTime(log.updatedAt || log.createdAt)}</span>
-                                {isFailed ? (
+                                {revenue && log.status === 'RECOVERED' ? (
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '5px' }}>
+                                        +€{revenue}
+                                    </span>
+                                ) : revenue && log.status === 'RECOVERING' ? (
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '1px 6px', borderRadius: '5px' }}>
+                                        ~€{revenue}
+                                    </span>
+                                ) : revenue ? (
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: '#94a3b8', background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: '5px', border: '1px solid var(--border)' }}>
+                                        ~€{revenue}
+                                    </span>
+                                ) : isFailed ? (
                                     <button
                                         onClick={(e) => handleRetry(log.id, e)}
                                         disabled={!!retrying[log.id]}
