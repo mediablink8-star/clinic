@@ -21,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-api-key'] }}",
               "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
+              "value2": "mysecret123"
             }
           ]
         }
@@ -91,7 +91,9 @@
             { "name": "phone", "value": "={{ $json.body.phone }}" },
             { "name": "clinicId", "value": "={{ $json.body.clinicId }}" },
             { "name": "missedCallId", "value": "={{ $json.body.missedCallId }}" },
-            { "name": "name", "value": "={{ $json.body.name || '' }}" }
+            { "name": "name", "value": "={{ $json.body.name || '' }}" },
+            { "name": "twilioPhone", "value": "={{ $json.body.twilioPhone }}" },
+            { "name": "backendUrl", "value": "={{ $json.body.backendUrl }}" }
           ]
         }
       },
@@ -121,11 +123,11 @@
     {
       "parameters": {
         "operation": "send",
-        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "from": "={{ $node[\"Set Variables\"].json.twilioPhone }}",
         "to": "={{ $node[\"Set Variables\"].json.phone }}",
         "message": "={{ $json.smsBody }}",
         "options": {
-          "statusCallback": "={{ $env.BACKEND_API_URL }}/api/webhook/provider/twilio/status?clinicId={{ encodeURIComponent($node[\"Set Variables\"].json.clinicId) }}&missedCallId={{ encodeURIComponent($node[\"Set Variables\"].json.missedCallId) }}"
+          "statusCallback": "={{ $node[\"Set Variables\"].json.backendUrl }}/api/webhook/provider/twilio/status?clinicId={{ encodeURIComponent($node[\"Set Variables\"].json.clinicId) }}&missedCallId={{ encodeURIComponent($node[\"Set Variables\"].json.missedCallId) }}"
         }
       },
       "id": "node_send_sms",
