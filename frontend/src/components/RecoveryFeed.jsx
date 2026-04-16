@@ -60,7 +60,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const ev = getEvent(log);
     const name = log.patientName || log.patient?.name || log.fromNumber;
     const phone = log.fromNumber;
-    const isKnownPatient = !!(log.patient?.id);
+    const isKnownPatient = !!(log.patient?.id || patientData?.id);
     const [smsText, setSmsText] = React.useState('');
     const [sending, setSending] = React.useState(false);
     const [patientData, setPatientData] = React.useState(log.patient || null);
