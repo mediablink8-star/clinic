@@ -13,20 +13,21 @@ async function listPatients(clinicId) {
 async function createPatient({ clinicId, name, phone, email }, actor) {
     if (!name || !phone) throw new AppError('VALIDATION_ERROR', 'name and phone are required', 400);
 
-    const patient = await prisma.$transaction(async (tx) => {
-        const created = await tx.patient.create({
-            data: { clinicId, name, phone, email }
-        });
-        await logAction({
-            clinicId,
-            userId: actor.userId,
-            action: 'CREATE_PATIENT',
-            entity: 'PATIENT',
-            entityId: created.id,
-            details: { name, phone },
-            ipAddress: actor.ip
-        });
-        return created;
+    // Upsert — if patient with same phone exists, update name/email
+    const patient = await prisma.patient.upsert({
+        where: { clinicId_phone: { clinicId, phone } },
+        update: { name, email: email || undefined },
+        create: { clinicId, name, phone, email },
+    });
+
+    await logAction({
+        clinicId,
+        userId: actor?.userId,
+        action: 'CREATE_PATIENT',
+        entity: 'PATIENT',
+        entityId: patient.id,
+        details: { name, phone },
+        ipAddress: actor?.ip
     });
 
     return { success: true, data: patient };
