@@ -151,7 +151,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 60000,
+    refetchInterval: 15000,
     staleTime: 0,
     retry: 1,
   });
@@ -163,7 +163,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 60000,
+    refetchInterval: 15000,
     retry: 1,
   });
 
