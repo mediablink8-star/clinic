@@ -21,13 +21,13 @@
             {
               "value1": "={{ $json.headers['user-agent'] || '' }}",
               "operation": "contains",
-              "value2": "TwilioProxy"
+              "value2": "Vonage"
             }
           ]
         }
       },
       "id": "node_twilio_check",
-      "name": "Is Twilio Request?",
+      "name": "Is Vonage Request?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [460, 300]
@@ -60,10 +60,10 @@
       "parameters": {
         "values": {
           "string": [
-            { "name": "from", "value": "={{ $json.body.From || $json.body.from }}" },
-            { "name": "to", "value": "={{ $json.body.To || $json.body.to }}" },
-            { "name": "body", "value": "={{ $json.body.Body || $json.body.body }}" },
-            { "name": "messageSid", "value": "={{ $json.body.MessageSid || $json.body.SmsSid || '' }}" }
+            { "name": "from", "value": "={{ $json.body.msisdn || $json.body.From || $json.body.from }}" },
+            { "name": "to", "value": "={{ $json.body.to || $json.body.To }}" },
+            { "name": "body", "value": "={{ $json.body.text || $json.body.Body || $json.body.body }}" },
+            { "name": "messageSid", "value": "={{ $json.body['messageId'] || $json.body.MessageSid || '' }}" }
           ]
         }
       },
