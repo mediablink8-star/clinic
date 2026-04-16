@@ -314,6 +314,7 @@ body::before {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-bottom: 0.75rem;
 }
 
 .dashboard-shell {
@@ -321,6 +322,7 @@ body::before {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 header {
