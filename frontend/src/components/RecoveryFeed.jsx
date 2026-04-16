@@ -336,7 +336,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                             onClick={() => setSelected(log)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '10px',
-                                padding: '0.6rem 0.75rem', borderRadius: '12px',
+                                padding: '0.7rem 0.85rem', borderRadius: '12px',
                                 background: ev.bg, border: `1px solid ${ev.border}`,
                                 cursor: 'pointer', transition: 'opacity 0.15s',
                             }}
@@ -345,43 +345,43 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                         >
                             {/* Avatar */}
                             <div style={{
-                                width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+                                width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
                                 background: ev.dot + '22', border: `1px solid ${ev.dot}44`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '0.8rem', fontWeight: '800', color: ev.dot,
+                                fontSize: '0.85rem', fontWeight: '800', color: ev.dot,
                             }}>
                                 {(log.patientName || log.patient?.name || '?')[0].toUpperCase()}
                             </div>
                             {/* Content */}
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap' }}>{name}</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap' }}>{name}</span>
                                     <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: ev.dot, flexShrink: 0 }} />
-                                    <span style={{ fontSize: '0.72rem', fontWeight: '600', color: ev.dot, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.label}</span>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: ev.dot, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.label}</span>
                                 </div>
                                 {replyPreview ? (
-                                    <div style={{ fontSize: '0.68rem', color: '#3b82f6', fontWeight: '600', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: '600', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         "{replyPreview}"
                                     </div>
                                 ) : (
-                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-light)', fontWeight: '500' }}>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', fontWeight: '500' }}>
                                         {log.fromNumber || '—'}
                                     </div>
                                 )}
                             </div>
                             {/* Right side */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '0.65rem', color: '#b0bec5', fontWeight: '500' }}>{fmtTime(log.updatedAt || log.createdAt)}</span>
+                                <span style={{ fontSize: '0.68rem', color: '#b0bec5', fontWeight: '500' }}>{fmtTime(log.updatedAt || log.createdAt)}</span>
                                 {revenue && log.status === 'RECOVERED' ? (
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '1px 6px', borderRadius: '5px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 7px', borderRadius: '6px' }}>
                                         +€{revenue}
                                     </span>
                                 ) : revenue && log.status === 'RECOVERING' ? (
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '700', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '1px 6px', borderRadius: '5px' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 7px', borderRadius: '6px' }}>
                                         ~€{revenue}
                                     </span>
                                 ) : revenue ? (
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: '#94a3b8', background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: '5px', border: '1px solid var(--border)' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#94a3b8', background: 'var(--bg-subtle)', padding: '2px 7px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                                         ~€{revenue}
                                     </span>
                                 ) : isFailed ? (

@@ -120,11 +120,11 @@ const StatCard = ({ icon: Icon, color, bg, title, value, subtitle, trendValue, t
                 )}
                 {(isCompact && subtitle) && (
                     <p style={{
-                        fontSize: '0.62rem',
+                        fontSize: '0.72rem',
                         color: 'var(--text-light)',
-                        fontWeight: '700',
+                        fontWeight: '600',
                         marginTop: '2px',
-                        opacity: 0.7
+                        opacity: 0.85
                     }}>
                         {subtitle}
                     </p>
