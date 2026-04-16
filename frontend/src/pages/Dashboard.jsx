@@ -7,15 +7,16 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import ActionCenter from '../components/ActionCenter';
+import RevenueCard from '../components/RevenueCard';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import Skeleton from '../components/Skeleton';
 import NotificationBell from '../components/NotificationBell';
 
 const DashboardSkeleton = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
-        <Skeleton height="48px" borderRadius="12px" />
+        <Skeleton height="44px" borderRadius="12px" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {[...Array(3)].map((_, i) => <Skeleton key={i} height="80px" borderRadius="16px" />)}
+            {[...Array(3)].map((_, i) => <Skeleton key={i} height="76px" borderRadius="16px" />)}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1 }}>
             <Skeleton borderRadius="20px" />
@@ -25,7 +26,7 @@ const DashboardSkeleton = () => (
 );
 
 const SectionHeader = ({ children, icon: Icon }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.35rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.3rem' }}>
         {Icon && (
             <div style={{ padding: '5px', borderRadius: '7px', background: 'var(--primary-light)', color: 'var(--primary)' }}>
                 <Icon size={13} strokeWidth={2.5} />
@@ -97,7 +98,7 @@ const Dashboard = ({
                 </div>
             </div>
 
-            {/* ── ONBOARDING (hidden when complete) ── */}
+            {/* ── ONBOARDING ── */}
             <div style={{ flexShrink: 0 }}>
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
@@ -109,21 +110,28 @@ const Dashboard = ({
                 <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
             </div>
 
-            {/* ── MAIN GRID — fills remaining height ── */}
+            {/* ── MAIN GRID ── */}
             <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1, minHeight: 0 }}>
 
-                {/* Left — live feed fills all available height */}
-                <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                    <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
-                        <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
+                {/* Left column: live feed (flex) + recovery performance (fixed) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0 }}>
+                    {/* Live feed — takes all remaining height */}
+                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                        <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
+                            <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
+                        </div>
+                        <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                            <RecoveryFeed logs={recoveryLog} muted={true} token={token} onNavigate={setCurrentTab} />
+                        </div>
                     </div>
-                    <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto', minHeight: 0 }}>
-                        <RecoveryFeed logs={recoveryLog} muted={true} token={token} onNavigate={setCurrentTab} />
+                    {/* Recovery Performance — fixed height */}
+                    <div style={{ height: '190px', flexShrink: 0 }}>
+                        <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
 
-                {/* Right — action center + quick actions stacked */}
-                <div className="dashboard-right-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0, overflowY: 'auto' }}>
+                {/* Right column: action center + quick actions */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0, overflowY: 'auto' }}>
                     <ActionCenter
                         pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}
                         recoveryLog={logsArray}
