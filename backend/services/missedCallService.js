@@ -7,6 +7,7 @@ const {
     markRecoveryCaseRecovered,
 } = require('./recoveryTrackingService');
 const { sendManagedSms } = require('./messagingService');
+const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const https = require('https');
 const http = require('http');
 
@@ -83,6 +84,17 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
 
     await ensureRecoveryCaseForMissedCall(missedCall.id);
 
+    // Enforce SMS limits before triggering n8n
+    try {
+        await assertWithinSmsLimit(clinicId);
+    } catch (limitErr) {
+        await prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { smsStatus: 'failed', smsError: limitErr.code || 'Usage limit reached' }
+        });
+        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'failed', reason: 'limit_reached' } };
+    }
+
     // Non-blocking trigger to n8n missed call recovery workflow
     triggerN8n('/missed-call', {
         clinicId,
@@ -91,6 +103,9 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         name: null,
         backendUrl: process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com',
     });
+
+    // Increment SMS usage counter
+    incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
 
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
