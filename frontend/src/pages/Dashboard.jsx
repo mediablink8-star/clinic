@@ -246,6 +246,9 @@ const Dashboard = ({
                 </div>
             </div>
 
+            {/* ONBOARDING */}
+            <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
+
             {/* COMPACT STATS STRIP */}
             {(() => {
                 const recovered = recoveryStats.recovered || 0;
