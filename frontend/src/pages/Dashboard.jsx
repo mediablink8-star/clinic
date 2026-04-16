@@ -252,23 +252,20 @@ const Dashboard = ({
             {/* COMPACT STATS STRIP */}
             {(() => {
                 const recovered = recoveryStats.recovered || 0;
+                const revenue = recoveryStats.revenue || 0;
                 const recoveryRate = systemStats.recoveryRate ?? (missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0);
-                const avgApptValue = recovered > 0 ? Math.round((recoveryStats.revenue || 0) / recovered) : 118;
-                const potentialRevenue = activeConversations * avgApptValue;
                 return (
-                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem' }}>
-                        <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
-                        <StatCard title="Ενεργές ανακτήσεις" value={activeConversations} icon={Zap} color="#f59e0b" size="compact" />
-                        <StatCard title="Κλεισμένα ραντεβού" value={recovered} icon={CheckCircle2} color="#10b981" size="compact" />
-                        <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
+                    <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: '0.4rem' }}>
                         <StatCard
-                            title="Έσοδα ανάκτησης"
-                            value={`€${(recoveryStats.revenue || 0).toLocaleString()}`}
-                            subtitle={potentialRevenue > 0 ? `Potential: €${potentialRevenue.toLocaleString()}` : null}
+                            title="Έσοδα Ανάκτησης"
+                            value={`€${revenue.toLocaleString()}`}
+                            subtitle={recovered > 0 ? `${recovered} ραντεβού ανακτήθηκαν` : 'Δεν υπάρχουν ακόμα'}
                             icon={Euro}
-                            color="#0ea5e9"
+                            color="#10b981"
                             size="compact"
                         />
+                        <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
+                        <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
                     </div>
                 );
             })()}
