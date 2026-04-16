@@ -5,23 +5,28 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { retrySms } = require('../services/missedCallService');
 
 router.get('/stats', asyncHandler(async (req, res) => {
-    const stats = await prisma.missedCall.aggregate({
-        where: { clinicId: req.clinicId, status: 'RECOVERED' },
-        _sum: { estimatedRevenue: true }
-    });
-
-    const recoveredCount = await prisma.missedCall.count({
-        where: { clinicId: req.clinicId, status: 'RECOVERED' }
-    });
-
-    const pendingCount = await prisma.missedCall.count({
-        where: { clinicId: req.clinicId, status: 'RECOVERING' }
-    });
+    const [recoveredStats, recoveringStats, recoveredCount, pendingCount] = await Promise.all([
+        prisma.missedCall.aggregate({
+            where: { clinicId: req.clinicId, status: 'RECOVERED' },
+            _sum: { estimatedRevenue: true }
+        }),
+        prisma.missedCall.aggregate({
+            where: { clinicId: req.clinicId, status: 'RECOVERING' },
+            _sum: { estimatedRevenue: true }
+        }),
+        prisma.missedCall.count({
+            where: { clinicId: req.clinicId, status: 'RECOVERED' }
+        }),
+        prisma.missedCall.count({
+            where: { clinicId: req.clinicId, status: 'RECOVERING' }
+        }),
+    ]);
 
     res.json({
         recovered: recoveredCount,
         pending: pendingCount,
-        revenue: stats._sum.estimatedRevenue || 0
+        revenue: recoveredStats._sum.estimatedRevenue || 0,
+        potentialRevenue: recoveringStats._sum.estimatedRevenue || 0,
     });
 }));
 

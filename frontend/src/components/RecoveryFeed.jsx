@@ -269,7 +269,6 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
         const authToken = token || getAccessToken();
-    const isKnownPatient = !!(log.patient?.id || patientData?.id);
         if (!authToken) { toast.error('Session expired.'); return; }
         try {
             const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
