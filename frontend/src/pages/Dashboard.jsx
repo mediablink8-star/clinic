@@ -247,7 +247,7 @@ const Dashboard = ({
             </div>
 
             {/* ONBOARDING */}
-            <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
+            <div style={{ flexShrink: 0 }}><OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} /></div>
 
             {/* COMPACT STATS STRIP */}
             {(() => {
