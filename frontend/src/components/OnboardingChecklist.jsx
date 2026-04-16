@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, ChevronDown, ChevronUp, X, ExternalLink } from 'l
 const STORAGE_KEY = 'onboarding_dismissed';
 
 const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(false); // always starts open
     const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
 
     const vonageNumber = !!(clinic?.phone && clinic.phone !== '' && clinic.phone !== '+10000000000');
@@ -109,7 +109,7 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
                     </button>
 
                     {/* Progress bar */}
-                    {!collapsed && (
+                    {(true || !collapsed) && (
                         <div style={{ width: '80px', height: '5px', borderRadius: '99px', background: 'rgba(99,102,241,0.12)', overflow: 'hidden' }}>
                             <div style={{
                                 height: '100%', borderRadius: '99px',
@@ -131,7 +131,7 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             </div>
 
             {/* Steps */}
-            {!collapsed && (
+            {(true || !collapsed) && (
                 <div style={{ display: 'flex', padding: '0.85rem 1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {steps.map((step, i) => (
                         <div key={step.key} style={{
