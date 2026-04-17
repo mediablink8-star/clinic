@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus } = require('../services/clinicService');
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
+const prisma = require('../services/prisma');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
