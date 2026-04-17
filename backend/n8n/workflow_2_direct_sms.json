@@ -12,7 +12,10 @@
       "name": "Receive SMS Request",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -30,26 +33,40 @@
       "name": "Auth Check",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
-        "options": { "responseCode": 401 }
+        "options": {
+          "responseCode": 401
+        }
       },
       "id": "node_unauthorized",
       "name": "Return 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [680, 460]
+      "position": [
+        680,
+        460
+      ]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.body.phone }}", "operation": "isNotEmpty" },
-            { "value1": "={{ $json.body.message }}", "operation": "isNotEmpty" }
+            {
+              "value1": "={{ $json.body.phone }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.message }}",
+              "operation": "isNotEmpty"
+            }
           ],
           "number": [
             {
@@ -64,31 +81,44 @@
       "name": "Validate Payload",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": false, \"error\": \"invalid payload or message too long\" }",
-        "options": { "responseCode": 400 }
+        "options": {
+          "responseCode": 400
+        }
       },
       "id": "node_error_validation",
       "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 460]
+      "position": [
+        900,
+        460
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"received\": true }",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "node_respond_immediately",
       "name": "Respond 200 Immediately",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -98,10 +128,22 @@
               "name": "executionId",
               "value": "={{ $json.body.notificationId || $execution.id }}"
             },
-            { "name": "entityId", "value": "={{ $json.body.notificationId || '' }}" },
-            { "name": "entityType", "value": "notification" },
-            { "name": "phone", "value": "={{ $json.body.phone }}" },
-            { "name": "message", "value": "={{ $json.body.message }}" }
+            {
+              "name": "entityId",
+              "value": "={{ $json.body.notificationId || '' }}"
+            },
+            {
+              "name": "entityType",
+              "value": "notification"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.body.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.body.message }}"
+            }
           ]
         }
       },
@@ -109,37 +151,66 @@
       "name": "Set Execution ID",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
-        "operation": "send",
-        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
-        "to": "={{ $json.phone }}",
-        "message": "={{ $json.message }}",
-        "options": {}
+        "url": "https://rest.nexmo.com/sms/json",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $env.VONAGE_API_KEY }}"
+            },
+            {
+              "name": "api_secret",
+              "value": "={{ $env.VONAGE_API_SECRET }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $env.VONAGE_FROM_NAME || 'ClinicFlow' }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $node[\"Set Execution ID\"].json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $node[\"Set Execution ID\"].json.message }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_twilio_sms",
-      "name": "Send SMS via Twilio",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [1340, 300],
+      "name": "Send SMS via Vonage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        300
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000,
-      "continueOnFail": true,
-      "credentials": {
-        "twilioApi": {
-          "id": "twilio_creds",
-          "name": "Twilio Account"
-        }
-      }
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.sid }}", "operation": "isNotEmpty" }
+            {
+              "value1": "={{ $json.messages[0]['status'] }}",
+              "operation": "equal",
+              "value2": "0"
+            }
           ]
         }
       },
@@ -147,7 +218,10 @@
       "name": "SMS Sent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [
+        1560,
+        300
+      ]
     },
     {
       "parameters": {
@@ -155,9 +229,16 @@
           "string": [
             {
               "name": "log",
-              "value": "=SMS sent to {{ $node[\"Set Execution ID\"].json.phone }} | executionId: {{ $node[\"Set Execution ID\"].json.executionId }}"
+              "value": "=SMS sent to {{ $node[\"Set Execution ID\"].json.phone }} | messageId: {{ $json.messages[0]['message-id'] }}"
             },
-            { "name": "smsStatus", "value": "sent" }
+            {
+              "name": "smsStatus",
+              "value": "sent"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messages[0]['message-id'] }}"
+            }
           ]
         }
       },
@@ -165,7 +246,10 @@
       "name": "Log SMS Sent",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1780, 200]
+      "position": [
+        1780,
+        200
+      ]
     },
     {
       "parameters": {
@@ -176,60 +260,139 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "type", "value": "sms_failure" },
+            {
+              "name": "type",
+              "value": "sms_failure"
+            },
             {
               "name": "executionId",
               "value": "={{ $node[\"Set Execution ID\"].json.executionId }}"
             },
-            { "name": "error", "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}" },
-            { "name": "entityType", "value": "notification" },
-            { "name": "entityId", "value": "={{ $node[\"Set Execution ID\"].json.entityId }}" }
+            {
+              "name": "error",
+              "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
+            },
+            {
+              "name": "entityType",
+              "value": "notification"
+            },
+            {
+              "name": "entityId",
+              "value": "={{ $node[\"Set Execution ID\"].json.entityId }}"
+            }
           ]
         },
-        "options": { "timeout": 10000 }
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_log_failure",
       "name": "Log SMS Failure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1780, 400],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
-        }
-      }
+      "position": [
+        1780,
+        400
+      ]
     }
   ],
   "connections": {
     "Receive SMS Request": {
-      "main": [[{ "node": "Auth Check", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Auth Check": {
       "main": [
-        [{ "node": "Validate Payload", "type": "main", "index": 0 }],
-        [{ "node": "Return 401", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Validate Payload": {
       "main": [
-        [{ "node": "Respond 200 Immediately", "type": "main", "index": 0 }],
-        [{ "node": "Return 400", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond 200 Immediately",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return 400",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Respond 200 Immediately": {
-      "main": [[{ "node": "Set Execution ID", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Set Execution ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Set Execution ID": {
-      "main": [[{ "node": "Send SMS via Twilio", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send SMS via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send SMS via Twilio": {
-      "main": [[{ "node": "SMS Sent?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SMS Sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SMS Sent?": {
       "main": [
-        [{ "node": "Log SMS Sent", "type": "main", "index": 0 }],
-        [{ "node": "Log SMS Failure", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log SMS Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log SMS Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
