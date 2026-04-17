@@ -50,7 +50,7 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
     });
 
     if (deliveryStatus === 'FAILED') {
-        throw new AppError('TWILIO_SEND_FAILED', 'TWILIO_SEND_FAILED', 502, { type: 'sms', reason: webhookResult.message || 'Delivery failed' });
+        throw new AppError('SMS_SEND_FAILED', 'SMS_SEND_FAILED', 502, { type: 'sms', reason: webhookResult.message || 'Delivery failed' });
     }
     return { logId: log.id, deliveryStatus };
 }

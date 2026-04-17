@@ -9,14 +9,14 @@ router.get('/config-status', asyncHandler(async (req, res) => {
     const warnings = [];
 
     if (!process.env.GEMINI_API_KEY) warnings.push({ key: 'AI', message: 'Το GEMINI_API_KEY λείπει από το backend περιβάλλον.' });
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-        warnings.push({ key: 'sms', message: 'Twilio backend credentials are not fully configured.' });
+    if (!process.env.SMS_WEBHOOK_URL && !process.env.WEBHOOK_URL) {
+        warnings.push({ key: 'sms', message: 'SMS webhook URL is not configured.' });
     }
     if (!process.env.WEBHOOK_SECRET) warnings.push({ key: 'security', message: 'Δεν έχει οριστεί WEBHOOK_SECRET. Το webhook endpoint είναι ανοιχτό.' });
 
     res.json({
         AI: !!process.env.GEMINI_API_KEY,
-        SMS: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
+        SMS: !!(process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
         recovery: !!reminderWorker,
         webhook: !!process.env.WEBHOOK_SECRET,
         warnings
@@ -34,8 +34,8 @@ router.get('/status', asyncHandler(async (req, res) => {
         redis: connection ? connection.status === 'ready' : false,
         worker: reminderWorker ? reminderWorker.isRunning() : false,
         aiConfigured: !!process.env.GEMINI_API_KEY,
-        twilioConfigured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
-        voiceConfigured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+        smsConfigured: !!(process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
+        voiceConfigured: false,
         webhookConfigured: !!process.env.WEBHOOK_SECRET,
         workflowsActive: !!(reminderWorker && reminderWorker.isRunning()),
         lastExecutionAt: lastExecution?.timestamp || null

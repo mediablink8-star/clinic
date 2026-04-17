@@ -62,7 +62,7 @@ router.post('/sms', asyncHandler(async (req, res) => {
     res.json({ success: result.success, forwarded: result.success, ...(result.error ? { error: result.error } : {}) });
 }));
 
-// Used by n8n inbound SMS workflow — resolves clinicId from Twilio number, missedCallId from active case
+// Used by n8n inbound SMS workflow — resolves clinicId from phone number, missedCallId from active case
 router.post('/inbound-sms', asyncHandler(async (req, res) => {
     let {
         clinicId,
@@ -77,7 +77,7 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
     if (!from) return res.status(400).json({ error: 'from is required' });
     if (!messageBody) return res.status(400).json({ error: 'body is required' });
 
-    // Resolve clinicId from Twilio "To" number if not explicitly provided
+    // Resolve clinicId from "To" number if not explicitly provided
     if (!clinicId && to) {
         const clinic = await prisma.clinic.findFirst({ where: { phone: to } });
         if (clinic) clinicId = clinic.id;

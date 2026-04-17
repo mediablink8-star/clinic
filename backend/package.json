@@ -40,8 +40,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.5",
     "otplib": "^13.3.0",
-    "qrcode": "^1.5.4",
-    "twilio": "^5.13.0"
+    "qrcode": "^1.5.4"
   },
   "jest": {
     "testEnvironment": "node",

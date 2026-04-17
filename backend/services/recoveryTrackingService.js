@@ -16,7 +16,7 @@ function mapMissedCallStatusToRecoveryCaseState(status) {
     }
 }
 
-function normalizeTwilioMessageStatus(status) {
+function normalizeMessageStatus(status) {
     const normalized = String(status || '').trim().toLowerCase();
 
     if (!normalized) return null;
@@ -407,7 +407,7 @@ async function syncLegacyMissedCallSmsStatus(missedCallId, status, errorMessage 
     });
 }
 
-async function handleTwilioStatusCallback({
+async function handleProviderStatusCallback({
     providerMessageSid,
     providerStatusRaw,
     clinicId = null,
@@ -419,7 +419,7 @@ async function handleTwilioStatusCallback({
     fromPhone = null,
     occurredAt = new Date(),
 }) {
-    const nextStatus = normalizeTwilioMessageStatus(providerStatusRaw);
+    const nextStatus = normalizeMessageStatus(providerStatusRaw);
     if (!providerMessageSid || !nextStatus) {
         return { success: true, updated: false, reason: 'Unsupported or incomplete callback payload' };
     }
@@ -596,12 +596,12 @@ async function backfillRecoveryCases({ days = 30 } = {}) {
 module.exports = {
     ACTIVE_RECOVERY_CASE_STATES,
     mapMissedCallStatusToRecoveryCaseState,
-    normalizeTwilioMessageStatus,
+    normalizeMessageStatus,
     shouldAdvanceMessageStatus,
     ensureRecoveryCaseForMissedCall,
     recordOutboundMessageForMissedCall,
     recordInboundMessage,
-    handleTwilioStatusCallback,
+    handleProviderStatusCallback,
     markRecoveryCaseRecovered,
     backfillRecoveryCases,
 };

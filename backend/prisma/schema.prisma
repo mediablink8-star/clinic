@@ -217,7 +217,7 @@ model MissedCall {
   clinicId         String
   clinic           Clinic           @relation(fields: [clinicId], references: [id])
   fromNumber       String
-  callSid          String?          @unique // Twilio/external call ID for dedup (Fix 4)
+  callSid          String?          @unique // External call ID for dedup (Fix 4)
   patientId        String?
   patient          Patient?         @relation(fields: [patientId], references: [id])
   status           MissedCallStatus @default(DETECTED)

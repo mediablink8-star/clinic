@@ -26,7 +26,6 @@ services:
         sync: false
       - key: WEBHOOK_SECRET
         sync: false
-      - key: TWILIO_AUTH_TOKEN
         sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false

@@ -169,23 +169,13 @@ const teamRouter = require('./routes/team');
 app.use('/api/team', requireAuth, teamRouter);
 
 // Unauthenticated Webhooks (Self-protected via HMAC inside)
-const voiceRouter = require('./routes/voice');
-app.use('/api/voice', voiceRouter);
-
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
-
-// Provider-facing webhook callbacks (e.g. Twilio delivery receipts)
-const providerWebhooksRouter = require('./routes/providerWebhooks');
-app.use('/api/webhook/provider', webhookLimiter, providerWebhooksRouter);
 
 // --- WEBHOOK ROUTES ---
 const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
 app.use('/api/webhooks', webhookLimiter, webhookAuth, webhooksRouter);
-
-const twilioWebhooksRouter = require('./routes/twilioWebhooks');
-app.use('/webhooks/twilio', webhookLimiter, twilioWebhooksRouter);
 
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');
@@ -240,9 +230,9 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
             type: err.details?.type || 'sms'
         });
     }
-    if (err.code === 'TWILIO_SEND_FAILED') {
+    if (err.code === 'SMS_SEND_FAILED') {
         return res.status(502).json({
-            error: 'TWILIO_SEND_FAILED',
+            error: 'SMS_SEND_FAILED',
             type: 'sms',
             message: err.details?.reason || 'SMS provider failed'
         });
