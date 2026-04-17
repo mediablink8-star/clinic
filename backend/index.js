@@ -183,6 +183,9 @@ app.use('/api/public', publicRouter);
 
 // Standard Clinic API
 const appointmentsRouter = require('./routes/appointments');
+const automationAuth = require('./middleware/automationAuth');
+const automationRouter = require('./routes/automation');
+app.use('/api/automation', automationAuth, automationRouter);
 app.use('/api', requireAuth, appointmentsRouter);
 
 const clinicRouter = require('./routes/clinic');
@@ -203,8 +206,7 @@ app.use('/api/messages', requireAuth, messagesRouter);
 
 // Automation endpoints — callable by n8n / Make via x-api-key or Bearer JWT
 const automationAuth = require('./middleware/automationAuth');
-const automationRouter = require('./routes/automation');
-app.use('/api/automation', automationAuth, automationRouter);
+const automationRouter = require('./routes/automation');
 
 // --- 404 HANDLER (MUST BE AFTER ALL ROUTES) ---
 app.use((req, res) => {
