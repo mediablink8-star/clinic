@@ -67,6 +67,58 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         return { success: false, error: 'Clinic inactive' };
     }
 
+    // ── SMS Cooldown check ────────────────────────────────────────────────────
+    // Skip SMS if same phone has an ACTIVE/RECOVERING case with SMS sent < 6h ago
+    // AND no inbound reply since last SMS (patient hasn't engaged)
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const recentActive = await prisma.missedCall.findFirst({
+        where: {
+            clinicId,
+            fromNumber: phone,
+            status: { in: ['DETECTED', 'RECOVERING'] },
+            lastSmsSentAt: { gte: sixHoursAgo },
+        },
+        orderBy: { lastSmsSentAt: 'desc' },
+        include: {
+            recoveryCase: {
+                include: {
+                    conversation: {
+                        include: {
+                            messages: {
+                                where: { direction: 'INBOUND' },
+                                orderBy: { createdAt: 'desc' },
+                                take: 1,
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    if (recentActive) {
+        const lastInbound = recentActive.recoveryCase?.conversation?.messages?.[0];
+        const hasReplied = lastInbound && lastInbound.createdAt > recentActive.lastSmsSentAt;
+        if (!hasReplied) {
+            // Patient hasn't replied and cooldown active — skip SMS, just log
+            console.log(`[Cooldown] Skipping SMS for ${phone} — active case ${recentActive.id} within 6h`);
+            const missedCall = await prisma.missedCall.create({
+                data: {
+                    clinicId,
+                    fromNumber: phone,
+                    callSid: callSid || null,
+                    status: 'DETECTED',
+                    smsStatus: 'skipped',
+                    smsError: 'Cooldown — active case within 6h',
+                    estimatedRevenue: 80,
+                }
+            });
+            await ensureRecoveryCaseForMissedCall(missedCall.id);
+            return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'skipped', reason: 'cooldown' } };
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const aiConfig = JSON.parse(clinic.aiConfig || '{}');
     const { withinHours, scheduledAt } = checkWorkingHours(new Date(), aiConfig.workingHours || null);
 
@@ -96,11 +148,15 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
     }
 
     // Non-blocking trigger to n8n missed call recovery workflow
+    const clinicName = clinic.name || 'το ιατρείο';
+    const smartSmsBody = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
+
     triggerN8n('/missed-call', {
         clinicId,
         missedCallId: missedCall.id,
         phone,
         name: null,
+        smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com',
     });
 

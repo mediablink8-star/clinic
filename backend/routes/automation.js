@@ -3,6 +3,7 @@ const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { handleMissedCall, processScheduledMissedCalls, markRecovered } = require('../services/missedCallService');
 const { getDueNotifications, processNotification } = require('../services/notificationService');
+const { processFollowUps } = require('../services/followUpService');
 
 /**
  * POST /api/automation/missed-call
@@ -38,7 +39,8 @@ router.post('/missed-call', asyncHandler(async (req, res) => {
  */
 router.post('/process-missed-calls', asyncHandler(async (req, res) => {
     const processed = await processScheduledMissedCalls();
-    res.json({ success: true, data: { processedCount: processed } });
+    const followUps = await processFollowUps();
+    res.json({ success: true, data: { processedCount: processed, followUps } });
 }));
 
 /**

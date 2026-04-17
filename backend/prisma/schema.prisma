@@ -224,13 +224,19 @@ model MissedCall {
   smsStatus        String           @default("pending") // pending | processing | sent | failed | scheduled (Fix 5)
   smsError         String?          // last SMS error message
   scheduledSmsAt   DateTime?        // When outside working hours, SMS is scheduled for this time
-  estimatedRevenue Float            @default(150.0)
-  aiConversation   String?          // Stored JSON of SMS history
-  lastSmsSentAt    DateTime?
-  recoveredAt      DateTime?
-  recoveryCase     RecoveryCase?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  estimatedRevenue  Float            @default(150.0)
+  aiConversation    String?          // Stored JSON of SMS history
+  lastSmsSentAt     DateTime?
+  recoveredAt       DateTime?
+  // Smart SMS conversation
+  conversationState String           @default("NEW") // NEW | BOOKING | QUESTION | CALLBACK | COMPLETED
+  bookingStep       String?          // null | ASKED_DAY | ASKED_TIME | CONFIRMING
+  bookingDay        String?          // free-text day captured from patient
+  followUp1SentAt   DateTime?
+  followUp2SentAt   DateTime?
+  recoveryCase      RecoveryCase?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([clinicId])
   @@index([status])
