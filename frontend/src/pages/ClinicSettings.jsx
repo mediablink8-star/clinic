@@ -341,8 +341,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
-    const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
-
     const [webhookData, setWebhookData] = React.useState({
         webhookUrl: clinic?.webhookUrl || '',
         webhookMissedCall: clinic?.webhookMissedCall || '',
@@ -371,6 +369,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             setSavingWebhooks(false);
         }
     };
+
+    const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
 
     return (
         <div className="animate-fade" style={{ maxWidth: '860px', paddingBottom: '3rem' }}>
