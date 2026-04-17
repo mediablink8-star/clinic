@@ -97,4 +97,39 @@ router.post('/toggle-status', requireOwner, asyncHandler(async (req, res) => {
     res.json({ success: true, isActive: data.isActive });
 }));
 
+
+// PUT /api/clinic/webhooks
+router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
+    const {
+        webhookUrl,
+        webhookSecret,
+        webhookMissedCall,
+        webhookAppointment,
+        webhookReminders,
+        webhookDirectSms,
+        webhookInboundSms,
+    } = req.body;
+
+    const data = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: {
+            ...(webhookUrl !== undefined && { webhookUrl: webhookUrl || null }),
+            ...(webhookSecret !== undefined && { webhookSecret: webhookSecret || undefined }),
+            ...(webhookMissedCall !== undefined && { webhookMissedCall: webhookMissedCall || null }),
+            ...(webhookAppointment !== undefined && { webhookAppointment: webhookAppointment || null }),
+            ...(webhookReminders !== undefined && { webhookReminders: webhookReminders || null }),
+            ...(webhookDirectSms !== undefined && { webhookDirectSms: webhookDirectSms || null }),
+            ...(webhookInboundSms !== undefined && { webhookInboundSms: webhookInboundSms || null }),
+        },
+        select: {
+            webhookUrl: true, webhookSecret: true,
+            webhookMissedCall: true, webhookAppointment: true,
+            webhookReminders: true, webhookDirectSms: true, webhookInboundSms: true,
+        }
+    });
+
+    res.json({ success: true, data });
+}));
+
 module.exports = router;
+

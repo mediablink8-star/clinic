@@ -111,7 +111,8 @@ const SECTIONS = [
     { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
     { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
-    { id: 's8', number: '5', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's7', number: '5', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
+    { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
@@ -341,6 +342,35 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     };
 
     const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
+
+    const [webhookData, setWebhookData] = React.useState({
+        webhookUrl: clinic?.webhookUrl || '',
+        webhookMissedCall: clinic?.webhookMissedCall || '',
+        webhookAppointment: clinic?.webhookAppointment || '',
+        webhookReminders: clinic?.webhookReminders || '',
+        webhookDirectSms: clinic?.webhookDirectSms || '',
+        webhookInboundSms: clinic?.webhookInboundSms || '',
+    });
+    const [savingWebhooks, setSavingWebhooks] = React.useState(false);
+    const [webhookSaved, setWebhookSaved] = React.useState(false);
+
+    const handleSaveWebhooks = async () => {
+        setSavingWebhooks(true);
+        setWebhookSaved(false);
+        try {
+            await axios.put(`${API_BASE}/clinic/webhooks`, webhookData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setWebhookSaved(true);
+            showToast('Webhooks αποθηκεύτηκαν!', 'success');
+            if (onUpdate) onUpdate(webhookData);
+            setTimeout(() => setWebhookSaved(false), 2000);
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
+        } finally {
+            setSavingWebhooks(false);
+        }
+    };
 
     return (
         <div className="animate-fade" style={{ maxWidth: '860px', paddingBottom: '3rem' }}>
@@ -766,6 +796,44 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     </div>
                     <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => showToast('Η αναβάθμιση θα είναι διαθέσιμη σύντομα!', 'info')}>
                         Αναβάθμιση Τώρα
+                    </button>
+                </div>
+            </SectionCard>
+
+
+            {/* 5 · Webhooks */}
+            <SectionCard id="s7" number="5" icon={<Zap size={15} color="#f59e0b" />} iconBg="#fffbeb"
+                title="Webhooks & Αυτοματισμοί" subtitle="Σύνδεση με n8n workflows για SMS και ειδοποιήσεις">
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: '0.5rem' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#92400e', fontWeight: '600', margin: 0 }}>
+                        Ορίστε τα URLs των n8n webhooks. Το Global URL χρησιμοποιείται ως fallback αν δεν οριστεί ειδικό.
+                    </p>
+                </div>
+
+                {[
+                    { key: 'webhookUrl',          label: 'Global Webhook URL',              hint: 'Fallback για όλα τα events' },
+                    { key: 'webhookMissedCall',   label: 'Missed Call Webhook',             hint: 'https://clinicflows.app.n8n.cloud/webhook/missed-call' },
+                    { key: 'webhookAppointment',  label: 'Appointment Confirmation Webhook', hint: 'https://clinicflows.app.n8n.cloud/webhook/appointment-created' },
+                    { key: 'webhookReminders',    label: 'Reminders / Notifications Webhook', hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
+                    { key: 'webhookDirectSms',    label: 'Direct SMS Webhook',              hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
+                    { key: 'webhookInboundSms',   label: 'Inbound SMS Webhook',             hint: 'URL για εισερχόμενα SMS' },
+                ].map(({ key, label, hint }) => (
+                    <FormGroup key={key} label={label} flex="1 1 100%">
+                        <input
+                            style={inputStyle}
+                            type="url"
+                            value={webhookData[key] || ''}
+                            onChange={e => setWebhookData(d => ({ ...d, [key]: e.target.value }))}
+                            placeholder={hint}
+                        />
+                    </FormGroup>
+                ))}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveWebhooks} disabled={savingWebhooks}>
+                        {savingWebhooks ? 'Αποθήκευση...' : 'Αποθήκευση Webhooks'}
+                        {webhookSaved && <Check size={14} />}
                     </button>
                 </div>
             </SectionCard>
