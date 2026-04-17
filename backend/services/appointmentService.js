@@ -1,4 +1,5 @@
 const prisma = require('./prisma');
+const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 
@@ -74,6 +75,29 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         });
         return created;
     });
+
+    // Fire appointment.created webhook → n8n workflow 1
+    if (appointment) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        if (clinic) {
+            const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+            const startDate = new Date(startTime);
+            triggerWebhook(
+                'appointment.created',
+                {
+                    appointmentId: appointment.id,
+                    patientName: patient?.name || '',
+                    phone: patient?.phone || '',
+                    date: startDate.toLocaleDateString('el-GR'),
+                    time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
+                    reason: reason || '',
+                },
+                null,
+                clinic.webhookSecret,
+                { clinic }
+            ).catch(err => console.warn('[Webhook] appointment.created failed:', err.message));
+        }
+    }
 
     return { success: true, data: appointment };
 }
