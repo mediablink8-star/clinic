@@ -812,12 +812,12 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
 
                 {[
-                    { key: 'webhookUrl',          label: 'Global Webhook URL',              hint: 'Fallback για όλα τα events' },
-                    { key: 'webhookMissedCall',   label: 'Missed Call Webhook',             hint: 'https://clinicflows.app.n8n.cloud/webhook/missed-call' },
-                    { key: 'webhookAppointment',  label: 'Appointment Confirmation Webhook', hint: 'https://clinicflows.app.n8n.cloud/webhook/appointment-created' },
-                    { key: 'webhookReminders',    label: 'Reminders / Notifications Webhook', hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
-                    { key: 'webhookDirectSms',    label: 'Direct SMS Webhook',              hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
-                    { key: 'webhookInboundSms',   label: 'Inbound SMS Webhook',             hint: 'URL για εισερχόμενα SMS' },
+                    { key: 'webhookMissedCall',   label: 'Workflow 3 — Missed Call Recovery',         hint: 'https://clinicflows.app.n8n.cloud/webhook/missed-call' },
+                    { key: 'webhookAppointment',  label: 'Workflow 1 — Appointment Confirmation SMS',  hint: 'https://clinicflows.app.n8n.cloud/webhook/appointment-created' },
+                    { key: 'webhookReminders',    label: 'Workflow 2 — Direct SMS (Notifications)',    hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
+                    { key: 'webhookDirectSms',    label: 'Workflow 2 — Direct SMS (Manual)',           hint: 'https://clinicflows.app.n8n.cloud/webhook/send-sms' },
+                    { key: 'webhookInboundSms',   label: 'Workflow 5 — Inbound SMS Reply',             hint: 'https://clinicflows.app.n8n.cloud/webhook/inbound-sms' },
+                    { key: 'webhookUrl',          label: 'Global Fallback Webhook URL',                hint: 'Χρησιμοποιείται αν δεν οριστεί ειδικό webhook' },
                 ].map(({ key, label, hint }) => (
                     <FormGroup key={key} label={label} flex="1 1 100%">
                         <input
