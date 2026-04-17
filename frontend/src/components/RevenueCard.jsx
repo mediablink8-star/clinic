@@ -4,8 +4,8 @@ import { Users, BarChart3, Target, CalendarCheck, ChevronDown } from 'lucide-rea
 const FunnelRow = ({ label, value, pct, color }) => (
     <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)' }}>{label}</span>
-            <span style={{ fontSize: '0.65rem', fontWeight: '800', color }}>{value}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.6)' }}>{label}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', color }}>{value}</span>
         </div>
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '99px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px', transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
@@ -54,9 +54,9 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                             <div style={{ padding: '5px', borderRadius: '7px', background: 'rgba(255,255,255,0.1)' }}>
                                 <Target size={12} color="white" />
                             </div>
-                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recovery Performance</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recovery Performance</span>
                         </div>
-                        <span style={{ fontSize: '0.58rem', fontWeight: '600', color: 'rgba(255,255,255,0.3)' }}>30 days</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>30 days</span>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', flex: 1 }}>
@@ -69,9 +69,9 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                             <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.45rem 0.6rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
                                     <Icon size={10} color="rgba(255,255,255,0.4)" />
-                                    <span style={{ fontSize: '0.55rem', fontWeight: '800', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>{label}</span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase' }}>{label}</span>
                                 </div>
-                                <p style={{ fontSize: '1rem', fontWeight: '900', color: 'white', margin: 0 }}>{value}</p>
+                                <p style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white', margin: 0 }}>{value}</p>
                             </div>
                         ))}
                     </div>
@@ -79,7 +79,7 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                     {/* AI impact badge */}
                     {aiRate > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '8px', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#a5b4fc' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#a5b4fc' }}>
                                 AI ανέκτησε {aiRate}% των αναπάντητων κλήσεων
                             </span>
                         </div>
@@ -91,7 +91,7 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
 
                 {/* Right: mini funnel */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '130px', flexShrink: 0, justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.58rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Funnel</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Funnel</span>
                     <FunnelRow label="Αναπάντητες" value={missed}  pct={100}                              color="#94a3b8" />
                     <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.2)" /></div>
                     <FunnelRow label="SMS εστάλη"  value={smsSent} pct={Math.round(smsSent/top*100)}     color="#f59e0b" />

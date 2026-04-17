@@ -200,9 +200,9 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
             )}
 
             {urgentCount === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '12px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16,185,129,0.5)' }} />
-                    <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#065f46' }}>Δεν υπάρχουν εκκρεμότητες</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 5px rgba(16,185,129,0.5)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#065f46' }}>Όλα εντάξει — δεν υπάρχουν εκκρεμότητες</span>
                 </div>
             )}
 
