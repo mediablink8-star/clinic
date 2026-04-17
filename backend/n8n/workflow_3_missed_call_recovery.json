@@ -203,6 +203,10 @@
             {
               "name": "text",
               "value": "={{ $json.smsBody }}"
+            },
+            {
+              "name": "type",
+              "value": "unicode"
             }
           ]
         },
