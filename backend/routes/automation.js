@@ -97,4 +97,17 @@ router.post('/mark-recovered', asyncHandler(async (req, res) => {
     res.json({ success: true, data });
 }));
 
+
+/**
+ * POST /api/automation/log-error
+ * Receives workflow error reports from n8n global error handler.
+ * Body: { type, workflow, error, executionId, timestamp }
+ */
+router.post('/log-error', asyncHandler(async (req, res) => {
+    const { type, workflow, error, executionId, timestamp } = req.body;
+    console.error('[n8n Error]', JSON.stringify({ type, workflow, error, executionId, timestamp }));
+    res.json({ success: true });
+}));
+
 module.exports = router;
+
