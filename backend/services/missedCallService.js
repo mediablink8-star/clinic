@@ -51,7 +51,7 @@ function triggerN8n(path, payload) {
     }
 }
 
-async function handleMissedCall({ phone, clinicId, callSid }) {
+async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = false }) {
     if (callSid) {
         const existing = await prisma.missedCall.findFirst({ where: { callSid, clinicId } });
         if (existing) {
@@ -96,7 +96,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
         }
     });
 
-    if (recentActive) {
+    if (recentActive && !bypassCooldown) {
         const lastInbound = recentActive.recoveryCase?.conversation?.messages?.[0];
         const hasReplied = lastInbound && lastInbound.createdAt > recentActive.lastSmsSentAt;
         if (!hasReplied) {
