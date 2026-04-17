@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Globe, BarChart2, Activity,
+    Globe, BarChart2, Activity, Zap,
     Shield, Loader, Check,
     Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
