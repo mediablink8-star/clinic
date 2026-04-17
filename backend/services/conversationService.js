@@ -1,6 +1,6 @@
 /**
  * Smart SMS conversation state machine.
- * All outbound SMS go through triggerN8n (n8n webhook).
+ * All outbound SMS go through n8n webhook (sendReply).
  * States: NEW → BOOKING / QUESTION / CALLBACK → COMPLETED
  */
 const prisma = require('./prisma');
@@ -12,7 +12,7 @@ const http = require('http');
 function sendReply(clinic, phone, message) {
     const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
     if (!webhookUrl) {
-        console.warn('[Conversation] No webhook URL configured for clinic', clinic.id);
+        console.warn(`[Conversation] No webhook URL for clinic ${clinic.id} — reply not sent to ${phone}`);
         return;
     }
 
@@ -33,12 +33,12 @@ function sendReply(clinic, phone, message) {
                 'x-webhook-key': secret,
             },
         }, (res) => { res.resume(); });
-        req.on('error', (err) => console.warn(`[Conversation] reply failed: ${err.message}`));
+        req.on('error', (err) => console.warn(`[Conversation] reply failed for ${phone}: ${err.message}`));
         req.setTimeout(8000, () => { req.destroy(); });
         req.write(body);
         req.end();
     } catch (err) {
-        console.warn(`[Conversation] sendReply error: ${err.message}`);
+        console.warn(`[Conversation] sendReply error for ${phone}: ${err.message}`);
     }
 }
 
@@ -56,6 +56,8 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     const state = mc.conversationState || 'NEW';
     const text = (messageBody || '').trim();
 
+    console.log(`[Conversation] case=${mc.id} state=${state} from=${fromPhone} msg="${text.slice(0, 50)}"`);
+
     // ── BOOKING flow ─────────────────────────────────────────────────────────
     if (state === 'BOOKING') {
         return handleBookingStep(mc, clinic, text, fromPhone);
@@ -63,28 +65,31 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
 
     // ── QUESTION flow ────────────────────────────────────────────────────────
     if (state === 'QUESTION') {
-        // Stay in QUESTION — answer with clinic info or fallback
         const clinicInfo = buildClinicInfo(clinic);
-        const reply = clinicInfo
-            ? `${clinicInfo}\n\nΑν χρειάζεστε κάτι άλλο, απαντήστε ξανά 😊`
-            : `Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍`;
+        const infoText = clinicInfo
+            ? `${clinicInfo}\n\n`
+            : `Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍\n\n`;
+        // Soft conversion nudge after answering
+        const reply = `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού; 😊\n1️⃣ Ναι  2️⃣ Όχι ευχαριστώ`;
         sendReply(clinic, fromPhone, reply);
+        console.log(`[Conversation] QUESTION answered + nudge sent to ${fromPhone}`);
         return;
     }
 
     // ── CALLBACK flow ────────────────────────────────────────────────────────
     if (state === 'CALLBACK') {
-        // Already handled — just confirm
         sendReply(clinic, fromPhone, `Το ιατρείο θα σας καλέσει σύντομα 📞`);
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
         });
+        console.log(`[Conversation] CALLBACK confirmed for ${fromPhone}`);
         return;
     }
 
     // ── NEW / COMPLETED — detect intent ──────────────────────────────────────
     const intent = detectIntent(text);
+    console.log(`[Conversation] intent=${intent} for ${fromPhone} (case=${mc.id})`);
 
     if (intent === 'BOOKING') {
         await prisma.missedCall.update({
@@ -101,9 +106,10 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             data: { conversationState: 'QUESTION', status: 'RECOVERING' }
         });
         const clinicInfo = buildClinicInfo(clinic);
-        const reply = clinicInfo
-            ? `${clinicInfo}\n\nΑν χρειάζεστε κάτι άλλο, απαντήστε ξανά 😊`
-            : `Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍`;
+        const infoText = clinicInfo
+            ? `${clinicInfo}\n\n`
+            : `Θα επικοινωνήσει μαζί σας το ιατρείο 👍\n\n`;
+        const reply = `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού; 😊\n1️⃣ Ναι  2️⃣ Όχι ευχαριστώ`;
         sendReply(clinic, fromPhone, reply);
         return;
     }
@@ -113,20 +119,23 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'CALLBACK', status: 'RECOVERING' }
         });
+        // Log callback request clearly for clinic visibility
+        console.log(`[Conversation] CALLBACK_REQUESTED clinic=${clinicId} phone=${fromPhone} case=${mc.id}`);
         sendReply(clinic, fromPhone, `Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!`);
         return;
     }
 
-    // UNKNOWN
+    // UNKNOWN — guide back to menu
     sendReply(clinic, fromPhone, `Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`);
+    console.log(`[Conversation] UNKNOWN intent for ${fromPhone} — menu resent`);
 }
 
 // ── Booking step machine ──────────────────────────────────────────────────────
 async function handleBookingStep(mc, clinic, text, fromPhone) {
     const step = mc.bookingStep;
+    console.log(`[Conversation] booking step=${step} for ${fromPhone}`);
 
     if (step === 'ASKED_DAY') {
-        // Save the day, ask for time
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: { bookingDay: text, bookingStep: 'ASKED_TIME' }
@@ -136,22 +145,24 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
     }
 
     if (step === 'ASKED_TIME') {
-        // Confirm booking
         const day = mc.bookingDay || 'την ημέρα που ζητήσατε';
+        const time = text;
+        // Human-feeling confirmation
+        sendReply(clinic, fromPhone, `Τέλεια 👍 Σας κλείσαμε για ${day} στις ${time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊`);
         await prisma.missedCall.update({
             where: { id: mc.id },
-            data: { bookingStep: 'CONFIRMING' }
+            data: {
+                conversationState: 'COMPLETED',
+                bookingStep: 'CONFIRMING',
+                status: 'RECOVERED',
+                recoveredAt: new Date(),
+            }
         });
-        sendReply(clinic, fromPhone, `Τέλεια! Επιβεβαιώνω ραντεβού για ${day} στις ${text}.\nΘα λάβετε επιβεβαίωση από το ιατρείο 🎉`);
-        // Mark as recovered
-        await prisma.missedCall.update({
-            where: { id: mc.id },
-            data: { conversationState: 'COMPLETED', status: 'RECOVERED', recoveredAt: new Date() }
-        });
+        console.log(`[Conversation] BOOKING completed for ${fromPhone} — day=${day} time=${time}`);
         return;
     }
 
-    // Fallback if already confirming
+    // Already confirmed
     sendReply(clinic, fromPhone, `Το ραντεβού σας έχει καταχωρηθεί. Θα επικοινωνήσουμε σύντομα 😊`);
 }
 

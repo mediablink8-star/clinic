@@ -53,7 +53,7 @@ router.get('/insights', asyncHandler(async (req, res) => {
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
-    const [staleNoReply, patientEngaged, failedSms] = await Promise.all([
+    const [staleNoReply, patientEngaged, failedSms, callbackRequested] = await Promise.all([
         // RECOVERING, SMS sent 24h+ ago, no reply (not ENGAGED in RecoveryCase)
         prisma.missedCall.findMany({
             where: {
@@ -88,6 +88,17 @@ router.get('/insights', asyncHandler(async (req, res) => {
             include: { patient: true },
             orderBy: { updatedAt: 'desc' },
             take: 10
+        }),
+        // Callback requests — conversationState = CALLBACK
+        prisma.missedCall.findMany({
+            where: {
+                clinicId,
+                conversationState: 'CALLBACK',
+                status: { in: ['DETECTED', 'RECOVERING'] },
+            },
+            include: { patient: true },
+            orderBy: { updatedAt: 'desc' },
+            take: 20
         })
     ]);
 
@@ -108,11 +119,13 @@ router.get('/insights', asyncHandler(async (req, res) => {
         staleNoReply: staleNoReply.map(mc => formatEntry(mc, 'STALE_NO_REPLY')),
         patientEngaged: patientEngaged.map(mc => formatEntry(mc, 'PATIENT_ENGAGED')),
         failedSms: failedSms.map(mc => formatEntry(mc, 'FAILED_SMS')),
+        callbackRequested: callbackRequested.map(mc => formatEntry(mc, 'CALLBACK_REQUESTED')),
         summary: {
             staleCount: staleNoReply.length,
             engagedCount: patientEngaged.length,
             failedCount: failedSms.length,
-            totalActionable: staleNoReply.length + patientEngaged.length + failedSms.length
+            callbackCount: callbackRequested.length,
+            totalActionable: staleNoReply.length + patientEngaged.length + failedSms.length + callbackRequested.length
         }
     });
 }));

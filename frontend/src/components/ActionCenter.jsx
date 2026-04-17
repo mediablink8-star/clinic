@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-    AlertCircle, Reply, Send, PhoneOff, Clock,
+    AlertCircle, Reply, Send, PhoneOff, Clock, PhoneCall,
     PhoneMissed, Zap, MessageCircle, ChevronRight, X
 } from 'lucide-react';
 import axios from 'axios';
@@ -132,12 +132,13 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
     const [sending, setSending] = useState({});
     const [showReply, setShowReply] = useState(false);
 
-    const { staleNoReply = [], patientEngaged = [], failedSms: failedInsights = [], summary = {} } = recoveryInsights;
+    const { staleNoReply = [], patientEngaged = [], failedSms: failedInsights = [], callbackRequested = [], summary = {} } = recoveryInsights;
     const logs = Array.isArray(recoveryLog) ? recoveryLog : [];
 
     const failedSmsCount = summary.failedCount ?? logs.filter(l => l?.smsStatus === 'failed').length;
     const patientRepliedCount = summary.engagedCount ?? 0;
     const staleCount = summary.staleCount ?? 0;
+    const callbackCount = summary.callbackCount ?? 0;
 
     // Pipeline stats
     const week = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -145,7 +146,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
     const activeRecoveries = logs.filter(l => l && l.status === 'RECOVERING').length;
     const awaitingReply = logs.filter(l => l && l.status === 'RECOVERING' && l.smsStatus === 'sent').length;
 
-    const urgentCount = staleCount + patientRepliedCount + failedSmsCount + (pendingCount > 0 ? 1 : 0);
+    const urgentCount = staleCount + patientRepliedCount + failedSmsCount + callbackCount + (pendingCount > 0 ? 1 : 0);
 
     const sendFollowUps = async () => {
         if (!staleNoReply.length) return;
@@ -192,6 +193,9 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                     )}
                     {failedSmsCount > 0 && (
                         <ActionRow icon={PhoneOff} color="#dc2626" label={`${failedSmsCount} αποτυχία SMS`} sublabel="Επανάληψη" cta="Retry" onClick={() => onNavigate && onNavigate('dashboard')} urgent />
+                    )}
+                    {callbackCount > 0 && (
+                        <ActionRow icon={PhoneCall} color="#7c3aed" label={`${callbackCount} ασθενής ζητά επανάκληση`} sublabel="Καλέστε τώρα" cta="Δείτε" onClick={() => onNavigate && onNavigate('dashboard')} urgent />
                     )}
                     {pendingCount > 0 && (
                         <ActionRow icon={Clock} color="#d97706" label={`${pendingCount} εκκρεμή ραντεβού`} sublabel="Επιβεβαίωση" cta="Δείτε" onClick={() => onNavigate && onNavigate('appointments')} urgent />
