@@ -86,10 +86,23 @@ const App = () => {
 
     // Attempt silent token refresh — cookie is sent automatically
     refreshAccessToken()
-      .then(refreshedToken => {
+      .then(async refreshedToken => {
         setToken(refreshedToken);
         setAuthToken(refreshedToken);
-        setClinic(JSON.parse(savedClinic));
+        // Load from localStorage immediately so UI isn't blank
+        const localClinic = JSON.parse(savedClinic);
+        setClinic(localClinic);
+        // Then fetch fresh clinic data from API to pick up any DB changes (e.g. webhook URLs)
+        try {
+          const res = await fetch(`${API_BASE}/clinic`, {
+            headers: { Authorization: `Bearer ${refreshedToken}` }
+          });
+          if (res.ok) {
+            const freshClinic = await res.json();
+            setClinic(freshClinic);
+            localStorage.setItem('clinic_data', JSON.stringify(freshClinic));
+          }
+        } catch { /* keep localStorage version */ }
       })
       .catch(() => {
         // Refresh failed — clear stale clinic data
