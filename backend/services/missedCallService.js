@@ -151,6 +151,7 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
     const clinicName = clinic.name || 'το ιατρείο';
     const smartSmsBody = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
 
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
     triggerN8n('/missed-call', {
         clinicId,
         missedCallId: missedCall.id,
@@ -165,6 +166,22 @@ async function handleMissedCall({ phone, clinicId, callSid }) {
 
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
+    }
+
+    // If N8N_WEBHOOK_URL is set, n8n handles SMS delivery — mark as sent and return
+    if (n8nUrl) {
+        await prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { smsStatus: 'sent', lastSmsSentAt: new Date() }
+        });
+        await recordOutboundMessageForMissedCall({
+            missedCallId: missedCall.id,
+            status: 'QUEUED',
+            providerStatusRaw: 'n8n_queued',
+            fromPhone: clinic.phone || null,
+            toPhone: phone,
+        });
+        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'sent', scheduledSmsAt: null } };
     }
 
     await prisma.missedCall.update({
