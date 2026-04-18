@@ -147,8 +147,70 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
     if (step === 'ASKED_TIME') {
         const day = mc.bookingDay || 'την ημέρα που ζητήσατε';
         const time = text;
-        // Human-feeling confirmation
+
+        // Send confirmation SMS first (non-blocking)
         sendReply(clinic, fromPhone, `Τέλεια 👍 Σας κλείσαμε για ${day} στις ${time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊`);
+
+        // Upsert patient from phone number
+        let patient = null;
+        try {
+            patient = await prisma.patient.upsert({
+                where: { clinicId_phone: { clinicId: clinic.id, phone: fromPhone } },
+                update: {},
+                create: {
+                    clinicId: clinic.id,
+                    name: mc.patient?.name || fromPhone,
+                    phone: fromPhone,
+                },
+            });
+        } catch (err) {
+            console.warn(`[Conversation] patient upsert failed: ${err.message}`);
+        }
+
+        // Parse a best-effort startTime from the free-text day + time
+        let startTime = new Date();
+        startTime.setDate(startTime.getDate() + 1); // default: tomorrow
+        startTime.setHours(9, 0, 0, 0);
+
+        try {
+            const lowerDay = day.toLowerCase();
+            const today = new Date();
+            if (lowerDay.includes('σήμερα') || lowerDay.includes('today')) {
+                startTime = new Date(today);
+            } else if (lowerDay.includes('αύριο') || lowerDay.includes('tomorrow')) {
+                startTime = new Date(today);
+                startTime.setDate(today.getDate() + 1);
+            }
+            // Parse time like "10:30" or "10"
+            const timeMatch = time.match(/(\d{1,2})(?::(\d{2}))?/);
+            if (timeMatch) {
+                startTime.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2] || '0'), 0, 0);
+            }
+        } catch { /* keep default */ }
+
+        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
+
+        // Create appointment if patient was found/created
+        if (patient) {
+            try {
+                await prisma.appointment.create({
+                    data: {
+                        clinicId: clinic.id,
+                        patientId: patient.id,
+                        startTime,
+                        endTime,
+                        reason: 'Ραντεβού από SMS ανάκτηση',
+                        notes: `Ημέρα: ${day} | Ώρα: ${time} | Τηλέφωνο: ${fromPhone}`,
+                        status: 'PENDING',
+                        priority: 'NORMAL',
+                    }
+                });
+                console.log(`[Conversation] Appointment created for ${fromPhone} — ${day} ${time}`);
+            } catch (err) {
+                console.warn(`[Conversation] appointment create failed: ${err.message}`);
+            }
+        }
+
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: {
@@ -156,6 +218,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
                 bookingStep: 'CONFIRMING',
                 status: 'RECOVERED',
                 recoveredAt: new Date(),
+                patientId: patient?.id || mc.patientId || null,
             }
         });
         console.log(`[Conversation] BOOKING completed for ${fromPhone} — day=${day} time=${time}`);
