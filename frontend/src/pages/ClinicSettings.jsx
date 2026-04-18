@@ -370,6 +370,31 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
+    const [vonageData, setVonageData] = React.useState({ vonageApiKey: '', vonageApiSecret: '', vonageFromName: clinic?.vonageFromName || '' });
+    const [vonageStatus, setVonageStatus] = React.useState(null); // null | 'configured' | 'not_configured'
+    const [savingVonage, setSavingVonage] = React.useState(false);
+
+    React.useEffect(() => {
+        axios.get(`${API_BASE}/clinic/vonage`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => setVonageStatus(r.data.vonageApiKey ? 'configured' : 'not_configured'))
+            .catch(() => setVonageStatus('not_configured'));
+    }, []);
+
+    const handleSaveVonage = async () => {
+        if (!vonageData.vonageApiKey || !vonageData.vonageApiSecret) {
+            showToast('API Key και Secret είναι υποχρεωτικά.', 'error'); return;
+        }
+        setSavingVonage(true);
+        try {
+            await axios.put(`${API_BASE}/clinic/vonage`, vonageData, { headers: { Authorization: `Bearer ${token}` } });
+            setVonageStatus('configured');
+            setVonageData(d => ({ ...d, vonageApiKey: '', vonageApiSecret: '' }));
+            showToast('Vonage credentials αποθηκεύτηκαν!', 'success');
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
+        } finally { setSavingVonage(false); }
+    };
+
     const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
 
     return (
@@ -809,6 +834,30 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     <p style={{ fontSize: '0.78rem', color: '#92400e', fontWeight: '600', margin: 0 }}>
                         Ορίστε τα URLs των n8n webhooks. Το Global URL χρησιμοποιείται ως fallback αν δεν οριστεί ειδικό.
                     </p>
+                </div>
+
+
+                <div style={{ padding: '1rem', borderRadius: '14px', background: vonageStatus === 'configured' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${vonageStatus === 'configured' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: vonageStatus === 'configured' ? '#10b981' : '#f59e0b' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: vonageStatus === 'configured' ? '#065f46' : '#92400e' }}>
+                            {vonageStatus === 'configured' ? 'Vonage credentials ρυθμισμένα ✓' : 'Vonage credentials δεν έχουν οριστεί'}
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <FormGroup label="Vonage API Key" flex="1 1 100%">
+                            <input style={inputStyle} type="password" placeholder={vonageStatus === 'configured' ? '***configured***' : 'API Key'} value={vonageData.vonageApiKey} onChange={e => setVonageData(d => ({ ...d, vonageApiKey: e.target.value }))} />
+                        </FormGroup>
+                        <FormGroup label="Vonage API Secret" flex="1 1 100%">
+                            <input style={inputStyle} type="password" placeholder={vonageStatus === 'configured' ? '***configured***' : 'API Secret'} value={vonageData.vonageApiSecret} onChange={e => setVonageData(d => ({ ...d, vonageApiSecret: e.target.value }))} />
+                        </FormGroup>
+                    </div>
+                    <FormGroup label="Sender Name / Number" flex="1 1 100%">
+                        <input style={inputStyle} type="text" placeholder="ClinicFlow" value={vonageData.vonageFromName} onChange={e => setVonageData(d => ({ ...d, vonageFromName: e.target.value }))} />
+                    </FormGroup>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveVonage} disabled={savingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
+                        {savingVonage ? 'Αποθήκευση...' : 'Αποθήκευση Vonage Credentials'}
+                    </button>
                 </div>
 
                 {[

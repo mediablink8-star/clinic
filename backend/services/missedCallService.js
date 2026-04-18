@@ -9,6 +9,7 @@ const {
 const { sendManagedSms } = require('./messagingService');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const https = require('https');
+const { decrypt } = require('./encryptionService');
 const http = require('http');
 
 /**
@@ -159,6 +160,10 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     } catch { /* use default */ }
 
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    // Resolve per-clinic Vonage credentials (decrypt if stored)
+    const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : null;
+    const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : null;
+
     triggerN8n('/missed-call', {
         clinicId,
         missedCallId: missedCall.id,
@@ -166,6 +171,9 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com',
+        ...(vonageApiKey && { vonageApiKey }),
+        ...(vonageApiSecret && { vonageApiSecret }),
+        ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
     });
 
     // Increment SMS usage counter

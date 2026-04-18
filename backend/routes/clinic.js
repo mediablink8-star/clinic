@@ -5,6 +5,7 @@ const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAi
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 const prisma = require('../services/prisma');
+const { encrypt, decrypt } = require('../services/encryptionService');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
@@ -132,5 +133,38 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
     res.json({ success: true, data });
 }));
 
+
+// PUT /api/clinic/vonage — store per-clinic Vonage credentials (encrypted)
+router.put('/vonage', requireOwner, asyncHandler(async (req, res) => {
+    const { vonageApiKey, vonageApiSecret, vonageFromName } = req.body;
+
+    const data = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: {
+            ...(vonageApiKey !== undefined && { vonageApiKey: vonageApiKey ? encrypt(vonageApiKey) : null }),
+            ...(vonageApiSecret !== undefined && { vonageApiSecret: vonageApiSecret ? encrypt(vonageApiSecret) : null }),
+            ...(vonageFromName !== undefined && { vonageFromName: vonageFromName || null }),
+        },
+        select: { vonageFromName: true }
+    });
+
+    res.json({ success: true, data: { vonageFromName: data.vonageFromName, vonageApiKey: vonageApiKey ? '***' : null } });
+}));
+
+// GET /api/clinic/vonage — return masked credentials
+router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { vonageApiKey: true, vonageApiSecret: true, vonageFromName: true }
+    });
+
+    res.json({
+        vonageApiKey: clinic?.vonageApiKey ? '***configured***' : null,
+        vonageApiSecret: clinic?.vonageApiSecret ? '***configured***' : null,
+        vonageFromName: clinic?.vonageFromName || null,
+    });
+}));
+
 module.exports = router;
+
 

@@ -144,6 +144,18 @@
             {
               "name": "backendUrl",
               "value": "={{ $json.body.backendUrl }}"
+            },
+            {
+              "name": "vonageApiKey",
+              "value": "={{ $json.body.vonageApiKey || \"\" }}"
+            },
+            {
+              "name": "vonageApiSecret",
+              "value": "={{ $json.body.vonageApiSecret || \"\" }}"
+            },
+            {
+              "name": "vonageFromName",
+              "value": "={{ $json.body.vonageFromName || \"\" }}"
             }
           ]
         }
@@ -186,15 +198,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "917c2dd5"
+              "value": "={{ $node[\"Set Variables\"].json.vonageApiKey || $env.VONAGE_API_KEY }}"
             },
             {
               "name": "api_secret",
-              "value": "1rAPIYt68kzGc9vu"
+              "value": "={{ $node[\"Set Variables\"].json.vonageApiSecret || $env.VONAGE_API_SECRET }}"
             },
             {
               "name": "from",
-              "value": "ClinicFlow"
+              "value": "={{ $node[\"Set Variables\"].json.vonageFromName || $env.VONAGE_FROM_NAME || \"ClinicFlow\" }}"
             },
             {
               "name": "to",
