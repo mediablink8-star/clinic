@@ -8,7 +8,9 @@ const { recordInboundMessage } = require('../services/recoveryTrackingService');
 const { handleInboundReply } = require('../services/conversationService');
 
 router.post('/missed-call', asyncHandler(async (req, res) => {
-    const { phone = '+30690000000', clinicId, callSid, bypassCooldown } = req.body;
+    const { phone = '+30690000000', clinicId, callSid } = req.body;
+    // bypassCooldown only allowed in non-production or with admin flag
+    const bypassCooldown = process.env.NODE_ENV !== 'production' && req.body.bypassCooldown === true;
 
     if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
 
@@ -109,6 +111,36 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
         missedCallId,
         recoveryCaseId,
     });
+
+    // Inbound SMS dedup — ignore same message from same phone within 30 seconds
+    if (providerMessageSid) {
+        const recent = await prisma.message.findFirst({
+            where: {
+                providerMessageSid,
+                clinicId,
+            }
+        });
+        if (recent) {
+            console.log(`[Inbound] Duplicate message ${providerMessageSid} — skipped`);
+            return res.json({ success: true, duplicate: true });
+        }
+    } else {
+        // No SID — check same body from same phone within 30s
+        const thirtySecondsAgo = new Date(Date.now() - 30000);
+        const recentDupe = await prisma.message.findFirst({
+            where: {
+                clinicId,
+                fromPhone: from,
+                body: messageBody,
+                direction: 'INBOUND',
+                createdAt: { gte: thirtySecondsAgo },
+            }
+        });
+        if (recentDupe) {
+            console.log(`[Inbound] Duplicate body from ${from} within 30s — skipped`);
+            return res.json({ success: true, duplicate: true });
+        }
+    }
 
     // Fire conversation state machine (non-blocking)
     if (missedCallId) {

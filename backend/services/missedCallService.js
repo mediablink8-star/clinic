@@ -10,6 +10,7 @@ const { sendManagedSms } = require('./messagingService');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const https = require('https');
 const { decrypt } = require('./encryptionService');
+const { sendSmsFailureAlert } = require('./emailService');
 const http = require('http');
 
 /**
@@ -233,6 +234,18 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             ? { smsStatus: 'sent', lastSmsSentAt: new Date() }
             : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
     });
+
+    // Alert clinic owner on SMS failure
+    if (!webhookResult.success) {
+        const owner = await prisma.user.findFirst({
+            where: { clinicId, role: { in: ['OWNER', 'ADMIN'] } },
+            select: { email: true }
+        });
+        if (owner?.email) {
+            sendSmsFailureAlert(owner.email, clinic.name, phone, webhookResult.error || 'Webhook failed')
+                .catch(() => {});
+        }
+    }
 
     await recordOutboundMessageForMissedCall({
         missedCallId: missedCall.id,
