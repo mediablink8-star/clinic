@@ -149,7 +149,14 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // Non-blocking trigger to n8n missed call recovery workflow
     const clinicName = clinic.name || 'το ιατρείο';
-    const smartSmsBody = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
+    const defaultSms = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
+    let smartSmsBody = defaultSms;
+    try {
+        const aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+        if (aiCfg.smsInitial && aiCfg.smsInitial.trim()) {
+            smartSmsBody = aiCfg.smsInitial.replace('{clinic_name}', clinicName);
+        }
+    } catch { /* use default */ }
 
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
     triggerN8n('/missed-call', {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Brain, Activity, Check } from 'lucide-react';
+import { Brain, Activity, Check, MessageSquare } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -258,8 +258,45 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* Section 2 — System Status */}
-            <SectionCard id="ai-s3" number="2" icon={<Activity size={15} color="#10b981" />} iconBg="#ecfdf5"
+
+            {/* Section 2 — SMS Templates */}
+            <SectionCard id="ai-s-sms" number="2" icon={<MessageSquare size={15} color="#7c3aed" />} iconBg="rgba(124,58,237,0.1)"
+                title="Πρότυπα SMS" subtitle="Προσαρμόστε τα μηνύματα που στέλνει το σύστημα αυτόματα">
+                <FormGroup label="Αρχικό SMS (Αναπάντητη κλήση)" flex="1 1 100%">
+                    <textarea style={{ ...inputStyle, minHeight: '90px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                        value={formData.aiConfig?.smsInitial || ''}
+                        placeholder={'Γεια 👋 χάσαμε την κλήση σας στο {clinic_name}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'}
+                        onChange={e => set('aiConfig', { ...formData.aiConfig, smsInitial: e.target.value })} />
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '4px' }}>Χρησιμοποιήστε {'{clinic_name}'} για το όνομα του ιατρείου.</p>
+                </FormGroup>
+                <FormGroup label="Επιβεβαίωση Ραντεβού" flex="1 1 100%">
+                    <textarea style={{ ...inputStyle, minHeight: '70px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                        value={formData.aiConfig?.smsBookingConfirm || ''}
+                        placeholder={'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊'}
+                        onChange={e => set('aiConfig', { ...formData.aiConfig, smsBookingConfirm: e.target.value })} />
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '4px' }}>Μεταβλητές: {'{day}'}, {'{time}'}.</p>
+                </FormGroup>
+                <FormGroup label="Επιβεβαίωση Επανάκλησης" flex="1 1 100%">
+                    <textarea style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                        value={formData.aiConfig?.smsCallbackConfirm || ''}
+                        placeholder={'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'}
+                        onChange={e => set('aiConfig', { ...formData.aiConfig, smsCallbackConfirm: e.target.value })} />
+                </FormGroup>
+                <FormGroup label="Άγνωστη Απάντηση (fallback)" flex="1 1 100%">
+                    <textarea style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}
+                        value={formData.aiConfig?.smsUnknown || ''}
+                        placeholder={'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'}
+                        onChange={e => set('aiConfig', { ...formData.aiConfig, smsUnknown: e.target.value })} />
+                </FormGroup>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveAiConfig} disabled={aiConfigSaving || !isOwner}>
+                        {aiConfigSaving ? 'Αποθήκευση...' : 'Αποθήκευση Προτύπων'}
+                    </button>
+                </div>
+            </SectionCard>
+
+            {/* Section 3 — System Status */}
+            <SectionCard id="ai-s3" number="3" icon={<Activity size={15} color="#10b981" />} iconBg="#ecfdf5"
                 title="Κατάσταση Συστήματος" subtitle="Παρακολούθηση σύνδεσης σε πραγματικό χρόνο">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     {[

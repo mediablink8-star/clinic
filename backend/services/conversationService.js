@@ -8,6 +8,17 @@ const { detectIntent } = require('./intentService');
 const https = require('https');
 const http = require('http');
 
+
+// ── Get SMS template from clinic aiConfig with fallback ──────────────────────
+function getTemplate(clinic, key, fallback) {
+    try {
+        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+        return (ai[key] && ai[key].trim()) ? ai[key] : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
 // ── Send reply via n8n direct SMS webhook ────────────────────────────────────
 function sendReply(clinic, phone, message) {
     const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
@@ -121,12 +132,12 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
         });
         // Log callback request clearly for clinic visibility
         console.log(`[Conversation] CALLBACK_REQUESTED clinic=${clinicId} phone=${fromPhone} case=${mc.id}`);
-        sendReply(clinic, fromPhone, `Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!`);
+        sendReply(clinic, fromPhone, getTemplate(clinic, 'smsCallbackConfirm', 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'));
         return;
     }
 
     // UNKNOWN — guide back to menu
-    sendReply(clinic, fromPhone, `Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`);
+    sendReply(clinic, fromPhone, getTemplate(clinic, 'smsUnknown', 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'));
     console.log(`[Conversation] UNKNOWN intent for ${fromPhone} — menu resent`);
 }
 
@@ -149,7 +160,9 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
         const time = text;
 
         // Send confirmation SMS first (non-blocking)
-        sendReply(clinic, fromPhone, `Τέλεια 👍 Σας κλείσαμε για ${day} στις ${time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊`);
+        const bookingMsg = getTemplate(clinic, 'smsBookingConfirm', 'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊')
+            .replace('{day}', day).replace('{time}', time);
+        sendReply(clinic, fromPhone, bookingMsg);
 
         // Upsert patient from phone number
         let patient = null;
