@@ -5,6 +5,7 @@
  */
 const prisma = require('./prisma');
 const { detectIntent } = require('./intentService');
+const { checkWorkingHours } = require('./workingHours');
 const https = require('https');
 const http = require('http');
 
@@ -53,6 +54,33 @@ function sendReply(clinic, phone, message) {
     }
 }
 
+
+// ── Check if reply should be sent now or deferred ────────────────────────────
+function shouldReplyNow(clinic) {
+    try {
+        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+        const wh = ai.workingHours || null;
+        const { withinHours } = checkWorkingHours(new Date(), wh);
+        return withinHours;
+    } catch {
+        return true; // default: send
+    }
+}
+
+function outsideHoursMessage(clinic) {
+    try {
+        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+        const wh = ai.workingHours || null;
+        const { scheduledAt } = checkWorkingHours(new Date(), wh);
+        const timeStr = scheduledAt
+            ? scheduledAt.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
+            : '09:00';
+        return `Ευχαριστούμε για το μήνυμά σας! Θα σας απαντήσουμε αύριο στις ${timeStr} 😊`;
+    } catch {
+        return 'Ευχαριστούμε! Θα σας απαντήσουμε κατά τις ώρες λειτουργίας 😊';
+    }
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCallId }) {
     if (!missedCallId) return;
@@ -68,6 +96,13 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     const text = (messageBody || '').trim();
 
     console.log(`[Conversation] case=${mc.id} state=${state} from=${fromPhone} msg="${text.slice(0, 50)}"`);
+
+    // Outside working hours — send a polite deferral and stop
+    if (!shouldReplyNow(clinic)) {
+        sendReply(clinic, fromPhone, outsideHoursMessage(clinic));
+        console.log(`[Conversation] Outside hours — deferral sent to ${fromPhone}`);
+        return;
+    }
 
     // ── BOOKING flow ─────────────────────────────────────────────────────────
     if (state === 'BOOKING') {
