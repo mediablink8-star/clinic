@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { verifyToken } = require('../services/authService');
 const prisma = require('../services/prisma');
 
@@ -17,7 +18,11 @@ module.exports = async function automationAuth(req, res, next) {
         if (!envKey) {
             return res.status(401).json({ error: { code: 'NO_API_KEY_CONFIGURED', message: 'AUTOMATION_API_KEY is not set on this server' } });
         }
-        if (apiKey !== envKey) {
+        // Timing-safe comparison to prevent timing attacks
+        try {
+            const match = crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(envKey));
+            if (!match) return res.status(401).json({ error: { code: 'INVALID_API_KEY', message: 'Invalid API key' } });
+        } catch {
             return res.status(401).json({ error: { code: 'INVALID_API_KEY', message: 'Invalid API key' } });
         }
         // API key auth doesn't have a user context — set a sentinel so downstream services know

@@ -100,6 +100,12 @@ router.post('/toggle-status', requireOwner, asyncHandler(async (req, res) => {
 }));
 
 
+
+function isValidUrl(str) {
+    if (!str) return true; // null/empty is allowed (clears the field)
+    try { new URL(str); return true; } catch { return false; }
+}
+
 // PUT /api/clinic/webhooks
 router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
     const {
@@ -111,6 +117,14 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
         webhookDirectSms,
         webhookInboundSms,
     } = req.body;
+
+    // Validate all URLs
+    const urlFields = { webhookUrl, webhookMissedCall, webhookAppointment, webhookReminders, webhookDirectSms, webhookInboundSms };
+    for (const [field, val] of Object.entries(urlFields)) {
+        if (val && !isValidUrl(val)) {
+            return res.status(400).json({ error: `Invalid URL for ${field}` });
+        }
+    }
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },

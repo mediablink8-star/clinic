@@ -112,7 +112,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                     status: 'DETECTED',
                     smsStatus: 'skipped',
                     smsError: 'Cooldown — active case within 6h',
-                    estimatedRevenue: 80,
+                    estimatedRevenue: (() => {
+                        try {
+                            const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+                            return parseFloat(ai.avgAppointmentValue) || 80;
+                        } catch { return 80; }
+                    })(),
                 }
             });
             await ensureRecoveryCaseForMissedCall(missedCall.id);
@@ -132,7 +137,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             status: 'RECOVERING',
             smsStatus: withinHours ? 'pending' : 'scheduled',
             scheduledSmsAt: withinHours ? null : scheduledAt,
-            estimatedRevenue: 80,
+            estimatedRevenue: (() => {
+                try {
+                    const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+                    return parseFloat(ai.avgAppointmentValue) || 80;
+                } catch { return 80; }
+            })(),
         }
     });
 
