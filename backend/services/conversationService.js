@@ -140,9 +140,9 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     if (intent === 'BOOKING') {
         await prisma.missedCall.update({
             where: { id: mc.id },
-            data: { conversationState: 'BOOKING', bookingStep: 'ASKED_DAY', status: 'RECOVERING' }
+            data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
         });
-        sendReply(clinic, fromPhone, `Τέλεια! 📅 Ποια μέρα σας βολεύει;`);
+        sendReply(clinic, fromPhone, `Τέλεια! 😊 Πώς σας λένε;`);
         return;
     }
 
@@ -181,6 +181,15 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
     const step = mc.bookingStep;
     console.log(`[Conversation] booking step=${step} for ${fromPhone}`);
 
+    if (step === 'ASKED_NAME') {
+        await prisma.missedCall.update({
+            where: { id: mc.id },
+            data: { bookingName: text, bookingStep: 'ASKED_DAY' }
+        });
+        sendReply(clinic, fromPhone, `Χαρά μου, ${text}! 📅 Ποια μέρα σας βολεύει;`);
+        return;
+    }
+
     if (step === 'ASKED_DAY') {
         await prisma.missedCall.update({
             where: { id: mc.id },
@@ -204,10 +213,10 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
         try {
             patient = await prisma.patient.upsert({
                 where: { clinicId_phone: { clinicId: clinic.id, phone: fromPhone } },
-                update: {},
+                update: patientName ? { name: patientName } : {},
                 create: {
                     clinicId: clinic.id,
-                    name: mc.patient?.name || fromPhone,
+                    name: patientName || mc.patient?.name || fromPhone,
                     phone: fromPhone,
                 },
             });

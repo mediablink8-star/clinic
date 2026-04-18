@@ -233,8 +233,9 @@ model MissedCall {
   recoveredAt       DateTime?
   // Smart SMS conversation
   conversationState String           @default("NEW") // NEW | BOOKING | QUESTION | CALLBACK | COMPLETED
-  bookingStep       String?          // null | ASKED_DAY | ASKED_TIME | CONFIRMING
+  bookingStep       String?          // null | ASKED_NAME | ASKED_DAY | ASKED_TIME | CONFIRMING
   bookingDay        String?          // free-text day captured from patient
+  bookingName       String?          // patient name captured during booking
   followUp1SentAt   DateTime?
   followUp2SentAt   DateTime?
   recoveryCase      RecoveryCase?
