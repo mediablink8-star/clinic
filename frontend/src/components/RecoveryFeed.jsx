@@ -263,6 +263,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
 const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     const [retrying, setRetrying] = React.useState({});
     const [selected, setSelected] = React.useState(null);
+    const [dismissed, setDismissed] = React.useState(new Set());
 
     const handleRetry = async (logId, e) => {
         e.stopPropagation();
@@ -288,11 +289,12 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         }
     };
 
-    const sorted = Array.isArray(logs)
+    const allSorted = Array.isArray(logs)
         ? [...logs].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)).slice(0, 20)
         : [];
+    const sorted = allSorted.filter(l => !dismissed.has(l.id));
 
-    if (sorted.length === 0) {
+    if (allSorted.length === 0) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', textAlign: 'center', gap: '0.5rem', borderRadius: '14px', background: 'var(--bg-subtle)', border: '1px dashed var(--border)' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -309,6 +311,11 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
 
     return (
         <>
+            {sorted.length < allSorted.length || allSorted.length > 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                    <button onClick={() => setDismissed(new Set(allSorted.map(l => l.id)))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px' }}>Καθαρισμός</button>
+                </div>
+            ) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                 {sorted.map((log) => {
                     const ev = getEvent(log);

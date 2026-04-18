@@ -13,6 +13,7 @@ const ICON_MAP = {
 const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
     const [open, setOpen] = useState(false);
     const [pos, setPos] = useState({ top: 0, right: 0 });
+    const [dismissed, setDismissed] = useState(new Set());
     const btnRef = useRef(null);
 
     // Position dropdown relative to button
@@ -46,8 +47,9 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
         return () => document.removeEventListener('keydown', handler);
     }, [open]);
 
-    const urgentCount = notifications.filter(n => n.urgent).length + warnings.length;
-    const totalCount = notifications.length + warnings.length;
+    const visibleNotifs = notifications.filter(n => !dismissed.has(n.id));
+    const urgentCount = visibleNotifs.filter(n => n.urgent).length + warnings.length;
+    const totalCount = visibleNotifs.length + warnings.length;
 
     const dropdown = open ? createPortal(
         <div
@@ -79,6 +81,9 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                             {totalCount}
                         </span>
                     )}
+                    {visibleNotifs.length > 0 && (
+                        <button onClick={() => setDismissed(new Set(notifications.map(n => n.id)))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px' }}>Καθαρισμός</button>
+                    )}
                     <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '2px', display: 'flex' }}>
                         <X size={15} />
                     </button>
@@ -101,12 +106,12 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                 )}
 
                 {/* Notifications */}
-                {notifications.length > 0 ? (
+                {visibleNotifs.length > 0 ? (
                     <div style={{ padding: warnings.length > 0 ? '4px 14px 12px' : '10px 14px 12px' }}>
                         {warnings.length > 0 && (
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Δραστηριότητα</p>
                         )}
-                        {notifications.map((n) => {
+                        {visibleNotifs.map((n) => {
                             const { Icon, defaultColor } = ICON_MAP[n.icon] || ICON_MAP.bell;
                             const color = n.color || defaultColor;
                             return (
@@ -129,7 +134,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                             );
                         })}
                     </div>
-                ) : warnings.length === 0 ? (
+                ) : warnings.length === 0 && visibleNotifs.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1.5rem', gap: '8px' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Bell size={18} color="var(--primary)" />
