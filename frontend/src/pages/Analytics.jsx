@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, PhoneMissed, MessageSquare, MessageCircle, CalendarCheck, TrendingUp, Euro, Zap, AlertTriangle, Clock } from 'lucide-react';
+import { BarChart2, PhoneMissed, MessageSquare, MessageCircle, CalendarCheck, TrendingUp, TrendingDown, Minus, Euro, Zap, AlertTriangle, Clock } from 'lucide-react';
 import RecoveryFunnel from '../components/RecoveryFunnel';
 
 const MetricRow = ({ icon: Icon, label, value, color = '#6366f1', warn = false }) => (
@@ -85,6 +85,33 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                     </div>
                 </div>
             </header>
+
+            {/* Trend strip — this week vs last week */}
+            {recoveryStats.trend && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                    {[
+                        { label: 'Αναπάντητες αυτή την εβδομάδα', value: recoveryStats.trend.thisWeek.missed, prev: recoveryStats.trend.lastWeek.missed, color: '#ef4444', isRate: false },
+                        { label: 'Ανακτήθηκαν αυτή την εβδομάδα', value: recoveryStats.trend.thisWeek.recovered, prev: recoveryStats.trend.lastWeek.recovered, color: '#10b981', isRate: false },
+                        { label: 'Ποσοστό ανάκτησης', value: `${recoveryStats.trend.thisWeek.rate}%`, prev: recoveryStats.trend.lastWeek.rate, delta: recoveryStats.trend.rateDelta, color: '#6366f1', isRate: true },
+                    ].map(({ label, value, prev, delta, isRate, color }) => {
+                        const d = isRate ? (delta || 0) : (typeof value === 'number' ? value - prev : 0);
+                        const up = d > 0; const neutral = d === 0;
+                        return (
+                            <div key={label} style={{ background: 'var(--card-bg)', backdropFilter: 'blur(16px)', borderRadius: '16px', border: '1px solid var(--border)', padding: '1.1rem 1.25rem', boxShadow: 'var(--shadow-sm)' }}>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>{label}</p>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: '900', color, letterSpacing: '-0.04em' }}>{value}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '99px', background: neutral ? 'var(--bg-subtle)' : up ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: neutral ? 'var(--text-light)' : up ? '#10b981' : '#ef4444', fontSize: '0.72rem', fontWeight: '800' }}>
+                                        {neutral ? '—' : (up ? '+' : '') + d + (isRate ? '%' : '') + ' vs πέρσι'}
+                                    </div>
+                                </div>
+                                <p style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '4px' }}>Προηγ. εβδομάδα: {isRate ? `${prev}%` : prev}</p>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

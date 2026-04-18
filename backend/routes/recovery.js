@@ -5,7 +5,13 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { retrySms } = require('../services/missedCallService');
 
 router.get('/stats', asyncHandler(async (req, res) => {
-    const [recoveredStats, recoveringStats, recoveredCount, pendingCount] = await Promise.all([
+    const now = new Date();
+    const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0,0,0,0);
+    const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(weekStart.getDate() - 7);
+    const lastWeekEnd = new Date(weekStart);
+
+    const [recoveredStats, recoveringStats, recoveredCount, pendingCount,
+           thisWeekMissed, lastWeekMissed, thisWeekRecovered, lastWeekRecovered] = await Promise.all([
         prisma.missedCall.aggregate({
             where: { clinicId: req.clinicId, status: 'RECOVERED' },
             _sum: { estimatedRevenue: true }
@@ -14,19 +20,32 @@ router.get('/stats', asyncHandler(async (req, res) => {
             where: { clinicId: req.clinicId, status: 'RECOVERING' },
             _sum: { estimatedRevenue: true }
         }),
-        prisma.missedCall.count({
-            where: { clinicId: req.clinicId, status: 'RECOVERED' }
-        }),
-        prisma.missedCall.count({
-            where: { clinicId: req.clinicId, status: 'RECOVERING' }
-        }),
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, status: 'RECOVERED' } }),
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, status: 'RECOVERING' } }),
+        // This week
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, createdAt: { gte: weekStart } } }),
+        // Last week
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, createdAt: { gte: lastWeekStart, lt: lastWeekEnd } } }),
+        // This week recovered
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, status: 'RECOVERED', recoveredAt: { gte: weekStart } } }),
+        // Last week recovered
+        prisma.missedCall.count({ where: { clinicId: req.clinicId, status: 'RECOVERED', recoveredAt: { gte: lastWeekStart, lt: lastWeekEnd } } }),
     ]);
+
+    const thisWeekRate = thisWeekMissed > 0 ? Math.round((thisWeekRecovered / thisWeekMissed) * 100) : 0;
+    const lastWeekRate = lastWeekMissed > 0 ? Math.round((lastWeekRecovered / lastWeekMissed) * 100) : 0;
+    const rateDelta = thisWeekRate - lastWeekRate;
 
     res.json({
         recovered: recoveredCount,
         pending: pendingCount,
         revenue: recoveredStats._sum.estimatedRevenue || 0,
         potentialRevenue: recoveringStats._sum.estimatedRevenue || 0,
+        trend: {
+            thisWeek: { missed: thisWeekMissed, recovered: thisWeekRecovered, rate: thisWeekRate },
+            lastWeek: { missed: lastWeekMissed, recovered: lastWeekRecovered, rate: lastWeekRate },
+            rateDelta,
+        }
     });
 }));
 
