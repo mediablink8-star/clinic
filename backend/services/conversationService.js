@@ -111,11 +111,30 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
 
     // ── QUESTION flow ────────────────────────────────────────────────────────
     if (state === 'QUESTION') {
+        const lowerText = text.toLowerCase();
+        // If patient says Yes to booking nudge → start booking
+        if (lowerText === '1' || lowerText.includes('ναι') || lowerText.includes('yes')) {
+            await prisma.missedCall.update({
+                where: { id: mc.id },
+                data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
+            });
+            sendReply(clinic, fromPhone, `Τέλεια! 😊 Πώς σας λένε;`);
+            return;
+        }
+        // If patient says No → close gracefully
+        if (lowerText === '2' || lowerText.includes('όχι') || lowerText.includes('no')) {
+            await prisma.missedCall.update({
+                where: { id: mc.id },
+                data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
+            });
+            sendReply(clinic, fromPhone, `Εντάξει! Αν χρειαστείτε κάτι, είμαστε εδώ 😊`);
+            return;
+        }
+        // Otherwise answer the question and nudge again
         const clinicInfo = buildClinicInfo(clinic);
         const infoText = clinicInfo
             ? `${clinicInfo}\n\n`
             : `Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍\n\n`;
-        // Soft conversion nudge after answering
         const reply = `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού; 😊\n1️⃣ Ναι  2️⃣ Όχι ευχαριστώ`;
         sendReply(clinic, fromPhone, reply);
         console.log(`[Conversation] QUESTION answered + nudge sent to ${fromPhone}`);

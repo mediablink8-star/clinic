@@ -14,6 +14,8 @@ function validateEnv() {
         'AUTOMATION_API_KEY',
         'GEMINI_API_KEY',
         'N8N_WEBHOOK_URL',
+        'BACKEND_API_URL',
+        'FRONTEND_URL',
     ];
 
     let allRequiredPresent = true;
