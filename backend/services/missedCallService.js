@@ -181,7 +181,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         phone,
         name: null,
         smsBody: smartSmsBody,
-        backendUrl: process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com',
+        backendUrl: process.env.BACKEND_API_URL || '',
         ...(vonageApiKey && { vonageApiKey }),
         ...(vonageApiSecret && { vonageApiSecret }),
         ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),

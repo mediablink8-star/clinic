@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npm run prisma:generate && npx prisma migrate resolve --rolled-back 20260415000000_add_recovery_tables; npx prisma migrate deploy
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
     startCommand: node index.js
     healthCheckPath: /api/health
     envVars:
@@ -18,6 +18,8 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: BACKEND_API_URL
+        sync: false
       - key: NODE_ENV
         value: production
       - key: GEMINI_API_KEY
@@ -26,6 +28,23 @@ services:
         sync: false
       - key: WEBHOOK_SECRET
         sync: false
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: VONAGE_API_KEY
+        sync: false
+      - key: VONAGE_API_SECRET
+        sync: false
+      - key: VONAGE_FROM_NAME
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
         sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false

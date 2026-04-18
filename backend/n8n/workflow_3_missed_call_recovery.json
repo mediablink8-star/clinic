@@ -283,51 +283,6 @@
     },
     {
       "parameters": {
-        "url": "=https://backend-l9el.onrender.com/api/webhook/provider/twilio/status",
-        "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "MessageSid",
-              "value": "={{ $json.messageId }}"
-            },
-            {
-              "name": "MessageStatus",
-              "value": "sent"
-            },
-            {
-              "name": "clinicId",
-              "value": "={{ $node[\"Set Variables\"].json.clinicId }}"
-            },
-            {
-              "name": "missedCallId",
-              "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 8000
-        }
-      },
-      "id": "node_notify_backend",
-      "name": "Notify Backend — SMS Sent",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [
-        2220,
-        200
-      ],
-      "continueOnFail": true,
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
-        }
-      }
-    },
-    {
-      "parameters": {
         "values": {
           "string": [
             {
@@ -463,13 +418,7 @@
     },
     "Log Success": {
       "main": [
-        [
-          {
-            "node": "Notify Backend — SMS Sent",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
