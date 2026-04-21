@@ -12,6 +12,7 @@ const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const prisma = require('../services/prisma');
 const { handleMissedCall, markRecovered } = require('../services/missedCallService');
+const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
 const { handleInboundReply } = require('../services/conversationService');
 const { triggerN8nSms } = require('../services/blandSmsService');
 
@@ -217,16 +218,26 @@ async function handleVoiceBooking(mc, input) {
         }
     }
 
-    // Mark as recovered
+    // Mark as recovered — update both MissedCall and RecoveryCase
+    const recoveredAt = new Date();
     await prisma.missedCall.update({
         where: { id: mc.id },
         data: {
             status: 'RECOVERED',
-            recoveredAt: new Date(),
+            recoveredAt,
             conversationState: 'COMPLETED',
             patientId: patient?.id || null,
         }
     });
+
+    // Update RecoveryCase so revenue stats and Live Activity show correctly
+    try {
+        await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
+    } catch (err) {
+        console.warn('[Bland] markRecoveryCaseRecovered failed:', err.message);
+    }
+
+    console.log(`[Bland] Case RECOVERED: ${mc.id} — ${patient_name} ${preferred_day} ${preferred_time}`);
 }
 
 async function handleVoiceCallback(mc) {
