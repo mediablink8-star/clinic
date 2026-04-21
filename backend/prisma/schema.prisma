@@ -30,6 +30,10 @@ model Clinic {
   vonageApiKey      String? // Encrypted per-clinic Vonage API key
   vonageApiSecret   String? // Encrypted per-clinic Vonage API secret
   vonageFromName    String? // Vonage sender name/number
+  blandApiKey       String? // Encrypted per-clinic Bland AI API key
+  blandPhoneNumberId String? // Bland AI inbound phone number ID
+  blandVoiceId      String? // Bland AI voice ID for TTS
+  voiceEnabled      Boolean @default(false) // Master switch for voice recovery
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
   messageCredits    Int           @default(100)

@@ -11,6 +11,7 @@ const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const https = require('https');
 const { decrypt } = require('./encryptionService');
 const { sendSmsFailureAlert } = require('./emailService');
+const { triggerOutboundCall } = require('./blandService');
 const http = require('http');
 
 /**
@@ -147,6 +148,27 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     });
 
     await ensureRecoveryCaseForMissedCall(missedCall.id);
+
+    // ── Voice call (Bland AI) — if enabled, call patient first ───────────────
+    if (clinic.voiceEnabled && withinHours) {
+        const callResult = await triggerOutboundCall({
+            clinic,
+            phone,
+            missedCallId: missedCall.id,
+            patientName: null,
+        });
+        if (callResult.success) {
+            console.log(`[Voice] Outbound call triggered for ${phone} — callId: ${callResult.callId}`);
+            await prisma.missedCall.update({
+                where: { id: missedCall.id },
+                data: { smsStatus: 'pending', aiConversation: JSON.stringify([{ role: 'system', content: `bland_call_id:${callResult.callId}` }]) }
+            });
+            // SMS fallback will be triggered by Bland webhook if call unanswered
+            return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice' } };
+        }
+        console.warn(`[Voice] Call failed (${callResult.reason}) — falling back to SMS`);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Enforce SMS limits before triggering n8n
     try {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Globe, BarChart2, Activity, Zap,
+    Globe, BarChart2, Activity, Zap, Phone,
     Shield, Loader, Check,
     Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
@@ -111,7 +111,8 @@ const SECTIONS = [
     { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
     { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
-    { id: 's7', number: '5', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
+    { id: 's-voice', number: '5', label: 'Voice AI', icon: <Phone size={14} color="#7c3aed" />, iconBg: 'rgba(124,58,237,0.1)', title: 'Voice AI — Bland AI', subtitle: 'Ρύθμιση AI φωνητικής ανάκτησης' },
+    { id: 's7', number: '6', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
     { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
@@ -393,6 +394,25 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
         } finally { setSavingVonage(false); }
+    };
+
+    const [blandData, setBlandData] = React.useState({
+        blandApiKey: '',
+        blandPhoneNumberId: clinic?.blandPhoneNumberId || '',
+        blandVoiceId: clinic?.blandVoiceId || '',
+        voiceEnabled: clinic?.voiceEnabled || false,
+    });
+    const [savingBland, setSavingBland] = React.useState(false);
+
+    const handleSaveBland = async () => {
+        setSavingBland(true);
+        try {
+            await axios.put(`${API_BASE}/clinic/bland`, blandData, { headers: { Authorization: `Bearer ${token}` } });
+            showToast('Voice AI settings αποθηκεύτηκαν!', 'success');
+            if (onUpdate) onUpdate({ voiceEnabled: blandData.voiceEnabled, blandPhoneNumberId: blandData.blandPhoneNumberId });
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
+        } finally { setSavingBland(false); }
     };
 
     const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
@@ -826,8 +846,59 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             </SectionCard>
 
 
-            {/* 5 · Webhooks */}
-            <SectionCard id="s7" number="5" icon={<Zap size={15} color="#f59e0b" />} iconBg="#fffbeb"
+
+            {/* Voice AI — Bland AI */}
+            <SectionCard id="s-voice" number="5" icon={<Phone size={15} color="#7c3aed" />} iconBg="rgba(124,58,237,0.1)"
+                title="Voice AI — Bland AI" subtitle="Ρύθμιση AI φωνητικής ανάκτησης κλήσεων">
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#5b21b6', fontWeight: '600', margin: 0 }}>
+                        Ρυθμίστε τον αριθμό Bland AI και ενεργοποιήστε τη φωνητική ανάκτηση. Ο ασθενής θα λαμβάνει κλήση από το AI — αν δεν απαντήσει, θα σταλεί SMS αυτόματα.
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: blandData.voiceEnabled ? 'rgba(16,185,129,0.06)' : 'var(--bg-subtle)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+                    <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)' }}>Φωνητική Ανάκτηση</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '2px' }}>Ενεργοποίηση AI κλήσεων για αναπάντητες κλήσεις</div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setBlandData(d => ({ ...d, voiceEnabled: !d.voiceEnabled }))}
+                        style={{ padding: '6px 16px', borderRadius: '99px', border: 'none', background: blandData.voiceEnabled ? '#10b981' : 'var(--border)', color: blandData.voiceEnabled ? 'white' : 'var(--text-light)', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
+                    >
+                        {blandData.voiceEnabled ? 'ΕΝΕΡΓΟ' : 'ΑΝΕΝΕΡΓΟ'}
+                    </button>
+                </div>
+
+                <FormGroup label="Bland AI API Key" flex="1 1 100%">
+                    <input style={inputStyle} type="password" placeholder="sk-..." value={blandData.blandApiKey} onChange={e => setBlandData(d => ({ ...d, blandApiKey: e.target.value }))} />
+                </FormGroup>
+                <FormRow>
+                    <FormGroup label="Phone Number ID (από Bland dashboard)">
+                        <input style={inputStyle} type="text" placeholder="phone_number_id" value={blandData.blandPhoneNumberId} onChange={e => setBlandData(d => ({ ...d, blandPhoneNumberId: e.target.value }))} />
+                    </FormGroup>
+                    <FormGroup label="Voice ID (προαιρετικό)">
+                        <input style={inputStyle} type="text" placeholder="maya" value={blandData.blandVoiceId} onChange={e => setBlandData(d => ({ ...d, blandVoiceId: e.target.value }))} />
+                    </FormGroup>
+                </FormRow>
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.1)', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5b21b6', margin: '0 0 4px' }}>Ρύθμιση Προώθησης Κλήσεων</p>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: 0 }}>
+                        Στο κινητό/σταθερό του ιατρείου, ορίστε: <strong>Προώθηση αναπάντητων κλήσεων → αριθμός Bland AI</strong>. Ο αριθμός Bland βρίσκεται στο dashboard του bland.ai.
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveBland} disabled={savingBland}>
+                        {savingBland ? 'Αποθήκευση...' : 'Αποθήκευση Voice AI'}
+                    </button>
+                </div>
+            </SectionCard>
+
+            {/* 6 · Webhooks */}
+            <SectionCard id="s7" number="6" icon={<Zap size={15} color="#f59e0b" />} iconBg="#fffbeb"
                 title="Webhooks & Αυτοματισμοί" subtitle="Σύνδεση με n8n workflows για SMS και ειδοποιήσεις">
 
                 <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', marginBottom: '0.5rem' }}>
@@ -888,7 +959,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             </SectionCard>
 
             {/* 6 · Audit */}
-            <SectionCard id="s8" number="6" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
+            <SectionCard id="s8" number="7" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
                 title="Αρχείο Ενεργειών" subtitle="Ιστορικό διοικητικών ενεργειών">
                 {logs.length === 0 ? <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Δεν βρέθηκε δραστηριότητα.</p> : (
                     <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border)' }}>

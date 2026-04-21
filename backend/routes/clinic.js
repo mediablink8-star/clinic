@@ -179,6 +179,26 @@ router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
     });
 }));
 
+
+// PUT /api/clinic/bland — store Bland AI credentials and voice settings
+router.put('/bland', requireOwner, asyncHandler(async (req, res) => {
+    const { blandApiKey, blandPhoneNumberId, blandVoiceId, voiceEnabled } = req.body;
+
+    const data = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: {
+            ...(blandApiKey !== undefined && { blandApiKey: blandApiKey ? encrypt(blandApiKey) : null }),
+            ...(blandPhoneNumberId !== undefined && { blandPhoneNumberId: blandPhoneNumberId || null }),
+            ...(blandVoiceId !== undefined && { blandVoiceId: blandVoiceId || null }),
+            ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
+        },
+        select: { blandPhoneNumberId: true, blandVoiceId: true, voiceEnabled: true }
+    });
+
+    res.json({ success: true, data });
+}));
+
 module.exports = router;
+
 
 

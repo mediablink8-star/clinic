@@ -177,6 +177,10 @@ const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
 app.use('/api/webhooks', webhookLimiter, webhookAuth, webhooksRouter);
 
+// Bland AI webhooks — public endpoint (Bland doesn't send auth headers)
+const blandRouter = require('./routes/bland');
+app.use('/api/bland', webhookLimiter, blandRouter);
+
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');
 app.use('/api/public', publicRouter);
