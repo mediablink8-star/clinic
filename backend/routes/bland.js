@@ -12,7 +12,7 @@ const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const prisma = require('../services/prisma');
 const { handleMissedCall, markRecovered } = require('../services/missedCallService');
-const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
 const { handleInboundReply } = require('../services/conversationService');
 const { triggerN8nSms } = require('../services/blandSmsService');
 
@@ -192,8 +192,33 @@ async function handleVoiceBooking(mc, input) {
             startTime = new Date();
             startTime.setDate(startTime.getDate() + 1);
         }
-        const timeMatch = (preferred_time || '').match(/(\d{1,2})(?::(\d{2}))?/);
-        if (timeMatch) startTime.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2] || '0'), 0, 0);
+        // Parse time — handles digits AND Greek number words
+        const timeStr = (preferred_time || '').toLowerCase();
+        const greekNumbers = {
+            'μία': 1, 'μια': 1, 'δύο': 2, 'δυο': 2, 'τρεις': 3, 'τρία': 3, 'τρια': 3,
+            'τέσσερις': 4, 'τεσσερις': 4, 'πέντε': 5, 'πεντε': 5, 'έξι': 6, 'εξι': 6,
+            'επτά': 7, 'εφτά': 7, 'εφτα': 7, 'οκτώ': 8, 'οχτώ': 8, 'οχτω': 8,
+            'εννέα': 9, 'εννεα': 9, 'δέκα': 10, 'δεκα': 10, 'έντεκα': 11, 'εντεκα': 11,
+            'δώδεκα': 12, 'δωδεκα': 12
+        };
+        let hour = null;
+        // Try digit match first
+        const digitMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?/);
+        if (digitMatch) {
+            hour = parseInt(digitMatch[1]);
+            const min = parseInt(digitMatch[2] || '0');
+            startTime.setHours(hour, min, 0, 0);
+        } else {
+            // Try Greek word match
+            for (const [word, num] of Object.entries(greekNumbers)) {
+                if (timeStr.includes(word)) { hour = num; break; }
+            }
+            if (hour !== null) {
+                // Afternoon heuristic: if hour < 8, assume PM
+                if (hour < 8) hour += 12;
+                startTime.setHours(hour, 0, 0, 0);
+            }
+        }
     } catch {}
 
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
@@ -230,8 +255,9 @@ async function handleVoiceBooking(mc, input) {
         }
     });
 
-    // Update RecoveryCase so revenue stats and Live Activity show correctly
+    // Ensure recovery case exists, then mark recovered (updates revenue stats + Live Activity)
     try {
+        await ensureRecoveryCaseForMissedCall(mc.id);
         await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
     } catch (err) {
         console.warn('[Bland] markRecoveryCaseRecovered failed:', err.message);
