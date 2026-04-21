@@ -77,6 +77,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Trust Render/proxy headers for rate limiting
+app.set('trust proxy', 1);
+
 
 
 
