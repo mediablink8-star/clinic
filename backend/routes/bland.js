@@ -102,61 +102,62 @@ router.post('/inbound', asyncHandler(async (req, res) => {
 }));
 
 async function handleBlandEvent(event) {
-    const { call_id, type, status, metadata, tool_calls, call_length, answered_by } = event;
+    // Bland sends: call_id, c_id, status, metadata, variables, tool_calls, call_length, answered_by
+    const call_id = event.call_id || event.c_id;
+    const { status, metadata, variables, call_length, answered_by, summary, transcripts } = event;
 
-    // Extract our metadata
+    console.log(`[Bland] Processing event: status=${status} callId=${call_id}`);
+
+    // Find missed call — try metadata first, then callSid
     const missedCallId = metadata?.missedCallId;
-    const clinicId = metadata?.clinicId;
-
-    if (!clinicId) {
-        // Try to find by callSid
-        const mc = await prisma.missedCall.findFirst({ where: { callSid: call_id } });
-        if (mc) {
-            metadata.missedCallId = mc.id;
-            metadata.clinicId = mc.clinicId;
-        }
-    }
-
     const mc = missedCallId
         ? await prisma.missedCall.findUnique({ where: { id: missedCallId }, include: { clinic: true } })
         : await prisma.missedCall.findFirst({ where: { callSid: call_id }, include: { clinic: true } });
 
     if (!mc) {
-        console.warn(`[Bland] No missed call found for callId=${call_id}`);
+        console.warn(`[Bland] No missed call found for callId=${call_id} missedCallId=${missedCallId}`);
         return;
     }
 
-    // ── Tool calls — AI wants to book or request callback ────────────────────
-    if (tool_calls && tool_calls.length > 0) {
-        for (const tool of tool_calls) {
-            if (tool.name === 'book_appointment') {
-                await handleVoiceBooking(mc, tool.input);
-            } else if (tool.name === 'request_callback') {
-                await handleVoiceCallback(mc);
-            }
-        }
+    // ── Booking data from variables.input (Bland's tool call result) ─────────
+    const bookingInput = variables?.input;
+    if (bookingInput?.patient_name && bookingInput?.preferred_day && bookingInput?.preferred_time) {
+        console.log(`[Bland] Booking detected from variables.input: ${JSON.stringify(bookingInput)}`);
+        await handleVoiceBooking(mc, bookingInput);
     }
 
-    // ── Call ended ────────────────────────────────────────────────────────────
-    if (type === 'call.ended' || status === 'completed' || status === 'ended') {
-        const wasAnswered = answered_by === 'human' || (call_length && call_length > 5);
+    // ── Also check tool_calls array (some Bland plans use this) ──────────────
+    const tool_calls = event.tool_calls || [];
+    for (const tool of tool_calls) {
+        if (tool.name === 'book_appointment') await handleVoiceBooking(mc, tool.input);
+        else if (tool.name === 'request_callback') await handleVoiceCallback(mc);
+    }
+
+    // ── Call ended — check if SMS fallback needed ─────────────────────────────
+    if (status === 'completed' || status === 'ended' || status === 'no-answer') {
+        const wasAnswered = answered_by === 'human' || (call_length && parseFloat(call_length) > 5);
         const wasBooked = mc.status === 'RECOVERED';
 
         console.log(`[Bland] Call ended: callId=${call_id} answered=${wasAnswered} booked=${wasBooked} duration=${call_length}s`);
 
-        if (!wasAnswered || !wasBooked) {
-            // Call not answered or ended without booking — fire SMS fallback
-            await triggerSmsFallback(mc);
-        }
+        // Store transcript in aiConversation
+        const transcript = transcripts
+            ? transcripts.map(t => ({ role: t.user === 'assistant' ? 'assistant' : 'user', content: t.text }))
+            : (summary ? [{ role: 'system', content: summary }] : null);
 
-        // Update call status
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: {
+                status: wasBooked ? 'RECOVERED' : 'RECOVERING',
                 smsStatus: wasBooked ? 'sent' : mc.smsStatus,
-                aiConversation: event.transcript ? JSON.stringify([{ role: 'call', content: event.transcript }]) : mc.aiConversation,
+                ...(transcript && { aiConversation: JSON.stringify(transcript) }),
             }
         });
+
+        if (!wasBooked) {
+            // Not booked — fire SMS fallback
+            await triggerSmsFallback(mc);
+        }
     }
 }
 
