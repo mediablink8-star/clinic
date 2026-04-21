@@ -19,15 +19,19 @@ const EVENT = {
 };
 
 const getEvent = (log) => {
+    // Check final status first — RECOVERED always wins regardless of smsStatus
+    if (log.status === 'RECOVERED') return EVENT.RECOVERED;
+    if (log.status === 'LOST') return EVENT.LOST;
+
     if (log.smsStatus === 'failed') return EVENT.SMS_FAILED;
-    // Voice call detection — check aiConversation for bland_call_id marker
+    // Voice call detection
     if (log.smsStatus === 'pending') {
         try {
             const conv = log.aiConversation ? JSON.parse(log.aiConversation) : null;
             const hasVoice = Array.isArray(conv) && conv.some(m => m.role === 'system' && String(m.content || '').startsWith('bland_call_id:'));
-            if (hasVoice) return log.status === 'RECOVERED' ? EVENT.VOICE_ANSWERED : EVENT.VOICE_CALL;
+            if (hasVoice) return EVENT.VOICE_CALL;
         } catch {}
-        return EVENT.VOICE_CALL; // pending + voice enabled = voice call
+        return EVENT.VOICE_CALL;
     }
     if (log.smsStatus === 'scheduled') return EVENT.PENDING;
     if (log.status === 'RECOVERING') {

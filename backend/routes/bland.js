@@ -251,6 +251,7 @@ async function handleVoiceBooking(mc, input) {
             status: 'RECOVERED',
             recoveredAt,
             conversationState: 'COMPLETED',
+            smsStatus: 'sent', // mark as sent so revenue stats count it
             patientId: patient?.id || null,
         }
     });
