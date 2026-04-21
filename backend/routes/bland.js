@@ -37,8 +37,36 @@ router.post('/webhook', asyncHandler(async (req, res) => {
 }));
 
 /**
- * POST /api/bland/inbound
- * Called when Bland receives an inbound forwarded call.
+ * POST /api/bland/tool
+ * Called by Bland AI when the agent invokes a tool (book_appointment, request_callback)
+ */
+router.post('/tool', asyncHandler(async (req, res) => {
+    const { name, input, call_id } = req.body;
+    console.log(`[Bland] Tool call: ${name} callId=${call_id}`, input);
+
+    // Find the missed call by callSid
+    const mc = await prisma.missedCall.findFirst({
+        where: { callSid: call_id },
+        include: { clinic: true }
+    });
+
+    if (!mc) {
+        console.warn(`[Bland] Tool call — no missed call for callId=${call_id}`);
+        return res.json({ success: false, message: 'Case not found' });
+    }
+
+    if (name === 'book_appointment') {
+        await handleVoiceBooking(mc, input);
+        return res.json({ success: true, message: `Το ραντεβού καταχωρήθηκε για ${input.preferred_day} στις ${input.preferred_time}. Θα λάβετε επιβεβαίωση σύντομα.` });
+    }
+
+    if (name === 'request_callback') {
+        await handleVoiceCallback(mc);
+        return res.json({ success: true, message: 'Το αίτημα επανάκλησης καταχωρήθηκε.' });
+    }
+
+    res.json({ success: false, message: 'Unknown tool' });
+}));
  * Bland fires this before answering — we log the missed call.
  */
 router.post('/inbound', asyncHandler(async (req, res) => {

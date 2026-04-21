@@ -1,27 +1,15 @@
 /**
  * Bland AI Voice Service
- * 
- * Architecture (Option 3 — Inbound Call Forwarding):
- * - Clinic sets call forwarding: unanswered calls → Bland AI phone number
- * - Bland AI answers, runs Greek AI agent, fires webhooks to our backend
- * - If call not answered by patient (outbound mode) or ends without booking → SMS fallback via Vonage
- * 
- * Bland AI docs: https://docs.bland.ai
  */
-
 const https = require('https');
 const { decrypt } = require('./encryptionService');
 
 const BLAND_BASE = 'https://api.bland.ai/v1';
 
-/**
- * Make an authenticated request to Bland AI API
- */
 function blandRequest(method, path, body, apiKey) {
     return new Promise((resolve, reject) => {
         const bodyStr = body ? JSON.stringify(body) : null;
         const parsed = new URL(BLAND_BASE + path);
-
         const req = https.request({
             hostname: parsed.hostname,
             path: parsed.pathname + parsed.search,
@@ -35,14 +23,10 @@ function blandRequest(method, path, body, apiKey) {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
-                try {
-                    resolve({ status: res.statusCode, data: JSON.parse(data) });
-                } catch {
-                    resolve({ status: res.statusCode, data });
-                }
+                try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
+                catch { resolve({ status: res.statusCode, data }); }
             });
         });
-
         req.on('error', reject);
         req.setTimeout(15000, () => { req.destroy(); reject(new Error('Bland AI request timeout')); });
         if (bodyStr) req.write(bodyStr);
@@ -50,10 +34,6 @@ function blandRequest(method, path, body, apiKey) {
     });
 }
 
-/**
- * Trigger an outbound call via Bland AI to recover a missed call.
- * Used when the clinic does NOT have call forwarding set up.
- */
 async function triggerOutboundCall({ clinic, phone, missedCallId, patientName }) {
     const apiKey = clinic.blandApiKey ? decrypt(clinic.blandApiKey) : process.env.BLAND_API_KEY;
     if (!apiKey) {
@@ -61,16 +41,17 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
         return { success: false, reason: 'no_api_key' };
     }
 
+    const backendUrl = process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com/api';
     const prompt = buildAgentPrompt(clinic, patientName);
     const phoneNumberId = clinic.blandPhoneNumberId || process.env.BLAND_PHONE_NUMBER_ID;
 
     const payload = {
         phone_number: phone,
-        from: phoneNumberId || undefined,
+        ...(phoneNumberId && { from: phoneNumberId }),
         task: prompt,
         voice: clinic.blandVoiceId || process.env.BLAND_VOICE_ID || 'maya',
-        language: 'el', // Greek
-        max_duration: 5, // minutes
+        language: 'el',
+        max_duration: 5,
         answered_by_enabled: true,
         wait_for_greeting: true,
         record: false,
@@ -79,18 +60,20 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
             clinicId: clinic.id,
             clinicName: clinic.name,
         },
-        webhook: `${process.env.BACKEND_API_URL}/bland/webhook`,
-        // Tools — allow AI to signal booking intent
+        webhook: `${backendUrl}/bland/webhook`,
+        // Bland tools require a url field pointing to our webhook
         tools: [
             {
                 name: 'book_appointment',
                 description: 'Call this when the patient confirms they want to book an appointment and provides their name, preferred day and time.',
+                url: `${backendUrl}/bland/tool`,
+                method: 'POST',
                 input_schema: {
                     type: 'object',
                     properties: {
                         patient_name: { type: 'string', description: 'Full name of the patient' },
-                        preferred_day: { type: 'string', description: 'Preferred day (e.g. αύριο, Δευτέρα, 20 Απριλίου)' },
-                        preferred_time: { type: 'string', description: 'Preferred time (e.g. 10:00, πρωί)' },
+                        preferred_day: { type: 'string', description: 'Preferred day' },
+                        preferred_time: { type: 'string', description: 'Preferred time' },
                     },
                     required: ['patient_name', 'preferred_day', 'preferred_time'],
                 },
@@ -98,6 +81,8 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
             {
                 name: 'request_callback',
                 description: 'Call this when the patient asks to be called back by a human.',
+                url: `${backendUrl}/bland/tool`,
+                method: 'POST',
                 input_schema: { type: 'object', properties: {} },
             },
         ],
@@ -109,23 +94,17 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
             console.log(`[Bland] Outbound call triggered: ${result.data.call_id} → ${phone}`);
             return { success: true, callId: result.data.call_id };
         }
-        console.warn('[Bland] Outbound call failed:', result.data);
-        return { success: false, reason: result.data?.message || 'unknown' };
+        console.warn('[Bland] Outbound call failed:', JSON.stringify(result.data));
+        return { success: false, reason: result.data?.message || JSON.stringify(result.data) };
     } catch (err) {
         console.error('[Bland] triggerOutboundCall error:', err.message);
         return { success: false, reason: err.message };
     }
 }
 
-/**
- * Build the Greek AI agent prompt for Bland AI.
- * Uses clinic's aiConfig for services, hours, policies.
- */
 function buildAgentPrompt(clinic, patientName) {
     let aiCfg = {};
-    try {
-        aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-    } catch {}
+    try { aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {}); } catch {}
 
     const clinicName = clinic.name || 'το ιατρείο';
     const services = aiCfg.services ? `\nΥπηρεσίες: ${aiCfg.services}` : '';
@@ -142,17 +121,12 @@ function buildAgentPrompt(clinic, patientName) {
 ΟΔΗΓΙΕΣ:
 1. Ξεκίνα με: "${greeting}! Σας καλώ από το ${clinicName}. Χάσαμε την κλήση σας νωρίτερα — πώς μπορώ να σας βοηθήσω;"
 2. Αν θέλει ραντεβού: ρώτα το όνομά του, την προτιμώμενη μέρα και ώρα. Μετά κάλεσε το tool book_appointment.
-3. Αν έχει ερώτηση: απάντησε βάσει των πληροφοριών του ιατρείου. Αν δεν ξέρεις, πες "Θα σας ενημερώσει το ιατρείο σύντομα".
+3. Αν έχει ερώτηση: απάντησε βάσει των πληροφοριών του ιατρείου.
 4. Αν θέλει να τον καλέσουν: κάλεσε το tool request_callback.
 5. Μίλα σύντομα και φυσικά. Μην είσαι ρομποτικός.
-6. Αν δεν απαντά ή κλείσει: τερμάτισε ευγενικά.
-
-ΣΗΜΑΝΤΙΚΟ: Μην αναφέρεις ότι είσαι AI εκτός αν σε ρωτήσουν άμεσα.`;
+6. Αν δεν απαντά ή κλείσει: τερμάτισε ευγενικά.`;
 }
 
-/**
- * Get call details from Bland AI
- */
 async function getCallDetails(callId, apiKey) {
     try {
         const result = await blandRequest('GET', `/calls/${callId}`, null, apiKey);
