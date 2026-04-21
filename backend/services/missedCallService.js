@@ -150,7 +150,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     await ensureRecoveryCaseForMissedCall(missedCall.id);
 
     // ── Voice call (Bland AI) — if enabled, call patient first ───────────────
-    if (clinic.voiceEnabled && withinHours) {
+    // Voice calls trigger regardless of working hours — AI handles closed hours messaging
+    if (clinic.voiceEnabled) {
         const callResult = await triggerOutboundCall({
             clinic,
             phone,
