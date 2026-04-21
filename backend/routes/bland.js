@@ -67,6 +67,10 @@ router.post('/tool', asyncHandler(async (req, res) => {
 
     res.json({ success: false, message: 'Unknown tool' });
 }));
+
+/**
+ * POST /api/bland/inbound
+ * Called when Bland receives an inbound forwarded call.
  * Bland fires this before answering — we log the missed call.
  */
 router.post('/inbound', asyncHandler(async (req, res) => {
