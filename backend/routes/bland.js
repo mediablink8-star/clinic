@@ -251,8 +251,15 @@ async function handleVoiceBooking(mc, input) {
             status: 'RECOVERED',
             recoveredAt,
             conversationState: 'COMPLETED',
-            smsStatus: 'sent', // mark as sent so revenue stats count it
+            smsStatus: 'sent',
             patientId: patient?.id || null,
+            // Ensure estimatedRevenue is set (may be 0 on old records)
+            estimatedRevenue: mc.estimatedRevenue > 0 ? mc.estimatedRevenue : (() => {
+                try {
+                    const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+                    return parseFloat(ai.avgAppointmentValue) || 80;
+                } catch { return 80; }
+            })(),
         }
     });
 
