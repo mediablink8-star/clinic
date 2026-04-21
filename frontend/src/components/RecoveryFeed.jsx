@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import { MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw, Reply, X, Send, Calendar, User, UserPlus, ChevronRight } from 'lucide-react';
+import { MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw, Reply, X, Send, Calendar, User, UserPlus, ChevronRight, Phone, PhoneCall } from 'lucide-react';
 import { getAccessToken } from '../lib/authSession';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -14,11 +14,22 @@ const EVENT = {
     SMS_SENT:   { label: 'SMS εστάλη',          icon: MessageSquare,dot: 'var(--primary)', bg: 'var(--primary-light)',  border: 'rgba(0,181,173,0.15)' },
     SMS_FAILED: { label: 'Αποτυχία SMS',        icon: AlertCircle,  dot: '#ef4444', bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.2)'   },
     PENDING:    { label: 'SMS εκκρεμεί',        icon: Clock,        dot: 'rgba(0,181,173,0.8)', bg: 'var(--primary-light)',  border: 'rgba(0,181,173,0.12)' },
+    VOICE_CALL: { label: 'AI Κλήση εστάλη',     icon: Phone,        dot: '#7c3aed', bg: 'rgba(124,58,237,0.07)', border: 'rgba(124,58,237,0.15)' },
+    VOICE_ANSWERED: { label: 'Κλήση απαντήθηκε', icon: PhoneCall,   dot: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.15)' },
 };
 
 const getEvent = (log) => {
     if (log.smsStatus === 'failed') return EVENT.SMS_FAILED;
-    if (log.smsStatus === 'pending' || log.smsStatus === 'scheduled') return EVENT.PENDING;
+    // Voice call detection — check aiConversation for bland_call_id marker
+    if (log.smsStatus === 'pending') {
+        try {
+            const conv = log.aiConversation ? JSON.parse(log.aiConversation) : null;
+            const hasVoice = Array.isArray(conv) && conv.some(m => m.role === 'system' && String(m.content || '').startsWith('bland_call_id:'));
+            if (hasVoice) return log.status === 'RECOVERED' ? EVENT.VOICE_ANSWERED : EVENT.VOICE_CALL;
+        } catch {}
+        return EVENT.VOICE_CALL; // pending + voice enabled = voice call
+    }
+    if (log.smsStatus === 'scheduled') return EVENT.PENDING;
     if (log.status === 'RECOVERING') {
         try {
             const conv = log.aiConversation ? JSON.parse(log.aiConversation) : null;
@@ -241,7 +252,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {[
                                 { label: 'Κλήση', value: fmtTime(log.createdAt) },
-                                { label: 'SMS', value: log.smsStatus === 'sent' ? '✓ Εστάλη' : log.smsStatus === 'failed' ? '✗ Απέτυχε' : log.smsStatus },
+                                { label: log.smsStatus === 'pending' ? 'Κλήση' : 'SMS', value: log.smsStatus === 'sent' ? '✓ Εστάλη' : log.smsStatus === 'failed' ? '✗ Απέτυχε' : log.smsStatus === 'pending' ? '📞 AI Κλήση' : log.smsStatus },
                                 { label: 'Κατάσταση', value: log.status },
                                 log.recoveredAt && { label: 'Ανακτήθηκε', value: fmtTime(log.recoveredAt) },
                             ].filter(Boolean).map(({ label, value }) => (

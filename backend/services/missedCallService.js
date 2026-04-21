@@ -160,9 +160,14 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         });
         if (callResult.success) {
             console.log(`[Voice] Outbound call triggered for ${phone} — callId: ${callResult.callId}`);
+            // Store Bland call_id as callSid so webhook can find this case
             await prisma.missedCall.update({
                 where: { id: missedCall.id },
-                data: { smsStatus: 'pending', aiConversation: JSON.stringify([{ role: 'system', content: `bland_call_id:${callResult.callId}` }]) }
+                data: {
+                    smsStatus: 'pending',
+                    callSid: callResult.callId, // overwrite test callSid with real Bland call_id
+                    aiConversation: JSON.stringify([{ role: 'system', content: `bland_call_id:${callResult.callId}` }])
+                }
             });
             // SMS fallback will be triggered by Bland webhook if call unanswered
             return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice' } };
