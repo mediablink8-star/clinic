@@ -121,23 +121,25 @@ async function handleBlandEvent(event) {
     }
 
     // ── Booking data from variables.input (Bland's tool call result) ─────────
+    let wasBookedInThisEvent = false;
     const bookingInput = variables?.input;
     if (bookingInput?.patient_name && bookingInput?.preferred_day && bookingInput?.preferred_time) {
         console.log(`[Bland] Booking detected from variables.input: ${JSON.stringify(bookingInput)}`);
         await handleVoiceBooking(mc, bookingInput);
+        wasBookedInThisEvent = true;
     }
 
     // ── Also check tool_calls array (some Bland plans use this) ──────────────
     const tool_calls = event.tool_calls || [];
     for (const tool of tool_calls) {
-        if (tool.name === 'book_appointment') await handleVoiceBooking(mc, tool.input);
+        if (tool.name === 'book_appointment') { await handleVoiceBooking(mc, tool.input); wasBookedInThisEvent = true; }
         else if (tool.name === 'request_callback') await handleVoiceCallback(mc);
     }
 
     // ── Call ended — check if SMS fallback needed ─────────────────────────────
     if (status === 'completed' || status === 'ended' || status === 'no-answer') {
         const wasAnswered = answered_by === 'human' || (call_length && parseFloat(call_length) > 5);
-        const wasBooked = mc.status === 'RECOVERED';
+        const wasBooked = wasBookedInThisEvent || mc.status === 'RECOVERED';
 
         console.log(`[Bland] Call ended: callId=${call_id} answered=${wasAnswered} booked=${wasBooked} duration=${call_length}s`);
 
