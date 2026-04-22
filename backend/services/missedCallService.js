@@ -152,11 +152,26 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     // ── Voice call (Bland AI) — if enabled, call patient first ───────────────
     // Voice calls trigger regardless of working hours — AI handles closed hours messaging
     if (clinic.voiceEnabled) {
+        // Look up patient by phone number for personalised greeting
+        let patientName = null;
+        try {
+            const existingPatient = await prisma.patient.findFirst({
+                where: { clinicId, phone },
+                select: { name: true }
+            });
+            if (existingPatient?.name && existingPatient.name !== phone) {
+                patientName = existingPatient.name;
+                console.log(`[Voice] Known patient: ${patientName} (${phone})`);
+            }
+        } catch (err) {
+            console.warn('[Voice] Patient lookup failed:', err.message);
+        }
+
         const callResult = await triggerOutboundCall({
             clinic,
             phone,
             missedCallId: missedCall.id,
-            patientName: null,
+            patientName,
         });
         if (callResult.success) {
             console.log(`[Voice] Outbound call triggered for ${phone} — callId: ${callResult.callId}`);
