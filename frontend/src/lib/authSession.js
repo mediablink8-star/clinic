@@ -15,17 +15,28 @@ export const clearAccessToken = () => {
   accessToken = null;
 };
 
-export const refreshAccessToken = async () => {
+export const refreshAccessToken = async (retries = 2) => {
   if (!refreshPromise) {
-    refreshPromise = axios
-      .post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
-      .then((response) => {
-        setAccessToken(response.data.token);
-        return response.data.token;
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
+    refreshPromise = (async () => {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const response = await axios.post(
+            `${API_BASE}/auth/refresh`,
+            {},
+            { withCredentials: true, timeout: 15000 }
+          );
+          setAccessToken(response.data.token);
+          return response.data.token;
+        } catch (err) {
+          if (attempt < retries && (err.code === 'ECONNABORTED' || err.response?.status >= 500)) {
+            // Server cold-starting — wait and retry
+            await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+            continue;
+          }
+          throw err;
+        }
+      }
+    })().finally(() => { refreshPromise = null; });
   }
 
   return refreshPromise;
