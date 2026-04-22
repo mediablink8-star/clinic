@@ -125,6 +125,31 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [infoSaved, setInfoSaved] = useState(false);
     const [infoErrors, setInfoErrors] = useState({});
 
+    // Re-sync form when clinic prop updates (e.g. after fresh API fetch on page load)
+    React.useEffect(() => {
+        if (!clinic) return;
+        setFormData(prev => ({
+            ...prev,
+            ...clinic,
+            aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
+        }));
+        setWebhookData(prev => ({
+            ...prev,
+            webhookUrl: clinic.webhookUrl || '',
+            webhookMissedCall: clinic.webhookMissedCall || '',
+            webhookAppointment: clinic.webhookAppointment || '',
+            webhookReminders: clinic.webhookReminders || '',
+            webhookDirectSms: clinic.webhookDirectSms || '',
+            webhookInboundSms: clinic.webhookInboundSms || '',
+        }));
+        setBlandData(prev => ({
+            ...prev,
+            blandPhoneNumberId: clinic.blandPhoneNumberId || '',
+            blandVoiceId: clinic.blandVoiceId || '',
+            voiceEnabled: clinic.voiceEnabled || false,
+        }));
+    }, [clinic?.id, clinic?.updatedAt]);
+
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('s1');
     const [logs, setLogs] = useState([]);
