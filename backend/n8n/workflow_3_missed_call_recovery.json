@@ -24,7 +24,7 @@
             {
               "value1": "={{ $json.headers['x-api-key'] }}",
               "operation": "equal",
-              "value2": "mysecret123"
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
           ]
         }

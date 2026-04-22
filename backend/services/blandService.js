@@ -43,7 +43,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
         return { success: false, reason: 'no_api_key' };
     }
 
-    const backendUrl = process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com/api';
+    const backendUrl = process.env.BACKEND_API_URL || '';
     // Fetch available slots for today and tomorrow
     let availableSlots = [];
     try {
