@@ -126,6 +126,7 @@ const App = () => {
     queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 30000,
     retry: 1,
   });
 
@@ -133,7 +134,8 @@ const App = () => {
     queryKey: ['patients'],
     queryFn: () => axios.get(`${API_BASE}/patients`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
-    refetchInterval: 60000,
+    refetchInterval: 120000,
+    staleTime: 60000,
     retry: 1,
   });
 
@@ -164,7 +166,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 15000,
+    refetchInterval: 30000,
     staleTime: 0,
     retry: 1,
   });
@@ -176,7 +178,7 @@ const App = () => {
       return res.data;
     },
     enabled: !!token,
-    refetchInterval: 15000,
+    refetchInterval: 30000,
     retry: 1,
   });
 
@@ -192,7 +194,7 @@ const App = () => {
     queryKey: ['clinic-spending'],
     queryFn: () => axios.get(`${API_BASE}/clinic/spending`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 120000,
     retry: 1,
   });
 
@@ -208,7 +210,7 @@ const App = () => {
     queryKey: ['system-stats'],
     queryFn: () => axios.get(`${API_BASE}/system/stats`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 60000,
     retry: 1,
   });
 
