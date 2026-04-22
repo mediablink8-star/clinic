@@ -1,37 +1,64 @@
-﻿import { useState } from 'react';
-import { CheckCircle2, Circle, X, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, X, ExternalLink, Phone, MessageSquare, Settings, Zap } from 'lucide-react';
 
-const STORAGE_KEY = 'onboarding_dismissed_v2';
+const STORAGE_KEY = 'onboarding_dismissed_v3';
 
-const OnboardingChecklist = ({ clinic, recoveryLog }) => {
+const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
     const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
 
-    const hasPhone = !!(clinic?.phone && clinic.phone.trim() !== '' && clinic.phone !== '+10000000000');
+    let aiCfg = {};
+    try { aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {}); } catch {}
+
+    const hasClinicInfo = !!(clinic?.name && clinic?.phone && clinic.phone !== '+10000000000');
+    const hasBland = !!(clinic?.blandPhoneNumberId && clinic?.voiceEnabled);
+    const hasVonage = !!(clinic?.vonageApiKey);
+    const hasWebhooks = !!(clinic?.webhookMissedCall || clinic?.webhookUrl);
     const hasRecovery = Array.isArray(recoveryLog) && recoveryLog.length > 0;
 
     const steps = [
         {
-            key: 'vonage',
-            num: 1,
-            label: 'Αποκτήστε αριθμό Vonage',
-            done: hasPhone,
-            hint: 'Πηγαίνετε στο vonage.com και αγοράστε έναν αριθμό τηλεφώνου.',
-            link: 'https://dashboard.nexmo.com/buy-numbers',
-            linkLabel: 'Αγορά αριθμού →',
+            key: 'info',
+            icon: Settings,
+            color: '#6366f1',
+            label: 'Στοιχεία Ιατρείου',
+            hint: 'Συμπληρώστε όνομα και τηλέφωνο ιατρείου',
+            action: 'Ρυθμίσεις → Γενικά',
+            done: hasClinicInfo,
         },
         {
-            key: 'phone',
-            num: 2,
-            label: 'Καταχωρήστε τον αριθμό στις Ρυθμίσεις',
-            done: hasPhone,
-            hint: 'Ρυθμίσεις → Γενικά → πεδίο Τηλέφωνο Ιατρείου',
+            key: 'bland',
+            icon: Phone,
+            color: '#7c3aed',
+            label: 'Bland AI — Φωνητική Ανάκτηση',
+            hint: 'Προσθέστε Bland API Key και Phone Number ID. Ενεργοποιήστε Voice AI.',
+            action: 'Ρυθμίσεις → Voice AI',
+            done: hasBland,
         },
         {
             key: 'forward',
-            num: 3,
-            label: 'Ρυθμίστε προώθηση αναπάντητων κλήσεων',
+            icon: Phone,
+            color: '#0891b2',
+            label: 'Προώθηση Αναπάντητων Κλήσεων',
+            hint: 'Στο κινητό του ιατρείου: Ρυθμίσεις → Προώθηση κλήσεων → Αναπάντητες → αριθμός Bland AI',
             done: hasRecovery,
-            hint: 'Στο κινητό σας: Ρυθμίσεις → Προώθηση κλήσεων → Αναπάντητες → αριθμός Vonage',
+        },
+        {
+            key: 'vonage',
+            icon: MessageSquare,
+            color: '#059669',
+            label: 'Vonage — SMS Fallback',
+            hint: 'Προσθέστε Vonage API Key και Secret για αποστολή SMS όταν η κλήση δεν απαντηθεί.',
+            action: 'Ρυθμίσεις → Webhooks',
+            done: hasVonage,
+        },
+        {
+            key: 'webhooks',
+            icon: Zap,
+            color: '#f59e0b',
+            label: 'Webhook URLs (n8n)',
+            hint: 'Ορίστε τα URLs των n8n workflows για SMS αποστολή.',
+            action: 'Ρυθμίσεις → Webhooks',
+            done: hasWebhooks,
         },
     ];
 
@@ -49,9 +76,10 @@ const OnboardingChecklist = ({ clinic, recoveryLog }) => {
             overflow: 'hidden',
             marginBottom: '0.4rem',
         }}>
+            {/* Header */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0.9rem 1.25rem',
+                padding: '0.85rem 1.25rem',
                 background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(16,185,129,0.04) 100%)',
                 borderBottom: '1px solid rgba(99,102,241,0.1)',
             }}>
@@ -63,11 +91,11 @@ const OnboardingChecklist = ({ clinic, recoveryLog }) => {
                     }}>
                         {allDone
                             ? <CheckCircle2 size={15} color="#10b981" />
-                            : <span style={{ fontSize: '0.7rem', fontWeight: '900', color: '#6366f1' }}>{completed}/3</span>
+                            : <span style={{ fontSize: '0.7rem', fontWeight: '900', color: '#6366f1' }}>{completed}/{steps.length}</span>
                         }
                     </div>
                     <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)' }}>
-                        {allDone ? 'Ρύθμιση ολοκληρώθηκε 🎉' : 'Ξεκινήστε με το ClinicFlow — 3 βήματα'}
+                        {allDone ? 'Ρύθμιση ολοκληρώθηκε 🎉' : `Ρύθμιση ClinicFlow — ${completed}/${steps.length} βήματα`}
                     </span>
                 </div>
                 <button
@@ -79,50 +107,51 @@ const OnboardingChecklist = ({ clinic, recoveryLog }) => {
                 </button>
             </div>
 
-            <div style={{ display: 'flex', padding: '1rem 1.25rem', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {steps.map((step) => (
-                    <div key={step.key} style={{
-                        flex: '1 1 200px',
-                        display: 'flex', alignItems: 'flex-start', gap: '10px',
-                        padding: '12px 14px', borderRadius: '14px',
-                        background: step.done ? 'rgba(16,185,129,0.07)' : 'rgba(248,250,252,0.9)',
-                        border: `1px solid ${step.done ? 'rgba(16,185,129,0.2)' : 'rgba(226,232,240,0.9)'}`,
-                    }}>
-                        <div style={{
-                            width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
-                            background: step.done ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.1)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.65rem', fontWeight: '900',
-                            color: step.done ? '#10b981' : '#6366f1',
+            {/* Steps */}
+            <div style={{ display: 'flex', padding: '0.85rem 1.25rem', gap: '0.6rem', flexWrap: 'wrap' }}>
+                {steps.map((step) => {
+                    const Icon = step.icon;
+                    return (
+                        <div key={step.key} style={{
+                            flex: '1 1 180px',
+                            display: 'flex', alignItems: 'flex-start', gap: '9px',
+                            padding: '10px 12px', borderRadius: '12px',
+                            background: step.done ? 'rgba(16,185,129,0.07)' : 'rgba(248,250,252,0.9)',
+                            border: `1px solid ${step.done ? 'rgba(16,185,129,0.2)' : 'rgba(226,232,240,0.9)'}`,
                         }}>
-                            {step.done ? <CheckCircle2 size={13} color="#10b981" /> : step.num}
-                        </div>
-                        <div>
                             <div style={{
-                                fontSize: '0.82rem', fontWeight: '700',
-                                color: step.done ? '#065f46' : 'var(--text)',
-                                textDecoration: step.done ? 'line-through' : 'none',
-                                opacity: step.done ? 0.7 : 1,
+                                width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, marginTop: '1px',
+                                background: step.done ? 'rgba(16,185,129,0.15)' : `${step.color}18`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                                {step.label}
+                                {step.done
+                                    ? <CheckCircle2 size={12} color="#10b981" />
+                                    : <Icon size={11} color={step.color} />
+                                }
                             </div>
-                            {!step.done && (
-                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}>
-                                    {step.hint}
-                                </div>
-                            )}
-                            {!step.done && step.link && (
-                                <a href={step.link} target="_blank" rel="noreferrer" style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                    marginTop: '6px', fontSize: '0.72rem', fontWeight: '700',
-                                    color: '#6366f1', textDecoration: 'none',
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{
+                                    fontSize: '0.78rem', fontWeight: '700',
+                                    color: step.done ? '#065f46' : 'var(--text)',
+                                    textDecoration: step.done ? 'line-through' : 'none',
+                                    opacity: step.done ? 0.7 : 1,
                                 }}>
-                                    {step.linkLabel} <ExternalLink size={10} />
-                                </a>
-                            )}
+                                    {step.label}
+                                </div>
+                                {!step.done && (
+                                    <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '3px', lineHeight: 1.45 }}>
+                                        {step.hint}
+                                    </div>
+                                )}
+                                {!step.done && step.action && (
+                                    <div style={{ fontSize: '0.68rem', fontWeight: '700', color: step.color, marginTop: '4px' }}>
+                                        → {step.action}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
