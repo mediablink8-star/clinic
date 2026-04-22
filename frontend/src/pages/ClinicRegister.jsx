@@ -235,7 +235,7 @@ const ClinicRegister = ({ onRegister }) => {
                 style={{ marginTop: '4px', cursor: 'pointer' }}
               />
               <label htmlFor="agreedToTerms" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, cursor: 'pointer' }}>
-                Αποδέχομαι τους <span style={{ color: 'var(--primary)', fontWeight: '600' }}>Όρους Χρήσης</span> και την <span style={{ color: 'var(--primary)', fontWeight: '600' }}>Πολιτική Απορρήτου (GDPR)</span> του ClinicFlow.
+                Αποδέχομαι τους <a href="/dpa" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>Όρους Χρήσης / DPA</a> και την <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline' }}>Πολιτική Απορρήτου (GDPR)</a> του ClinicFlow.
               </label>
             </div>
 
