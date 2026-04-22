@@ -3,6 +3,8 @@
  */
 const https = require('https');
 const { decrypt } = require('./encryptionService');
+const prisma = require('./prisma');
+const { getAvailableSlots } = require('./appointmentService');
 
 const BLAND_BASE = 'https://api.bland.ai/v1';
 
@@ -42,7 +44,20 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     }
 
     const backendUrl = process.env.BACKEND_API_URL || 'https://backend-l9el.onrender.com/api';
-    const prompt = buildAgentPrompt(clinic, patientName);
+    // Fetch available slots for today and tomorrow
+    let availableSlots = [];
+    try {
+        const today = new Date();
+        const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
+        const todaySlots = await getAvailableSlots(clinic.id, today);
+        const tomorrowSlots = await getAvailableSlots(clinic.id, tomorrow);
+        if (todaySlots.length > 0) availableSlots.push({ day: 'σήμερα', slots: todaySlots.slice(0, 4) });
+        if (tomorrowSlots.length > 0) availableSlots.push({ day: 'αύριο', slots: tomorrowSlots.slice(0, 4) });
+    } catch (err) {
+        console.warn('[Bland] Slot fetch failed:', err.message);
+    }
+
+    const prompt = buildAgentPrompt(clinic, patientName, availableSlots);
     const phoneNumberId = clinic.blandPhoneNumberId || process.env.BLAND_PHONE_NUMBER_ID;
 
     const payload = {
@@ -102,7 +117,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     }
 }
 
-function buildAgentPrompt(clinic, patientName) {
+function buildAgentPrompt(clinic, patientName, availableSlots = []) {
     let aiCfg = {};
     try { aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {}); } catch {}
 
@@ -113,6 +128,9 @@ function buildAgentPrompt(clinic, patientName) {
     const greeting = patientName ? `Γεια σας ${patientName}` : 'Γεια σας';
 
     const isKnownPatient = patientName && patientName !== '';
+    const slotsText = availableSlots.length > 0
+        ? availableSlots.map(d => `${d.day}: ${d.slots.join(', ')}`).join(' | ')
+        : null;
     const nameInstruction = isKnownPatient
         ? `   - ΜΗΝ ρωτήσεις το όνομα — το ξέρεις ήδη: ${patientName}. Χρησιμοποίησε αυτό το όνομα στο tool.`
         : `   - Ρώτα: "Πώς σας λένε;"`;
@@ -123,13 +141,13 @@ function buildAgentPrompt(clinic, patientName) {
 
 ΠΛΗΡΟΦΟΡΙΕΣ ΙΑΤΡΕΙΟΥ:${services}${hours}${policies}
 ${isKnownPatient ? `ΓΝΩΣΤΟΣ ΑΣΘΕΝΗΣ: ${patientName} — ΜΗΝ ρωτήσεις το όνομα ξανά.` : ''}
+${slotsText ? `ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ: ${slotsText}` : ''}
 
 ΟΔΗΓΙΕΣ - ΑΚΟΛΟΥΘΑ ΑΥΣΤΗΡΑ:
 1. Ξεκίνα με: "${greeting}! Σας καλώ από το ${clinicName}. Χάσαμε την κλήση σας — θέλετε να κλείσουμε ένα ραντεβού;"
 2. Αν θέλει ραντεβού:
 ${nameInstruction}
-   - Ρώτα: "Ποια μέρα σας βολεύει;"
-   - Ρώτα: "Τι ώρα;"
+   - ${slotsText ? `Πες: "Έχω διαθέσιμες ώρες ${slotsText}. Ποια σας βολεύει;"` : 'Ρώτα: "Ποια μέρα και ώρα σας βολεύει;"'}
    - ΑΜΕΣΩΣ μετά κάλεσε το tool book_appointment με patient_name="${isKnownPatient ? patientName : '[όνομα που έδωσε]'}", preferred_day, preferred_time
    - ΜΗΝ πεις "κλείστηκε" χωρίς να καλέσεις πρώτα το tool
 3. Αν έχει ερώτηση: απάντησε βάσει των πληροφοριών του ιατρείου. Μετά ρώτα αν θέλει ραντεβού.

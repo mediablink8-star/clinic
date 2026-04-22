@@ -147,4 +147,56 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
     return { success: true };
 }
 
-module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment };
+
+/**
+ * Get available 1-hour appointment slots for a given date.
+ * Returns array of time strings like ["09:00", "10:00", "11:00"]
+ */
+async function getAvailableSlots(clinicId, date) {
+    let aiCfg = {};
+    try {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { aiConfig: true, workingHours: true } });
+        aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {});
+    } catch {}
+
+    // Determine working hours for this day
+    const dayNames = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+    const dayName = dayNames[date.getDay()];
+    const wh = aiCfg.workingHours || {};
+    const rangeStr = wh[dayName];
+
+    let openHour = 9, closeHour = 17;
+    if (rangeStr && rangeStr.includes('-')) {
+        const [openStr, closeStr] = rangeStr.split('-');
+        openHour = parseInt(openStr.split(':')[0]) || 9;
+        closeHour = parseInt(closeStr.split(':')[0]) || 17;
+    }
+
+    // Get existing appointments for this date
+    const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+
+    const existing = await prisma.appointment.findMany({
+        where: {
+            clinicId,
+            startTime: { gte: dayStart, lte: dayEnd },
+            status: { notIn: ['CANCELLED'] }
+        },
+        select: { startTime: true, endTime: true }
+    });
+
+    const bookedHours = new Set(existing.map(a => new Date(a.startTime).getHours()));
+
+    // Build available slots
+    const slots = [];
+    for (let h = openHour; h < closeHour; h++) {
+        if (!bookedHours.has(h)) {
+            slots.push(`${String(h).padStart(2, '0')}:00`);
+        }
+    }
+
+    return slots;
+}
+
+module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots };
+

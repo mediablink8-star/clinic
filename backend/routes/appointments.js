@@ -53,4 +53,15 @@ router.delete('/appointments/:id', asyncHandler(async (req, res) => {
     res.json({ success: true });
 }));
 
+
+// GET /api/appointments/available?date=2026-04-22
+router.get('/appointments/available', asyncHandler(async (req, res) => {
+    const { date } = req.query;
+    const { getAvailableSlots } = require('../services/appointmentService');
+    const targetDate = date ? new Date(date) : new Date();
+    const slots = await getAvailableSlots(req.clinicId, targetDate);
+    res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
+}));
+
 module.exports = router;
+
