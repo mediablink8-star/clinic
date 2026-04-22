@@ -20,6 +20,8 @@ import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import PatientBooking from './pages/PatientBooking';
 import NotFound from './pages/NotFound';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import DataProcessingAgreement from './pages/DataProcessingAgreement';
 import ServerError from './pages/ServerError';
 
 // Components
@@ -454,6 +456,9 @@ const App = () => {
   };
 
   // Public Patient Booking View
+  if (path === '/privacy') return <PrivacyPolicy />;
+  if (path === '/dpa') return <DataProcessingAgreement />;
+
   if (path === '/book') {
     return <PatientBooking />;
   }
@@ -484,7 +489,7 @@ const App = () => {
     
     // If not one of the allowed public routes and not logged in, show login (default)
     // unless it's a completely unknown path
-    const publicPaths = ['/', '/login', '/register', '/reset-password', '/book'];
+    const publicPaths = ['/', '/login', '/register', '/reset-password', '/book', '/privacy', '/dpa'];
     if (!publicPaths.includes(path)) {
       return <NotFound />;
     }
