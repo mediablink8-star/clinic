@@ -112,19 +112,25 @@ function buildAgentPrompt(clinic, patientName) {
     const policies = aiCfg.policies ? `\nΠολιτικές: ${aiCfg.policies}` : '';
     const greeting = patientName ? `Γεια σας ${patientName}` : 'Γεια σας';
 
+    const isKnownPatient = patientName && patientName !== '';
+    const nameInstruction = isKnownPatient
+        ? `   - ΜΗΝ ρωτήσεις το όνομα — το ξέρεις ήδη: ${patientName}. Χρησιμοποίησε αυτό το όνομα στο tool.`
+        : `   - Ρώτα: "Πώς σας λένε;"`;
+
     return `Είσαι ο AI βοηθός του ${clinicName}. Μιλάς Ελληνικά με φυσικό, φιλικό τρόπο.
 
 ΣΤΟΧΟΣ: Ο ασθενής έχασε μια κλήση από το ιατρείο. Βοήθησέ τον να κλείσει ραντεβού.
 
 ΠΛΗΡΟΦΟΡΙΕΣ ΙΑΤΡΕΙΟΥ:${services}${hours}${policies}
+${isKnownPatient ? `ΓΝΩΣΤΟΣ ΑΣΘΕΝΗΣ: ${patientName} — ΜΗΝ ρωτήσεις το όνομα ξανά.` : ''}
 
 ΟΔΗΓΙΕΣ - ΑΚΟΛΟΥΘΑ ΑΥΣΤΗΡΑ:
 1. Ξεκίνα με: "${greeting}! Σας καλώ από το ${clinicName}. Χάσαμε την κλήση σας — θέλετε να κλείσουμε ένα ραντεβού;"
 2. Αν θέλει ραντεβού:
-   - Ρώτα: "Πώς σας λένε;"
+${nameInstruction}
    - Ρώτα: "Ποια μέρα σας βολεύει;"
    - Ρώτα: "Τι ώρα;"
-   - ΑΜΕΣΩΣ μετά κάλεσε το tool book_appointment με patient_name, preferred_day, preferred_time
+   - ΑΜΕΣΩΣ μετά κάλεσε το tool book_appointment με patient_name="${isKnownPatient ? patientName : '[όνομα που έδωσε]'}", preferred_day, preferred_time
    - ΜΗΝ πεις "κλείστηκε" χωρίς να καλέσεις πρώτα το tool
 3. Αν έχει ερώτηση: απάντησε βάσει των πληροφοριών του ιατρείου. Μετά ρώτα αν θέλει ραντεβού.
 4. Αν θέλει επανάκληση: κάλεσε το tool request_callback.
