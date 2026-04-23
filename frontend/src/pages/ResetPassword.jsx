@@ -17,6 +17,7 @@ const ResetPassword = () => {
     const tokenParam = urlParams.get('token');
     if (tokenParam) {
       setToken(tokenParam);
+      setError('');
     } else {
       setError('Λείπει το διακριτικό επαναφοράς. Παρακαλώ χρησιμοποιήστε τον σύνδεσμο από το email σας.');
     }
