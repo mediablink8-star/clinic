@@ -297,14 +297,24 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
 router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async (req, res) => {
     const { token, password } = req.body;
 
+    console.log(`[RESET] Attempting with token: ${token.substring(0, 8)}...`);
+
     const storedToken = await prisma.passwordResetToken.findUnique({
         where: { token },
         include: { user: true }
     });
 
-    if (!storedToken || storedToken.expiresAt < new Date()) {
+    if (!storedToken) {
+        console.log(`[RESET] Token not found in DB`);
         return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
+
+    if (storedToken.expiresAt < new Date()) {
+        console.log(`[RESET] Token expired at ${storedToken.expiresAt}`);
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    console.log(`[RESET] Valid token for user: ${storedToken.user.email}`);
 
     const passwordHash = await hashPassword(password);
 
