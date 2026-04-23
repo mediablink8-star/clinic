@@ -129,7 +129,7 @@ const App = () => {
   };
 
   // React Queries
-  const { data: appointments = [], isLoading: loadingApts, refetch: refetchApts } = useQuery({
+  const { data: appointments = [], isLoading: loadingApts, isFetching: fetchingApts, refetch: refetchApts } = useQuery({
     queryKey: ['appointments'],
     queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
@@ -138,7 +138,7 @@ const App = () => {
     retry: 1,
   });
 
-  const { data: patients = [], isLoading: loadingPatients } = useQuery({
+  const { data: patients = [], isLoading: loadingPatients, isFetching: fetchingPatients } = useQuery({
     queryKey: ['patients'],
     queryFn: () => axios.get(`${API_BASE}/patients`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
@@ -577,9 +577,9 @@ const App = () => {
           warnings={systemConfigStatus.warnings || []}
         />;
       case 'appointments':
-        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={loadingApts} />;
+        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={fetchingApts} />;
       case 'patients':
-        return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} isLoading={loadingPatients} />;
+        return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} isLoading={fetchingPatients} />;
       case 'reports':
         return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
       case 'analytics':
