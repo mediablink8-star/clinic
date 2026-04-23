@@ -3,12 +3,24 @@ const crypto = require('crypto');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
- * Sends a single webhook attempt.
+ * Sends a single webhook attempt with timeout.
  */
-async function sendOnce(webhookUrl, body, headers) {
-    const response = await fetch(webhookUrl, { method: 'POST', headers, body });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response;
+async function sendOnce(webhookUrl, body, headers, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+        const response = await fetch(webhookUrl, { 
+            method: 'POST', 
+            headers, 
+            body,
+            signal: controller.signal 
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 /**

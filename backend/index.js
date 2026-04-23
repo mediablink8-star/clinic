@@ -26,7 +26,7 @@ const webhookLimiter = rateLimit({ windowMs: 60000, max: 30, message: { error: '
 // General API rate limiter
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 2000,
+    max: 500,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later.' }

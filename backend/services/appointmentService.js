@@ -154,10 +154,14 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
  */
 async function getAvailableSlots(clinicId, date) {
     let aiCfg = {};
+    let clinicTimezone = 'Europe/Athens';
     try {
-        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { aiConfig: true, workingHours: true } });
-        aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {});
-    } catch {}
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { aiConfig: true, workingHours: true, timezone: true } });
+        if (clinic?.timezone) clinicTimezone = clinic.timezone;
+        aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic?.aiConfig || {});
+    } catch (e) {
+        console.warn('[getAvailableSlots] Failed to parse aiConfig:', e.message);
+    }
 
     // Determine working hours for this day
     const dayNames = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
@@ -172,7 +176,7 @@ async function getAvailableSlots(clinicId, date) {
         closeHour = parseInt(closeStr.split(':')[0]) || 17;
     }
 
-    // Get existing appointments for this date
+    // Get existing appointments for this date in clinic's timezone
     const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
 
@@ -185,13 +189,18 @@ async function getAvailableSlots(clinicId, date) {
         select: { startTime: true, endTime: true }
     });
 
-    const bookedHours = new Set(existing.map(a => new Date(a.startTime).getHours()));
+    // Convert to clinic timezone hours
+    const bookedHours = new Set(existing.map(a => {
+        const dateObj = new Date(a.startTime);
+        return dateObj.toLocaleString('en-US', { timeZone: clinicTimezone, hour: '2-digit', hour12: false });
+    }));
 
     // Build available slots
     const slots = [];
     for (let h = openHour; h < closeHour; h++) {
-        if (!bookedHours.has(h)) {
-            slots.push(`${String(h).padStart(2, '0')}:00`);
+        const hourStr = String(h).padStart(2, '0');
+        if (!bookedHours.has(hourStr)) {
+            slots.push(`${hourStr}:00`);
         }
     }
 

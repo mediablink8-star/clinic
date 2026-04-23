@@ -199,12 +199,13 @@ router.post('/:id/retry', asyncHandler(async (req, res) => {
  */
 router.post('/test-trigger', asyncHandler(async (req, res) => {
     const { handleMissedCall } = require('../services/missedCallService');
-    const { phone = '+30690000000', callSid = `test_${Date.now()}` } = req.body;
+    const { phone = '+30690000000', callSid = `test_${Date.now()}`, bypassCooldown = false } = req.body;
 
     const { data } = await handleMissedCall({ 
         phone, 
         clinicId: req.clinicId, 
         callSid,
+        bypassCooldown,
         source: 'DASHBOARD_TEST' 
     });
 
