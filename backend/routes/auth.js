@@ -123,6 +123,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
 
 router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
     const { email, password } = req.body;
+    console.log(`[LOGIN] Attempt for: ${email}`);
     try {
         const user = await prisma.user.findUnique({
             where: { email },
@@ -136,6 +137,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
                 }
             }
         });
+        console.log(`[LOGIN] User found:`, user ? 'yes' : 'no');
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -145,7 +147,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
         try {
             isMatch = await comparePassword(password, user.passwordHash);
         } catch (compareError) {
-            console.warn(`[AUTH] Password compare failed for ${email}: ${compareError.message}`);
+            console.error(`[AUTH] Password compare failed for ${email}:`, compareError);
             isMatch = false;
         }
         if (!isMatch) {
@@ -193,6 +195,9 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
         });
     } catch (error) {
         console.error('[LOGIN] Full error:', error);
+        console.error('[LOGIN] Error name:', error.name);
+        console.error('[LOGIN] Error message:', error.message);
+        console.error('[LOGIN] Error cause:', error.cause);
         console.error('[LOGIN] Error stack:', error.stack);
         res.status(500).json({ error: 'Server error during login' });
     }
