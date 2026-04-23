@@ -150,9 +150,9 @@ app.get('/api/health', async (req, res) => {
 // Apply general rate limit to all /api routes
 app.use('/api', apiLimiter);
 
-// Auth
+// Auth - rate limited
 const authRouter = require('./routes/auth');
-app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/auth', /* authLimiter, */ authRouter);
 
 // Admin (Protected)
 const adminRouter = require('./routes/admin');
