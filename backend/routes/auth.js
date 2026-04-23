@@ -141,6 +141,12 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Check if account is locked
+        if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+            const lockedFor = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
+            return res.status(423).json({ error: `Account locked. Try again in ${lockedFor} minutes.` });
+        }
+
         let isMatch = false;
         try {
             isMatch = await comparePassword(password, user.passwordHash);
@@ -149,7 +155,36 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
             isMatch = false;
         }
         if (!isMatch) {
+            // Increment failed attempts
+            const newFailedAttempts = (user.failedAttempts || 0) + 1;
+            let lockedUntil = null;
+            
+            // Lock after 5 failed attempts for 15 minutes
+            if (newFailedAttempts >= 5) {
+                lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+                console.warn(`[AUTH] Account locked for ${email} due to too many failed login attempts`);
+            }
+            
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    failedAttempts: newFailedAttempts,
+                    lockedUntil
+                }
+            });
+            
             return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Reset failed attempts on successful login
+        if (user.failedAttempts > 0 || user.lockedUntil) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    failedAttempts: 0,
+                    lockedUntil: null
+                }
+            });
         }
 
         const isAdmin = user.role === 'ADMIN';
