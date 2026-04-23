@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
     AlertCircle, Reply, Send, PhoneOff, Clock, PhoneCall,
-    PhoneMissed, Zap, MessageCircle, ChevronRight, X
+    PhoneMissed, Zap, MessageCircle, ChevronRight, X, RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -130,6 +130,7 @@ const SectionLabel = ({ children }) => (
 // ─── Main ActionCenter ────────────────────────────────────────────────────────
 const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {}, token, onNavigate }) => {
     const [sending, setSending] = useState({});
+    const [retryingAll, setRetryingAll] = useState(false);
     const [showReply, setShowReply] = useState(false);
 
     const { staleNoReply = [], patientEngaged = [], failedSms: failedInsights = [], callbackRequested = [], summary = {} } = recoveryInsights;
@@ -147,6 +148,22 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
     const awaitingReply = logs.filter(l => l && l.status === 'RECOVERING' && l.smsStatus === 'sent').length;
 
     const urgentCount = staleCount + patientRepliedCount + failedSmsCount + callbackCount + (pendingCount > 0 ? 1 : 0);
+
+    const retryFailedSms = async () => {
+        const toRetry = failedInsights.length > 0 ? failedInsights : logs.filter(l => l && l.smsStatus === 'failed');
+        if (!toRetry.length) return;
+        setRetryingAll(true);
+        let retried = 0;
+        for (const mc of toRetry.slice(0, 10)) {
+            try {
+                await axios.post(API_BASE + '/recovery/' + mc.id + '/retry', {}, { headers: { Authorization: 'Bearer ' + token } });
+                retried++;
+            } catch {}
+        }
+        setRetryingAll(false);
+        if (retried > 0) toast.success(retried + ' SMS επαναστάλθηκαν!');
+        else toast.error('Αποτυχία επανάληψης SMS');
+    };
 
     const sendFollowUps = async () => {
         if (!staleNoReply.length) return;
@@ -192,10 +209,10 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow icon={Reply} color="#3b82f6" label={`${patientRepliedCount} ασθενής απάντησε`} sublabel="Απαντήστε τώρα" cta="Απάντηση" onClick={() => setShowReply(true)} urgent />
                     )}
                     {failedSmsCount > 0 && (
-                        <ActionRow icon={PhoneOff} color="#dc2626" label={`${failedSmsCount} αποτυχία SMS`} sublabel="Επανάληψη" cta="Retry" onClick={() => onNavigate && onNavigate('dashboard')} urgent />
+                        <ActionRow icon={RefreshCw} color="#dc2626" label={`${failedSmsCount} αποτυχία SMS`} sublabel="Επανάληψη αποστολής" cta="Retry" loading={retryingAll} onClick={retryFailedSms} urgent />
                     )}
                     {callbackCount > 0 && (
-                        <ActionRow icon={PhoneCall} color="#7c3aed" label={`${callbackCount} ασθενής ζητά επανάκληση`} sublabel="Καλέστε τώρα" cta="Δείτε" onClick={() => onNavigate && onNavigate('dashboard')} urgent />
+                        <ActionRow icon={PhoneCall} color="#7c3aed" label={`${callbackCount} ασθενής ζητά επανάκληση`} sublabel="Καλέστε τώρα" cta="Δείτε" onClick={() => onNavigate && onNavigate('patients')} urgent />
                     )}
                     {pendingCount > 0 && (
                         <ActionRow icon={Clock} color="#d97706" label={`${pendingCount} εκκρεμή ραντεβού`} sublabel="Επιβεβαίωση" cta="Δείτε" onClick={() => onNavigate && onNavigate('appointments')} urgent />
