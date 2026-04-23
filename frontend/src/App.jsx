@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
-import { Menu, Building2 } from 'lucide-react';
+import { Menu, Building2, Keyboard } from 'lucide-react';
 import { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -83,6 +83,36 @@ const App = () => {
     };
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!token || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      if (e.key === '1' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('dashboard');
+      } else if (e.key === '2' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('appointments');
+      } else if (e.key === '3' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('patients');
+      } else if (e.key === '4' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('analytics');
+      } else if (e.key === '5' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('settings');
+      } else if ((e.key === 'n' || e.key === 'Ν') && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        if (currentTab === 'appointments') setShowModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [token, currentTab]);
+
   // On mount: try to restore session
   useEffect(() => {
     const savedClinic = localStorage.getItem('clinic_data');
@@ -129,7 +159,7 @@ const App = () => {
   };
 
   // React Queries
-  const { data: appointments = [], isLoading: loadingApts, isFetching: fetchingApts, refetch: refetchApts } = useQuery({
+  const { data: appointments = [], isLoading: loadingApts, isFetching: fetchingApts, refetch: refetchApts, error: appointmentsError } = useQuery({
     queryKey: ['appointments'],
     queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
@@ -138,7 +168,7 @@ const App = () => {
     retry: 1,
   });
 
-  const { data: patients = [], isLoading: loadingPatients, isFetching: fetchingPatients } = useQuery({
+  const { data: patients = [], isLoading: loadingPatients, isFetching: fetchingPatients, error: patientsError } = useQuery({
     queryKey: ['patients'],
     queryFn: () => axios.get(`${API_BASE}/patients`, { headers: getHeaders() }).then(res => res.data),
     enabled: !!token,
@@ -577,9 +607,9 @@ const App = () => {
           warnings={systemConfigStatus.warnings || []}
         />;
       case 'appointments':
-        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={fetchingApts} />;
+        return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={fetchingApts} error={appointmentsError} onRetry={refetchApts} />;
       case 'patients':
-        return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} isLoading={fetchingPatients} />;
+        return <Patients patients={patients} setCurrentTab={setCurrentTab} token={token} onPatientCreated={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} isLoading={fetchingPatients} error={patientsError} onRetry={() => queryClient.invalidateQueries({ queryKey: ['patients'] })} />;
       case 'reports':
         return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
       case 'analytics':

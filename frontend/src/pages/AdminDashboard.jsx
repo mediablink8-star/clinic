@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { Database, Plus, ShieldCheck, TrendingUp, Search } from 'lucide-react';
 import { getAccessToken } from '../lib/authSession';
 
@@ -41,7 +42,7 @@ export default function AdminDashboard({ token }) {
     const handleTopup = async (clinicId) => {
         const authToken = token || getAccessToken();
         if (!authToken) {
-            alert('Session expired. Refresh the page and try again.');
+            toast.error('Η συνεδρία έληξε. Ανανεώστε τη σελίδα.');
             return;
         }
         try {
@@ -51,9 +52,9 @@ export default function AdminDashboard({ token }) {
             }, { headers: { Authorization: `Bearer ${authToken}` } });
             fetchUsage();
             setSelectedClinic(null);
-            alert('Credits added successfully!');
+            toast.success('Πιστώθηκαν μονάδες!');
         } catch (err) {
-            alert('Failed to add credits');
+            toast.error('Αποτυχία προσθήκης μονάδων');
         }
     };
 

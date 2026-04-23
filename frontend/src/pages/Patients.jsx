@@ -5,6 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -13,10 +14,30 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
     const [form, setForm] = useState({ name: '', phone: '', email: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [touched, setTouched] = useState({ name: false, phone: false, email: false });
+
+    const validateField = (field, value) => {
+        if (field === 'name' && !value.trim()) return 'Το όνομα είναι υποχρεωτικό';
+        if (field === 'phone' && !value.trim()) return 'Το τηλέφωνο είναι υποχρεωτικό';
+        if (field === 'phone' && value.length < 10) return 'Άκυρο τηλέφωνο';
+        if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Άκυρο email';
+        return '';
+    };
+
+    const handleBlur = (field) => setTouched(t => ({ ...t, [field]: true }));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.name || !form.phone) { setError('Το όνομα και το τηλέφωνο είναι υποχρεωτικά.'); return; }
+        const nameErr = validateField('name', form.name);
+        const phoneErr = validateField('phone', form.phone);
+        const emailErr = validateField('email', form.email);
+        
+        if (nameErr || phoneErr || emailErr) {
+            setError(nameErr || phoneErr || emailErr);
+            setTouched({ name: true, phone: true, email: true });
+            return;
+        }
+        
         setLoading(true);
         setError('');
         try {
@@ -40,15 +61,39 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
                         <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Ονοματεπώνυμο *</label>
-                        <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="π.χ. Γιώργος Παπαδόπουλος" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <input 
+                            type="text" 
+                            value={form.name} 
+                            onChange={e => setForm(f => ({ ...f, name: e.target.value }))} 
+                            onBlur={() => handleBlur('name')}
+                            placeholder="π.χ. Γιώργος Παπαδόπουλος" 
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: touched.name && validateField('name', form.name) ? '1px solid #ef4444' : '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} 
+                        />
+                        {touched.name && validateField('name', form.name) && <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '4px 0 0' }}>{validateField('name', form.name)}</p>}
                     </div>
                     <div>
                         <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Τηλέφωνο *</label>
-                        <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="π.χ. 6912345678" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <input 
+                            type="tel" 
+                            value={form.phone} 
+                            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} 
+                            onBlur={() => handleBlur('phone')}
+                            placeholder="π.χ. 6912345678" 
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: touched.phone && validateField('phone', form.phone) ? '1px solid #ef4444' : '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} 
+                        />
+                        {touched.phone && validateField('phone', form.phone) && <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '4px 0 0' }}>{validateField('phone', form.phone)}</p>}
                     </div>
                     <div>
                         <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Email (προαιρετικό)</label>
-                        <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="π.χ. user@example.com" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} />
+                        <input 
+                            type="email" 
+                            value={form.email} 
+                            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
+                            onBlur={() => handleBlur('email')}
+                            placeholder="π.χ. user@example.com" 
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: touched.email && validateField('email', form.email) ? '1px solid #ef4444' : '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.875rem', boxSizing: 'border-box' }} 
+                        />
+                        {touched.email && validateField('email', form.email) && <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '4px 0 0' }}>{validateField('email', form.email)}</p>}
                     </div>
                     {error && <p style={{ color: '#ef4444', fontSize: '0.8125rem', margin: 0 }}>{error}</p>}
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -235,10 +280,14 @@ const PatientsSkeleton = () => (
     </div>
 );
 
-const Patients = ({ patients, setCurrentTab, token, onPatientCreated, isLoading }) => {
+const Patients = ({ patients, setCurrentTab, token, onPatientCreated, isLoading, error, onRetry }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showNewPatient, setShowNewPatient] = useState(false);
     const [search, setSearch] = useState('');
+
+    if (error) {
+        return <ErrorState onRetry={onRetry} />;
+    }
 
     if (isLoading) {
         return <PatientsSkeleton />;

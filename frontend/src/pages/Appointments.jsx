@@ -4,6 +4,7 @@ import AppointmentCard from '../components/AppointmentCard';
 import MessageModal from '../components/MessageModal';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
 
 const STATUS_OPTIONS = ['Όλα', 'CONFIRMED', 'PENDING', 'CANCELLED'];
 
@@ -47,11 +48,15 @@ const AppointmentsSkeleton = () => (
     </div>
 );
 
-const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointment, isLoading }) => {
+const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointment, isLoading, error, onRetry }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Όλα');
     const [showFilter, setShowFilter] = useState(false);
+
+    if (error) {
+        return <ErrorState onRetry={onRetry} />;
+    }
 
     if (isLoading) {
         return <AppointmentsSkeleton />;
