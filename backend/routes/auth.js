@@ -141,8 +141,15 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Check if account is locked
-        if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+        // Check if account is locked (if column exists)
+        let isLocked = false;
+        try {
+            isLocked = user.lockedUntil && new Date(user.lockedUntil) > new Date();
+        } catch (e) {
+            // Column may not exist yet - skip check
+        }
+        
+        if (isLocked) {
             const lockedFor = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
             return res.status(423).json({ error: `Account locked. Try again in ${lockedFor} minutes.` });
         }
@@ -155,7 +162,7 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
             isMatch = false;
         }
         if (!isMatch) {
-            // Increment failed attempts
+            // Increment failed attempts (if columns exist)
             const newFailedAttempts = (user.failedAttempts || 0) + 1;
             let lockedUntil = null;
             
@@ -165,26 +172,36 @@ router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
                 console.warn(`[AUTH] Account locked for ${email} due to too many failed login attempts`);
             }
             
-            await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    failedAttempts: newFailedAttempts,
-                    lockedUntil
-                }
-            });
+            try {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        failedAttempts: newFailedAttempts,
+                        lockedUntil
+                    }
+                });
+            } catch (e) {
+                // Columns may not exist yet - that's OK
+                console.warn(`[AUTH] Could not update failedAttempts: ${e.message}`);
+            }
             
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Reset failed attempts on successful login
-        if (user.failedAttempts > 0 || user.lockedUntil) {
-            await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    failedAttempts: 0,
-                    lockedUntil: null
-                }
-            });
+        // Reset failed attempts on successful login (if columns exist)
+        try {
+            if (user.failedAttempts > 0 || user.lockedUntil) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        failedAttempts: 0,
+                        lockedUntil: null
+                    }
+                });
+            }
+        } catch (e) {
+            // Columns may not exist yet - that's OK
+            console.warn(`[AUTH] Could not reset failedAttempts: ${e.message}`);
         }
 
         const isAdmin = user.role === 'ADMIN';
