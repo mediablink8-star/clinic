@@ -3,11 +3,11 @@ const crypto = require('crypto');
 // Derive a 32-byte key from the ENCRYPTION_KEY string
 const encryptionSecret = process.env.DB_ENCRYPTION_KEY;
 
-if (!encryptionSecret && process.env.NODE_ENV === 'production') {
-    throw new Error('CRITICAL SECURITY ERROR: DB_ENCRYPTION_KEY must be set in production!');
+if (!encryptionSecret) {
+    throw new Error('CRITICAL SECURITY ERROR: DB_ENCRYPTION_KEY must be set!');
 }
 
-const KEY = crypto.createHash('sha256').update(encryptionSecret || 'media-blink-default-secret').digest();
+const KEY = crypto.createHash('sha256').update(encryptionSecret).digest();
 const ALGORITHM = 'aes-256-gcm';
 
 /**

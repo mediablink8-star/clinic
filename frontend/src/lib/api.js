@@ -41,10 +41,11 @@ api.interceptors.response.use(
             try {
                 // Deduplicate concurrent refresh calls
                 if (!_refreshing) {
-                    _refreshing = axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
-                        .finally(() => { _refreshing = null; });
+                    _refreshing = axios.post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true });
                 }
-                const { data } = await _refreshing;
+                const refreshPromise = _refreshing;
+                refreshPromise.finally(() => { _refreshing = null; });
+                const { data } = await refreshPromise;
                 _token = data.token;
                 original.headers['Authorization'] = `Bearer ${_token}`;
                 return api(original);

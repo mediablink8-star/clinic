@@ -89,13 +89,16 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     React.useEffect(() => {
         if (log.patient?.id) {
             setLoadingPatient(true);
-            fetch(`${API_BASE}/patients/${log.patient.id}`, {
+            fetch(`${API_BASE}/appointments/patients`, {
                 headers: { Authorization: `Bearer ${authToken}` }
-            }).then(r => r.json()).then(d => setPatientData(d)).catch(() => {}).finally(() => setLoadingPatient(false));
+            }).then(r => r.ok ? r.json() : null).then(data => {
+                const patient = Array.isArray(data) ? data.find(p => p.id === log.patient.id) : null;
+                if (patient) setPatientData(patient);
+            }).catch(() => {}).finally(() => setLoadingPatient(false));
         } else if (log.fromNumber) {
-            fetch(`${API_BASE}/patients`, {
+            fetch(`${API_BASE}/appointments/patients`, {
                 headers: { Authorization: `Bearer ${authToken}` }
-            }).then(r => r.json()).then(data => {
+            }).then(r => r.ok ? r.json() : null).then(data => {
                 const match = Array.isArray(data) ? data.find(p => p.phone === log.fromNumber) : null;
                 if (match) setPatientData(match);
             }).catch(() => {});

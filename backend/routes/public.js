@@ -3,6 +3,15 @@ const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { getPublicClinic, getAvailableSlots, bookAppointment } = require('../services/publicService');
 
+const rateLimit = require('express-rate-limit');
+const publicLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many requests, please try again later' }
+});
+
+router.use(publicLimiter);
+
 router.get('/clinic/:id', asyncHandler(async (req, res) => {
     const { data } = await getPublicClinic(req.params.id);
     res.json(data);

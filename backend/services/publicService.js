@@ -92,17 +92,18 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const end = new Date(start.getTime() + 60 * 60 * 1000);
 
     // Double-booking check
-    const existing = await prisma.appointment.findFirst({
-        where: {
-            clinicId,
-            startTime: start,
-            status: { notIn: ['CANCELLED', 'NOSHOW'] }
-        }
-    });
-    if (existing) throw new AppError('CONFLICT', 'Time slot already booked', 409);
-
-    // Atomic: upsert patient + create appointment in one transaction
     const { patient, appointment } = await prisma.$transaction(async (tx) => {
+        const existing = await tx.appointment.findFirst({
+            where: {
+                clinicId,
+                startTime: start,
+                status: { notIn: ['CANCELLED', 'NOSHOW'] }
+            }
+        });
+        if (existing) {
+            throw new AppError('CONFLICT', 'Time slot already booked', 409);
+        }
+
         let pt = await tx.patient.findFirst({ where: { clinicId, phone } });
         if (!pt) {
             pt = await tx.patient.create({ data: { clinicId, name, phone, email } });

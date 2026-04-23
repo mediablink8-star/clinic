@@ -6,9 +6,9 @@ const { ensureMonthlyUsageWindow, DEFAULT_SMS_LIMIT, DEFAULT_AI_LIMIT } = requir
 function formatClinicResponse(clinic) {
     return {
         ...clinic,
-        workingHours: JSON.parse(clinic.workingHours),
-        services: JSON.parse(clinic.services),
-        policies: JSON.parse(clinic.policies),
+        workingHours: clinic.workingHours ? JSON.parse(clinic.workingHours) : {},
+        services: clinic.services ? JSON.parse(clinic.services) : [],
+        policies: clinic.policies ? JSON.parse(clinic.policies) : {},
         aiConfig: clinic.aiConfig ? JSON.parse(clinic.aiConfig) : null
     };
 }

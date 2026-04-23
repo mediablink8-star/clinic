@@ -77,6 +77,12 @@ const App = () => {
   const [booking, setBooking] = useState(false);
   const analysisTimeoutRef = useRef(null);
 
+  useEffect(() => {
+    return () => {
+      if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
+    };
+  }, []);
+
   // On mount: try to restore session
   useEffect(() => {
     const savedClinic = localStorage.getItem('clinic_data');

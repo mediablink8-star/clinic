@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { UserPlus, Send, Calendar, X, Search, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -57,6 +58,7 @@ const SendSMSModal = ({ patients = [], token, onClose }) => {
             }
         } catch (err) {
             setStatus({ type: 'error', text: err.response?.data?.error || 'Error sending message.' });
+            toast.error('SMS απέτυχε');
         } finally {
             setSending(false);
         }
@@ -140,6 +142,14 @@ const CallPatientModal = ({ patients = [], onClose }) => {
         p.name?.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search)
     );
 
+    const handleCall = (phone) => {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (!isMobile) {
+            toast.success('Κλήση σε εξέλιξη — ανοίξτε το κινητό σας για να δεχτείτε την κλήση');
+        }
+        onClose();
+    };
+
     return createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
@@ -161,7 +171,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                     {filtered.length === 0 ? (
                         <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>No patients found</p>
                     ) : filtered.map(p => (
-                        <a key={p.id} href={`tel:${p.phone}`} onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', textDecoration: 'none', color: 'var(--text)' }}>
+                        <button key={p.id} onClick={() => handleCall(p.phone)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--modal-bg)', cursor: 'pointer', color: 'var(--text)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', color: '#10b981', flexShrink: 0 }}>{p.name?.charAt(0)}</div>
                                 <div>
@@ -170,7 +180,7 @@ const CallPatientModal = ({ patients = [], onClose }) => {
                                 </div>
                             </div>
                             <div style={{ background: 'rgba(16,185,129,0.1)', padding: '7px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={15} color="#10b981" /></div>
-                        </a>
+                        </button>
                     ))}
                 </div>
             </div>
@@ -188,7 +198,7 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
                 <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
                 <div className="quick-actions-row" style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient} variant="secondary" />
+                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient || onViewSchedule} variant="secondary" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
                     <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
                 </div>

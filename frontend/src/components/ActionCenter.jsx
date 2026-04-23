@@ -206,7 +206,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow icon={Send} color="#7c3aed" label={`${staleCount} ασθενείς δεν απάντησαν (24h+)`} sublabel="Αποστολή follow-up" cta="Στείλε" loading={sending.followup} onClick={sendFollowUps} urgent />
                     )}
                     {patientRepliedCount > 0 && (
-                        <ActionRow icon={Reply} color="#3b82f6" label={`${patientRepliedCount} ασθενής απάντησε`} sublabel="Απαντήστε τώρα" cta="Απάντηση" onClick={() => setShowReply(true)} urgent />
+                        <ActionRow icon={Reply} color="#3b82f6" label={`${patientRepliedCount} ασθενής απάντησε`} sublabel="Απαντήστε τώρα" cta="Απάντηση" onClick={() => patientEngaged.length > 0 && setShowReply(true)} urgent />
                     )}
                     {failedSmsCount > 0 && (
                         <ActionRow icon={RefreshCw} color="#dc2626" label={`${failedSmsCount} αποτυχία SMS`} sublabel="Επανάληψη αποστολής" cta="Retry" loading={retryingAll} onClick={retryFailedSms} urgent />
