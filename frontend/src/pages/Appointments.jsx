@@ -1,15 +1,61 @@
 import { useState } from 'react';
-import { Search, Filter, ChevronDown, Plus } from 'lucide-react';
+import { Search, Filter, ChevronDown, Plus, Calendar } from 'lucide-react';
 import AppointmentCard from '../components/AppointmentCard';
 import MessageModal from '../components/MessageModal';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 const STATUS_OPTIONS = ['Όλα', 'CONFIRMED', 'PENDING', 'CANCELLED'];
 
-const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointment }) => {
+const AppointmentsSkeleton = () => (
+    <div className="animate-fade">
+        <div style={{
+            marginBottom: 'var(--section-gap)',
+            padding: '2rem',
+            background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)',
+            borderRadius: '24px',
+            position: 'relative',
+            overflow: 'hidden',
+        }}>
+            <Skeleton height="48px" width="300px" borderRadius="12px" style={{ marginBottom: '12px' }} />
+            <Skeleton height="20px" width="400px" borderRadius="8px" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '0.75rem' }}>
+            <Skeleton height="20px" width="150px" borderRadius="8px" />
+            <div style={{ display: 'flex', gap: '10px' }}>
+                <Skeleton height="42px" width="220px" borderRadius="12px" />
+                <Skeleton height="42px" width="100px" borderRadius="12px" />
+                <Skeleton height="42px" width="140px" borderRadius="12px" />
+            </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="appointment-card" style={{ display: 'flex', gap: '1.5rem', padding: '1.5rem' }}>
+                    <Skeleton height="80px" width="100px" borderRadius="14px" />
+                    <div style={{ flex: 1 }}>
+                        <Skeleton height="24px" width="200px" borderRadius="8px" style={{ marginBottom: '8px' }} />
+                        <Skeleton height="16px" width="150px" borderRadius="6px" />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <Skeleton height="32px" width="32px" borderRadius="10px" />
+                        <Skeleton height="32px" width="32px" borderRadius="10px" />
+                        <Skeleton height="32px" width="32px" borderRadius="10px" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointment, isLoading }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Όλα');
     const [showFilter, setShowFilter] = useState(false);
+
+    if (isLoading) {
+        return <AppointmentsSkeleton />;
+    }
 
     const filtered = appointments.filter(a => {
         const matchSearch = !search.trim() || (
@@ -126,9 +172,16 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filtered.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(248,250,252,0.8)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{search ? 'Δεν βρέθηκαν αποτελέσματα.' : 'Δεν υπάρχουν προγραμματισμένα ραντεβού.'}</p>
-                    </div>
+                    <EmptyState
+                        icon={Calendar}
+                        title={search ? 'Δεν βρέθηκαν αποτελέσματα' : 'Δεν υπάρχουν ραντεβού'}
+                        subtitle={search ? 'Δοκιμάστε διαφορετική αναζήτηση.' : 'Κλείστε το πρώτο σας ραντεβού για να ξεκινήσετε.'}
+                        action={onNewAppointment && (
+                            <button onClick={onNewAppointment} className="btn btn-primary" style={{ padding: '10px 20px' }}>
+                                <Plus size={16} /> Νέο Ραντεβού
+                            </button>
+                        )}
+                    />
                 ) : (
                     filtered.map((apt, idx) => (
                         <AppointmentCard

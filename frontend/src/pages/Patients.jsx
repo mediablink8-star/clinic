@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { User, Clock, Search, MessageSquare, UserPlus, X, Download, Send, Calendar, ChevronRight, Phone, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Clock, Search, MessageSquare, UserPlus, X, Download, Send, Calendar, ChevronRight, Phone, Mail, CheckCircle2, AlertCircle, Users } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -185,10 +187,62 @@ const PatientProfilePanel = ({ patient, token, onClose }) => {
 };
 
 // ─── Main Patients Page ───────────────────────────────────────────────────────
-const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
+const PatientsSkeleton = () => (
+    <div className="animate-fade">
+        <div style={{
+            marginBottom: 'var(--section-gap)',
+            padding: '2rem',
+            background: 'linear-gradient(135deg, var(--secondary) 0%, #1a253a 100%)',
+            borderRadius: '24px',
+            position: 'relative',
+            overflow: 'hidden',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <Skeleton height="48px" width="300px" borderRadius="12px" style={{ marginBottom: '12px' }} />
+                    <Skeleton height="20px" width="200px" borderRadius="8px" />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Skeleton height="44px" width="140px" borderRadius="12px" />
+                    <Skeleton height="44px" width="140px" borderRadius="12px" />
+                </div>
+            </div>
+        </div>
+        <Skeleton height="48px" width="100%" borderRadius="12px" style={{ marginBottom: '1.5rem' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[...Array(5)].map((_, i) => (
+                <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '1rem 1.25rem',
+                    background: 'var(--glass-surface)',
+                    backdropFilter: 'blur(12px)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border)',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <Skeleton height="42px" width="42px" borderRadius="12px" />
+                        <div>
+                            <Skeleton height="20px" width="180px" borderRadius="8px" style={{ marginBottom: '6px' }} />
+                            <Skeleton height="14px" width="120px" borderRadius="6px" />
+                        </div>
+                    </div>
+                    <Skeleton height="24px" width="80px" borderRadius="8px" />
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const Patients = ({ patients, setCurrentTab, token, onPatientCreated, isLoading }) => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [showNewPatient, setShowNewPatient] = useState(false);
     const [search, setSearch] = useState('');
+
+    if (isLoading) {
+        return <PatientsSkeleton />;
+    }
 
     const filtered = patients.filter(p =>
         p.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -237,9 +291,16 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated }) => {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {filtered.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-subtle)', borderRadius: '20px', border: '2px dashed var(--border)' }}>
-                        <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>{search ? 'Δεν βρέθηκαν αποτελέσματα.' : 'Δεν βρέθηκαν ασθενείς.'}</p>
-                    </div>
+                    <EmptyState
+                        icon={Users}
+                        title={search ? 'Δεν βρέθηκαν αποτελέσματα' : 'Δεν υπάρχουν ασθενείς'}
+                        subtitle={search ? 'Δοκιμάστε διαφορετική αναζήτηση.' : 'Προσθέστε τον πρώτο σας ασθενή για να ξεκινήσετε.'}
+                        action={
+                            <button onClick={() => setShowNewPatient(true)} className="btn btn-primary" style={{ padding: '10px 20px' }}>
+                                <UserPlus size={16} /> Νέος Ασθενής
+                            </button>
+                        }
+                    />
                 ) : filtered.map((p, idx) => (
                     <div
                         key={p.id}
