@@ -121,87 +121,49 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     }
 }));
 
-router.post('/login', validate(loginSchema), asyncHandler(async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
     const { email, password } = req.body;
     console.log(`[LOGIN] Attempt for: ${email}`);
+    
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: {
-                clinic: {
-                    select: {
-                        id: true,
-                        name: true,
-                        avatarUrl: true
-                    }
-                }
-            }
+            include: { clinic: { select: { id: true, name: true, avatarUrl: true } } }
         });
-        console.log(`[LOGIN] User found:`, user ? 'yes' : 'no');
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        let isMatch = false;
-        try {
-            isMatch = await comparePassword(password, user.passwordHash);
-        } catch (compareError) {
-            console.error(`[AUTH] Password compare failed for ${email}:`, compareError);
-            isMatch = false;
-        }
+        const isMatch = await comparePassword(password, user.passwordHash);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const isAdmin = user.role === 'ADMIN';
 
-        // Check if MFA is required
         if (user.mfaEnabled) {
             const mfaToken = generateMfaToken({ userId: user.id });
-            return res.json({
-                mfaRequired: true,
-                mfaToken,
-                email: user.email
-            });
+            return res.json({ mfaRequired: true, mfaToken, email: user.email });
         }
 
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
-        // Store Refresh Token in DB
         await prisma.refreshToken.create({
-            data: {
-                token: refreshToken,
-                userId: user.id,
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-            }
+            data: { token: refreshToken, userId: user.id, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
         });
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
-
         res.json({
             token: accessToken,
-            clinic: {
-                id: user.clinic.id,
-                name: user.clinic.name,
-                email: user.email,
-                avatarUrl: user.clinic.avatarUrl,
-                role: user.role,
-                userId: user.id,
-                userName: user.name || user.email,
-                isAdmin
-            }
+            clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: user.clinic.avatarUrl, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
         });
     } catch (error) {
-        console.error('[LOGIN] Full error:', error);
-        console.error('[LOGIN] Error name:', error.name);
-        console.error('[LOGIN] Error message:', error.message);
-        console.error('[LOGIN] Error cause:', error.cause);
-        console.error('[LOGIN] Error stack:', error.stack);
+        console.error('[LOGIN] ERROR:', error);
         res.status(500).json({ error: 'Server error during login' });
     }
-}));
+});
 
 router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, res) => {
     const { email } = req.body;
