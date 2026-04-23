@@ -134,7 +134,7 @@ router.post('/login', async (req, res) => {
         console.log('[LOGIN] Step 1: Finding user...');
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { clinic: { select: { id: true, name: true, avatarUrl: true } } }
+            include: { clinic: { select: { id: true, name: true } } }
         });
         console.log('[LOGIN] Step 1 done, user:', user?.email);
 
@@ -167,9 +167,15 @@ router.post('/login', async (req, res) => {
         });
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
+
+        if (!user.clinic) {
+            console.error('[LOGIN] User has no clinic:', user.id);
+            return res.status(500).json({ error: 'Account configuration error — clinic not found' });
+        }
+
         res.json({
             token: accessToken,
-            clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: user.clinic.avatarUrl, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
+            clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: null, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
         });
     } catch (error) {
         console.error('[LOGIN] ERROR:', error);

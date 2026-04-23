@@ -156,8 +156,7 @@ async function getAvailableSlots(clinicId, date) {
     let aiCfg = {};
     let clinicTimezone = 'Europe/Athens';
     try {
-        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { aiConfig: true, workingHours: true, timezone: true } });
-        if (clinic?.timezone) clinicTimezone = clinic.timezone;
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { aiConfig: true, workingHours: true } });
         aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic?.aiConfig || {});
     } catch (e) {
         console.warn('[getAvailableSlots] Failed to parse aiConfig:', e.message);
