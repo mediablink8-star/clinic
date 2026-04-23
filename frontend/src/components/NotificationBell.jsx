@@ -13,7 +13,18 @@ const ICON_MAP = {
 const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
     const [open, setOpen] = useState(false);
     const [pos, setPos] = useState({ top: 0, right: 0 });
-    const [dismissed, setDismissed] = useState(new Set());
+    const [dismissed, setDismissed] = useState(() => {
+        try {
+            const saved = localStorage.getItem('notif_dismissed');
+            return saved ? new Set(JSON.parse(saved)) : new Set();
+        } catch { return new Set(); }
+    });
+
+    const dismissAll = (ids) => {
+        const next = new Set(ids);
+        setDismissed(next);
+        try { localStorage.setItem('notif_dismissed', JSON.stringify([...next])); } catch {}
+    };
     const btnRef = useRef(null);
 
     // Position dropdown relative to button
@@ -82,7 +93,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                         </span>
                     )}
                     {visibleNotifs.length > 0 && (
-                        <button onClick={() => setDismissed(new Set(notifications.map(n => n.id)))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px' }}>Καθαρισμός</button>
+                        <button onClick={() => dismissAll(notifications.map(n => n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px' }}>Καθαρισμός</button>
                     )}
                     <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '2px', display: 'flex' }}>
                         <X size={15} />

@@ -278,7 +278,18 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
 const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     const [retrying, setRetrying] = React.useState({});
     const [selected, setSelected] = React.useState(null);
-    const [dismissed, setDismissed] = React.useState(new Set());
+    const [dismissed, setDismissed] = React.useState(() => {
+        try {
+            const saved = localStorage.getItem('feed_dismissed');
+            return saved ? new Set(JSON.parse(saved)) : new Set();
+        } catch { return new Set(); }
+    });
+
+    const dismissAll = (ids) => {
+        const next = new Set(ids);
+        setDismissed(next);
+        try { localStorage.setItem('feed_dismissed', JSON.stringify([...next])); } catch {}
+    };
 
     const handleRetry = async (logId, e) => {
         e.stopPropagation();
@@ -328,7 +339,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         <>
             {sorted.length < allSorted.length || allSorted.length > 0 ? (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                    <button onClick={() => setDismissed(new Set(allSorted.map(l => l.id)))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px' }}>Καθαρισμός</button>
+                    <button onClick={() => dismissAll(allSorted.map(l => l.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px' }}>Καθαρισμός</button>
                 </div>
             ) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
