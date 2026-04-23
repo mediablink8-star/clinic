@@ -121,24 +121,35 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     }
 }));
 
-router.post('/login', validate(loginSchema), async (req, res) => {
+router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    console.log(`[LOGIN] Attempt for: ${email}`);
+    console.log(`[LOGIN] body:`, req.body);
+    
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
     
     try {
+        console.log('[LOGIN] Step 1: Finding user...');
         const user = await prisma.user.findUnique({
             where: { email },
             include: { clinic: { select: { id: true, name: true, avatarUrl: true } } }
         });
+        console.log('[LOGIN] Step 1 done, user:', user?.email);
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        console.log('[LOGIN] Step 2: Comparing password...');
         const isMatch = await comparePassword(password, user.passwordHash);
+        console.log('[LOGIN] Step 2 done, match:', isMatch);
+
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+
+        console.log('[LOGIN] Step 3: Generating tokens...');
 
         const isAdmin = user.role === 'ADMIN';
 
