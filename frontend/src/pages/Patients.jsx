@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Clock, Search, MessageSquare, UserPlus, X, Download, Send, Calendar, ChevronRight, Phone, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -78,9 +79,9 @@ const PatientProfilePanel = ({ patient, token, onClose }) => {
         try {
             await axios.post(`${API_BASE}/messages/send`, { patientId: patient.id, message: smsText.trim() }, { headers: { Authorization: `Bearer ${token}` } });
             setSmsText('');
-            alert('SMS εστάλη!');
-        } catch {
-            alert('Αποτυχία αποστολής.');
+            toast.success('SMS εστάλη!');
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Αποτυχία αποστολής.');
         } finally {
             setSending(false);
         }
