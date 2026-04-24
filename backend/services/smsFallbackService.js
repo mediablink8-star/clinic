@@ -1,5 +1,5 @@
 /**
- * SMS fallback service for Bland AI voice calls.
+ * SMS fallback service for Voice AI calls.
  * Triggers Vonage SMS via n8n workflow 2 (direct SMS webhook).
  */
 const https = require('https');
@@ -9,7 +9,7 @@ const { decrypt } = require('./encryptionService');
 function triggerN8nSms(clinic, phone, message, missedCallId) {
     const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
     if (!webhookUrl) {
-        console.warn(`[BlandSMS] No SMS webhook URL for clinic ${clinic.id}`);
+        console.warn(`[SMS] No webhook URL for clinic ${clinic.id}`);
         return Promise.resolve({ success: false, reason: 'no_webhook' });
     }
 
@@ -44,18 +44,18 @@ function triggerN8nSms(clinic, phone, message, missedCallId) {
                 },
             }, (res) => {
                 res.resume();
-                console.log(`[BlandSMS] SMS fallback sent to ${phone} — status ${res.statusCode}`);
+                console.log(`[SMS] Sent to ${phone} — status ${res.statusCode}`);
                 resolve({ success: res.statusCode < 400 });
             });
             req.on('error', (err) => {
-                console.warn(`[BlandSMS] SMS fallback failed: ${err.message}`);
+                console.warn(`[SMS] Failed: ${err.message}`);
                 resolve({ success: false, reason: err.message });
             });
             req.setTimeout(10000, () => { req.destroy(); resolve({ success: false, reason: 'timeout' }); });
             req.write(body);
             req.end();
         } catch (err) {
-            console.warn(`[BlandSMS] triggerN8nSms error: ${err.message}`);
+            console.warn(`[SMS] triggerN8nSms error: ${err.message}`);
             resolve({ success: false, reason: err.message });
         }
     });
