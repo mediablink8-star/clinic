@@ -103,6 +103,16 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         const hasVapi = voiceData.vapiApiKey || voiceData.vapiAssistantId;
         if (!hasVapi) return true;
         
+        // Validate required fields
+        if (!voiceData.vapiAssistantId?.trim()) {
+            setError('Το Assistant ID είναι υποχρεωτικό');
+            return false;
+        }
+        if (!voiceData.vapiPhoneNumberId?.trim()) {
+            setError('Το Phone Number ID είναι υποχρεωτικό');
+            return false;
+        }
+
         try {
             await axios.put(`${API_BASE}/clinic/vapi`, voiceData, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -308,7 +318,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Vapi API Key</label>
+                                <label style={labelStyle}>Vapi API Key (προαιρετικό)</label>
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         style={{ ...inputStyle, paddingRight: '40px' }}
@@ -323,11 +333,11 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Assistant ID</label>
+                                <label style={labelStyle}>Assistant ID *</label>
                                 <input style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Phone Number ID</label>
+                                <label style={labelStyle}>Phone Number ID *</label>
                                 <input style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
                             </div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '0.5rem' }}>
