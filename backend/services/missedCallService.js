@@ -11,7 +11,6 @@ const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const https = require('https');
 const { decrypt } = require('./encryptionService');
 const { sendSmsFailureAlert } = require('./emailService');
-const { triggerOutboundCall } = require('./blandService');
 const http = require('http');
 
 /**
@@ -71,7 +70,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     }
 
     // Warn early if no recovery channel is configured
-    const hasVoice = clinic.voiceEnabled && clinic.blandPhoneNumberId && (clinic.blandApiKey || process.env.BLAND_API_KEY);
+    const hasVoice = clinic.voiceEnabled && (clinic.vapiAssistantId || clinic.vapiPhoneNumberId) && (clinic.vapiApiKey || process.env.VAPI_API_KEY);
     const hasSms = !!(process.env.N8N_WEBHOOK_URL || clinic.webhookUrl || clinic.webhookMissedCall || clinic.vonageApiKey || process.env.VONAGE_API_KEY);
     if (!hasVoice && !hasSms) {
         console.warn(`[MissedCall] Clinic ${clinicId} has no voice or SMS channel configured — call logged but no recovery will be triggered.`);
@@ -156,7 +155,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     await ensureRecoveryCaseForMissedCall(missedCall.id);
 
-    // ── Voice call (Bland AI) — if enabled, call patient first ───────────────
+    // ── Voice call (Vapi) — if enabled, call patient first ───────────────
     // Voice calls trigger regardless of working hours — AI handles closed hours messaging
     if (clinic.voiceEnabled) {
         // Look up patient by phone number for personalised greeting
@@ -174,25 +173,25 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             console.warn('[Voice] Patient lookup failed:', err.message);
         }
 
+        const { triggerOutboundCall } = require('./vapiService');
         const callResult = await triggerOutboundCall({
             clinic,
             phone,
             missedCallId: missedCall.id,
             patientName,
         });
+
         if (callResult.success) {
-            console.log(`[Voice] Outbound call triggered for ${phone} — callId: ${callResult.callId}`);
-            // Store Bland call_id as callSid so webhook can find this case
+            console.log(`[Voice] Outbound call triggered for ${phone} — callId: ${callResult.callId} (vapi)`);
             await prisma.missedCall.update({
                 where: { id: missedCall.id },
                 data: {
                     smsStatus: 'pending',
-                    callSid: callResult.callId, // overwrite test callSid with real Bland call_id
-                    aiConversation: JSON.stringify([{ role: 'system', content: `bland_call_id:${callResult.callId}` }])
+                    callSid: callResult.callId,
+                    aiConversation: JSON.stringify([{ role: 'system', content: `vapi_call_id:${callResult.callId}` }])
                 }
             });
-            // SMS fallback will be triggered by Bland webhook if call unanswered
-            return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice' } };
+            return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice', provider: 'vapi' } };
         }
         console.warn(`[Voice] Call failed (${callResult.reason}) — falling back to SMS`);
     }

@@ -34,8 +34,9 @@ router.get('/status', asyncHandler(async (req, res) => {
             where: { id: req.clinicId },
             select: {
                 voiceEnabled: true,
-                blandApiKey: true,
-                blandPhoneNumberId: true,
+                vapiApiKey: true,
+                vapiAssistantId: true,
+                vapiPhoneNumberId: true,
                 vonageApiKey: true,
                 webhookUrl: true,
                 webhookMissedCall: true,
@@ -43,7 +44,7 @@ router.get('/status', asyncHandler(async (req, res) => {
         })
     ]);
 
-    const voiceConfigured = !!(clinic?.voiceEnabled && clinic?.blandPhoneNumberId && (clinic?.blandApiKey || process.env.BLAND_API_KEY));
+    const voiceConfigured = !!(clinic?.voiceEnabled && clinic?.vapiAssistantId && clinic?.vapiPhoneNumberId && (clinic?.vapiApiKey || process.env.VAPI_API_KEY));
     const smsConfigured = !!(clinic?.vonageApiKey || process.env.VONAGE_API_KEY) || !!(process.env.N8N_WEBHOOK_URL);
     const webhookConfigured = !!(clinic?.webhookMissedCall || clinic?.webhookUrl || process.env.N8N_WEBHOOK_URL);
 

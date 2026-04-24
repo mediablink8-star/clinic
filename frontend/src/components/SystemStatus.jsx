@@ -14,7 +14,7 @@ const services = [
     {
         key: 'voice',
         icon: Phone,
-        label: 'Voice AI (Bland)',
+        label: 'Voice AI',
         check: s => s?.voiceConfigured,
         offlineLabel: 'Μη ρυθμισμένη',
         actionLabel: 'Ρύθμιση',

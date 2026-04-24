@@ -10,7 +10,7 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
     try { aiCfg = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {}); } catch {}
 
     const hasClinicInfo = !!(clinic?.name && clinic?.phone && clinic.phone !== '+10000000000');
-    const hasBland = !!(clinic?.blandPhoneNumberId && clinic?.voiceEnabled);
+    const hasVoice = !!(clinic?.voiceEnabled && clinic?.vapiPhoneNumberId);
     const hasVonage = !!(clinic?.vonageApiKey);
     const hasWebhooks = !!(clinic?.webhookMissedCall || clinic?.webhookUrl);
     const hasRecovery = Array.isArray(recoveryLog) && recoveryLog.length > 0;
@@ -26,20 +26,24 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             done: hasClinicInfo,
         },
         {
-            key: 'bland',
+            key: 'voice',
             icon: Phone,
             color: '#7c3aed',
-            label: 'Bland AI — Φωνητική Ανάκτηση',
-            hint: 'Προσθέστε Bland API Key και Phone Number ID. Ενεργοποιήστε Voice AI.',
+            label: 'Voice AI',
+            hint: clinic?.vapiPhoneNumberId 
+                ? 'Vapi ρυθμισμένο με ελληνικό αριθμό.'
+                : 'Προσθέστε Vapi API Key, Assistant ID & Phone Number.',
             action: 'Ρυθμίσεις → Voice AI',
-            done: hasBland,
+            done: hasVoice,
         },
         {
             key: 'forward',
             icon: Phone,
             color: '#0891b2',
-            label: 'Προώθηση Αναπάντητων Κλήσεων',
-            hint: 'Στο κινητό του ιατρείου: Ρυθμίσεις → Προώθηση κλήσεων → Αναπάντητες → αριθμός Bland AI',
+            label: 'Προώθηση Κλήσεων',
+            hint: clinic?.vapiPhoneNumberId
+                ? 'Ρυθμίστε forwarding στο Vonage.'
+                : 'Ρυθμίστε forwarding στο κινητό του ιατρείου.',
             done: hasRecovery,
         },
         {

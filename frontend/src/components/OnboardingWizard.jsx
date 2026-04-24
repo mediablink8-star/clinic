@@ -11,7 +11,7 @@ const STEPS = [
     { key: 'welcome',  title: 'Καλώς ήρθατε!',           subtitle: 'Ας ρυθμίσουμε το ιατρείο σας σε 4 βήματα' },
     { key: 'info',     title: 'Στοιχεία Ιατρείου',        subtitle: 'Βασικές πληροφορίες για το ιατρείο σας' },
     { key: 'ai',       title: 'Ρυθμίσεις AI',             subtitle: 'Υπηρεσίες, ωράριο και SMS πρότυπα για τη Σοφία' },
-    { key: 'voice',    title: 'Voice AI (Bland)',          subtitle: 'Αυτόματη επανάκληση αναπάντητων κλήσεων' },
+    { key: 'voice',    title: 'Voice AI',          subtitle: 'Αυτόματη επανάκληση αναπάντητων κλήσεων' },
     { key: 'webhooks', title: 'Webhooks & SMS',            subtitle: 'Σύνδεση με n8n για αποστολή SMS' },
     { key: 'done',     title: 'Έτοιμοι! 🎉',              subtitle: 'Το ιατρείο σας είναι έτοιμο' },
 ];
@@ -51,10 +51,11 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         smsInitial: '',
     });
 
-    // Step 3 — Bland
-    const [bland, setBland] = useState({
-        blandApiKey: '',
-        blandPhoneNumberId: '',
+    // Step 3 — Voice AI (Vapi)
+    const [voiceData, setVoiceData] = useState({
+        vapiApiKey: '',
+        vapiAssistantId: '',
+        vapiPhoneNumberId: '',
         voiceEnabled: true,
     });
 
@@ -97,14 +98,16 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         }
     };
 
-    const saveBland = async () => {
-        // Bland is optional — skip if no key provided
-        if (!bland.blandApiKey && !bland.blandPhoneNumberId) return true;
+    const saveVoice = async () => {
+        // Voice is optional — skip if no key provided
+        const hasVapi = voiceData.vapiApiKey || voiceData.vapiAssistantId;
+        if (!hasVapi) return true;
+        
         try {
-            await axios.put(`${API_BASE}/clinic/bland`, bland, {
+            await axios.put(`${API_BASE}/clinic/vapi`, voiceData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (onUpdate) onUpdate({ voiceEnabled: bland.voiceEnabled, blandPhoneNumberId: bland.blandPhoneNumberId });
+            if (onUpdate) onUpdate({ voiceEnabled: voiceData.voiceEnabled });
             return true;
         } catch (err) {
             setError(err.response?.data?.error || 'Σφάλμα αποθήκευσης Voice AI.');
@@ -134,7 +137,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
 
         if (current.key === 'info') ok = await saveInfo();
         if (current.key === 'ai') ok = await saveAiConfig();
-        if (current.key === 'voice') ok = await saveBland();
+        if (current.key === 'voice') ok = await saveVoice();
         if (current.key === 'webhooks') ok = await saveWebhooks();
 
         setSaving(false);
@@ -290,27 +293,29 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                     </div>
                 )}
 
-                {current.key === 'voice' && (
+{current.key === 'voice' && (
                     <div>
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h2 style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white', marginBottom: '4px' }}>{current.title}</h2>
                             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>{current.subtitle}</p>
                         </div>
+
                         <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', marginBottom: '1.25rem' }}>
                             <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: 0 }}>
-                                Το Voice AI καλεί αυτόματα τους ασθενείς που δεν απάντησαν. Χρειάζεστε λογαριασμό στο <strong style={{ color: 'white' }}>bland.ai</strong>.
+                                Χρησιμοποιεί τον αριθμό σας από το Vonage για ελληνικό caller ID.
                             </p>
                         </div>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Bland API Key</label>
+                                <label style={labelStyle}>Vapi API Key</label>
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         style={{ ...inputStyle, paddingRight: '40px' }}
                                         type={showKey ? 'text' : 'password'}
-                                        value={bland.blandApiKey}
-                                        onChange={e => setBland(p => ({ ...p, blandApiKey: e.target.value }))}
-                                        placeholder="org_xxxxxxxxxxxx"
+                                        value={voiceData.vapiApiKey}
+                                        onChange={e => setVoiceData(p => ({ ...p, vapiApiKey: e.target.value }))}
+                                        placeholder="sk-..."
                                     />
                                     <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
                                         {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -318,14 +323,53 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Phone Number ID</label>
-                                <input style={inputStyle} value={bland.blandPhoneNumberId} onChange={e => setBland(p => ({ ...p, blandPhoneNumberId: e.target.value }))} placeholder="PN_xxxxxxxxxxxx" />
+                                <label style={labelStyle}>Assistant ID</label>
+                                <input style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={bland.voiceEnabled} onChange={e => setBland(p => ({ ...p, voiceEnabled: e.target.checked }))} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                            <div>
+                                <label style={labelStyle}>Phone Number ID</label>
+                                <input style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '0.5rem' }}>
+                                <input type="checkbox" checked={voiceData.voiceEnabled} onChange={e => setVoiceData(p => ({ ...p, voiceEnabled: e.target.checked }))} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
                                 <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Ενεργοποίηση Voice AI</span>
                             </label>
                         </div>
+                    </div>
+                )}
+
+                        {voiceData.voiceProviderType === 'vapi' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Vapi API Key</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            style={{ ...inputStyle, paddingRight: '40px' }}
+                                            type={showKey ? 'text' : 'password'}
+                                            value={voiceData.vapiApiKey}
+                                            onChange={e => setVoiceData(p => ({ ...p, vapiApiKey: e.target.value }))}
+                                            placeholder="sk-..."
+                                        />
+                                        <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
+                                            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Assistant ID</label>
+                                    <input style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Phone Number ID</label>
+                                    <input style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
+                                </div>
+                            </div>
+                        )}
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '1rem' }}>
+                            <input type="checkbox" checked={voiceData.voiceEnabled} onChange={e => setVoiceData(p => ({ ...p, voiceEnabled: e.target.checked }))} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Ενεργοποίηση Voice AI</span>
+                        </label>
                     </div>
                 )}
 

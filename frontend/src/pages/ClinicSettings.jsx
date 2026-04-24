@@ -111,7 +111,7 @@ const SECTIONS = [
     { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
     { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
-    { id: 's-voice', number: '5', label: 'Voice AI', icon: <Phone size={14} color="#7c3aed" />, iconBg: 'rgba(124,58,237,0.1)', title: 'Voice AI — Bland AI', subtitle: 'Ρύθμιση AI φωνητικής ανάκτησης' },
+    { id: 's-voice', number: '5', label: 'Voice AI', icon: <Phone size={14} color="#7c3aed" />, iconBg: 'rgba(124,58,237,0.1)', title: 'Voice AI', subtitle: 'AI φωνητική ανάκτηση κλήσεων' },
     { id: 's7', number: '6', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
     { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
@@ -142,10 +142,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             webhookDirectSms: clinic.webhookDirectSms || '',
             webhookInboundSms: clinic.webhookInboundSms || '',
         }));
-        setBlandData(prev => ({
+        setVapiData(prev => ({
             ...prev,
-            blandPhoneNumberId: clinic.blandPhoneNumberId || '',
-            blandVoiceId: clinic.blandVoiceId || '',
+            vapiAssistantId: clinic.vapiAssistantId || '',
+            vapiPhoneNumberId: clinic.vapiPhoneNumberId || '',
             voiceEnabled: clinic.voiceEnabled || false,
         }));
     }, [clinic?.id, clinic?.updatedAt]);
@@ -421,23 +421,24 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         } finally { setSavingVonage(false); }
     };
 
-    const [blandData, setBlandData] = React.useState({
-        blandApiKey: '',
-        blandPhoneNumberId: clinic?.blandPhoneNumberId || '',
-        blandVoiceId: clinic?.blandVoiceId || '',
+    // Vapi state
+    const [vapiData, setVapiData] = React.useState({
+        vapiApiKey: '',
+        vapiAssistantId: clinic?.vapiAssistantId || '',
+        vapiPhoneNumberId: clinic?.vapiPhoneNumberId || '',
         voiceEnabled: clinic?.voiceEnabled || false,
     });
-    const [savingBland, setSavingBland] = React.useState(false);
+    const [savingVapi, setSavingVapi] = React.useState(false);
 
-    const handleSaveBland = async () => {
-        setSavingBland(true);
+    const handleSaveVapi = async () => {
+        setSavingVapi(true);
         try {
-            await axios.put(`${API_BASE}/clinic/bland`, blandData, { headers: { Authorization: `Bearer ${token}` } });
-            showToast('Voice AI settings αποθηκεύτηκαν!', 'success');
-            if (onUpdate) onUpdate({ voiceEnabled: blandData.voiceEnabled, blandPhoneNumberId: blandData.blandPhoneNumberId });
+            await axios.put(`${API_BASE}/clinic/vapi`, vapiData, { headers: { Authorization: `Bearer ${token}` } });
+            showToast('Voice AI (Vapi) settings αποθηκεύτηκαν!', 'success');
+            if (onUpdate) onUpdate({ voiceEnabled: vapiData.voiceEnabled, vapiAssistantId: vapiData.vapiAssistantId });
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
-        } finally { setSavingBland(false); }
+        } finally { setSavingVapi(false); }
     };
 
     const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
@@ -872,52 +873,50 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
 
 
-            {/* Voice AI — Bland AI */}
+            {/* Voice AI — Vapi */}
             <SectionCard id="s-voice" number="5" icon={<Phone size={15} color="#7c3aed" />} iconBg="rgba(124,58,237,0.1)"
-                title="Voice AI — Bland AI" subtitle="Ρύθμιση AI φωνητικής ανάκτησης κλήσεων">
+                title="Voice AI" subtitle="AI φωνητική ανάκτηση κλήσεων">
 
                 <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', marginBottom: '1rem' }}>
                     <p style={{ fontSize: '0.78rem', color: '#5b21b6', fontWeight: '600', margin: 0 }}>
-                        Ρυθμίστε τον αριθμό Bland AI και ενεργοποιήστε τη φωνητική ανάκτηση. Ο ασθενής θα λαμβάνει κλήση από το AI — αν δεν απαντήσει, θα σταλεί SMS αυτόματα.
+                        Vapi + Vonage: Χρησιμοποιεί τον αριθμό σας από το Vonage για ελληνικό caller ID.
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: blandData.voiceEnabled ? 'rgba(16,185,129,0.06)' : 'var(--bg-subtle)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: vapiData.voiceEnabled ? 'rgba(16,185,129,0.06)' : 'var(--bg-subtle)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
                     <div>
                         <div style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)' }}>Φωνητική Ανάκτηση</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '2px' }}>Ενεργοποίηση AI κλήσεων για αναπάντητες κλήσεις</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '2px' }}>AI κλήσεις για αναπάντητες</div>
                     </div>
                     <button
                         type="button"
-                        onClick={() => setBlandData(d => ({ ...d, voiceEnabled: !d.voiceEnabled }))}
-                        style={{ padding: '6px 16px', borderRadius: '99px', border: 'none', background: blandData.voiceEnabled ? '#10b981' : 'var(--border)', color: blandData.voiceEnabled ? 'white' : 'var(--text-light)', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
+                        onClick={() => setVapiData(d => ({ ...d, voiceEnabled: !d.voiceEnabled }))}
+                        style={{ padding: '6px 16px', borderRadius: '99px', border: 'none', background: vapiData.voiceEnabled ? '#10b981' : 'var(--border)', color: vapiData.voiceEnabled ? 'white' : 'var(--text-light)', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer' }}
                     >
-                        {blandData.voiceEnabled ? 'ΕΝΕΡΓΟ' : 'ΑΝΕΝΕΡΓΟ'}
+                        {vapiData.voiceEnabled ? 'ΕΝΕΡΓΟ' : 'ΑΝΕΝΕΡΓΟ'}
                     </button>
                 </div>
 
-                <FormGroup label="Bland AI API Key" flex="1 1 100%">
-                    <input style={inputStyle} type="password" placeholder="sk-..." value={blandData.blandApiKey} onChange={e => setBlandData(d => ({ ...d, blandApiKey: e.target.value }))} />
+                <FormGroup label="Vapi API Key" flex="1 1 100%">
+                    <input style={inputStyle} type="password" placeholder="sk-..." value={vapiData.vapiApiKey} onChange={e => setVapiData(d => ({ ...d, vapiApiKey: e.target.value }))} />
                 </FormGroup>
-                <FormRow>
-                    <FormGroup label="Phone Number ID (από Bland dashboard)">
-                        <input style={inputStyle} type="text" placeholder="phone_number_id" value={blandData.blandPhoneNumberId} onChange={e => setBlandData(d => ({ ...d, blandPhoneNumberId: e.target.value }))} />
-                    </FormGroup>
-                    <FormGroup label="Voice ID (προαιρετικό)">
-                        <input style={inputStyle} type="text" placeholder="maya" value={blandData.blandVoiceId} onChange={e => setBlandData(d => ({ ...d, blandVoiceId: e.target.value }))} />
-                    </FormGroup>
-                </FormRow>
-
-                <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.1)', marginBottom: '0.75rem' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5b21b6', margin: '0 0 4px' }}>Ρύθμιση Προώθησης Κλήσεων</p>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: 0 }}>
-                        Στο κινητό/σταθερό του ιατρείου, ορίστε: <strong>Προώθηση αναπάντητων κλήσεων → αριθμός Bland AI</strong>. Ο αριθμός Bland βρίσκεται στο dashboard του bland.ai.
-                    </p>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="button" className="btn btn-primary" onClick={handleSaveBland} disabled={savingBland}>
-                        {savingBland ? 'Αποθήκευση...' : 'Αποθήκευση Voice AI'}
+                        <FormRow>
+                            <FormGroup label="Assistant ID">
+                                <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />
+                            </FormGroup>
+                            <FormGroup label="Phone Number ID">
+                                <input style={inputStyle} type="text" placeholder="phone_xxxxx" value={vapiData.vapiPhoneNumberId} onChange={e => setVapiData(d => ({ ...d, vapiPhoneNumberId: e.target.value }))} />
+                            </FormGroup>
+                        </FormRow>
+                        <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.1)', marginBottom: '0.75rem' }}>
+                            <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5b21b6', margin: '0 0 4px' }}>Ελληνικοί Αριθμοί</p>
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: 0 }}>
+                                Αγοράστε αριθμό από Vonage και εισάγετέ τον στο Vapi. Ο αριθμός θα εμφανίζεται τοπικά στον ασθενή.
+                            </p>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+<button type="button" className="btn btn-primary" onClick={handleSaveVapi} disabled={savingVapi}>
+                        {savingVapi ? 'Αποθήκευση...' : 'Αποθήκευση Voice AI'}
                     </button>
                 </div>
             </SectionCard>

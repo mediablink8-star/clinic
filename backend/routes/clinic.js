@@ -180,22 +180,44 @@ router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
 }));
 
 
-// PUT /api/clinic/bland — store Bland AI credentials and voice settings
-router.put('/bland', requireOwner, asyncHandler(async (req, res) => {
-    const { blandApiKey, blandPhoneNumberId, blandVoiceId, voiceEnabled } = req.body;
+// PUT /api/clinic/vapi — store Vapi credentials (Vapi + Vonage for Greek numbers)
+router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
+    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled } = req.body;
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },
         data: {
-            ...(blandApiKey !== undefined && { blandApiKey: blandApiKey ? encrypt(blandApiKey) : null }),
-            ...(blandPhoneNumberId !== undefined && { blandPhoneNumberId: blandPhoneNumberId || null }),
-            ...(blandVoiceId !== undefined && { blandVoiceId: blandVoiceId || null }),
+            ...(vapiApiKey !== undefined && { vapiApiKey: vapiApiKey ? encrypt(vapiApiKey) : null }),
+            ...(vapiAssistantId !== undefined && { vapiAssistantId: vapiAssistantId || null }),
+            ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId || null }),
+            ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId || null }),
             ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
         },
-        select: { blandPhoneNumberId: true, blandVoiceId: true, voiceEnabled: true }
+        select: { vapiAssistantId: true, vapiPhoneNumberId: true, voiceEnabled: true }
     });
 
     res.json({ success: true, data });
+}));
+
+
+// GET /api/clinic/vapi-config — get Vapi configuration status
+router.get('/vapi-config', asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { voiceEnabled: true, vapiAssistantId: true, vapiPhoneNumberId: true, vapiApiKey: true }
+    });
+
+    const vapiConfigured = !!(clinic?.voiceEnabled && 
+        clinic?.vapiAssistantId && 
+        clinic?.vapiPhoneNumberId && 
+        (clinic?.vapiApiKey || process.env.VAPI_API_KEY));
+
+    res.json({
+        voiceEnabled: clinic?.voiceEnabled || false,
+        vapiConfigured,
+        hasAssistant: !!clinic?.vapiAssistantId,
+        hasPhoneNumber: !!clinic?.vapiPhoneNumberId,
+    });
 }));
 
 module.exports = router;

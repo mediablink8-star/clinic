@@ -24,11 +24,13 @@ const getEvent = (log) => {
     if (log.status === 'LOST') return EVENT.LOST;
 
     if (log.smsStatus === 'failed') return EVENT.SMS_FAILED;
-    // Voice call detection
+    // Voice call detection (Vapi)
     if (log.smsStatus === 'pending') {
         try {
             const conv = log.aiConversation ? JSON.parse(log.aiConversation) : null;
-            const hasVoice = Array.isArray(conv) && conv.some(m => m.role === 'system' && String(m.content || '').startsWith('bland_call_id:'));
+            const hasVoice = Array.isArray(conv) && conv.some(m => 
+                m.role === 'system' && String(m.content || '').startsWith('vapi_call_id:')
+            );
             if (hasVoice) return EVENT.VOICE_CALL;
         } catch {}
         return EVENT.VOICE_CALL;
