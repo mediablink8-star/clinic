@@ -31,11 +31,12 @@ model Clinic {
   vonageApiSecret   String? // Encrypted per-clinic Vonage API secret
   vonageFromName    String? // Vonage sender name/number
   
-  // Vapi (Voice AI - works with Vonage for Greek numbers)
+// Vapi (Voice AI - works with Vonage for Greek numbers)
   vapiApiKey         String? // Encrypted per-clinic Vapi API key
   vapiAssistantId   String? // Vapi assistant ID
   vapiPhoneNumberId String? // Vapi phone number ID (imported from Vonage)
-vapiCredentialId  String? // Vapi Vonage credential ID
+  vapiCredentialId  String? // Vapi Vonage credential ID
+  voiceEnabled      Boolean @default(false) // Master switch for voice AI
   
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
