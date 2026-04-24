@@ -327,6 +327,8 @@ async function processScheduledMissedCalls() {
     });
 
     let processed = 0;
+    let succeeded = 0;
+    let failed = 0;
 
     for (const mc of due) {
         const clinic = mc.clinic;
@@ -362,8 +364,10 @@ async function processScheduledMissedCalls() {
                 logType: 'SMS',
             });
             webhookResult = { success: true };
+            succeeded++;
         } catch (err) {
             webhookResult = { success: false, error: err.message };
+            failed++;
         }
 
         await prisma.missedCall.update({
@@ -385,7 +389,11 @@ async function processScheduledMissedCalls() {
         processed++;
     }
 
-    return processed;
+    if (processed > 0) {
+        console.log(`[ScheduledSMS] Processed ${processed} scheduled SMS: ${succeeded} sent, ${failed} failed`);
+    }
+
+    return { processed, succeeded, failed };
 }
 
 async function retrySms({ clinicId, missedCallId }) {

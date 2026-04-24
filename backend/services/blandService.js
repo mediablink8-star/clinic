@@ -44,6 +44,9 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     }
 
     const backendUrl = process.env.BACKEND_API_URL || '';
+    if (!backendUrl) {
+        console.warn('[Bland] BACKEND_API_URL is not set — tool callbacks and webhooks will fail. Set BACKEND_API_URL in your environment.');
+    }
     // Fetch available slots for today and tomorrow
     let availableSlots = [];
     try {

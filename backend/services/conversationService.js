@@ -24,7 +24,13 @@ function getTemplate(clinic, key, fallback) {
 function sendReply(clinic, phone, message) {
     const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
     if (!webhookUrl) {
-        console.warn(`[Conversation] No webhook URL for clinic ${clinic.id} — reply not sent to ${phone}`);
+        console.warn(`[Conversation] No webhook URL for clinic ${clinic.id} — reply not sent to ${phone}: "${message.slice(0, 60)}"`);
+        // Record the failure so clinic can see it in logs
+        prisma.missedCall.findFirst({ where: { clinicId: clinic.id, fromNumber: phone, status: { in: ['DETECTED', 'RECOVERING'] } } })
+            .then(mc => {
+                if (mc) return prisma.missedCall.update({ where: { id: mc.id }, data: { smsError: 'No webhook URL — reply not sent' } });
+            })
+            .catch(() => {});
         return;
     }
 
@@ -228,6 +234,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
         sendReply(clinic, fromPhone, bookingMsg);
 
         // Upsert patient from phone number
+        const patientName = mc.bookingName || null;
         let patient = null;
         try {
             patient = await prisma.patient.upsert({
