@@ -8,8 +8,9 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const STEPS = [
-    { key: 'welcome',  title: 'Καλώς ήρθατε!',           subtitle: 'Ας ρυθμίσουμε το ιατρείο σας σε 3 βήματα' },
+    { key: 'welcome',  title: 'Καλώς ήρθατε!',           subtitle: 'Ας ρυθμίσουμε το ιατρείο σας σε 4 βήματα' },
     { key: 'info',     title: 'Στοιχεία Ιατρείου',        subtitle: 'Βασικές πληροφορίες για το ιατρείο σας' },
+    { key: 'ai',       title: 'Ρυθμίσεις AI',             subtitle: 'Υπηρεσίες, ωράριο και SMS πρότυπα για τη Σοφία' },
     { key: 'voice',    title: 'Voice AI (Bland)',          subtitle: 'Αυτόματη επανάκληση αναπάντητων κλήσεων' },
     { key: 'webhooks', title: 'Webhooks & SMS',            subtitle: 'Σύνδεση με n8n για αποστολή SMS' },
     { key: 'done',     title: 'Έτοιμοι! 🎉',              subtitle: 'Το ιατρείο σας είναι έτοιμο' },
@@ -41,7 +42,16 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         location: clinic?.location || '',
     });
 
-    // Step 2 — Bland
+    // Step 2 — AI config
+    const [aiConfig, setAiConfig] = useState({
+        services: '',
+        avgAppointmentValue: 80,
+        tone: 'Friendly',
+        workingHours: { 'Δευτέρα': '09:00-17:00', 'Τρίτη': '09:00-17:00', 'Τετάρτη': '09:00-17:00', 'Πέμπτη': '09:00-17:00', 'Παρασκευή': '09:00-17:00', 'Σάββατο': 'Closed', 'Κυριακή': 'Closed' },
+        smsInitial: '',
+    });
+
+    // Step 3 — Bland
     const [bland, setBland] = useState({
         blandApiKey: '',
         blandPhoneNumberId: '',
@@ -70,6 +80,19 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
             return true;
         } catch (err) {
             setError(err.response?.data?.error || 'Σφάλμα αποθήκευσης.');
+            return false;
+        }
+    };
+
+    const saveAiConfig = async () => {
+        try {
+            await axios.put(`${API_BASE}/clinic/ai-config`, aiConfig, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (onUpdate) onUpdate({ aiConfig: JSON.stringify(aiConfig) });
+            return true;
+        } catch (err) {
+            setError(err.response?.data?.error || 'Σφάλμα αποθήκευσης AI config.');
             return false;
         }
     };
@@ -110,6 +133,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         let ok = true;
 
         if (current.key === 'info') ok = await saveInfo();
+        if (current.key === 'ai') ok = await saveAiConfig();
         if (current.key === 'voice') ok = await saveBland();
         if (current.key === 'webhooks') ok = await saveWebhooks();
 
@@ -127,7 +151,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         onComplete();
     };
 
-    const skippable = ['voice', 'webhooks'].includes(current.key);
+    const skippable = ['ai', 'voice', 'webhooks'].includes(current.key);
 
     return (
         <div style={{
@@ -170,7 +194,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                             Θα σας βοηθήσουμε να ρυθμίσετε το ιατρείο σας σε λίγα λεπτά. Μπορείτε να παραλείψετε οποιοδήποτε βήμα και να το ολοκληρώσετε αργότερα από τις Ρυθμίσεις.
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '2rem' }}>
-                            {[['1', 'Στοιχεία Ιατρείου'], ['2', 'Voice AI'], ['3', 'Webhooks SMS']].map(([n, l]) => (
+                            {[['1', 'Στοιχεία Ιατρείου'], ['2', 'Ρυθμίσεις AI'], ['3', 'Voice AI'], ['4', 'Webhooks SMS']].map(([n, l]) => (
                                 <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                                     <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: '900', color: 'white', flexShrink: 0 }}>{n}</span>
                                     <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>{l}</span>
@@ -202,6 +226,65 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                             <div>
                                 <label style={labelStyle}>Διεύθυνση</label>
                                 <input style={inputStyle} value={info.location} onChange={e => setInfo(p => ({ ...p, location: e.target.value }))} placeholder="Αθήνα, Ελλάδα" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {current.key === 'ai' && (
+                    <div>
+                        <div style={{ marginBottom: '1.25rem' }}>
+                            <h2 style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white', marginBottom: '4px' }}>{current.title}</h2>
+                            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>{current.subtitle}</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={labelStyle}>Υπηρεσίες Ιατρείου</label>
+                                <textarea
+                                    style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                                    value={aiConfig.services}
+                                    onChange={e => setAiConfig(p => ({ ...p, services: e.target.value }))}
+                                    placeholder={'Οδοντιατρική, Λεύκανση, Εμφυτεύματα...'}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={labelStyle}>Μέση Αξία Ραντεβού (€)</label>
+                                    <input style={inputStyle} type="number" value={aiConfig.avgAppointmentValue}
+                                        onChange={e => setAiConfig(p => ({ ...p, avgAppointmentValue: parseFloat(e.target.value) || 80 }))} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={labelStyle}>Ύφος AI</label>
+                                    <select style={{ ...inputStyle, cursor: 'pointer' }} value={aiConfig.tone}
+                                        onChange={e => setAiConfig(p => ({ ...p, tone: e.target.value }))}>
+                                        <option value="Friendly">Φιλικό</option>
+                                        <option value="Professional">Επαγγελματικό</option>
+                                        <option value="Formal">Τυπικό</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Ωράριο (Καθημερινές)</label>
+                                <input style={inputStyle} value={aiConfig.workingHours['Δευτέρα'] || ''}
+                                    onChange={e => setAiConfig(p => ({
+                                        ...p, workingHours: {
+                                            ...p.workingHours,
+                                            'Δευτέρα': e.target.value, 'Τρίτη': e.target.value,
+                                            'Τετάρτη': e.target.value, 'Πέμπτη': e.target.value, 'Παρασκευή': e.target.value
+                                        }
+                                    }))}
+                                    placeholder="09:00-17:00" />
+                                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Εφαρμόζεται σε Δευτέρα–Παρασκευή. Μπορείτε να το αλλάξετε ανά ημέρα από τις Ρυθμίσεις AI.</p>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Αρχικό SMS (προαιρετικό)</label>
+                                <textarea
+                                    style={{ ...inputStyle, minHeight: '70px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.82rem' }}
+                                    value={aiConfig.smsInitial}
+                                    onChange={e => setAiConfig(p => ({ ...p, smsInitial: e.target.value }))}
+                                    placeholder={'Γεια 👋 χάσαμε την κλήση σας στο {clinic_name}.\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'}
+                                />
+                                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Χρησιμοποιήστε {'{clinic_name}'} για το όνομα του ιατρείου.</p>
                             </div>
                         </div>
                     </div>
