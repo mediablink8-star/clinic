@@ -429,9 +429,14 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         voiceEnabled: clinic?.voiceEnabled || false,
     });
     const [savingVapi, setSavingVapi] = React.useState(false);
+    const [testingVapi, setTestingVapi] = React.useState(false);
+    const [vapiStatus, setVapiStatus] = React.useState(null);
+
+    const vapiConfigured = !!(vapiData.vapiAssistantId && vapiData.vapiPhoneNumberId);
 
     const handleSaveVapi = async () => {
         setSavingVapi(true);
+        setVapiStatus(null);
         try {
             await axios.put(`${API_BASE}/clinic/vapi`, vapiData, { headers: { Authorization: `Bearer ${token}` } });
             showToast('Voice AI (Vapi) settings αποθηκεύτηκαν!', 'success');
@@ -439,6 +444,23 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
         } finally { setSavingVapi(false); }
+    };
+
+    const handleTestVapi = async () => {
+        if (!vapiConfigured) {
+            showToast('Συμπληρώστε Assistant ID και Phone Number ID πρώτα', 'error');
+            return;
+        }
+        setTestingVapi(true);
+        setVapiStatus(null);
+        try {
+            const res = await axios.get(`${API_BASE}/system/status`, { headers: { Authorization: `Bearer ${token}` } });
+            setVapiStatus(res.data?.voiceEnabled ? 'connected' : 'not_configured');
+            showToast('Voice AI connected!', 'success');
+        } catch (err) {
+            setVapiStatus('error');
+            showToast('Σφάλμα σύνδεσης', 'error');
+        } finally { setTestingVapi(false); }
     };
 
     const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
@@ -881,6 +903,19 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     <p style={{ fontSize: '0.78rem', color: '#5b21b6', fontWeight: '600', margin: 0 }}>
                         Vapi + Vonage: Χρησιμοποιεί τον αριθμό σας από το Vonage για ελληνικό caller ID.
                     </p>
+                </div>
+
+                {/* Status indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: vapiConfigured ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${vapiConfigured ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: vapiConfigured ? '#10b981' : '#f59e0b' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: vapiConfigured ? '#065f46' : '#92400e' }}>
+                            {vapiConfigured ? 'Ρυθμισμένο ✓' : 'Δεν έχει ρυθμιστεί'}
+                        </span>
+                    </div>
+                    <button type="button" onClick={handleTestVapi} disabled={testingVapi || !vapiConfigured} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: vapiConfigured ? 'var(--primary)' : 'var(--border)', color: vapiConfigured ? 'white' : 'var(--text-light)', fontWeight: '700', fontSize: '0.75rem', cursor: vapiConfigured ? 'pointer' : 'not-allowed' }}>
+                        {testingVapi ? 'Ελέγχω...' : 'Δοκιμή'}
+                    </button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: vapiData.voiceEnabled ? 'rgba(16,185,129,0.06)' : 'var(--bg-subtle)', border: '1px solid var(--border)', marginBottom: '1rem' }}>
