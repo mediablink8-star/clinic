@@ -24,21 +24,45 @@ router.get('/config-status', asyncHandler(async (req, res) => {
 }));
 
 router.get('/status', asyncHandler(async (req, res) => {
-    const lastExecution = await prisma.messageLog.findFirst({
-        where: { clinicId: req.clinicId },
-        orderBy: { timestamp: 'desc' },
-        select: { timestamp: true }
-    });
+    const [lastExecution, clinic] = await Promise.all([
+        prisma.messageLog.findFirst({
+            where: { clinicId: req.clinicId },
+            orderBy: { timestamp: 'desc' },
+            select: { timestamp: true }
+        }),
+        prisma.clinic.findUnique({
+            where: { id: req.clinicId },
+            select: {
+                voiceEnabled: true,
+                blandApiKey: true,
+                blandPhoneNumberId: true,
+                vonageApiKey: true,
+                webhookUrl: true,
+                webhookMissedCall: true,
+            }
+        })
+    ]);
+
+    const voiceConfigured = !!(clinic?.voiceEnabled && clinic?.blandPhoneNumberId && (clinic?.blandApiKey || process.env.BLAND_API_KEY));
+    const smsConfigured = !!(clinic?.vonageApiKey || process.env.VONAGE_API_KEY) || !!(process.env.N8N_WEBHOOK_URL);
+    const webhookConfigured = !!(clinic?.webhookMissedCall || clinic?.webhookUrl || process.env.N8N_WEBHOOK_URL);
+
+    const warnings = [];
+    if (!voiceConfigured) warnings.push({ key: 'voice', message: 'Voice AI not configured — missed calls will fall back to SMS only.' });
+    if (!smsConfigured) warnings.push({ key: 'sms', message: 'No SMS provider configured — patients will not receive recovery messages.' });
+    if (!webhookConfigured) warnings.push({ key: 'webhook', message: 'No webhook or n8n URL configured — recovery workflow will not trigger.' });
+    if (!process.env.GEMINI_API_KEY) warnings.push({ key: 'ai', message: 'GEMINI_API_KEY missing — AI triage and sentiment features disabled.' });
 
     res.json({
         redis: connection ? connection.status === 'ready' : false,
         worker: reminderWorker ? reminderWorker.isRunning() : false,
         aiConfigured: !!process.env.GEMINI_API_KEY,
-        smsConfigured: !!(process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
-        voiceConfigured: false,
-        webhookConfigured: !!process.env.WEBHOOK_SECRET,
+        smsConfigured,
+        voiceConfigured,
+        webhookConfigured,
         workflowsActive: !!(reminderWorker && reminderWorker.isRunning()),
-        lastExecutionAt: lastExecution?.timestamp || null
+        lastExecutionAt: lastExecution?.timestamp || null,
+        warnings,
     });
 
     logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_SYSTEM_STATUS', entity: 'SYSTEM', ipAddress: req.ip }).catch(() => {});

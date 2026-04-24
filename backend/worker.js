@@ -23,3 +23,19 @@ process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing worker');
     process.exit(0);
 });
+
+// Keep Render free tier alive — ping health endpoint every 10 minutes
+if (process.env.NODE_ENV === 'production' && process.env.BACKEND_API_URL) {
+    const https = require('https');
+    const http = require('http');
+    setInterval(() => {
+        const url = process.env.BACKEND_API_URL.replace(/\/api$/, '') + '/api/health';
+        try {
+            const lib = url.startsWith('https') ? https : http;
+            const req = lib.get(url, (res) => { res.resume(); });
+            req.on('error', () => {});
+            req.setTimeout(5000, () => req.destroy());
+        } catch {}
+    }, 10 * 60 * 1000); // every 10 minutes
+    console.log('✅ Keep-alive ping enabled.');
+}

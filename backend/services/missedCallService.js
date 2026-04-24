@@ -70,6 +70,13 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         return { success: false, error: 'Clinic inactive' };
     }
 
+    // Warn early if no recovery channel is configured
+    const hasVoice = clinic.voiceEnabled && clinic.blandPhoneNumberId && (clinic.blandApiKey || process.env.BLAND_API_KEY);
+    const hasSms = !!(process.env.N8N_WEBHOOK_URL || clinic.webhookUrl || clinic.webhookMissedCall || clinic.vonageApiKey || process.env.VONAGE_API_KEY);
+    if (!hasVoice && !hasSms) {
+        console.warn(`[MissedCall] Clinic ${clinicId} has no voice or SMS channel configured — call logged but no recovery will be triggered.`);
+    }
+
     // ── SMS Cooldown check ────────────────────────────────────────────────────
     // Skip SMS if same phone has an ACTIVE/RECOVERING case with SMS sent < 6h ago
     // AND no inbound reply since last SMS (patient hasn't engaged)

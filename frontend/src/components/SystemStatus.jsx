@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, PhoneCall, Zap, RefreshCw } from 'lucide-react';
+import { Brain, PhoneCall, Zap, RefreshCw, MessageSquare, AlertTriangle, TrendingUp, Clock, Phone } from 'lucide-react';
 
 const services = [
     {
@@ -12,12 +12,21 @@ const services = [
         actionTab: 'ai',
     },
     {
-        key: 'webhook',
-        icon: Zap,
-        label: 'Συγχρονισμός Ιατρείου',
-        check: s => s?.webhookConfigured,
-        offlineLabel: 'Αποσυνδεδεμένο',
-        actionLabel: 'Σύνδεση',
+        key: 'voice',
+        icon: Phone,
+        label: 'Voice AI (Bland)',
+        check: s => s?.voiceConfigured,
+        offlineLabel: 'Μη ρυθμισμένη',
+        actionLabel: 'Ρύθμιση',
+        actionTab: 'settings',
+    },
+    {
+        key: 'sms',
+        icon: MessageSquare,
+        label: 'SMS Ανάκτηση',
+        check: s => s?.smsConfigured,
+        offlineLabel: 'Μη ρυθμισμένη',
+        actionLabel: 'Ρύθμιση',
         actionTab: 'settings',
     },
     {
@@ -175,6 +184,23 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
                         <MetricPill icon={Clock} label="Εκκρεμείς Ειδοποιήσεις" value={stats.pendingNotifications ?? ''} color="#f59e0b" />
                         <MetricPill icon={TrendingUp} label="Ποσοστό Ανάκτησης" value={`${stats.recoveryRate ?? 0}%`} color="var(--primary)" />
                     </div>
+                </div>
+            )}
+
+            {/* Warnings from backend */}
+            {status?.warnings?.length > 0 && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {status.warnings.map(w => (
+                        <div key={w.key} style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '7px',
+                            padding: '7px 10px', borderRadius: '10px',
+                            background: 'rgba(245,158,11,0.06)',
+                            border: '1px solid rgba(245,158,11,0.15)',
+                        }}>
+                            <AlertTriangle size={11} color="#f59e0b" style={{ marginTop: '2px', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.67rem', color: '#92400e', fontWeight: '600', lineHeight: 1.4 }}>{w.message}</span>
+                        </div>
+                    ))}
                 </div>
             )}
 
