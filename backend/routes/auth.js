@@ -67,8 +67,8 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                     policies: JSON.stringify({}), // Default empty policies
                     // Default values for a new clinic
                     workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
-                    messageCredits: 100, // Free trial credits
-                    dailyMessageCap: 100
+                    messageCredits: 500, // Free trial credits
+                    dailyMessageCap: 300
                 }
             });
 
