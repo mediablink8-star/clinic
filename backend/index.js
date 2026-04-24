@@ -1,11 +1,33 @@
 require('dotenv').config();
 const { validateEnv } = require('./utils/envValidator');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+
+// Auto-run schema migrations on startup (idempotent)
+async function runMigrations() {
+    try {
+        // Add voiceEnabled if missing (PostgreSQL-specific)
+        await prisma.$executeRaw`ALTER TABLE "Clinic" ADD COLUMN IF NOT EXISTS "voiceEnabled" BOOLEAN DEFAULT false`;
+        console.log('[DB] voiceEnabled column ensured');
+    } catch (e) {
+        // Column might already exist - that's OK
+        if (e.message.includes('already exists')) {
+            console.log('[DB] voiceEnabled column already exists');
+        } else {
+            console.log('[DB] Migration note:', e.message);
+        }
+    }
+}
 
 // Fail fast if critical environment variables are missing
 if (!validateEnv()) {
     console.error('FATAL: Required environment variables are missing. Refusing to start.');
     process.exit(1);
 }
+
+// Run migrations in background early
+runMigrations();
 
 const Sentry = require("@sentry/node");
 

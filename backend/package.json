@@ -10,8 +10,10 @@
     "dev:api": "nodemon index.js",
     "dev:worker": "nodemon worker.js",
     "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
     "migrate:status": "prisma migrate status",
     "migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate",
     "backfill:recovery-cases": "node scripts/backfillRecoveryCases.js",
     "test": "jest --runInBand --forceExit",
     "test:run": "jest --runInBand --forceExit --testPathPattern"
