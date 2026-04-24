@@ -37,6 +37,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
     const [info, setInfo] = useState({
         name: clinic?.name || '',
         phone: clinic?.phone || '',
+        email: clinic?.email || '',
         location: clinic?.location || '',
     });
 
@@ -57,8 +58,8 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
     const current = STEPS[step];
 
     const saveInfo = async () => {
-        if (!info.name?.trim() || !info.phone?.trim()) {
-            setError('Όνομα και τηλέφωνο είναι υποχρεωτικά.');
+        if (!info.name?.trim() || !info.phone?.trim() || !info.email?.trim()) {
+            setError('Όνομα, email και τηλέφωνο είναι υποχρεωτικά.');
             return false;
         }
         try {
@@ -189,6 +190,10 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                             <div>
                                 <label style={labelStyle}>Όνομα Ιατρείου *</label>
                                 <input style={inputStyle} value={info.name} onChange={e => setInfo(p => ({ ...p, name: e.target.value }))} placeholder="π.χ. Οδοντιατρείο Παπαδόπουλος" />
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Email *</label>
+                                <input style={inputStyle} type="email" value={info.email} onChange={e => setInfo(p => ({ ...p, email: e.target.value }))} placeholder="info@clinic.gr" />
                             </div>
                             <div>
                                 <label style={labelStyle}>Τηλέφωνο *</label>
