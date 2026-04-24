@@ -338,41 +338,6 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                     </div>
                 )}
 
-                        {voiceData.voiceProviderType === 'vapi' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div>
-                                    <label style={labelStyle}>Vapi API Key</label>
-                                    <div style={{ position: 'relative' }}>
-                                        <input
-                                            style={{ ...inputStyle, paddingRight: '40px' }}
-                                            type={showKey ? 'text' : 'password'}
-                                            value={voiceData.vapiApiKey}
-                                            onChange={e => setVoiceData(p => ({ ...p, vapiApiKey: e.target.value }))}
-                                            placeholder="sk-..."
-                                        />
-                                        <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
-                                            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Assistant ID</label>
-                                    <input style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Phone Number ID</label>
-                                    <input style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
-                                </div>
-                            </div>
-                        )}
-
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '1rem' }}>
-                            <input type="checkbox" checked={voiceData.voiceEnabled} onChange={e => setVoiceData(p => ({ ...p, voiceEnabled: e.target.checked }))} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>Ενεργοποίηση Voice AI</span>
-                        </label>
-                    </div>
-                )}
-
                 {current.key === 'webhooks' && (
                     <div>
                         <div style={{ marginBottom: '1.5rem' }}>
