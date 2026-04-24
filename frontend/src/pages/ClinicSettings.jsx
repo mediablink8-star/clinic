@@ -125,6 +125,9 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [infoSaved, setInfoSaved] = useState(false);
     const [infoErrors, setInfoErrors] = useState({});
 
+    // Success states for sections
+    const [sectionSaved, setSectionSaved] = useState({});
+
     // Re-sync form when clinic prop updates (e.g. after fresh API fetch on page load)
     React.useEffect(() => {
         if (!clinic) return;
@@ -435,6 +438,15 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const vapiConfigured = !!(vapiData.vapiAssistantId && vapiData.vapiPhoneNumberId);
 
     const handleSaveVapi = async () => {
+        // Validate required fields
+        if (!vapiData.vapiAssistantId?.trim()) {
+            showToast('Το Assistant ID είναι υποχρεωτικό', 'error');
+            return;
+        }
+        if (!vapiData.vapiPhoneNumberId?.trim()) {
+            showToast('Το Phone Number ID είναι υποχρεωτικό', 'error');
+            return;
+        }
         setSavingVapi(true);
         setVapiStatus(null);
         try {
@@ -932,14 +944,15 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     </button>
                 </div>
 
-                <FormGroup label="Vapi API Key" flex="1 1 100%">
-                    <input style={inputStyle} type="password" placeholder="sk-..." value={vapiData.vapiApiKey} onChange={e => setVapiData(d => ({ ...d, vapiApiKey: e.target.value }))} />
+                <FormGroup label="Vapi API Key (προαιρετικό)" flex="1 1 100%">
+                <input style={inputStyle} type="password" placeholder="sk-..." value={vapiData.vapiApiKey} onChange={e => setVapiData(d => ({ ...d, vapiApiKey: e.target.value }))} />
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Αν left κενό, χρησιμοποιείται το env variable</p>
                 </FormGroup>
                         <FormRow>
-                            <FormGroup label="Assistant ID">
+                            <FormGroup label="Assistant ID *">
                                 <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />
                             </FormGroup>
-                            <FormGroup label="Phone Number ID">
+                            <FormGroup label="Phone Number ID *">
                                 <input style={inputStyle} type="text" placeholder="phone_xxxxx" value={vapiData.vapiPhoneNumberId} onChange={e => setVapiData(d => ({ ...d, vapiPhoneNumberId: e.target.value }))} />
                             </FormGroup>
                         </FormRow>
