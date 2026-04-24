@@ -28,6 +28,7 @@ import ServerError from './pages/ServerError';
 import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
+import OnboardingWizard from './components/OnboardingWizard';
 import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -50,6 +51,7 @@ const App = () => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -379,7 +381,7 @@ const App = () => {
     setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
-    setCurrentTab('settings');
+    setShowOnboarding(true); // show wizard for new registrations
     queryClient.invalidateQueries();
   };
 
@@ -675,6 +677,21 @@ const App = () => {
 
   return (
     <div className="layout">
+      {showOnboarding && (
+        <OnboardingWizard
+          clinic={clinic}
+          token={token}
+          onComplete={() => {
+            setShowOnboarding(false);
+            setCurrentTab('dashboard');
+          }}
+          onUpdate={(updated) => {
+            const next = { ...clinic, ...updated };
+            setClinic(next);
+            localStorage.setItem('clinic_data', JSON.stringify(next));
+          }}
+        />
+      )}
       <Toaster
         position="top-right"
         toastOptions={{
