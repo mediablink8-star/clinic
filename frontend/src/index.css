@@ -789,6 +789,7 @@ input:focus, textarea:focus, select:focus {
   .dashboard-header__actions,
   .appointments-toolbar__controls {
     width: 100%;
+    justify-content: flex-end;
   }
 
   .dashboard-action-bar {
