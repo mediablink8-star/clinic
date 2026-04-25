@@ -26,8 +26,8 @@ if (!validateEnv()) {
     process.exit(1);
 }
 
-// Run migrations in background early
-runMigrations();
+// Run migrations in background early (wrapped to prevent crash)
+runMigrations().catch(e => console.log('[DB] Migration skipped:', e.message));
 
 const Sentry = require("@sentry/node");
 
