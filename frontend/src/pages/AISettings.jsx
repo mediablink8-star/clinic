@@ -200,9 +200,9 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                         onChange={e => set('aiConfig', { ...formData.aiConfig, policies: e.target.value })} />
                 </FormGroup>
                 <FormGroup label="Γλώσσες">
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                         {['Ελληνικά','Αγγλικά'].map(lang => (
-                            <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', padding: '8px 12px', borderRadius: '8px', border: formData.aiConfig?.languages?.includes(lang) ? '1px solid var(--primary)' : '1px solid var(--border)', background: formData.aiConfig?.languages?.includes(lang) ? 'var(--primary-light)' : 'transparent' }}>
                                 <input type="checkbox" checked={formData.aiConfig?.languages?.includes(lang)}
                                     onChange={e => {
                                         const cur = formData.aiConfig?.languages || [];
