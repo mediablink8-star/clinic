@@ -52,7 +52,11 @@ const aiConfigSchema = Joi.object({
     avgAppointmentValue: Joi.number().min(0),
     policies: Joi.string().allow(''),
     tone: Joi.string().valid('Professional', 'Friendly', 'Sales', 'Formal').required(),
-    languages: Joi.array().items(Joi.string().valid('Greek', 'English', 'Ελληνικά', 'Αγγλικά')).min(1).required()
+    languages: Joi.array().items(Joi.string().valid('Greek', 'English', 'Ελληνικά', 'Αγγλικά')).min(1).required(),
+    smsInitial: Joi.string().allow(''),
+    smsBookingConfirm: Joi.string().allow(''),
+    smsCallbackConfirm: Joi.string().allow(''),
+    smsUnknown: Joi.string().allow('')
 });
 
 const loginSchema = Joi.object({
