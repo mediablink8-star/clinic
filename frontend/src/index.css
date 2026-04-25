@@ -676,13 +676,13 @@ input:focus, textarea:focus, select:focus {
   .sidebar.sidebar-mobile {
     position: fixed;
     top: 0;
-    right: 0;
+    left: 0;
     width: min(86vw, 320px) !important;
     height: 100dvh;
-    transform: translateX(105%);
+    transform: translateX(-105%);
     transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 80;
-    border-left: 1px solid rgba(255,255,255,0.24);
+    border-right: 1px solid rgba(255,255,255,0.24);
     box-shadow: 0 28px 60px -24px rgba(15, 23, 42, 0.42);
   }
 
