@@ -230,6 +230,10 @@ app.use('/api/audit-logs', requireAuth, auditLogsRouter);
 const messagesRouter = require('./routes/messages');
 app.use('/api/messages', requireAuth, messagesRouter);
 
+// Vapi voice AI webhook endpoint
+const vapiRouter = require('./routes/vapi');
+app.use('/api/vapi', vapiRouter);
+
 // Automation endpoints — callable by n8n / Make via x-api-key or Bearer JWT
 // --- 404 HANDLER (MUST BE AFTER ALL ROUTES) ---
 app.use((req, res) => {
