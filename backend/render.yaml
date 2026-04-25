@@ -46,12 +46,6 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
-      - key: BLAND_API_KEY
-        sync: false
-      - key: BLAND_PHONE_NUMBER_ID
-        sync: false
-      - key: BLAND_VOICE_ID
-        sync: false
       - key: VAPI_API_KEY
         sync: false
       - key: VAPI_ASSISTANT_ID
