@@ -12,6 +12,9 @@ module.exports = function webhookAuth(req, res, next) {
     const envSecret = process.env.WEBHOOK_SECRET;
 
     if (!envSecret) {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(500).json({ error: 'Webhook authentication not configured' });
+        }
         console.warn('[WEBHOOK] WARNING: WEBHOOK_SECRET not set. Webhooks running in insecure mode.');
         return next();
     }
