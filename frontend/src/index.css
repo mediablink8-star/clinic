@@ -1156,9 +1156,9 @@ html[data-theme="dark"] body {
   }
 
   /* Force buttons to right on mobile */
-  .dashboard-header > div:last-child,
-  .dashboard-header > div[style*="flex"] {
+  .dashboard-header-actions {
     justify-content: flex-end !important;
+    width: 100%;
   }
 
   .dashboard-header,
