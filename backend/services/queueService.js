@@ -1,10 +1,14 @@
 const { Queue, Worker, QueueEvents } = require('bullmq');
 const Redis = require('ioredis');
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const REDIS_DISABLED = process.env.DISABLE_REDIS === 'true' || (!process.env.REDIS_URL && process.env.NODE_ENV === 'production');
+
+// Only disable Redis if explicitly told to. In production without REDIS_URL, warn loudly.
+const REDIS_DISABLED = process.env.DISABLE_REDIS === 'true';
 
 if (REDIS_DISABLED) {
-    console.log('[Redis] Disabled — queue features unavailable. Set REDIS_URL to enable.');
+    console.warn('[Redis] Disabled via DISABLE_REDIS=true — background jobs will NOT run. Set REDIS_URL and DISABLE_REDIS=false for production.');
+} else if (!process.env.REDIS_URL) {
+    console.warn('[Redis] REDIS_URL not set — falling back to localhost:6379. Set REDIS_URL in production.');
 }
 
 const connection = REDIS_DISABLED ? null : new Redis(REDIS_URL, {
@@ -62,7 +66,7 @@ if (queueEvents) {
 
 const safeAddReminder = async (data) => {
     if (REDIS_DISABLED || !connection) {
-        console.warn('[Queue] Redis disabled — job skipped');
+        console.error('[Queue] Redis is disabled — job dropped. Enable Redis to process background jobs.');
         return null;
     }
     if (connection.status !== 'ready') {

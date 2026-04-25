@@ -122,8 +122,6 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
 }));
 
 router.post('/login', async (req, res) => {
-    console.log('[LOGIN] ===== ROUTE HIT =====');
-    console.log('[LOGIN] Headers:', req.headers);
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -131,26 +129,20 @@ router.post('/login', async (req, res) => {
     }
     
     try {
-        console.log('[LOGIN] Step 1: Finding user...');
         const user = await prisma.user.findUnique({
             where: { email },
             include: { clinic: { select: { id: true, name: true } } }
         });
-        console.log('[LOGIN] Step 1 done, user:', user?.email);
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        console.log('[LOGIN] Step 2: Comparing password...');
         const isMatch = await comparePassword(password, user.passwordHash);
-        console.log('[LOGIN] Step 2 done, match:', isMatch);
 
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-
-        console.log('[LOGIN] Step 3: Generating tokens...');
 
         const isAdmin = user.role === 'ADMIN';
 
@@ -240,7 +232,7 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
         ).catch(err => console.error('[AUTH] Password reset webhook failed:', err.message));
     }
 
-    console.log(`[AUTH] Password reset token generated for: ${email}`);
+    console.log(`[AUTH] Password reset requested`);
 
     res.json({ success: true, message: 'Instructions sent if email exists' });
 }));
@@ -248,24 +240,14 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
 router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async (req, res) => {
     const { token, password } = req.body;
 
-    console.log(`[RESET] Attempting with token: ${token.substring(0, 8)}...`);
-
     const storedToken = await prisma.passwordResetToken.findUnique({
         where: { token },
         include: { user: true }
     });
 
-    if (!storedToken) {
-        console.log(`[RESET] Token not found in DB`);
+    if (!storedToken || storedToken.expiresAt < new Date()) {
         return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
-
-    if (storedToken.expiresAt < new Date()) {
-        console.log(`[RESET] Token expired at ${storedToken.expiresAt}`);
-        return res.status(400).json({ error: 'Invalid or expired reset token' });
-    }
-
-    console.log(`[RESET] Valid token for user: ${storedToken.user.email}`);
 
     const passwordHash = await hashPassword(password);
 

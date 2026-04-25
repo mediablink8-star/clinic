@@ -21,6 +21,8 @@ if (process.env.SENTRY_BACKEND_DSN) {
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
 
 // Webhook rate limiter
 const webhookLimiter = rateLimit({ windowMs: 60000, max: 30, message: { error: 'Too many webhook requests' } });
@@ -49,6 +51,15 @@ const { reminderWorker, connection } = require('./services/queueService');
 
 const app = express();
 const port = process.env.PORT || 4000;
+
+// Security headers — must be early
+app.use(helmet({
+    crossOriginEmbedderPolicy: false, // allow embedding for patient booking page
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
+
+// Request logging
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // MUST BE FIRST
 app.use(express.json());
@@ -113,9 +124,13 @@ const requireAuth = async (req, res, next) => {
     next();
 };
 
+const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'ADMIN', 'OWNER'];
+
 const requireRole = (role) => {
     return (req, res, next) => {
-        if (!req.user || req.user.role !== role) {
+        const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
+        const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
+        if (userRoleIndex < requiredRoleIndex) {
             return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
         }
         next();
@@ -167,7 +182,9 @@ const recoveryRouter = require('./routes/recovery');
 app.use('/api/recovery', requireAuth, recoveryRouter);
 
 const testRouter = require('./routes/test');
-app.use('/api/test', requireAdmin, testRouter);
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/test', requireAdmin, testRouter);
+}
 
 const teamRouter = require('./routes/team');
 app.use('/api/team', requireAuth, teamRouter);

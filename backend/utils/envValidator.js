@@ -17,6 +17,9 @@ function validateEnv() {
         'BACKEND_API_URL',
         'FRONTEND_URL',
         'BLAND_API_KEY',
+        'SMTP_HOST',
+        'REDIS_URL',
+        'SENTRY_BACKEND_DSN',
     ];
 
     let allRequiredPresent = true;
@@ -45,6 +48,14 @@ function validateEnv() {
         console.warn('\n⚠️  WARNING: Some recommended environment variables are missing:');
         missingRecommended.forEach(key => console.warn(`   - ${key}`));
         console.warn('   (Some features like Webhooks or AI might be disabled or limited)\n');
+    }
+
+    // Specific critical warnings
+    if (!process.env.SMTP_HOST) {
+        console.warn('⚠️  SMTP_HOST not set — password reset emails will NOT be delivered in production.');
+    }
+    if (!process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
+        console.warn('⚠️  REDIS_URL not set — background SMS/reminder jobs will be skipped in production. Provision Redis (e.g. Upstash) and set REDIS_URL.');
     }
 
     return allRequiredPresent;
