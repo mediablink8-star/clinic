@@ -815,6 +815,15 @@ input:focus, textarea:focus, select:focus {
     grid-template-columns: 1fr !important;
   }
 
+  /* Push quick actions to right on mobile */
+  .dashboard-main-grid > div:last-child {
+    order: 1;
+  }
+
+  .dashboard-main-grid > div:first-child {
+    order: 2;
+  }
+
   .dashboard-right-column,
   .dashboard-left-column {
     min-height: auto !important;
