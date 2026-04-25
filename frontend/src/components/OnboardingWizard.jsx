@@ -49,6 +49,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         tone: 'Friendly',
         workingHours: { 'Δευτέρα': '09:00-17:00', 'Τρίτη': '09:00-17:00', 'Τετάρτη': '09:00-17:00', 'Πέμπτη': '09:00-17:00', 'Παρασκευή': '09:00-17:00', 'Σάββατο': 'Closed', 'Κυριακή': 'Closed' },
         smsInitial: '',
+        languages: ['Ελληνικά'],
     });
 
     // Step 3 — Voice AI (Vapi)
@@ -298,6 +299,21 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
                                     placeholder={'Γεια 👋 χάσαμε την κλήση σας στο {clinic_name}.\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'}
                                 />
                                 <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Χρησιμοποιήστε {'{clinic_name}'} για το όνομα του ιατρείου.</p>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Γλώσσες</label>
+                                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                    {['Ελληνικά', 'Αγγλικά'].map(lang => (
+                                        <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 12px', borderRadius: '8px', border: aiConfig.languages?.includes(lang) ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.15)', background: aiConfig.languages?.includes(lang) ? 'rgba(99,102,241,0.2)' : 'transparent' }}>
+                                            <input type="checkbox" checked={aiConfig.languages?.includes(lang)} onChange={e => {
+                                                const cur = aiConfig.languages || [];
+                                                const upd = e.target.checked ? [...cur, lang] : cur.filter(l => l !== lang);
+                                                setAiConfig(p => ({ ...p, languages: upd.length ? upd : ['Ελληνικά'] }));
+                                            }} />
+                                            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>{lang}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
