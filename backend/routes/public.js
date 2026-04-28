@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { getPublicClinic, getAvailableSlots, bookAppointment } = require('../services/publicService');
+const { bookingSchema, validate } = require('../services/validationService');
 
 const rateLimit = require('express-rate-limit');
 const publicLimiter = rateLimit({
@@ -23,7 +24,7 @@ router.get('/clinic/:id/slots', asyncHandler(async (req, res) => {
     res.json({ success: true, data: slots });
 }));
 
-router.post('/book', asyncHandler(async (req, res) => {
+router.post('/book', validate(bookingSchema), asyncHandler(async (req, res) => {
     const { clinicId, name, phone, email, reason, startTime } = req.body;
     const { data } = await bookAppointment({ clinicId, name, phone, email, reason, startTime });
     res.json({ success: true, ...data });

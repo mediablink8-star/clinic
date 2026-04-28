@@ -13,6 +13,7 @@ const rateLimit = require('express-rate-limit');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
+const { encrypt, decrypt } = require('../services/encryptionService');
 
 const passwordResetLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -138,10 +139,31 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Brute force lockout check
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+            const minutesLeft = Math.ceil((user.lockedUntil - new Date()) / 60000);
+            return res.status(429).json({ error: `Account locked. Try again in ${minutesLeft} minute(s).` });
+        }
+
+        // Block social-login-only accounts from password login
+        if (!user.passwordHash) {
+            return res.status(401).json({ error: 'This account uses Google sign-in. Please log in with Google.' });
+        }
+
         const isMatch = await comparePassword(password, user.passwordHash);
 
         if (!isMatch) {
+            const newFailedAttempts = user.failedAttempts + 1;
+            const lockData = newFailedAttempts >= 5
+                ? { failedAttempts: newFailedAttempts, lockedUntil: new Date(Date.now() + 20 * 60 * 1000) }
+                : { failedAttempts: newFailedAttempts };
+            await prisma.user.update({ where: { id: user.id }, data: lockData });
             return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Reset failed attempts on successful login
+        if (user.failedAttempts > 0 || user.lockedUntil) {
+            await prisma.user.update({ where: { id: user.id }, data: { failedAttempts: 0, lockedUntil: null } });
         }
 
         const isAdmin = user.role === 'ADMIN';
@@ -354,7 +376,7 @@ router.post('/google', asyncHandler(async (req, res) => {
             user = await prisma.user.create({
                 data: {
                     email,
-                    passwordHash: 'social_login_no_password',
+                    passwordHash: null,
                     role: 'ADMIN',
                     clinicId: clinic.id
                 }
@@ -365,7 +387,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                 user = await prisma.user.create({
                     data: {
                         email,
-                        passwordHash: 'social_login_no_password',
+                        passwordHash: null,
                         role: 'ADMIN',
                         clinicId: clinic.id
                     }
@@ -448,7 +470,7 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
 
         await prisma.user.update({
             where: { id: req.user.userId },
-            data: { mfaEnabled: true, mfaSecret: secret }
+            data: { mfaEnabled: true, mfaSecret: encrypt(secret) }
         });
 
         res.json({ success: true });
@@ -480,7 +502,7 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
 
         if (!user || !user.mfaSecret) return res.status(401).json({ error: 'Invalid request' });
 
-        const isValid = authenticator.check(code, user.mfaSecret);
+        const isValid = authenticator.check(code, decrypt(user.mfaSecret));
         if (!isValid) return res.status(400).json({ error: 'Invalid MFA code' });
 
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });

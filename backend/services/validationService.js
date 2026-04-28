@@ -3,6 +3,17 @@ const Joi = require('joi');
 const greekPhoneRegex = /^(\+30)?[26][0-9\s\-\(\)]{8,14}$/;
 const greekPhoneMessage = 'Enter a valid Greek phone number, e.g. 2101234567 or 6912345678.';
 
+const bookingSchema = Joi.object({
+    clinicId: Joi.string().required(),
+    name: Joi.string().min(2).max(100).required(),
+    phone: Joi.string().pattern(greekPhoneRegex).required().messages({
+        'string.pattern.base': greekPhoneMessage
+    }),
+    email: Joi.string().email().allow(null, ''),
+    reason: Joi.string().max(500).allow(null, ''),
+    startTime: Joi.date().iso().required()
+});
+
 const patientSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
@@ -61,18 +72,18 @@ const aiConfigSchema = Joi.object({
 
 const loginSchema = Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).required()
+    password: Joi.string().min(8).required()
 });
 
 const resetPasswordSchema = Joi.object({
     token: Joi.string().required(),
-    password: Joi.string().min(6).required()
+    password: Joi.string().min(8).required()
 });
 
 const registerSchema = Joi.object({
     clinicName: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
+    password: Joi.string().min(8).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
         'string.pattern.base': greekPhoneMessage
     }),
@@ -93,6 +104,7 @@ const validate = (schema) => (req, res, next) => {
 };
 
 module.exports = {
+    bookingSchema,
     patientSchema,
     appointmentSchema,
     clinicUpdateSchema,
