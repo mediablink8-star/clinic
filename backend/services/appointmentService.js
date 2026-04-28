@@ -14,11 +14,14 @@ async function listPatients(clinicId) {
 async function createPatient({ clinicId, name, phone, email }, actor) {
     if (!name || !phone) throw new AppError('VALIDATION_ERROR', 'name and phone are required', 400);
 
+    // Normalize phone — strip spaces/dashes, ensure consistent format
+    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+
     // Upsert — if patient with same phone exists, update name/email
     const patient = await prisma.patient.upsert({
-        where: { clinicId_phone: { clinicId, phone } },
+        where: { clinicId_phone: { clinicId, phone: normalizedPhone } },
         update: { name, email: email || undefined },
-        create: { clinicId, name, phone, email },
+        create: { clinicId, name, phone: normalizedPhone, email },
     });
 
     await logAction({

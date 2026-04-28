@@ -86,25 +86,24 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const [patientName, setPatientName] = React.useState('');
     const [showNameInput, setShowNameInput] = React.useState(false);
     const authToken = token || getAccessToken();
-    const isKnownPatient = !!(log.patient?.id || patientData?.id);
+    // Derive from state so it updates immediately after saving
+    const isKnownPatient = !!(patientData?.id);
 
     React.useEffect(() => {
-        if (log.patient?.id) {
-            setLoadingPatient(true);
-            fetch(`${API_BASE}/appointments/patients`, {
-                headers: { Authorization: `Bearer ${authToken}` }
-            }).then(r => r.ok ? r.json() : null).then(data => {
-                const patient = Array.isArray(data) ? data.find(p => p.id === log.patient.id) : null;
-                if (patient) setPatientData(patient);
-            }).catch(() => {}).finally(() => setLoadingPatient(false));
-        } else if (log.fromNumber) {
-            fetch(`${API_BASE}/appointments/patients`, {
-                headers: { Authorization: `Bearer ${authToken}` }
-            }).then(r => r.ok ? r.json() : null).then(data => {
-                const match = Array.isArray(data) ? data.find(p => p.phone === log.fromNumber) : null;
-                if (match) setPatientData(match);
-            }).catch(() => {});
-        }
+        // Normalize phone for matching — strip leading +30 or 0030
+        const normalizePhone = (p = '') => p.replace(/^\+30|^0030/, '').replace(/\D/g, '');
+        const incomingNorm = normalizePhone(log.fromNumber);
+
+        fetch(`${API_BASE}/appointments/patients`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+        }).then(r => r.ok ? r.json() : null).then(data => {
+            if (!Array.isArray(data)) return;
+            // Match by id first, then by normalized phone
+            const match = log.patient?.id
+                ? data.find(p => p.id === log.patient.id)
+                : data.find(p => normalizePhone(p.phone) === incomingNorm);
+            if (match) setPatientData(match);
+        }).catch(() => {});
     }, [log.id]);
 
     const handleSendSms = async () => {

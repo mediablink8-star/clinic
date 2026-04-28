@@ -76,11 +76,35 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         console.warn(`[MissedCall] Clinic ${clinicId} has no voice or SMS channel configured — call logged but no recovery will be triggered.`);
     }
 
+    // ── Patient lookup — link known patient by phone ─────────────────────────
+    const normalizePhone = (p = '') => p.replace(/^\+30|^0030/, '').replace(/[\s\-\(\)]/g, '');
+    const incomingNorm = normalizePhone(phone);
+    let linkedPatientId = null;
+    try {
+        const existingPatient = await prisma.patient.findFirst({
+            where: {
+                clinicId,
+                OR: [
+                    { phone: phone },
+                    { phone: incomingNorm },
+                    { phone: `+30${incomingNorm}` },
+                ]
+            },
+            select: { id: true, name: true }
+        });
+        if (existingPatient) {
+            linkedPatientId = existingPatient.id;
+            console.log(`[MissedCall] Linked to known patient: ${existingPatient.name} (${phone})`);
+        }
+    } catch (err) {
+        console.warn('[MissedCall] Patient lookup failed:', err.message);
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // ── SMS Cooldown check ────────────────────────────────────────────────────
     // Skip SMS if same phone has an ACTIVE/RECOVERING case with SMS sent < 6h ago
     // AND no inbound reply since last SMS (patient hasn't engaged)
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    const recentActive = await prisma.missedCall.findFirst({
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);    const recentActive = await prisma.missedCall.findFirst({
         where: {
             clinicId,
             fromNumber: phone,
@@ -116,6 +140,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                     clinicId,
                     fromNumber: phone,
                     callSid: callSid || null,
+                    patientId: linkedPatientId,
                     status: 'DETECTED',
                     smsStatus: 'skipped',
                     smsError: 'Cooldown — active case within 6h',
@@ -141,6 +166,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             clinicId,
             fromNumber: phone,
             callSid: callSid || null,
+            patientId: linkedPatientId,
             status: 'RECOVERING',
             smsStatus: withinHours ? 'pending' : 'scheduled',
             scheduledSmsAt: withinHours ? null : scheduledAt,
