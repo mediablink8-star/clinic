@@ -11,7 +11,7 @@
   --primary-light: rgba(0, 181, 173, 0.08);
   --secondary: #0f172a;
   --accent: #10b981;
-  --bg: #f8fafc;
+  --bg: #f0fdfa;
   --sidebar-bg: rgba(255, 255, 255, 0.85);
   --card-bg: rgba(255, 255, 255, 0.75);
   --text: #1e293b;
@@ -129,7 +129,7 @@
 
 /* ── Body — mesh gradient background ── */
 body {
-  background-color: #f1f5f9;
+  background-color: #f0fdfa;
   background-image:
     radial-gradient(ellipse 90% 70% at 15% 5%, rgba(0,181,173,0.06) 0%, transparent 55%),
     radial-gradient(ellipse 70% 60% at 85% 85%, rgba(16,185,129,0.05) 0%, transparent 50%),
