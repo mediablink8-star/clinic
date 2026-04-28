@@ -1,5 +1,5 @@
 import React from 'react';
-import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart } from 'lucide-react';
+import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart, Sun, Moon } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 
@@ -44,7 +44,8 @@ const Dashboard = ({
     recoveryStats = { recovered: 0, pending: 0, revenue: 0, potentialRevenue: 0 },
     recoveryLog = [], recoveryInsights = {}, systemStatus = {}, systemStats = {},
     apiUsage = {}, spending = {}, loading, warnings = [], notifications = [],
-    upcomingAppointments = [], onUpdate, onRefresh, onNotificationAction
+    upcomingAppointments = [], onUpdate, onRefresh, onNotificationAction,
+    darkMode, setDarkMode
 }) => {
     const [hasLoaded, setHasLoaded] = React.useState(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
@@ -94,6 +95,24 @@ const Dashboard = ({
                         <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '5px 11px', borderRadius: '8px', fontSize: '0.75rem' }}><Plus size={14} strokeWidth={3} /> Νέο Ραντεβού</button>
                         <div style={{ width: '1px', height: '16px', background: 'var(--border)' }} />
                         <NotificationBell warnings={warnings} notifications={notifications} onAction={onNotificationAction} />
+                        {setDarkMode && (
+                            <button
+                                onClick={() => setDarkMode(d => !d)}
+                                title={darkMode ? 'Φωτεινή λειτουργία' : 'Σκοτεινή λειτουργία'}
+                                style={{
+                                    width: '38px', height: '38px', borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.22)',
+                                    background: 'var(--glass-control)',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'var(--text-light)',
+                                    transition: 'all 0.18s ease',
+                                    backdropFilter: 'blur(16px) saturate(160%)',
+                                    boxShadow: 'var(--shadow-sm)',
+                                }}
+                            >
+                                {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -118,7 +137,7 @@ const Dashboard = ({
                     {/* Live feed — takes all remaining height */}
                     <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                         <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
-                            <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
+                            <SectionHeader icon={Activity}>Ζωντανή Δραστηριότητα</SectionHeader>
                         </div>
                         <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto', minHeight: 0 }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} onNavigate={setCurrentTab} />

@@ -80,7 +80,7 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '14px', padding: '10px', display: 'flex' }}><BarChart2 size={26} color="white" /></div>
                     <div>
-                        <h1 style={{ fontSize: '1.6rem', fontWeight: '900', letterSpacing: '-0.04em', margin: 0, color: 'white' }}>Recovery Analytics</h1>
+                        <h1 style={{ fontSize: '1.6rem', fontWeight: '900', letterSpacing: '-0.04em', margin: 0, color: 'white' }}>Αναλυτικά Ανάκτησης</h1>
                         <p style={{ fontSize: '0.82rem', fontWeight: '500', opacity: 0.6, margin: '2px 0 0' }}>Ανάλυση απόδοσης ανάκτησης — τελευταίες 30 μέρες</p>
                     </div>
                 </div>
@@ -115,7 +115,7 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <SectionCard title="Recovery Funnel — 30 ημέρες">
+                    <SectionCard title="Χωνί Ανάκτησης — 30 ημέρες">
                         <RecoveryFunnel logs={logs} stats={recoveryStats} />
                         <Sparkline logs={logs} />
                     </SectionCard>

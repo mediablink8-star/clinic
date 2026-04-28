@@ -1,8 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2 } from 'lucide-react';
-import logo from '../assets/logo.png';
+import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, X, BarChart2 } from 'lucide-react';
 
-const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
+const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, isMobile = false, isOpen = false, onClose }) => {
     const navSections = [
         {
             label: 'Κύρια Μενού',
@@ -16,7 +15,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             label: 'Εργαλεία',
             items: [
                 ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'Τεχνητή Νοημοσύνη', icon: Brain }] : []),
-                { id: 'analytics', label: 'Recovery Analytics', icon: BarChart2 },
+                { id: 'analytics', label: 'Αναλυτικά Ανάκτησης', icon: BarChart2 },
                 { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
             ]
         },
@@ -46,14 +45,24 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 </div>
             )}
             <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    padding: '5px'
-                }}>
-                    <img src={logo} alt="Media Blink" style={{ height: '110px', width: 'auto', objectFit: 'contain' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px' }}>
+                    {/* ClinicFlow wordmark */}
+                    <div style={{
+                        width: '34px', height: '34px', borderRadius: '10px',
+                        background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 8px 20px -8px rgba(0,181,173,0.55)',
+                        flexShrink: 0,
+                    }}>
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M9 2C5.13 2 2 5.13 2 9s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 2.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9z" fill="white" fillOpacity="0.3"/>
+                            <path d="M9 5.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm-1 2h2v1.5l1 1-1.06 1.06L8.5 9.56V7.5z" fill="white"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>ClinicFlow</div>
+                        <div style={{ fontSize: '0.6rem', fontWeight: '700', color: 'var(--primary)', letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.8 }}>Διαχείριση Ιατρείου</div>
+                    </div>
                 </div>
             </div>
 
@@ -138,98 +147,47 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             </nav>
 
             <div style={{ marginTop: 'auto', padding: '24px', borderTop: '1px solid var(--border)' }}>
-                {/* Dark mode toggle */}
-                <button
-                    onClick={() => setDarkMode(d => !d)}
-                    title={darkMode ? 'Φωτεινή λειτουργία' : 'Σκοτεινή λειτουργία'}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        background: 'linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.08) 100%)',
-                        cursor: 'pointer',
-                        marginBottom: '12px',
-                        transition: 'all 0.2s ease',
-                        boxShadow: 'var(--shadow-sm)',
-                        backdropFilter: 'blur(16px) saturate(160%)'
-                    }}
-                >
-                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
-                        {darkMode ? 'Dark Mode' : 'Light Mode'}
-                    </span>
-                    <div style={{
-                        width: '36px',
-                        height: '20px',
-                        borderRadius: '10px',
-                        background: darkMode ? 'var(--primary)' : 'rgba(148,163,184,0.3)',
-                        position: 'relative',
-                        transition: 'background 0.2s ease',
-                        flexShrink: 0,
-                    }}>
-                        <div style={{
-                            position: 'absolute',
-                            top: '2px',
-                            left: darkMode ? '18px' : '2px',
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '50%',
-                            background: 'white',
-                            transition: 'left 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                        }}>
-                            {darkMode
-                                ? <Moon size={9} color="#6366f1" />
-                                : <Sun size={9} color="#f59e0b" />
-                            }
-                        </div>
-                    </div>
-                </button>
-
                 <div className="user-profile" style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    padding: '12px',
+                    padding: '10px 12px',
                     background: 'var(--card-bg)',
                     backdropFilter: 'blur(20px) saturate(180%)',
                     borderRadius: '16px',
                     boxShadow: 'var(--shadow-sm)',
                     border: '1px solid rgba(255,255,255,0.26)'
                 }}>
-                    <div className="avatar" style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '12px',
-                        background: 'var(--primary-light)',
-                        color: 'var(--primary)',
+                    <div title={`${clinic?.name || 'Ιατρείο'} · ${clinic?.role === 'OWNER' ? 'Ιδιοκτήτης' : clinic?.role === 'RECEPTIONIST' ? 'Γραμματέας' : clinic?.role === 'ASSISTANT' ? 'Βοηθός' : 'Διαχειριστής'}`} style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)',
+                        color: 'white',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: '800',
-                        fontSize: '1.1rem'
+                        fontSize: '0.95rem',
+                        flexShrink: 0,
+                        cursor: 'default',
+                        boxShadow: '0 4px 12px -4px rgba(0,181,173,0.4)',
                     }}>
-                        {clinic?.name?.[0] || 'D'}
+                        {(clinic?.name?.[0] || 'I').toUpperCase()}
                     </div>
                     <div className="info" style={{ flex: 1, overflow: 'hidden' }}>
-                        <div className="name" style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic?.name || 'Ιατρείο'}</div>
-                        <div className="role" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: 'var(--secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic?.name || 'Ιατρείο'}</div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                             {clinic?.role === 'OWNER' ? 'Ιδιοκτήτης' : clinic?.role === 'RECEPTIONIST' ? 'Γραμματέας' : clinic?.role === 'ASSISTANT' ? 'Βοηθός' : 'Διαχειριστής'}
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={onLogout}
                         style={{
                             background: 'var(--bg-subtle)',
                             border: '1px solid rgba(255,255,255,0.16)',
                             borderRadius: '10px',
-                            padding: '8px',
+                            padding: '7px',
                             cursor: 'pointer',
                             color: 'var(--urgent)',
                             display: 'flex',
@@ -237,11 +195,10 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                             justifyContent: 'center',
                             transition: 'all 0.2s ease',
                             boxShadow: 'var(--shadow-sm)',
-                            backdropFilter: 'blur(14px) saturate(160%)'
                         }}
                         title="Αποσύνδεση"
                     >
-                        <LogOut size={16} />
+                        <LogOut size={15} />
                     </button>
                 </div>
             </div>

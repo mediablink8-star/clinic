@@ -54,9 +54,9 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                             <div style={{ padding: '5px', borderRadius: '7px', background: 'rgba(255,255,255,0.1)' }}>
                                 <Target size={12} color="white" />
                             </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recovery Performance</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Απόδοση Ανάκτησης</span>
                         </div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>30 days</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>30 ημέρες</span>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', flex: 1 }}>
@@ -91,7 +91,7 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
 
                 {/* Right: mini funnel */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '130px', flexShrink: 0, justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Funnel</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Χωνί</span>
                     <FunnelRow label="Αναπάντητες" value={missed}  pct={100}                              color="#94a3b8" />
                     <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.2)" /></div>
                     <FunnelRow label="SMS εστάλη"  value={smsSent} pct={Math.round(smsSent/top*100)}     color="#f59e0b" />

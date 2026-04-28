@@ -584,8 +584,7 @@ const App = () => {
           spending={spending}
           loading={loading}
           onRefresh={refreshRecovery}
-          onNotificationAction={(action, data) => {
-            if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
+          onNotificationAction={(action, data) => {            if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
             if (action === 'view_appointments') handleSetCurrentTab('appointments');
             if (action === 'retry_sms' && data?.id) {
               axios.post(`${API_BASE}/recovery/${data.id}/retry`, {}, { headers: getHeaders() })
@@ -607,6 +606,8 @@ const App = () => {
             localStorage.setItem('clinic_data', JSON.stringify(next));
           }}
           warnings={systemConfigStatus.warnings || []}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
         />;
       case 'appointments':
         return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={fetchingApts} error={appointmentsError} onRetry={refetchApts} />;
@@ -712,8 +713,6 @@ const App = () => {
         clinic={clinic}
         onLogout={handleLogout}
         onNewAppointment={() => setShowModal(true)}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
         warnings={systemConfigStatus.warnings || []}
         isMobile={isMobile}
         isOpen={isSidebarOpen}
