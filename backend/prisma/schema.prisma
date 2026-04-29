@@ -127,6 +127,7 @@ model Patient {
   updatedAt    DateTime      @updatedAt
 
   @@unique([clinicId, phone]) // Unique per clinic
+  @@index([clinicId, email])
 }
 
 enum AppointmentStatus {
@@ -159,6 +160,8 @@ model Appointment {
   notifications   Notification[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+
+  @@index([clinicId, startTime, endTime, status])
 }
 
 model Feedback {
@@ -257,6 +260,7 @@ model MissedCall {
   @@index([smsStatus])
   @@index([createdAt])
   @@index([recoveredAt])
+  @@index([clinicId, fromNumber])
 }
 
 enum MissedCallStatus {

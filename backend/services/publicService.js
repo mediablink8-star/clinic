@@ -59,7 +59,7 @@ async function getAvailableSlots(clinicId, dateStr) {
         where: {
             clinicId,
             startTime: { gte: dayStart, lte: dayEnd },
-            status: { notIn: ['CANCELLED', 'NOSHOW'] }
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] }
         },
         select: { startTime: true }
     });
@@ -96,8 +96,11 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         const existing = await tx.appointment.findFirst({
             where: {
                 clinicId,
-                startTime: start,
-                status: { notIn: ['CANCELLED', 'NOSHOW'] }
+                status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+                AND: [
+                    { startTime: { lt: end } },
+                    { endTime:   { gt: start } }
+                ]
             }
         });
         if (existing) {

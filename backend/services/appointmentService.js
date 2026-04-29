@@ -56,6 +56,18 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
+        const conflict = await tx.appointment.findFirst({
+            where: {
+                clinicId,
+                status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+                AND: [
+                    { startTime: { lt: new Date(endTime) } },
+                    { endTime:   { gt: new Date(startTime) } }
+                ]
+            }
+        });
+        if (conflict) throw new AppError('CONFLICT', 'Time slot already booked', 409);
+
         const created = await tx.appointment.create({
             data: {
                 clinicId,
@@ -186,7 +198,7 @@ async function getAvailableSlots(clinicId, date) {
         where: {
             clinicId,
             startTime: { gte: dayStart, lte: dayEnd },
-            status: { notIn: ['CANCELLED'] }
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] }
         },
         select: { startTime: true, endTime: true }
     });
