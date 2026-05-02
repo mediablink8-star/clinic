@@ -75,6 +75,11 @@ function startOfCurrentMonth() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
+function startOfCurrentDay() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 function shouldResetUsage(lastResetDate) {
     if (!lastResetDate) return true;
     const resetDate = new Date(lastResetDate);
@@ -82,22 +87,40 @@ function shouldResetUsage(lastResetDate) {
     return resetDate < monthStart;
 }
 
+function shouldResetDailyUsage(lastDailyReset) {
+    if (!lastDailyReset) return true;
+    const resetDate = new Date(lastDailyReset);
+    const dayStart = startOfCurrentDay();
+    return resetDate < dayStart;
+}
+
 async function ensureMonthlyUsageWindow(clinicId) {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
-    if (!shouldResetUsage(clinic.lastResetDate)) {
-        return clinic;
+    const updates = {};
+
+    // Check monthly reset
+    if (shouldResetUsage(clinic.lastResetDate)) {
+        updates.smsCount = 0;
+        updates.aiRequestCount = 0;
+        updates.lastResetDate = startOfCurrentMonth();
     }
 
-    return prisma.clinic.update({
-        where: { id: clinicId },
-        data: {
-            smsCount: 0,
-            aiRequestCount: 0,
-            lastResetDate: startOfCurrentMonth(),
-        },
-    });
+    // Check daily reset
+    if (shouldResetDailyUsage(clinic.lastDailyResetDate)) {
+        updates.dailyUsedCount = 0;
+        updates.lastDailyResetDate = startOfCurrentDay();
+    }
+
+    if (Object.keys(updates).length > 0) {
+        return prisma.clinic.update({
+            where: { id: clinicId },
+            data: updates,
+        });
+    }
+
+    return clinic;
 }
 
 async function assertWithinSmsLimit(clinicId) {

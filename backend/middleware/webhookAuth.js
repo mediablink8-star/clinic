@@ -1,5 +1,9 @@
 const crypto = require('crypto');
 
+const KNOWN_CLINIC_IDS = process.env.KNOWN_CLINIC_IDS 
+    ? process.env.KNOWN_CLINIC_IDS.split(',').map(id => id.trim())
+    : [];
+
 /**
  * Webhook authentication middleware.
  * Supports two modes:
@@ -22,19 +26,34 @@ module.exports = function webhookAuth(req, res, next) {
     // Mode 1: simple secret header (x-webhook-secret or x-api-key)
     const headerSecret = req.headers['x-webhook-secret'] || req.headers['x-api-key'];
     if (headerSecret) {
-        if (headerSecret === envSecret) return next();
+        if (headerSecret === envSecret) {
+            // Check clinicId allowlist if provided
+            if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
+                if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
+                    return res.status(403).json({ error: 'Clinic not allowed' });
+                }
+            }
+            return next();
+        }
         return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 
     // Mode 2: HMAC-SHA256 signature header (sent by our own triggerWebhook)
     const signature = req.headers['x-webhook-signature'];
     if (signature) {
-        const body = JSON.stringify(req.body);
+        // Use raw body if available, fallback to JSON stringified body
+        const body = req.rawBody || JSON.stringify(req.body);
         const expected = crypto
             .createHmac('sha256', envSecret)
             .update(body)
             .digest('hex');
         if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+            // Check clinicId allowlist if provided
+            if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
+                if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
+                    return res.status(403).json({ error: 'Clinic not allowed' });
+                }
+            }
             return next();
         }
         return res.status(401).json({ error: 'Invalid webhook signature' });

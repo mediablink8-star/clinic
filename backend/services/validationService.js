@@ -61,18 +61,18 @@ const aiConfigSchema = Joi.object({
 
 const loginSchema = Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).required()
+    password: Joi.string().min(8).required()
 });
 
 const resetPasswordSchema = Joi.object({
     token: Joi.string().required(),
-    password: Joi.string().min(6).required()
+    password: Joi.string().min(8).required()
 });
 
 const registerSchema = Joi.object({
     clinicName: Joi.string().min(2).max(100).required(),
     email: Joi.string().email().required(),
-    password: Joi.string().min(6).required(),
+    password: Joi.string().min(8).required(),
     phone: Joi.string().pattern(greekPhoneRegex).required().messages({
         'string.pattern.base': greekPhoneMessage
     }),

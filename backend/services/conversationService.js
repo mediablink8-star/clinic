@@ -1,13 +1,12 @@
 /**
  * Smart SMS conversation state machine.
- * All outbound SMS go through n8n webhook (sendReply).
+ * All outbound SMS go through sendManagedSms for proper credit deduction and logging.
  * States: NEW → BOOKING / QUESTION / CALLBACK → COMPLETED
  */
 const prisma = require('./prisma');
 const { detectIntent } = require('./intentService');
 const { checkWorkingHours } = require('./workingHours');
-const https = require('https');
-const http = require('http');
+const { sendManagedSms } = require('./messagingService');
 
 
 // ── Get SMS template from clinic aiConfig with fallback ──────────────────────
@@ -20,43 +19,34 @@ function getTemplate(clinic, key, fallback) {
     }
 }
 
-// ── Send reply via n8n direct SMS webhook ────────────────────────────────────
-function sendReply(clinic, phone, message) {
-    const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
-    if (!webhookUrl) {
-        console.warn(`[Conversation] No webhook URL for clinic ${clinic.id} — reply not sent to ${phone}: "${message.slice(0, 60)}"`);
-        // Record the failure so clinic can see it in logs
-        prisma.missedCall.findFirst({ where: { clinicId: clinic.id, fromNumber: phone, status: { in: ['DETECTED', 'RECOVERING'] } } })
-            .then(mc => {
-                if (mc) return prisma.missedCall.update({ where: { id: mc.id }, data: { smsError: 'No webhook URL — reply not sent' } });
-            })
-            .catch(() => {});
-        return;
-    }
+// ── Normalize phone number ─────────────────────────────────────────────────
+function normalizePhone(phone) {
+    if (!phone) return null;
+    return phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+}
 
-    const body = JSON.stringify({ phone, message, clinicId: clinic.id });
-    const secret = process.env.WEBHOOK_SECRET || '';
-
+// ── Send reply via sendManagedSms for proper credit/logging ────────────────
+async function sendReply(clinic, phone, message) {
     try {
-        const parsed = new URL(webhookUrl);
-        const lib = parsed.protocol === 'https:' ? https : http;
-        const req = lib.request({
-            hostname: parsed.hostname,
-            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-            path: parsed.pathname + parsed.search,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body),
-                'x-webhook-key': secret,
-            },
-        }, (res) => { res.resume(); });
-        req.on('error', (err) => console.warn(`[Conversation] reply failed for ${phone}: ${err.message}`));
-        req.setTimeout(8000, () => { req.destroy(); });
-        req.write(body);
-        req.end();
+        await sendManagedSms({
+            clinicId: clinic.id,
+            clinic,
+            eventType: 'conversation.reply',
+            payload: { phone, message, clinicId: clinic.id },
+            logType: 'CONVERSATION',
+        });
     } catch (err) {
-        console.warn(`[Conversation] sendReply error for ${phone}: ${err.message}`);
+        console.warn(`[Conversation] sendReply failed for ${phone}: ${err.message}`);
+        // Record the failure so clinic can see it in logs
+        const mc = await prisma.missedCall.findFirst({ 
+            where: { clinicId: clinic.id, fromNumber: phone, status: { in: ['DETECTED', 'RECOVERING'] } } 
+        });
+        if (mc) {
+            await prisma.missedCall.update({ 
+                where: { id: mc.id }, 
+                data: { smsError: err.message } 
+            });
+        }
     }
 }
 

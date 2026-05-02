@@ -61,8 +61,12 @@ app.use(helmet({
 // Request logging
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// MUST BE FIRST
-app.use(express.json());
+// MUST BE FIRST - capture raw body for HMAC verification before any parsing
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf.toString();
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 

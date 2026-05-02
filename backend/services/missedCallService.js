@@ -65,6 +65,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
+    // Normalize phone for patient lookup
+    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+    const patient = await prisma.patient.findFirst({
+        where: { clinicId, phone: normalizedPhone }
+    });
+
     if (clinic.isActive === false) {
         return { success: false, error: 'Clinic inactive' };
     }
@@ -322,7 +328,8 @@ async function processScheduledMissedCalls() {
     const now = new Date();
     const due = await prisma.missedCall.findMany({
         where: { smsStatus: 'scheduled', scheduledSmsAt: { lte: now } },
-        include: { clinic: true }
+        include: { clinic: true },
+        take: 50
     });
 
     let processed = 0;

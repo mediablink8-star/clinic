@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
-const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken, generateMfaToken } = require('../services/authService');
+const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, generateMfaToken } = require('../services/authService');
 const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
 const { triggerWebhook } = require('../services/webhookService');
 const crypto = require('crypto');
@@ -13,6 +13,14 @@ const rateLimit = require('express-rate-limit');
 
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts. Please try again in 15 minutes.' }
+});
 
 const passwordResetLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -121,7 +129,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     }
 }));
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -256,6 +264,14 @@ router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async
         data: { passwordHash }
     });
 
+    // Invalidate all sessions - delete all refresh tokens for this user
+    await prisma.refreshToken.deleteMany({
+        where: { userId: storedToken.userId }
+    });
+
+    // Clear refresh token cookie
+    clearRefreshCookie(res);
+
     // Clean up used token
     await prisma.passwordResetToken.delete({ where: { token } });
 
@@ -276,7 +292,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
             return res.status(401).json({ error: 'Invalid or expired refresh token' });
         }
 
-        const decoded = verifyToken(refreshToken);
+        const decoded = verifyRefreshToken(refreshToken);
         if (!decoded || decoded.userId !== storedToken.userId) {
             return res.status(401).json({ error: 'Invalid token' });
         }

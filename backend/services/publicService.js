@@ -2,6 +2,12 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
 
+// Normalize phone number - strip spaces, dashes, parentheses, convert 0 to +30
+function normalizePhone(phone) {
+    if (!phone) return null;
+    return phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+}
+
 async function getPublicClinic(clinicId) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
@@ -104,9 +110,10 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             throw new AppError('CONFLICT', 'Time slot already booked', 409);
         }
 
-        let pt = await tx.patient.findFirst({ where: { clinicId, phone } });
+        const normalizedPhone = normalizePhone(phone);
+        let pt = await tx.patient.findFirst({ where: { clinicId, phone: normalizedPhone } });
         if (!pt) {
-            pt = await tx.patient.create({ data: { clinicId, name, phone, email } });
+            pt = await tx.patient.create({ data: { clinicId, name, phone: normalizedPhone, email } });
         }
         const appt = await tx.appointment.create({
             data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' }

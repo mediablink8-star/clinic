@@ -2,6 +2,10 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
+const { isWithinWorkingHours } = require('./slotUtils');
+
+const MIN_APPOINTMENT_MINUTES = 15;
+const MAX_APPOINTMENT_MINUTES = 240;
 
 async function listPatients(clinicId) {
     const data = await prisma.patient.findMany({
@@ -11,14 +15,21 @@ async function listPatients(clinicId) {
     return { success: true, data };
 }
 
+function normalizePhone(phone) {
+    if (!phone) return null;
+    return phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+}
+
 async function createPatient({ clinicId, name, phone, email }, actor) {
     if (!name || !phone) throw new AppError('VALIDATION_ERROR', 'name and phone are required', 400);
 
+    const normalizedPhone = normalizePhone(phone);
+
     // Upsert — if patient with same phone exists, update name/email
     const patient = await prisma.patient.upsert({
-        where: { clinicId_phone: { clinicId, phone } },
+        where: { clinicId_phone: { clinicId, phone: normalizedPhone } },
         update: { name, email: email || undefined },
-        create: { clinicId, name, phone, email },
+        create: { clinicId, name, phone: normalizedPhone, email },
     });
 
     await logAction({
@@ -48,11 +59,47 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         throw new AppError('VALIDATION_ERROR', 'patientId, startTime and endTime are required', 400);
     }
 
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new AppError('VALIDATION_ERROR', 'startTime and endTime must be valid ISO dates', 400);
+    }
+    if (start >= end) {
+        throw new AppError('VALIDATION_ERROR', 'startTime must be before endTime', 400);
+    }
+    if (start < new Date()) {
+        throw new AppError('VALIDATION_ERROR', 'Cannot create appointments in the past', 400);
+    }
+
+    const durationMinutes = (end - start) / 60000;
+    if (durationMinutes < MIN_APPOINTMENT_MINUTES || durationMinutes > MAX_APPOINTMENT_MINUTES || durationMinutes % 15 !== 0) {
+        throw new AppError('VALIDATION_ERROR', 'Appointment duration must be 15-240 minutes in 15-minute increments', 400);
+    }
+
+    // Verify clinic and check working hours
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+    if (!isWithinWorkingHours({ clinic, start, end, timezone: clinic.timezone || 'Europe/Athens' })) {
+        throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic working hours', 400);
+    }
+
     // Verify patient belongs to this clinic
     const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } });
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
+        // Check for conflicts
+        const conflict = await tx.appointment.findFirst({
+            where: {
+                clinicId,
+                status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+                AND: [
+                    { startTime: { lt: end } },
+                    { endTime: { gt: start } }
+                ]
+            }
+        });
+        if (conflict) throw new AppError('CONFLICT', 'Time slot already booked', 409);
         const created = await tx.appointment.create({
             data: {
                 clinicId,
