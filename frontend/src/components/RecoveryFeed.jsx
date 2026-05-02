@@ -341,13 +341,13 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     }
 
     return (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
             {sorted.length < allSorted.length || allSorted.length > 0 ? (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px', flexShrink: 0 }}>
                     <button onClick={() => dismissAll(allSorted.map(l => l.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px' }}>Καθαρισμός</button>
                 </div>
             ) : null}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {sorted.map((log) => {
                     const ev = getEvent(log);
                     const Icon = ev.icon;
@@ -455,7 +455,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     to { transform: translateX(0); opacity: 1; }
                 }
             `}</style>
-        </>
+        </div>
     );
 };
 
