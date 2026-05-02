@@ -1,9 +1,14 @@
 const nodemailer = require('nodemailer');
 
+let transporter = null;
+let emailConfigured = false;
+
 // Initialize the transporter using either standard SMTP or falling back to a testing account if not in production
 const getTransporter = async () => {
+    if (transporter) return transporter;
+
     if (process.env.SMTP_HOST) {
-        return nodemailer.createTransport({
+        transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT || 587,
             secure: process.env.SMTP_PORT === '465',
@@ -12,24 +17,33 @@ const getTransporter = async () => {
                 pass: process.env.SMTP_PASS,
             },
         });
+        emailConfigured = true;
+        return transporter;
     }
 
     // Development auto-fallback for easy local testing without credentials
     if (process.env.NODE_ENV !== 'production') {
         const testAccount = await nodemailer.createTestAccount();
-        return nodemailer.createTransport({
+        transporter = nodemailer.createTransport({
             host: 'smtp.ethereal.email',
             port: 587,
-            secure: false, // true for 465, false for other ports
+            secure: false,
             auth: {
-                user: testAccount.user, // generated ethereal user
-                pass: testAccount.pass, // generated ethereal password
+                user: testAccount.user,
+                pass: testAccount.pass,
             },
         });
+        console.warn('[EmailService] Using Ethereal test account (dev only). Configure SMTP_HOST for production.');
+        return transporter;
     }
-    
-    throw new Error('Email infrastructure is not configured. Missing SMTP_HOST.');
+
+    // Production: log warning but don't crash
+    console.error('[EmailService] WARNING: Email not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS environment variables.');
+    emailConfigured = false;
+    return null;
 };
+
+const isEmailConfigured = () => emailConfigured || !!process.env.SMTP_HOST;
 
 /**
  * Sends a password reset email
@@ -38,9 +52,13 @@ const getTransporter = async () => {
  * @returns {Promise<boolean>}
  */
 const sendPasswordResetEmail = async (to, resetLink) => {
+    const transporter = await getTransporter();
+    if (!transporter) {
+        console.warn('[EmailService] Email not configured - password reset email skipped for:', to);
+        return false;
+    }
+
     try {
-        const transporter = await getTransporter();
-        
         const info = await transporter.sendMail({
             from: process.env.SMTP_FROM || '"Clinic Automation" <no-reply@clinic.local>',
             to,
@@ -75,9 +93,13 @@ const sendPasswordResetEmail = async (to, resetLink) => {
  * Sends an SMS failure alert to the clinic owner
  */
 const sendSmsFailureAlert = async (to, clinicName, phone, error) => {
-    if (!process.env.SMTP_HOST) return false; // skip if email not configured
+    const transporter = await getTransporter();
+    if (!transporter) {
+        console.warn('[EmailService] Email not configured - SMS alert skipped');
+        return false;
+    }
+
     try {
-        const transporter = await getTransporter();
         await transporter.sendMail({
             from: process.env.SMTP_FROM || '"ClinicFlow" <no-reply@clinicflow.app>',
             to,
@@ -103,5 +125,6 @@ const sendSmsFailureAlert = async (to, clinicName, phone, error) => {
 module.exports = {
     sendPasswordResetEmail,
     sendSmsFailureAlert,
+    isEmailConfigured,
 };
 

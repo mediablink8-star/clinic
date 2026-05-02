@@ -1,38 +1,52 @@
-const { Queue, Worker, QueueEvents } = require('bullmq');
+const { Queue } = require('bullmq');
 const Redis = require('ioredis');
+const prisma = require('./prisma');
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 // Only disable Redis if explicitly told to. In production without REDIS_URL, warn loudly.
 const REDIS_DISABLED = process.env.DISABLE_REDIS === 'true';
 
+let connection = null;
+
 if (REDIS_DISABLED) {
-    console.warn('[Redis] Disabled via DISABLE_REDIS=true — background jobs will NOT run. Set REDIS_URL and DISABLE_REDIS=false for production.');
-} else if (!process.env.REDIS_URL) {
-    console.warn('[Redis] REDIS_URL not set — falling back to localhost:6379. Set REDIS_URL in production.');
-}
+    console.warn('[Redis] Disabled via DISABLE_REDIS=true — using DB fallback for background jobs.');
+} else {
+    try {
+        connection = new Redis(REDIS_URL, {
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false,
+            retryStrategy(times) {
+                console.warn(`[Redis] Retrying connection (attempt ${times})...`);
+                return Math.min(times * 1000, 5000);
+            },
+            reconnectOnError(err) {
+                console.error('[Redis] Reconnecting on error:', err.message);
+                return true;
+            }
+        });
 
-const connection = REDIS_DISABLED ? null : new Redis(REDIS_URL, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    retryStrategy(times) {
-        return Math.min(times * 50, 2000);
+        connection.on('error', (err) => {
+            if (err.code === 'ECONNREFUSED') {
+                console.error(`[Redis] Connection refused at ${REDIS_URL}. Falling back to DB.`);
+            } else if (err.code === 'ENOTFOUND') {
+                console.error(`[Redis] Host not found: ${REDIS_URL}. Falling back to DB.`);
+            } else {
+                console.error('[Redis] Error:', err.message);
+            }
+        });
+        connection.on('connect', () => {
+            console.log('[Redis] Connected successfully.');
+        });
+        connection.on('close', () => {
+            console.warn('[Redis] Connection closed. Using DB fallback.');
+        });
+    } catch (err) {
+        console.error('[Redis] Failed to initialize connection:', err.message);
+        connection = null;
     }
-});
-
-if (connection) {
-    connection.on('error', (err) => {
-        if (err.code === 'ECONNREFUSED') {
-            console.error(`[Redis] Connection refused at ${REDIS_URL}.`);
-        } else {
-            console.error('[Redis] Error:', err.message);
-        }
-    });
-    connection.on('connect', () => {
-        console.log('[Redis] Connected successfully.');
-    });
 }
 
-const reminderQueue = !REDIS_DISABLED ? new Queue('reminders', {
+const reminderQueue = !REDIS_DISABLED && connection ? new Queue('reminders', {
     connection,
     defaultJobOptions: {
         attempts: 3,
@@ -40,49 +54,45 @@ const reminderQueue = !REDIS_DISABLED ? new Queue('reminders', {
     }
 }) : null;
 
-const reminderWorker = !REDIS_DISABLED ? new Worker('reminders', async (job) => {
-    const { notificationId } = job.data;
-    const { processNotification } = require('./notificationService');
-    const result = await processNotification(notificationId);
-    if (!result.success) {
-        console.warn(`[BullMQ] Notification ${notificationId} skipped: ${result.reason}`);
-    }
-    return result;
-}, {
-    connection,
-    concurrency: 10,
-    removeOnComplete: { count: 100 },
-    removeOnFail: { count: 500 }
-}) : null;
-
-const queueEvents = !REDIS_DISABLED ? new QueueEvents('reminders', { connection }) : null;
-
-if (queueEvents) {
-    queueEvents.on('completed', () => {});
-    queueEvents.on('failed', ({ jobId, failedReason }) => {
-        console.error(`[BullMQ] Job ${jobId} failed: ${failedReason}`);
-    });
-}
-
 const safeAddReminder = async (data) => {
-    if (REDIS_DISABLED || !connection) {
-        console.error('[Queue] Redis is disabled — job dropped. Enable Redis to process background jobs.');
+    if (!data || !data.notificationId) {
+        console.error('[Queue] Invalid job data - notificationId required');
         return null;
     }
-    if (connection.status !== 'ready') {
-        console.warn('[Queue] Redis is not ready. Job may be delayed.');
+
+    // Try Redis first
+    if (!REDIS_DISABLED && connection && reminderQueue) {
+        try {
+            if (connection.status === 'ready') {
+                const job = await reminderQueue.add('reminder-job', data);
+                console.log(`[Queue] Job ${data.notificationId} added to Redis`);
+                return job;
+            }
+        } catch (err) {
+            console.warn(`[Queue] Redis failed, falling back to DB: ${err.message}`);
+        }
     }
+
+    // DB fallback: mark notification as pending for cron to pick up
     try {
-        return await reminderQueue.add('reminder-job', data);
+        await prisma.notification.update({
+            where: { id: data.notificationId },
+            data: { status: 'SCHEDULED' }
+        });
+        console.log(`[Queue] DB Fallback: Notification ${data.notificationId} marked as SCHEDULED`);
+        return { fallback: true, notificationId: data.notificationId };
     } catch (err) {
-        console.error('[Queue] Failed to add job:', err.message);
+        console.error(`[Queue] DB fallback failed for ${data.notificationId}:`, err.message);
         return null;
     }
 };
 
+const isRedisHealthy = () => !REDIS_DISABLED && connection && connection.status === 'ready';
+
 module.exports = {
+    REDIS_DISABLED,
     reminderQueue,
-    reminderWorker,
     safeAddReminder,
-    connection
+    connection,
+    isRedisHealthy
 };

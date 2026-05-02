@@ -30,7 +30,7 @@
         }
       },
       "id": "node_twilio_check",
-      "name": "Is Vonage Request?",
+      "name": "Is Twilio Request?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [

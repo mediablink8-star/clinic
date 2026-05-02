@@ -164,18 +164,18 @@
             {
               "value1": "={{ $json.smsBody.length }}",
               "operation": "larger",
-              "value2": 160
+              "value2": 70
             }
           ]
         }
       },
       "id": "node_length_guard",
-      "name": "Message > 160 chars?",
+      "name": "Message > 70 chars?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
         1340,
-        400
+        380
       ]
     },
     {
@@ -184,18 +184,42 @@
           "string": [
             {
               "name": "smsBody",
-              "value": "={{ $json.smsBody.substring(0, 160) }}"
+              "value": "={{ $json.smsBody.length > 70 ? ($json.smsBody.substring(0, 70).lastIndexOf(' ') > -1 ? $json.smsBody.substring(0, $json.smsBody.substring(0, 70).lastIndexOf(' ')) : $json.smsBody.substring(0, 70)) : $json.smsBody }}"
+            },
+            {
+              "name": "isTruncated",
+              "value": "={{ $json.smsBody.length > 70 }}"
             }
           ]
         }
       },
       "id": "node_truncate",
-      "name": "Truncate to 160",
+      "name": "Smart Truncate to 70",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
         1560,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "smsBody",
+              "value": "={{ $json.smsBody + '...' }}"
+            }
+          ]
+        }
+      },
+      "id": "node_append_ellipsis",
+      "name": "Add Ellipsis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        440
       ]
     },
     {
@@ -231,13 +255,13 @@
           "timeout": 10000
         }
       },
-      "id": "node_twilio_appt",
+"id": "node_twilio_appt",
       "name": "Send Confirmation SMS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        1780,
-        400
+        1920,
+        300
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -261,7 +285,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2000,
+        2140,
         400
       ]
     },
@@ -289,7 +313,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
       "position": [
-        2220,
+        2360,
         280
       ]
     },
@@ -333,7 +357,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        2220,
+        2360,
         520
       ]
     }
@@ -401,18 +425,18 @@
       "main": [
         [
           {
-            "node": "Message > 160 chars?",
+            "node": "Message > 70 chars?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Message > 160 chars?": {
+    "Message > 70 chars?": {
       "main": [
         [
           {
-            "node": "Truncate to 160",
+            "node": "Smart Truncate to 70",
             "type": "main",
             "index": 0
           }
@@ -426,7 +450,18 @@
         ]
       ]
     },
-    "Truncate to 160": {
+    "Smart Truncate to 70": {
+      "main": [
+        [
+          {
+            "node": "Add Ellipsis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Ellipsis": {
       "main": [
         [
           {

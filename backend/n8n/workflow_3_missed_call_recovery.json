@@ -304,6 +304,55 @@
         2000,
         400
       ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "sms_sent"
+            },
+            {
+              "name": "executionId",
+              "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"
+            },
+            {
+              "name": "entityType",
+              "value": "missed_call"
+            },
+            {
+              "name": "entityId",
+              "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Set Variables\"].json.phone }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $node[\"Log Success\"].json.messageId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_notify_backend_success",
+      "name": "Notify Backend of Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        200
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -418,7 +467,13 @@
     },
     "Log Success": {
       "main": [
-        []
+        [
+          {
+            "node": "Notify Backend of Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
