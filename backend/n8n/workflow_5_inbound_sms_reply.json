@@ -22,15 +22,15 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['user-agent'] || '' }}",
-              "operation": "contains",
-              "value2": "Vonage"
+              "value1": "={{ $json.headers['x-webhook-key'] || '' }}",
+              "operation": "equal",
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
           ]
         }
       },
       "id": "node_twilio_check",
-      "name": "Is Twilio Request?",
+      "name": "Has Webhook Key?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
@@ -201,14 +201,14 @@
       "main": [
         [
           {
-            "node": "Is Twilio Request?",
+            "node": "Has Webhook Key?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Is Twilio Request?": {
+    "Has Webhook Key?": {
       "main": [
         [
           {

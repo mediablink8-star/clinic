@@ -190,7 +190,7 @@
         }
       },
       "id": "node_twilio_sms",
-      "name": "Send SMS via Twilio",
+      "name": "Send SMS via Vonage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
@@ -359,14 +359,14 @@
       "main": [
         [
           {
-            "node": "Send SMS via Twilio",
+            "node": "Send SMS via Vonage",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send SMS via Twilio": {
+    "Send SMS via Vonage": {
       "main": [
         [
           {

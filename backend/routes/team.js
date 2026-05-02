@@ -38,9 +38,14 @@ router.post('/', asyncHandler(async (req, res) => {
     }
 
     const { email, name, role, password } = req.body;
+    const trimmedPassword = typeof password === 'string' ? password.trim() : '';
 
-    if (!email || !password) {
+    if (!email || !trimmedPassword) {
         return res.status(400).json({ error: 'Email και κωδικός είναι υποχρεωτικά.' });
+    }
+
+    if (trimmedPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
 
     const allowedRoles = ['OWNER', 'RECEPTIONIST', 'ASSISTANT'];
@@ -53,7 +58,7 @@ router.post('/', asyncHandler(async (req, res) => {
         return res.status(409).json({ error: 'Υπάρχει ήδη χρήστης με αυτό το email.' });
     }
 
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(trimmedPassword);
     const user = await prisma.user.create({
         data: {
             email,

@@ -307,5 +307,6 @@ app.listen(port, () => {
     console.log('====================\n');
 });
 
-// Fix 1: Auto-start worker in same process
-require('./worker');
+if (process.env.RUN_WORKER_INLINE === 'true') {
+    require('./worker');
+}

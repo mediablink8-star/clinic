@@ -34,6 +34,8 @@ const passwordResetLimiter = rateLimit({
 const isProduction = process.env.NODE_ENV === 'production';
 const refreshCookieMaxAge = 7 * 24 * 60 * 60 * 1000;
 const genericRegistrationError = 'Registration could not be completed with the provided details.';
+const maxFailedAttempts = 5;
+const lockoutMs = 15 * 60 * 1000;
 
 const getRefreshCookieOptions = () => ({
     httpOnly: true,
@@ -118,7 +120,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                 role: result.role,
                 userId: result.id,
                 userName: result.name,
-                isAdmin: false
+                isAdmin: result.role === 'ADMIN' || result.role === 'OWNER'
             }
         });
     } catch (error) {
@@ -144,31 +146,27 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         }
 
         // Check per-account lockout
-        if (user.failedLoginAttempts >= 5 && user.lastFailedLoginAt) {
-            const lockoutExpiry = new Date(user.lastFailedLoginAt.getTime() + 15 * 60 * 1000);
-            if (new Date() < lockoutExpiry) {
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
                 return res.status(429).json({ error: 'Account locked due to too many failed attempts. Try again in 15 minutes.' });
-            }
         }
 
         const isMatch = await comparePassword(password, user.passwordHash);
 
         if (!isMatch) {
-            // Increment failed attempts
+            const failedAttempts = (user.failedAttempts || 0) + 1;
             await prisma.user.update({
                 where: { id: user.id },
-                data: {
-                    failedLoginAttempts: { increment: 1 },
-                    lastFailedLoginAt: new Date()
-                }
+                data: failedAttempts >= maxFailedAttempts
+                    ? { failedAttempts, lockedUntil: new Date(Date.now() + lockoutMs) }
+                    : { failedAttempts }
             });
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-// Reset failed attempts on successful login
+        // Reset failed attempts on successful login
         await prisma.user.update({
             where: { id: user.id },
-            data: { failedLoginAttempts: 0, lastFailedLoginAt: null }
+            data: { failedAttempts: 0, lockedUntil: null }
         });
 
         const isAdmin = user.role === 'ADMIN' || user.role === 'OWNER';
@@ -481,7 +479,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/verify', requireHandler(async (req, res) => {
+router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     const { code } = req.body;
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
@@ -532,7 +530,8 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
 
         if (!user || !user.mfaSecret) return res.status(401).json({ error: 'Invalid request' });
 
-        const isValid = authenticator.check(code, user.mfaSecret);
+        const secret = decrypt(user.mfaSecret);
+        const isValid = authenticator.check(code, secret);
         if (!isValid) return res.status(400).json({ error: 'Invalid MFA code' });
 
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
@@ -556,7 +555,7 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
                 email: user.email,
                 avatarUrl: user.clinic.avatarUrl,
                 role: user.role,
-                isAdmin: user.role === 'ADMIN',
+                isAdmin: user.role === 'ADMIN' || user.role === 'OWNER',
                 mfaEnabled: user.mfaEnabled
             }
         });

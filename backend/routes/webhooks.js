@@ -7,9 +7,26 @@ const { forwardInboundMessage } = require('../services/webhookService');
 const { recordInboundMessage } = require('../services/recoveryTrackingService');
 const { handleInboundReply } = require('../services/conversationService');
 
+function normalizePhone(phone) {
+    if (!phone) return '';
+
+    let value = String(phone).trim();
+    value = value.replace(/[\s\-()]/g, '');
+
+    if (value.startsWith('00')) {
+        value = `+${value.slice(2)}`;
+    }
+
+    if (value.startsWith('+30')) return value;
+    if (value.startsWith('+')) return value;
+    if (/^[26]\d{9}$/.test(value)) return `+30${value}`;
+    if (value.startsWith('0')) return `+30${value.slice(1)}`;
+
+    return value;
+}
+
 router.post('/missed-call', asyncHandler(async (req, res) => {
     const { phone = '+30690000000', clinicId, callSid } = req.body;
-    // bypassCooldown only allowed in non-production or with admin flag
     const bypassCooldown = process.env.NODE_ENV !== 'production' && req.body.bypassCooldown === true;
 
     if (!clinicId) return res.status(400).json({ error: 'clinicId is required' });
@@ -40,12 +57,13 @@ router.post('/sms', asyncHandler(async (req, res) => {
     if (!from) return res.status(400).json({ error: 'from is required' });
     if (!messageBody) return res.status(400).json({ error: 'body is required' });
 
+    const normalizedFrom = normalizePhone(from);
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
 
     await recordInboundMessage({
         clinicId,
-        fromPhone: from,
+        fromPhone: normalizedFrom,
         body: messageBody,
         providerMessageSid,
         providerStatusRaw: providerStatusRaw || provider,
@@ -60,12 +78,17 @@ router.post('/sms', asyncHandler(async (req, res) => {
         return res.json({ success: true, forwarded: false, reason: 'No webhook URL configured' });
     }
 
-    const result = await forwardInboundMessage({ from, body: messageBody, provider, clinic, raw });
+    const result = await forwardInboundMessage({
+        from: normalizedFrom,
+        body: messageBody,
+        provider,
+        clinic,
+        raw,
+    });
 
     res.json({ success: result.success, forwarded: result.success, ...(result.error ? { error: result.error } : {}) });
 }));
 
-// Used by n8n inbound SMS workflow — resolves clinicId from phone number, missedCallId from active case
 router.post('/inbound-sms', asyncHandler(async (req, res) => {
     let {
         clinicId,
@@ -80,31 +103,33 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
     if (!from) return res.status(400).json({ error: 'from is required' });
     if (!messageBody) return res.status(400).json({ error: 'body is required' });
 
-    // Resolve clinicId from "To" number if not explicitly provided
-    if (!clinicId && to) {
-        const clinic = await prisma.clinic.findFirst({ where: { phone: to } });
+    const normalizedFrom = normalizePhone(from);
+    const normalizedTo = normalizePhone(to);
+
+    if (!clinicId && normalizedTo) {
+        const clinic = await prisma.clinic.findFirst({ where: { phone: normalizedTo } });
         if (clinic) clinicId = clinic.id;
     }
 
     if (!clinicId) return res.status(400).json({ error: 'clinicId could not be resolved' });
 
-    // Resolve missedCallId from most recent active recovery case for this phone
     if (!missedCallId) {
         const activeCase = await prisma.recoveryCase.findFirst({
             where: {
                 clinicId,
-                patientPhone: from,
+                patientPhone: normalizedFrom,
                 state: { in: ['ACTIVE', 'ENGAGED'] },
             },
             orderBy: { lastActivityAt: 'desc' },
             select: { missedCallId: true },
         });
+
         if (activeCase?.missedCallId) missedCallId = activeCase.missedCallId;
     }
 
     const result = await recordInboundMessage({
         clinicId,
-        fromPhone: from,
+        fromPhone: normalizedFrom,
         body: messageBody,
         providerMessageSid,
         providerStatusRaw: 'inbound',
@@ -112,7 +137,6 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
         recoveryCaseId,
     });
 
-    // Inbound SMS dedup — ignore same message from same phone within 30 seconds
     if (providerMessageSid) {
         const recent = await prisma.message.findFirst({
             where: {
@@ -120,31 +144,31 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
                 clinicId,
             }
         });
+
         if (recent) {
-            console.log(`[Inbound] Duplicate message ${providerMessageSid} — skipped`);
+            console.log(`[Inbound] Duplicate message ${providerMessageSid} skipped`);
             return res.json({ success: true, duplicate: true });
         }
     } else {
-        // No SID — check same body from same phone within 30s
         const thirtySecondsAgo = new Date(Date.now() - 30000);
         const recentDupe = await prisma.message.findFirst({
             where: {
                 clinicId,
-                fromPhone: from,
+                fromPhone: normalizedFrom,
                 body: messageBody,
                 direction: 'INBOUND',
                 createdAt: { gte: thirtySecondsAgo },
             }
         });
+
         if (recentDupe) {
-            console.log(`[Inbound] Duplicate body from ${from} within 30s — skipped`);
+            console.log(`[Inbound] Duplicate body from ${normalizedFrom} within 30s skipped`);
             return res.json({ success: true, duplicate: true });
         }
     }
 
-    // Fire conversation state machine (non-blocking)
     if (missedCallId) {
-        handleInboundReply({ clinicId, fromPhone: from, messageBody, missedCallId })
+        handleInboundReply({ clinicId, fromPhone: normalizedFrom, messageBody, missedCallId })
             .catch(err => console.warn('[Conversation] handleInboundReply error:', err.message));
     }
 

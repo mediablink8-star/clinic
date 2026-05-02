@@ -82,6 +82,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   mfaEnabled   Boolean  @default(false)
   mfaSecret    String?
+  mfaPendingSecret String?
   failedAttempts Int     @default(0)
   lockedUntil   DateTime?
   createdAt    DateTime @default(now())

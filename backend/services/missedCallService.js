@@ -13,6 +13,15 @@ const { decrypt } = require('./encryptionService');
 const { sendSmsFailureAlert } = require('./emailService');
 const http = require('http');
 
+function normalizePhone(phone) {
+    if (!phone) return null;
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
+    if (cleaned.startsWith('+30')) return cleaned;
+    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
+    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
+    return cleaned;
+}
+
 /**
  * Non-blocking fire-and-forget trigger to n8n.
  * Never throws — failures are logged only.
@@ -65,8 +74,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
-    // Normalize phone for patient lookup
-    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+    const normalizedPhone = normalizePhone(phone);
     const patient = await prisma.patient.findFirst({
         where: { clinicId, phone: normalizedPhone }
     });
@@ -89,7 +97,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     const recentActive = await prisma.missedCall.findFirst({
         where: {
             clinicId,
-            fromNumber: phone,
+            fromNumber: normalizedPhone,
             status: { in: ['DETECTED', 'RECOVERING'] },
             lastSmsSentAt: { gte: sixHoursAgo },
         },
@@ -120,7 +128,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             const missedCall = await prisma.missedCall.create({
                 data: {
                     clinicId,
-                    fromNumber: phone,
+                    fromNumber: normalizedPhone,
                     callSid: callSid || null,
                     status: 'DETECTED',
                     smsStatus: 'skipped',
@@ -145,7 +153,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     const missedCall = await prisma.missedCall.create({
         data: {
             clinicId,
-            fromNumber: phone,
+            fromNumber: normalizedPhone,
             callSid: callSid || null,
             status: 'RECOVERING',
             smsStatus: withinHours ? 'pending' : 'scheduled',
@@ -168,7 +176,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         let patientName = null;
         try {
             const existingPatient = await prisma.patient.findFirst({
-                where: { clinicId, phone },
+                where: { clinicId, phone: normalizedPhone },
                 select: { name: true }
             });
             if (existingPatient?.name && existingPatient.name !== phone) {
@@ -182,7 +190,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         const { triggerOutboundCall } = require('./vapiService');
         const callResult = await triggerOutboundCall({
             clinic,
-            phone,
+            phone: normalizedPhone,
             missedCallId: missedCall.id,
             patientName,
         });
@@ -233,7 +241,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     triggerN8n('/missed-call', {
         clinicId,
         missedCallId: missedCall.id,
-        phone,
+        phone: normalizedPhone,
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || '',
@@ -260,7 +268,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             status: 'QUEUED',
             providerStatusRaw: 'n8n_queued',
             fromPhone: clinic.phone || null,
-            toPhone: phone,
+            toPhone: normalizedPhone,
         });
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'sent', scheduledSmsAt: null } };
     }
@@ -284,7 +292,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             clinicId,
             clinic,
             eventType: 'missed_call.detected',
-            payload: { phone, missedCallId: missedCall.id, clinicId },
+            payload: { phone: normalizedPhone, missedCallId: missedCall.id, clinicId },
             logType: 'SMS',
         });
         webhookResult = { success: true };
@@ -307,7 +315,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             select: { email: true }
         });
         if (owner?.email) {
-            sendSmsFailureAlert(owner.email, clinic.name, phone, webhookResult.error || 'Webhook failed')
+            sendSmsFailureAlert(owner.email, clinic.name, normalizedPhone, webhookResult.error || 'Webhook failed')
                 .catch(() => {});
         }
     }
@@ -317,7 +325,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         status: webhookResult.success ? 'QUEUED' : 'FAILED',
         providerStatusRaw: webhookResult.success ? 'workflow_queued' : 'workflow_failed',
         fromPhone: clinic.phone || null,
-        toPhone: phone,
+        toPhone: normalizedPhone,
         errorMessage: webhookResult.success ? null : (webhookResult.error || 'Webhook failed'),
     });
 

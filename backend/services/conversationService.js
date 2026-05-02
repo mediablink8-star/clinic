@@ -1,7 +1,6 @@
 /**
  * Smart SMS conversation state machine.
- * All outbound SMS go through sendManagedSms for proper credit deduction and logging.
- * States: NEW → BOOKING / QUESTION / CALLBACK → COMPLETED
+ * All outbound SMS go through sendManagedSms for credit deduction and logging.
  */
 const prisma = require('./prisma');
 const { detectIntent } = require('./intentService');
@@ -11,8 +10,6 @@ const { createAppointment } = require('./appointmentService');
 
 const SYSTEM_ACTOR = { userId: 'system-conversation', ip: 'auto' };
 
-
-// ── Get SMS template from clinic aiConfig with fallback ──────────────────────
 function getTemplate(clinic, key, fallback) {
     try {
         const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
@@ -22,13 +19,75 @@ function getTemplate(clinic, key, fallback) {
     }
 }
 
-// ── Normalize phone number ─────────────────────────────────────────────────
 function normalizePhone(phone) {
     if (!phone) return null;
-    return phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
+    if (cleaned.startsWith('+30')) return cleaned;
+    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
+    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
+    return cleaned;
 }
 
-// ── Send reply via sendManagedSms for proper credit/logging ────────────────
+function stripGreekAccents(value) {
+    return (value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+const greekWeekdays = [
+    ['κυριακη', 0],
+    ['δευτερα', 1],
+    ['τριτη', 2],
+    ['τεταρτη', 3],
+    ['πεμπτη', 4],
+    ['παρασκευη', 5],
+    ['σαββατο', 6],
+];
+
+function nextWeekdayDate(targetDay, baseDate = new Date(), forceNextWeek = false) {
+    const date = new Date(baseDate);
+    let daysUntil = (targetDay - date.getDay() + 7) % 7;
+    if (daysUntil === 0 || forceNextWeek) daysUntil += 7;
+    date.setDate(date.getDate() + daysUntil);
+    date.setHours(9, 0, 0, 0);
+    return date;
+}
+
+function parseAppointmentDay(dayText, baseDate = new Date()) {
+    const normalized = stripGreekAccents(dayText);
+    const date = new Date(baseDate);
+    date.setHours(9, 0, 0, 0);
+
+    if (normalized.includes('σημερα') || normalized.includes('today')) return date;
+    if (normalized.includes('αυριο') || normalized.includes('tomorrow')) {
+        date.setDate(date.getDate() + 1);
+        return date;
+    }
+    if (normalized.includes('μεθαυριο')) {
+        date.setDate(date.getDate() + 2);
+        return date;
+    }
+    if (normalized.includes('αλλη εβδομαδα') || normalized.includes('επομενη εβδομαδα') || normalized.includes('next week')) {
+        date.setDate(date.getDate() + 7);
+        return date;
+    }
+
+    const match = greekWeekdays.find(([name]) => normalized.includes(name));
+    if (match) return nextWeekdayDate(match[1], baseDate, normalized.includes('αλλη') || normalized.includes('επομενη'));
+
+    return null;
+}
+
+function parseAppointmentTime(timeText) {
+    const match = (timeText || '').match(/(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return null;
+    const hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2] || '0', 10);
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return { hour, minute };
+}
+
 async function sendReply(clinic, phone, message) {
     try {
         await sendManagedSms({
@@ -40,37 +99,32 @@ async function sendReply(clinic, phone, message) {
         });
     } catch (err) {
         console.warn(`[Conversation] sendReply failed for ${phone}: ${err.message}`);
-        // Record the failure so clinic can see it in logs
-        const mc = await prisma.missedCall.findFirst({ 
-            where: { clinicId: clinic.id, fromNumber: phone, status: { in: ['DETECTED', 'RECOVERING'] } } 
+        const mc = await prisma.missedCall.findFirst({
+            where: { clinicId: clinic.id, fromNumber: normalizePhone(phone), status: { in: ['DETECTED', 'RECOVERING'] } }
         });
         if (mc) {
-            await prisma.missedCall.update({ 
-                where: { id: mc.id }, 
-                data: { smsError: err.message } 
+            await prisma.missedCall.update({
+                where: { id: mc.id },
+                data: { smsError: err.message }
             });
         }
     }
 }
 
-
-// ── Check if reply should be sent now or deferred ────────────────────────────
 function shouldReplyNow(clinic) {
     try {
         const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const wh = ai.workingHours || null;
-        const { withinHours } = checkWorkingHours(new Date(), wh);
+        const { withinHours } = checkWorkingHours(new Date(), ai.workingHours || null);
         return withinHours;
     } catch {
-        return true; // default: send
+        return true;
     }
 }
 
 function outsideHoursMessage(clinic) {
     try {
         const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const wh = ai.workingHours || null;
-        const { scheduledAt } = checkWorkingHours(new Date(), wh);
+        const { scheduledAt } = checkWorkingHours(new Date(), ai.workingHours || null);
         const timeStr = scheduledAt
             ? scheduledAt.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
             : '09:00';
@@ -80,13 +134,26 @@ function outsideHoursMessage(clinic) {
     }
 }
 
-// ── Main handler ─────────────────────────────────────────────────────────────
+function buildClinicInfo(clinic) {
+    try {
+        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+        const parts = [];
+        if (ai.services) parts.push(`Υπηρεσίες: ${ai.services}`);
+        if (ai.workingHours) parts.push(`Ώρες: ${typeof ai.workingHours === 'string' ? ai.workingHours : JSON.stringify(ai.workingHours)}`);
+        if (clinic.location) parts.push(`Διεύθυνση: ${clinic.location}`);
+        return parts.length > 0 ? parts.join('\n') : null;
+    } catch {
+        return null;
+    }
+}
+
 async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCallId }) {
     if (!missedCallId) return;
+    const normalizedFromPhone = normalizePhone(fromPhone);
 
     const mc = await prisma.missedCall.findUnique({
         where: { id: missedCallId },
-        include: { clinic: true }
+        include: { clinic: true, patient: true }
     });
     if (!mc || mc.clinicId !== clinicId) return;
 
@@ -94,73 +161,59 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     const state = mc.conversationState || 'NEW';
     const text = (messageBody || '').trim();
 
-    console.log(`[Conversation] case=${mc.id} state=${state} from=${fromPhone} msg="${text.slice(0, 50)}"`);
+    console.log(`[Conversation] case=${mc.id} state=${state} from=${normalizedFromPhone} msg="${text.slice(0, 50)}"`);
 
-    // Outside working hours — send a polite deferral and stop
     if (!shouldReplyNow(clinic)) {
-        sendReply(clinic, fromPhone, outsideHoursMessage(clinic));
-        console.log(`[Conversation] Outside hours — deferral sent to ${fromPhone}`);
+        sendReply(clinic, normalizedFromPhone, outsideHoursMessage(clinic));
         return;
     }
 
-    // ── BOOKING flow ─────────────────────────────────────────────────────────
     if (state === 'BOOKING') {
-        return handleBookingStep(mc, clinic, text, fromPhone);
+        return handleBookingStep(mc, clinic, text, normalizedFromPhone);
     }
 
-    // ── QUESTION flow ────────────────────────────────────────────────────────
     if (state === 'QUESTION') {
-        const lowerText = text.toLowerCase();
-        // If patient says Yes to booking nudge → start booking
+        const lowerText = stripGreekAccents(text);
         if (lowerText === '1' || lowerText.includes('ναι') || lowerText.includes('yes')) {
             await prisma.missedCall.update({
                 where: { id: mc.id },
                 data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
             });
-            sendReply(clinic, fromPhone, `Τέλεια! 😊 Πώς σας λένε;`);
+            sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
             return;
         }
-        // If patient says No → close gracefully
-        if (lowerText === '2' || lowerText.includes('όχι') || lowerText.includes('no')) {
+        if (lowerText === '2' || lowerText.includes('οχι') || lowerText.includes('no')) {
             await prisma.missedCall.update({
                 where: { id: mc.id },
                 data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
             });
-            sendReply(clinic, fromPhone, `Εντάξει! Αν χρειαστείτε κάτι, είμαστε εδώ 😊`);
+            sendReply(clinic, normalizedFromPhone, 'Εντάξει! Αν χρειαστείτε κάτι, είμαστε εδώ 😊');
             return;
         }
-        // Otherwise answer the question and nudge again
         const clinicInfo = buildClinicInfo(clinic);
-        const infoText = clinicInfo
-            ? `${clinicInfo}\n\n`
-            : `Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍\n\n`;
-        const reply = `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού; 😊\n1️⃣ Ναι  2️⃣ Όχι ευχαριστώ`;
-        sendReply(clinic, fromPhone, reply);
-        console.log(`[Conversation] QUESTION answered + nudge sent to ${fromPhone}`);
+        const infoText = clinicInfo ? `${clinicInfo}\n\n` : 'Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍\n\n';
+        sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
         return;
     }
 
-    // ── CALLBACK flow ────────────────────────────────────────────────────────
     if (state === 'CALLBACK') {
-        sendReply(clinic, fromPhone, `Το ιατρείο θα σας καλέσει σύντομα 📞`);
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
         });
-        console.log(`[Conversation] CALLBACK confirmed for ${fromPhone}`);
+        sendReply(clinic, normalizedFromPhone, 'Το ιατρείο θα σας καλέσει σύντομα 📞');
         return;
     }
 
-    // ── NEW / COMPLETED — detect intent ──────────────────────────────────────
     const intent = detectIntent(text);
-    console.log(`[Conversation] intent=${intent} for ${fromPhone} (case=${mc.id})`);
+    console.log(`[Conversation] intent=${intent} for ${normalizedFromPhone} (case=${mc.id})`);
 
     if (intent === 'BOOKING') {
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
         });
-        sendReply(clinic, fromPhone, `Τέλεια! 😊 Πώς σας λένε;`);
+        sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
         return;
     }
 
@@ -170,11 +223,8 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             data: { conversationState: 'QUESTION', status: 'RECOVERING' }
         });
         const clinicInfo = buildClinicInfo(clinic);
-        const infoText = clinicInfo
-            ? `${clinicInfo}\n\n`
-            : `Θα επικοινωνήσει μαζί σας το ιατρείο 👍\n\n`;
-        const reply = `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού; 😊\n1️⃣ Ναι  2️⃣ Όχι ευχαριστώ`;
-        sendReply(clinic, fromPhone, reply);
+        const infoText = clinicInfo ? `${clinicInfo}\n\n` : 'Θα επικοινωνήσει μαζί σας το ιατρείο 👍\n\n';
+        sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
         return;
     }
 
@@ -183,18 +233,13 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'CALLBACK', status: 'RECOVERING' }
         });
-        // Log callback request clearly for clinic visibility
-        console.log(`[Conversation] CALLBACK_REQUESTED clinic=${clinicId} phone=${fromPhone} case=${mc.id}`);
-        sendReply(clinic, fromPhone, getTemplate(clinic, 'smsCallbackConfirm', 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'));
+        sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsCallbackConfirm', 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'));
         return;
     }
 
-    // UNKNOWN — guide back to menu
-    sendReply(clinic, fromPhone, getTemplate(clinic, 'smsUnknown', 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'));
-    console.log(`[Conversation] UNKNOWN intent for ${fromPhone} — menu resent`);
+    sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsUnknown', 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'));
 }
 
-// ── Booking step machine ──────────────────────────────────────────────────────
 async function handleBookingStep(mc, clinic, text, fromPhone) {
     const step = mc.bookingStep;
     console.log(`[Conversation] booking step=${step} for ${fromPhone}`);
@@ -213,105 +258,88 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             where: { id: mc.id },
             data: { bookingDay: text, bookingStep: 'ASKED_TIME' }
         });
-        sendReply(clinic, fromPhone, `Ωραία! ⏰ Τι ώρα σας βολεύει;`);
+        sendReply(clinic, fromPhone, 'Ωραία! ⏰ Τι ώρα σας βολεύει;');
         return;
     }
 
-    if (step === 'ASKED_TIME') {
-        const day = mc.bookingDay || 'την ημέρα που ζητήσατε';
-        const time = text;
+    if (step !== 'ASKED_TIME') {
+        sendReply(clinic, fromPhone, 'Το ραντεβού σας έχει καταχωρηθεί. Θα επικοινωνήσουμε σύντομα 😊');
+        return;
+    }
 
-        // Send confirmation SMS first (non-blocking)
-        const bookingMsg = getTemplate(clinic, 'smsBookingConfirm', 'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊')
-            .replace('{day}', day).replace('{time}', time);
-        sendReply(clinic, fromPhone, bookingMsg);
-
-        // Upsert patient from phone number
-        const patientName = mc.bookingName || null;
-        let patient = null;
-        try {
-            patient = await prisma.patient.upsert({
-                where: { clinicId_phone: { clinicId: clinic.id, phone: fromPhone } },
-                update: patientName ? { name: patientName } : {},
-                create: {
-                    clinicId: clinic.id,
-                    name: patientName || mc.patient?.name || fromPhone,
-                    phone: fromPhone,
-                },
-            });
-        } catch (err) {
-            console.warn(`[Conversation] patient upsert failed: ${err.message}`);
-        }
-
-        // Parse a best-effort startTime from the free-text day + time
-        let startTime = new Date();
-        startTime.setDate(startTime.getDate() + 1); // default: tomorrow
-        startTime.setHours(9, 0, 0, 0);
-
-        try {
-            const lowerDay = day.toLowerCase();
-            const today = new Date();
-            if (lowerDay.includes('σήμερα') || lowerDay.includes('today')) {
-                startTime = new Date(today);
-            } else if (lowerDay.includes('αύριο') || lowerDay.includes('tomorrow')) {
-                startTime = new Date(today);
-                startTime.setDate(today.getDate() + 1);
-            }
-            // Parse time like "10:30" or "10"
-            const timeMatch = time.match(/(\d{1,2})(?::(\d{2}))?/);
-            if (timeMatch) {
-                startTime.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2] || '0'), 0, 0);
-            }
-        } catch { /* keep default */ }
-
-        const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
-
-        // Create appointment using appointmentService (validates working hours, conflict, audit)
-        if (patient) {
-            try {
-                await createAppointment({
-                    clinicId: clinic.id,
-                    patientId: patient.id,
-                    startTime: startTime.toISOString(),
-                    endTime: endTime.toISOString(),
-                    reason: 'Ραντεβού από SMS ανάκτηση'
-                }, SYSTEM_ACTOR);
-                console.log(`[Conversation] Appointment created for ${fromPhone} — ${day} ${time}`);
-            } catch (err) {
-                console.warn(`[Conversation] appointment create failed: ${err.message}`);
-            }
-        }
-
+    const day = mc.bookingDay || '';
+    const time = text;
+    const startTime = parseAppointmentDay(day);
+    if (!startTime) {
         await prisma.missedCall.update({
             where: { id: mc.id },
-            data: {
-                conversationState: 'COMPLETED',
-                bookingStep: 'CONFIRMING',
-                status: 'RECOVERED',
-                recoveredAt: new Date(),
-                patientId: patient?.id || mc.patientId || null,
-            }
+            data: { bookingStep: 'ASKED_DAY' }
         });
-        console.log(`[Conversation] BOOKING completed for ${fromPhone} — day=${day} time=${time}`);
+        sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ημέρα. Στείλτε π.χ. σήμερα, αύριο, Δευτέρα ή Παρασκευή.');
         return;
     }
 
-    // Already confirmed
-    sendReply(clinic, fromPhone, `Το ραντεβού σας έχει καταχωρηθεί. Θα επικοινωνήσουμε σύντομα 😊`);
-}
-
-// ── Build clinic info for QUESTION replies ────────────────────────────────────
-function buildClinicInfo(clinic) {
-    try {
-        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const parts = [];
-        if (ai.services) parts.push(`Υπηρεσίες: ${ai.services}`);
-        if (ai.workingHours) parts.push(`Ώρες: ${ai.workingHours}`);
-        if (clinic.location) parts.push(`Διεύθυνση: ${clinic.location}`);
-        return parts.length > 0 ? parts.join('\n') : null;
-    } catch {
-        return null;
+    const parsedTime = parseAppointmentTime(time);
+    if (!parsedTime) {
+        sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ώρα. Στείλτε π.χ. 10:00 ή 17:30.');
+        return;
     }
+    startTime.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+    const patientName = mc.bookingName || mc.patient?.name || fromPhone;
+    let patient;
+    try {
+        patient = await prisma.patient.upsert({
+            where: { clinicId_phone: { clinicId: clinic.id, phone: fromPhone } },
+            update: mc.bookingName ? { name: mc.bookingName } : {},
+            create: { clinicId: clinic.id, name: patientName, phone: fromPhone },
+        });
+    } catch (err) {
+        console.warn(`[Conversation] patient upsert failed: ${err.message}`);
+        await prisma.missedCall.update({ where: { id: mc.id }, data: { bookingStep: 'ASKED_NAME' } });
+        sendReply(clinic, fromPhone, 'Δεν μπόρεσα να αποθηκεύσω τα στοιχεία σας. Μπορείτε να μου στείλετε ξανά το όνομά σας;');
+        return;
+    }
+
+    try {
+        await createAppointment({
+            clinicId: clinic.id,
+            patientId: patient.id,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            reason: 'Ραντεβού από SMS ανάκτησης'
+        }, SYSTEM_ACTOR);
+    } catch (err) {
+        console.warn(`[Conversation] appointment create failed: ${err.message}`);
+        await prisma.missedCall.update({
+            where: { id: mc.id },
+            data: { bookingStep: 'ASKED_DAY', status: 'RECOVERING' }
+        });
+        sendReply(clinic, fromPhone, 'Δεν μπόρεσα να κλείσω αυτό το ραντεβού. Η ώρα ίσως δεν είναι διαθέσιμη. Στείλτε άλλη ημέρα ή ώρα.');
+        return;
+    }
+
+    const bookingMsg = getTemplate(clinic, 'smsBookingConfirm', 'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊')
+        .replace('{day}', day)
+        .replace('{time}', time);
+    sendReply(clinic, fromPhone, bookingMsg);
+
+    await prisma.missedCall.update({
+        where: { id: mc.id },
+        data: {
+            conversationState: 'COMPLETED',
+            bookingStep: 'CONFIRMING',
+            status: 'RECOVERED',
+            recoveredAt: new Date(),
+            patientId: patient.id,
+        }
+    });
+    console.log(`[Conversation] BOOKING completed for ${fromPhone} - day=${day} time=${time}`);
 }
 
-module.exports = { handleInboundReply };
+module.exports = {
+    handleInboundReply,
+    normalizePhone,
+    parseAppointmentDay,
+};
