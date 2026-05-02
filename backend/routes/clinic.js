@@ -130,7 +130,7 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
         where: { id: req.clinicId },
         data: {
             ...(webhookUrl !== undefined && { webhookUrl: webhookUrl || null }),
-            ...(webhookSecret !== undefined && { webhookSecret: webhookSecret || undefined }),
+            ...(webhookSecret !== undefined && { webhookSecret: webhookSecret === '' ? null : webhookSecret }),
             ...(webhookMissedCall !== undefined && { webhookMissedCall: webhookMissedCall || null }),
             ...(webhookAppointment !== undefined && { webhookAppointment: webhookAppointment || null }),
             ...(webhookReminders !== undefined && { webhookReminders: webhookReminders || null }),

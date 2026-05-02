@@ -165,14 +165,13 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Reset failed attempts on successful login
+// Reset failed attempts on successful login
         await prisma.user.update({
             where: { id: user.id },
             data: { failedLoginAttempts: 0, lastFailedLoginAt: null }
         });
-        }
 
-        const isAdmin = user.role === 'ADMIN';
+        const isAdmin = user.role === 'ADMIN' || user.role === 'OWNER';
 
         if (user.mfaEnabled) {
             const mfaToken = generateMfaToken({ userId: user.id });
@@ -391,7 +390,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                 data: {
                     email,
                     passwordHash: 'social_login_no_password',
-                    role: 'ADMIN',
+                    role: 'OWNER',
                     clinicId: clinic.id
                 }
             });
@@ -402,7 +401,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                     data: {
                         email,
                         passwordHash: 'social_login_no_password',
-                        role: 'ADMIN',
+                        role: 'OWNER',
                         clinicId: clinic.id
                     }
                 });
@@ -416,7 +415,7 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         }
 
-        const isAdmin = user.role === 'ADMIN';
+        const isAdmin = user.role === 'ADMIN' || user.role === 'OWNER';
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
         const refreshToken = generateRefreshToken({ userId: user.id });
 

@@ -201,7 +201,6 @@ app.use('/api/team', requireAuth, teamRouter);
 const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');
 app.use('/api/webhook', webhookLimiter, webhookAuth, webhooksRouter);
-app.use('/api/webhooks', webhookLimiter, webhookAuth, webhooksRouter);
 
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');
