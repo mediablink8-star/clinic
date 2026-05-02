@@ -333,6 +333,5 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
 
 module.exports = {
     handleInboundReply,
-    normalizePhone,
     parseAppointmentDay,
 };

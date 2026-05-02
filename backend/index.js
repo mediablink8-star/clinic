@@ -47,7 +47,7 @@ const authLimiter = rateLimit({
 
 
 const cookieParser = require('cookie-parser');
-const { reminderWorker, connection } = require('./services/queueService');
+const { connection } = require('./services/queueService');
 
 const app = express();
 const port = process.env.PORT || 4000;

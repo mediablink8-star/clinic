@@ -96,39 +96,10 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
 
     if (!clinicId) return res.status(400).json({ error: 'clinicId could not be resolved' });
 
-    if (!missedCallId) {
-        const activeCase = await prisma.recoveryCase.findFirst({
-            where: {
-                clinicId,
-                patientPhone: normalizedFrom,
-                state: { in: ['ACTIVE', 'ENGAGED'] },
-            },
-            orderBy: { lastActivityAt: 'desc' },
-            select: { missedCallId: true },
-        });
-
-        if (activeCase?.missedCallId) missedCallId = activeCase.missedCallId;
-    }
-
-    const result = await recordInboundMessage({
-        clinicId,
-        fromPhone: normalizedFrom,
-        body: messageBody,
-        providerMessageSid,
-        providerStatusRaw: 'inbound',
-        missedCallId,
-        recoveryCaseId,
-    });
-
+    // Deduplicate BEFORE recording — check by providerMessageSid or body+phone within 30s
     if (providerMessageSid) {
-        const recent = await prisma.message.findFirst({
-            where: {
-                providerMessageSid,
-                clinicId,
-            }
-        });
-
-        if (recent) {
+        const existing = await prisma.message.findFirst({ where: { providerMessageSid, clinicId } });
+        if (existing) {
             console.log(`[Inbound] Duplicate message ${providerMessageSid} skipped`);
             return res.json({ success: true, duplicate: true });
         }
@@ -143,12 +114,34 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
                 createdAt: { gte: thirtySecondsAgo },
             }
         });
-
         if (recentDupe) {
             console.log(`[Inbound] Duplicate body from ${normalizedFrom} within 30s skipped`);
             return res.json({ success: true, duplicate: true });
         }
     }
+
+    if (!missedCallId) {
+        const activeCase = await prisma.recoveryCase.findFirst({
+            where: {
+                clinicId,
+                patientPhone: normalizedFrom,
+                state: { in: ['ACTIVE', 'ENGAGED'] },
+            },
+            orderBy: { lastActivityAt: 'desc' },
+            select: { missedCallId: true },
+        });
+        if (activeCase?.missedCallId) missedCallId = activeCase.missedCallId;
+    }
+
+    const result = await recordInboundMessage({
+        clinicId,
+        fromPhone: normalizedFrom,
+        body: messageBody,
+        providerMessageSid,
+        providerStatusRaw: 'inbound',
+        missedCallId,
+        recoveryCaseId,
+    });
 
     if (missedCallId) {
         handleInboundReply({ clinicId, fromPhone: normalizedFrom, messageBody, missedCallId })

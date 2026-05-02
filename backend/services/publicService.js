@@ -68,8 +68,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         select: { id: true, webhookUrl: true, webhookSecret: true, workingHours: true, aiConfig: true, timezone: true },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
-
-    const start = new Date(startTime);
+    if (!clinic.isActive) throw new AppError('CLINIC_INACTIVE', 'This clinic is not currently accepting bookings', 403);
     if (Number.isNaN(start.getTime())) {
         throw new AppError('VALIDATION_ERROR', 'startTime must be a valid ISO date', 400);
     }
