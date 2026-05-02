@@ -2,7 +2,7 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
-const { isWithinWorkingHours } = require('./slotUtils');
+const { isWithinWorkingHours } = require('./workingHours');
 
 const MIN_APPOINTMENT_MINUTES = 15;
 const MAX_APPOINTMENT_MINUTES = 240;

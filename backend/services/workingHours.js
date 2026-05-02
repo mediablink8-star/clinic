@@ -97,4 +97,32 @@ function getNextOpeningTime(now, workingHours) {
     return fallback;
 }
 
-module.exports = { checkWorkingHours, getNextOpeningTime };
+/**
+ * Check if appointment start/end times are within clinic working hours.
+ */
+function isWithinWorkingHours({ clinic, start, end }) {
+    if (!clinic?.workingHours) return true;
+
+    let wh = {};
+    try {
+        wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
+    } catch {
+        return true;
+    }
+
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[start.getDay()];
+    const rangeStr = wh[dayName] || wh.weekdays || wh.default || null;
+
+    if (!rangeStr || rangeStr.toLowerCase() === 'closed') return false;
+
+    const parsed = parseRange(rangeStr);
+    if (!parsed) return true;
+
+    const startHour = start.getHours() + start.getMinutes() / 60;
+    const endHour = end.getHours() + end.getMinutes() / 60;
+
+    return startHour >= parsed.open.h && endHour <= parsed.close.h;
+}
+
+module.exports = { checkWorkingHours, getNextOpeningTime, isWithinWorkingHours };
