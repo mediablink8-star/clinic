@@ -401,7 +401,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     <button onClick={() => dismissAll(allSorted.map(l => l.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.72rem', fontWeight: '700', padding: '2px 6px' }}>Καθαρισμός</button>
                 </div>
             ) : null}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div className="recovery-feed-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
                 {sorted.map((log) => {
                     const ev = getEvent(log);
                     const Icon = ev.icon;
@@ -507,6 +507,19 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 @keyframes slideInRight {
                     from { transform: translateX(100%); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
+                }
+                .recovery-feed-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .recovery-feed-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .recovery-feed-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(148, 163, 184, 0.3);
+                    border-radius: 3px;
+                }
+                .recovery-feed-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(148, 163, 184, 0.5);
                 }
             `}</style>
         </div>
