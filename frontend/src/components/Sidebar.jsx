@@ -1,6 +1,5 @@
 import React from 'react';
 import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2 } from 'lucide-react';
-import logo from '../assets/logo.png';
 
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
     const navSections = [
@@ -45,16 +44,8 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     </button>
                 </div>
             )}
-            <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 12px' }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    padding: '5px'
-                }}>
-                    <img src={logo} alt="Media Blink" style={{ height: '110px', width: 'auto', objectFit: 'contain' }} />
-                </div>
+            <div className="logo" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 12px 22px' }}>
+                <span className="brand-wordmark" aria-label="ClinicFlow">ClinicFlow</span>
             </div>
 
             <div style={{ padding: '0 24px 40px 24px' }}>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Building2, Mail, Lock, ArrowRight, Shield } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Shield } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -91,10 +91,7 @@ const ClinicLogin = ({ onLogin }) => {
       {/* Left panel — branding */}
       <div className="login-left">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '3rem' }}>
-          <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', display: 'flex' }}>
-            <Building2 color="white" size={28} />
-          </div>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-0.5px' }}>ClinicFlow</span>
+          <span className="auth-wordmark">ClinicFlow</span>
         </div>
 
         <h2 style={{ fontSize: '3rem', fontWeight: '900', color: 'white', letterSpacing: '-2px', lineHeight: 1.1, marginBottom: '1.5rem' }}>

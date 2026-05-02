@@ -87,10 +87,7 @@ const ClinicRegister = ({ onRegister }) => {
       {/* Left panel — branding */}
       <div className="register-left">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '3rem' }}>
-          <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', display: 'flex' }}>
-            <Building2 color="white" size={28} />
-          </div>
-          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-0.5px' }}>ClinicFlow</span>
+          <span className="auth-wordmark">ClinicFlow</span>
         </div>
 
         <h2 style={{ fontSize: '3rem', fontWeight: '900', color: 'white', letterSpacing: '-2px', lineHeight: 1.1, marginBottom: '1.5rem' }}>
