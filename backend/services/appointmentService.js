@@ -169,7 +169,11 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
 }
 
 async function updateAppointmentStatus({ clinicId, appointmentId, status }, actor) {
+    const VALID_STATUSES = ['CONFIRMED', 'PENDING', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
     if (!status) throw new AppError('VALIDATION_ERROR', 'status is required', 400);
+    if (!VALID_STATUSES.includes(status)) {
+        throw new AppError('VALIDATION_ERROR', `status must be one of: ${VALID_STATUSES.join(', ')}`, 400);
+    }
 
     const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId } });
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);

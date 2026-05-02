@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { logAction } = require('../services/auditService');
-const { reminderWorker, connection } = require('../services/queueService');
+const { connection } = require('../services/queueService');
+// schedulerWorker lives in notificationWorker — import it for status checks
+let _schedulerWorker = null;
+try { ({ schedulerWorker: _schedulerWorker } = require('../services/notificationWorker')); } catch {}
+const reminderWorker = _schedulerWorker;
 const prisma = require('../services/prisma');
 
 router.get('/config-status', asyncHandler(async (req, res) => {

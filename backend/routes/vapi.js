@@ -14,12 +14,31 @@ const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
 const { triggerN8nSms } = require('../services/smsFallbackService');
+const { createAppointment } = require('../services/appointmentService');
+const { parseAppointmentDay } = require('../services/conversationService');
+
+// Shared secret check for Vapi webhooks
+function vapiAuth(req, res, next) {
+    const vapiSecret = process.env.VAPI_WEBHOOK_SECRET || process.env.VAPI_API_KEY;
+    if (!vapiSecret) {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(500).json({ error: 'Vapi webhook authentication not configured' });
+        }
+        console.warn('[Vapi] WARNING: No VAPI_WEBHOOK_SECRET set — running unauthenticated in dev');
+        return next();
+    }
+    const provided = req.headers['x-vapi-secret'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!provided || provided !== vapiSecret) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+}
 
 /**
  * POST /api/vapi/webhook
  * Main webhook from Vapi AI
  */
-router.post('/webhook', asyncHandler(async (req, res) => {
+router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     const event = req.body;
     const callId = event.id;
     const status = event.status;
@@ -37,7 +56,7 @@ router.post('/webhook', asyncHandler(async (req, res) => {
  * POST /api/vapi/tool
  * Called by Vapi AI when the agent invokes a tool (book_appointment, request_callback)
  */
-router.post('/tool', asyncHandler(async (req, res) => {
+router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     const { function: fn, arguments: args, call_id } = req.body;
     const input = typeof args === 'string' ? JSON.parse(args) : args;
     console.log(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
@@ -117,17 +136,15 @@ async function handleVoiceBooking(mc, input) {
         console.warn('[Vapi] Patient upsert failed:', err.message);
     }
 
-    let startTime = new Date();
-    startTime.setDate(startTime.getDate() + 1);
+    // Use full parseAppointmentDay for proper Greek day name support
+    let startTime = parseAppointmentDay(preferred_day || 'αύριο');
+    if (!startTime) {
+        startTime = new Date();
+        startTime.setDate(startTime.getDate() + 1);
+    }
     startTime.setHours(9, 0, 0, 0);
+
     try {
-        const lowerDay = (preferred_day || '').toLowerCase();
-        if (lowerDay.includes('σήμερα') || lowerDay.includes('today')) {
-            startTime = new Date();
-        } else if (lowerDay.includes('αύριο') || lowerDay.includes('tomorrow')) {
-            startTime = new Date();
-            startTime.setDate(startTime.getDate() + 1);
-        }
         const timeStr = (preferred_time || '').toLowerCase();
         const digitMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?/);
         if (digitMatch) {
@@ -141,19 +158,20 @@ async function handleVoiceBooking(mc, input) {
 
     if (patient) {
         try {
-            await prisma.appointment.create({
-                data: {
+            // Use createAppointment to enforce working hours, conflict detection, and audit logging
+            await createAppointment(
+                {
                     clinicId: clinic.id,
                     patientId: patient.id,
-                    startTime,
-                    endTime,
+                    startTime: startTime.toISOString(),
+                    endTime: endTime.toISOString(),
                     reason: 'Ραντεβού από AI φωνητική ανάκτηση',
                     notes: `Ημέρα: ${preferred_day} | Ώρα: ${preferred_time}`,
-                    status: 'PENDING',
                     priority: 'NORMAL',
-                }
-            });
-            console.log(`[Vapi] Appointment created`);
+                },
+                { userId: null, ip: null }
+            );
+            console.log(`[Vapi] Appointment created via appointmentService`);
         } catch (err) {
             console.warn('[Vapi] Appointment create failed:', err.message);
         }

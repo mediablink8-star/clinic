@@ -15,7 +15,7 @@ const requireOwner = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 'ADMIN') {
+    if (!req.user || !['ADMIN', 'OWNER'].includes(req.user.role)) {
         return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
     }
     next();

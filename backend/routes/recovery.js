@@ -196,8 +196,12 @@ router.post('/:id/retry', asyncHandler(async (req, res) => {
 /**
  * @route POST /api/recovery/test-trigger
  * @desc Manually triggers a missed call recovery flow for testing (from Dashboard)
+ * Requires ADMIN or OWNER role.
  */
 router.post('/test-trigger', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
+        return res.status(403).json({ error: 'Admin or Owner role required' });
+    }
     const { handleMissedCall } = require('../services/missedCallService');
     const { phone = '+30690000000', callSid = `test_${Date.now()}`, bypassCooldown = false } = req.body;
 

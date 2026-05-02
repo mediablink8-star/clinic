@@ -1,6 +1,5 @@
 require('dotenv').config(); // MUST be first — env vars must be set before any service is loaded
 const { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker } = require('./services/notificationWorker');
-const { reminderWorker } = require('./services/queueService'); // Import to start BullMQ worker
 
 console.log('🚀 SaaS-Grade Background Worker process starting...');
 

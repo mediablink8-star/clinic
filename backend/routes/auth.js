@@ -225,6 +225,11 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
+    // Clean up any existing expired tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id, expiresAt: { lt: new Date() } }
+    });
+
     await prisma.passwordResetToken.create({
         data: {
             token,
@@ -566,15 +571,19 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
 
 router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
     const { password } = req.body;
-    if (!password) {
-        return res.status(400).json({ error: 'Password required to disable MFA' });
-    }
 
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-        const isValid = await comparePassword(password, user.passwordHash);
-        if (!isValid) {
-            return res.status(401).json({ error: 'Invalid password' });
+
+        // Social login users have no password — skip the check
+        if (user.passwordHash !== 'social_login_no_password') {
+            if (!password) {
+                return res.status(400).json({ error: 'Password required to disable MFA' });
+            }
+            const isValid = await comparePassword(password, user.passwordHash);
+            if (!isValid) {
+                return res.status(401).json({ error: 'Invalid password' });
+            }
         }
 
         await prisma.user.update({

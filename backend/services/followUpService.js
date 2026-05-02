@@ -10,40 +10,19 @@
  * - Stop if conversationState changed from NEW (patient engaged)
  */
 const prisma = require('./prisma');
-const https = require('https');
-const http = require('http');
+const { sendManagedSms } = require('./messagingService');
 
 const FOLLOWUP_1_DELAY_MS = 8 * 60 * 1000;       // 8 minutes
 const FOLLOWUP_2_DELAY_MS = 90 * 60 * 1000;      // 90 minutes
 
-function sendFollowUp(clinic, phone, message) {
-    const webhookUrl = clinic.webhookDirectSms || clinic.webhookReminders || clinic.webhookUrl;
-    if (!webhookUrl) return;
-
-    const body = JSON.stringify({ phone, message, clinicId: clinic.id });
-    const secret = process.env.WEBHOOK_SECRET || '';
-
-    try {
-        const parsed = new URL(webhookUrl);
-        const lib = parsed.protocol === 'https:' ? https : http;
-        const req = lib.request({
-            hostname: parsed.hostname,
-            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-            path: parsed.pathname + parsed.search,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body),
-                'x-webhook-key': secret,
-            },
-        }, (res) => { res.resume(); });
-        req.on('error', (err) => console.warn(`[FollowUp] send failed: ${err.message}`));
-        req.setTimeout(8000, () => req.destroy());
-        req.write(body);
-        req.end();
-    } catch (err) {
-        console.warn(`[FollowUp] error: ${err.message}`);
-    }
+async function sendFollowUp(clinic, phone, message, missedCallId) {
+    await sendManagedSms({
+        clinicId: clinic.id,
+        clinic,
+        eventType: 'missed_call.followup',
+        payload: { phone, message, clinicId: clinic.id, missedCallId, isFollowUp: true },
+        logType: 'SMS',
+    });
 }
 
 async function processFollowUps() {
@@ -67,12 +46,13 @@ async function processFollowUps() {
     for (const mc of needFollowUp1) {
         if (!mc.clinic) continue;
         const msg = `Μόλις ελέγχαμε — χρειάζεστε βοήθεια με ραντεβού ή έχετε ερώτηση; 😊\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
-        sendFollowUp(mc.clinic, mc.fromNumber, msg);
-        await prisma.missedCall.update({
-            where: { id: mc.id },
-            data: { followUp1SentAt: now }
-        });
-        console.log(`[FollowUp1] Sent to ${mc.fromNumber} for case ${mc.id}`);
+        try {
+            await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
+            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp1SentAt: now } });
+            console.log(`[FollowUp1] Sent to ${mc.fromNumber} for case ${mc.id}`);
+        } catch (err) {
+            console.warn(`[FollowUp1] Failed for case ${mc.id}: ${err.message}`);
+        }
     }
 
     // Find cases eligible for follow-up 2
@@ -92,12 +72,13 @@ async function processFollowUps() {
     for (const mc of needFollowUp2) {
         if (!mc.clinic) continue;
         const msg = `Έχουμε περιορισμένη διαθεσιμότητα σήμερα — θέλετε να κλείσουμε κάτι για εσάς; 📅`;
-        sendFollowUp(mc.clinic, mc.fromNumber, msg);
-        await prisma.missedCall.update({
-            where: { id: mc.id },
-            data: { followUp2SentAt: now }
-        });
-        console.log(`[FollowUp2] Sent to ${mc.fromNumber} for case ${mc.id}`);
+        try {
+            await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
+            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp2SentAt: now } });
+            console.log(`[FollowUp2] Sent to ${mc.fromNumber} for case ${mc.id}`);
+        } catch (err) {
+            console.warn(`[FollowUp2] Failed for case ${mc.id}: ${err.message}`);
+        }
     }
 
     return { followUp1: needFollowUp1.length, followUp2: needFollowUp2.length };

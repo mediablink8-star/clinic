@@ -85,4 +85,4 @@ function startNotificationWorker() {
 function startFollowUpWorker() {}
 function startScheduledSmsWorker() {}
 
-module.exports = { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker };
+module.exports = { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker, get schedulerWorker() { return schedulerWorker; } };

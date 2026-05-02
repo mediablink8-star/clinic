@@ -120,7 +120,7 @@ function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens' }
     return startParts.minutes >= openMinutes && endParts.minutes <= closeMinutes;
 }
 
-async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
+async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', stepMinutes = 60) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
         select: { workingHours: true, aiConfig: true },
@@ -143,21 +143,31 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
             startTime: { gte: dayStart, lte: dayEnd },
             status: { notIn: ['CANCELLED', 'NO_SHOW'] },
         },
-        select: { startTime: true },
+        select: { startTime: true, endTime: true },
     });
 
-    const bookedHours = new Set(
-        existing.map(a => Number(new Intl.DateTimeFormat('en-US', {
-            timeZone: timezone,
-            hour: '2-digit',
-            hour12: false,
-        }).format(new Date(a.startTime))))
-    );
+    // Mark every slot occupied by each appointment (handles multi-hour appointments)
+    const step = Math.max(15, stepMinutes);
+    const bookedMinutes = new Set();
+    for (const appt of existing) {
+        const apptStart = new Date(appt.startTime);
+        const apptEnd = new Date(appt.endTime);
+        let cur = apptStart.getHours() * 60 + apptStart.getMinutes();
+        const endMin = apptEnd.getHours() * 60 + apptEnd.getMinutes();
+        while (cur < endMin) {
+            bookedMinutes.add(cur);
+            cur += step;
+        }
+    }
 
     const slots = [];
-    for (let h = parsed.openHour; h < parsed.closeHour; h++) {
-        if (!bookedHours.has(h)) {
-            slots.push(`${String(h).padStart(2, '0')}:00`);
+    const openMinutes = parsed.openHour * 60 + parsed.openMinute;
+    const closeMinutes = parsed.closeHour * 60 + parsed.closeMinute;
+    for (let m = openMinutes; m < closeMinutes; m += step) {
+        if (!bookedMinutes.has(m)) {
+            const h = Math.floor(m / 60);
+            const min = m % 60;
+            slots.push(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
         }
     }
     return slots;

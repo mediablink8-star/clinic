@@ -22,7 +22,8 @@ function getModel() {
 async function classifyAppointment(reason, clinic) {
     try {
         await assertWithinAiLimit(clinic.id);
-        const servicesList = JSON.parse(clinic.services).map(s => s.name).join(', ');
+        let servicesList = '';
+        try { servicesList = JSON.parse(clinic.services || '[]').map(s => s.name).join(', '); } catch {}
         const aiConfig = JSON.parse(clinic.aiConfig || '{}');
 
         const prompt = `

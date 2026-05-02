@@ -16,7 +16,6 @@ function validateEnv() {
         'N8N_WEBHOOK_URL',
         'BACKEND_API_URL',
         'FRONTEND_URL',
-        'BLAND_API_KEY',
         'SMTP_HOST',
         'REDIS_URL',
         'SENTRY_BACKEND_DSN',
