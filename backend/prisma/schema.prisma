@@ -37,6 +37,9 @@ model Clinic {
   vapiCredentialId  String? // Vapi Vonage credential ID
   voiceEnabled      Boolean @default(false) // Master switch for voice AI
   
+  // Gemini AI (for AI assistant commands)
+  geminiApiKey      String? // Encrypted per-clinic Gemini API key
+  
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
   messageCredits    Int           @default(100)

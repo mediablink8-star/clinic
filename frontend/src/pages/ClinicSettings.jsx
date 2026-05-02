@@ -430,6 +430,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         vapiAssistantId: clinic?.vapiAssistantId || '',
         vapiPhoneNumberId: clinic?.vapiPhoneNumberId || '',
         voiceEnabled: clinic?.voiceEnabled || false,
+        geminiApiKey: '',
     });
     const [savingVapi, setSavingVapi] = React.useState(false);
     const [testingVapi, setTestingVapi] = React.useState(false);
@@ -948,6 +949,12 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 <input style={inputStyle} type="password" placeholder="sk-..." value={vapiData.vapiApiKey} onChange={e => setVapiData(d => ({ ...d, vapiApiKey: e.target.value }))} />
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Αν left κενό, χρησιμοποιείται το env variable</p>
                 </FormGroup>
+                
+                <FormGroup label="Gemini API Key (για AI Assistant)" flex="1 1 100%">
+                <input style={inputStyle} type="password" placeholder="AIza..." value={vapiData.geminiApiKey} onChange={e => setVapiData(d => ({ ...d, geminiApiKey: e.target.value }))} />
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Απαιτείται για τον AI βοηθό στο dashboard. Αν left κενό, χρησιμοποιείται το env variable</p>
+                </FormGroup>
+                
                         <FormRow>
                             <FormGroup label="Assistant ID *">
                                 <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />

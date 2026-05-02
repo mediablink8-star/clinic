@@ -5,8 +5,6 @@ const { createAppointment, getTodayAppointments, updateAppointmentStatus } = req
 const { triggerOutboundCall } = require('./vapiService');
 const prisma = require('./prisma');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 const SYSTEM_PROMPT = `You are an AI assistant for a Greek medical clinic management system. Parse natural language commands in Greek or English and return structured JSON.
 
 Available actions:
@@ -50,11 +48,14 @@ If the command is unclear or not supported, return:
  * Parse natural language command using Gemini
  */
 async function parseCommand(command, context = {}) {
-    if (!process.env.GEMINI_API_KEY) {
-        throw new AppError('CONFIGURATION_ERROR', 'Gemini API key not configured', 500);
+    const apiKey = context.geminiApiKey || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+        throw new AppError('CONFIGURATION_ERROR', 'Gemini API key not configured. Please add it in Settings.', 500);
     }
 
     try {
+        const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         
         const contextInfo = context.currentDate ? `\nCurrent date: ${context.currentDate}` : '';
@@ -344,9 +345,19 @@ async function executeCommand(parsedCommand, clinicId, actor) {
  * Main entry point: parse and execute command
  */
 async function processCommand(command, clinicId, actor) {
+    // Get clinic's Gemini API key
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: clinicId },
+        select: { geminiApiKey: true }
+    });
+    
+    const { decrypt } = require('./encryptionService');
+    const geminiApiKey = clinic?.geminiApiKey ? decrypt(clinic.geminiApiKey) : null;
+    
     // Parse command with AI
     const context = {
-        currentDate: new Date().toISOString().split('T')[0]
+        currentDate: new Date().toISOString().split('T')[0],
+        geminiApiKey
     };
     
     const parsed = await parseCommand(command, context);

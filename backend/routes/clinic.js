@@ -182,7 +182,7 @@ router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
 
 // PUT /api/clinic/vapi — store Vapi credentials (Vapi + Vonage for Greek numbers)
 router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
-    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled } = req.body;
+    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled, geminiApiKey } = req.body;
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },
@@ -192,6 +192,7 @@ router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
             ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId || null }),
             ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId || null }),
             ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
+            ...(geminiApiKey !== undefined && { geminiApiKey: geminiApiKey ? encrypt(geminiApiKey) : null }),
         },
         select: { vapiAssistantId: true, vapiPhoneNumberId: true, voiceEnabled: true }
     });
