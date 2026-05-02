@@ -230,6 +230,10 @@ app.use('/api/audit-logs', requireAuth, auditLogsRouter);
 const messagesRouter = require('./routes/messages');
 app.use('/api/messages', requireAuth, messagesRouter);
 
+// AI Command endpoint
+const aiCommandRouter = require('./routes/aiCommand');
+app.use('/api/ai', requireAuth, aiCommandRouter);
+
 // Vapi voice AI webhook endpoint
 const vapiRouter = require('./routes/vapi');
 app.use('/api/vapi', vapiRouter);
