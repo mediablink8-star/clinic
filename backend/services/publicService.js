@@ -1,17 +1,41 @@
 const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
+const { getAvailableSlots: getSlotsForDate, isWithinWorkingHours } = require('./slotUtils');
 
-// Normalize phone number - strip spaces, dashes, parentheses, convert 0 to +30
 function normalizePhone(phone) {
     if (!phone) return null;
-    return phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+').replace(/^0/, '+30');
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
+    if (cleaned.startsWith('+30')) return cleaned;
+    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
+    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
+    return cleaned;
+}
+
+function getDateTimeParts(date, timezone = 'Europe/Athens') {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+
+    return {
+        date: `${parts.year}-${parts.month}-${parts.day}`,
+        time: `${parts.hour}:${parts.minute}`,
+    };
 }
 
 async function getPublicClinic(clinicId) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true }
+        select: { id: true, name: true, location: true, phone: true, email: true, workingHours: true, services: true, policies: true, avatarUrl: true },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
@@ -21,66 +45,25 @@ async function getPublicClinic(clinicId) {
             ...clinic,
             workingHours: JSON.parse(clinic.workingHours || '{}'),
             services: JSON.parse(clinic.services || '[]'),
-            policies: JSON.parse(clinic.policies || '{}')
-        }
+            policies: JSON.parse(clinic.policies || '{}'),
+        },
     };
 }
 
-/**
- * Returns available time slots for a specific date (e.g., '2026-04-15')
- * based on clinic's working hours and existing appointments.
- */
 async function getAvailableSlots(clinicId, dateStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) {
+        throw new AppError('VALIDATION_ERROR', 'date must be YYYY-MM-DD', 400);
+    }
+
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { workingHours: true }
+        select: { timezone: true },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
-    const workingHours = JSON.parse(clinic.workingHours || '{}');
-    // Parse date parts directly to avoid UTC-vs-local day-of-week mismatch
     const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
-    const localDate = new Date(year, month - 1, day);
-    const dayName = localDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    
-    // Support different working-hours formats: weekdays/saturday/sunday or explicit day names.
-    const dayKey = dayName === 'saturday' ? 'saturday' : (dayName === 'sunday' ? 'sunday' : 'weekdays');
-    const titleCaseDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-    const hours = workingHours[dayKey] || workingHours[dayName] || workingHours[titleCaseDay];
-
-    if (!hours || hours === 'Closed') return [];
-
-    // Parse "09:00 - 18:00" or "09:00-18:00"
-    const [startStr, endStr] = hours.split('-').map(str => str.trim());
-    if (!startStr || !endStr) return [];
-
-    const [startH, endH] = [startStr, endStr].map(h => parseInt(h.split(':')[0], 10));
-    if (Number.isNaN(startH) || Number.isNaN(endH)) return [];
-
-    // Use local date boundaries for the requested day.
-    const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
-    const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
-    
-    const appointments = await prisma.appointment.findMany({
-        where: {
-            clinicId,
-            startTime: { gte: dayStart, lte: dayEnd },
-            status: { notIn: ['CANCELLED', 'NOSHOW'] }
-        },
-        select: { startTime: true }
-    });
-
-    const bookedHours = appointments.map(a => a.startTime.getHours());
-    
-    const slots = [];
-    for (let h = startH; h < endH; h++) {
-        const timeStr = `${h.toString().padStart(2, '0')}:00`;
-        if (!bookedHours.includes(h)) {
-            slots.push(timeStr);
-        }
-    }
-
-    return slots;
+    const date = new Date(year, month - 1, day);
+    return getSlotsForDate(clinicId, date, clinic.timezone || 'Europe/Athens');
 }
 
 async function bookAppointment({ clinicId, name, phone, email, reason, startTime }) {
@@ -90,38 +73,57 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, webhookUrl: true, webhookSecret: true, workingHours: true }
+        select: { id: true, webhookUrl: true, webhookSecret: true, workingHours: true, aiConfig: true, timezone: true },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
     const start = new Date(startTime);
-    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    if (Number.isNaN(start.getTime())) {
+        throw new AppError('VALIDATION_ERROR', 'startTime must be a valid ISO date', 400);
+    }
+    if (start < new Date()) {
+        throw new AppError('VALIDATION_ERROR', 'Cannot create appointments in the past', 400);
+    }
 
-    // Double-booking check
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const timezone = clinic.timezone || 'Europe/Athens';
+    const requested = getDateTimeParts(start, timezone);
+    const availableSlots = await getAvailableSlots(clinicId, requested.date);
+    if (!availableSlots.includes(requested.time)) {
+        throw new AppError('VALIDATION_ERROR', 'Selected time slot is not available', 400);
+    }
+
+    if (!isWithinWorkingHours({ clinic, start, end, timezone })) {
+        throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic working hours', 400);
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+
     const { patient, appointment } = await prisma.$transaction(async (tx) => {
         const existing = await tx.appointment.findFirst({
             where: {
                 clinicId,
-                startTime: start,
-                status: { notIn: ['CANCELLED', 'NOSHOW'] }
-            }
+                status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+                AND: [
+                    { startTime: { lt: end } },
+                    { endTime: { gt: start } },
+                ],
+            },
         });
         if (existing) {
             throw new AppError('CONFLICT', 'Time slot already booked', 409);
         }
 
-        const normalizedPhone = normalizePhone(phone);
         let pt = await tx.patient.findFirst({ where: { clinicId, phone: normalizedPhone } });
         if (!pt) {
             pt = await tx.patient.create({ data: { clinicId, name, phone: normalizedPhone, email } });
         }
         const appt = await tx.appointment.create({
-            data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' }
+            data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' },
         });
         return { patient: pt, appointment: appt };
     });
 
-    // Fire-and-forget webhook — failure must not block the booking response
     if (clinic.webhookUrl) {
         triggerWebhook(
             'appointment.created',
@@ -131,7 +133,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 phone: patient.phone,
                 date: start.toISOString().split('T')[0],
                 time: start.toISOString().split('T')[1].slice(0, 5),
-                reason
+                reason,
             },
             clinic.webhookUrl,
             clinic.webhookSecret

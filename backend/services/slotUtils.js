@@ -1,51 +1,134 @@
 const prisma = require('./prisma');
 
+const GREEK_DAY_NAMES = [
+    '\u039a\u03c5\u03c1\u03b9\u03b1\u03ba\u03ae',
+    '\u0394\u03b5\u03c5\u03c4\u03ad\u03c1\u03b1',
+    '\u03a4\u03c1\u03af\u03c4\u03b7',
+    '\u03a4\u03b5\u03c4\u03ac\u03c1\u03c4\u03b7',
+    '\u03a0\u03ad\u03bc\u03c0\u03c4\u03b7',
+    '\u03a0\u03b1\u03c1\u03b1\u03c3\u03ba\u03b5\u03c5\u03ae',
+    '\u03a3\u03ac\u03b2\u03b2\u03b1\u03c4\u03bf',
+];
+
+const EN_DAY_TO_KEY = {
+    monday: 'weekdays',
+    tuesday: 'weekdays',
+    wednesday: 'weekdays',
+    thursday: 'weekdays',
+    friday: 'weekdays',
+    saturday: 'saturday',
+    sunday: 'sunday',
+};
+
+const EN_DAY_INDEX = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+};
+
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || rangeStr.toLowerCase() === 'closed') return null;
-    const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
-    return { openHour: parseInt(match[1]), closeHour: parseInt(match[3]) };
+    return {
+        openHour: parseInt(match[1], 10),
+        openMinute: parseInt(match[2], 10),
+        closeHour: parseInt(match[3], 10),
+        closeMinute: parseInt(match[4], 10),
+    };
 }
 
-function resolveRangeForDate(workingHours, date) {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayName = days[date.getDay()];
-    return workingHours[dayName] || workingHours.weekdays || workingHours.default || null;
+function resolveRangeForDate(workingHours, date, timezone = 'Europe/Athens') {
+    if (!workingHours || typeof workingHours !== 'object') return null;
+
+    const enDay = new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        timeZone: timezone,
+    }).format(date).toLowerCase();
+
+    const greekKey = GREEK_DAY_NAMES[EN_DAY_INDEX[enDay]];
+    if (workingHours[greekKey]) return workingHours[greekKey];
+
+    const shortKey = EN_DAY_TO_KEY[enDay] || enDay;
+    const titleKey = enDay.charAt(0).toUpperCase() + enDay.slice(1);
+    return workingHours[shortKey] || workingHours[enDay] || workingHours[titleKey] || workingHours.default || null;
+}
+
+function getLocalDateParts(date, timezone = 'Europe/Athens') {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        weekday: 'long',
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+
+    return {
+        dateKey: `${parts.year}-${parts.month}-${parts.day}`,
+        weekday: parts.weekday,
+        minutes: Number(parts.hour) * 60 + Number(parts.minute),
+    };
+}
+
+function parseWorkingHours(clinic) {
+    let workingHours = {};
+    try {
+        workingHours = typeof clinic?.workingHours === 'string'
+            ? JSON.parse(clinic.workingHours || '{}')
+            : (clinic?.workingHours || {});
+    } catch {
+        workingHours = {};
+    }
+
+    try {
+        const aiConfig = typeof clinic?.aiConfig === 'string'
+            ? JSON.parse(clinic.aiConfig || '{}')
+            : (clinic?.aiConfig || {});
+        if (aiConfig.workingHours && typeof aiConfig.workingHours === 'object') {
+            workingHours = { ...workingHours, ...aiConfig.workingHours };
+        }
+    } catch {
+        // Keep clinic.workingHours if AI config is malformed.
+    }
+
+    return workingHours;
 }
 
 function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens' }) {
-    if (!clinic?.workingHours) return true;
+    const workingHours = parseWorkingHours(clinic);
+    const startParts = getLocalDateParts(start, timezone);
+    const endParts = getLocalDateParts(end, timezone);
 
-    let wh = {};
-    try {
-        wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
-    } catch {
-        return true;
-    }
+    if (startParts.dateKey !== endParts.dateKey) return false;
 
-    const rangeStr = resolveRangeForDate(wh, start);
+    const rangeStr = resolveRangeForDate(workingHours, start, timezone);
     const parsed = parseHoursRange(rangeStr);
     if (!parsed) return false;
 
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
-
-    return startHour >= parsed.openHour && endHour <= parsed.closeHour;
+    const openMinutes = parsed.openHour * 60 + parsed.openMinute;
+    const closeMinutes = parsed.closeHour * 60 + parsed.closeMinute;
+    return startParts.minutes >= openMinutes && endParts.minutes <= closeMinutes;
 }
 
 async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { workingHours: true },
+        select: { workingHours: true, aiConfig: true },
     });
     if (!clinic) return [];
 
-    let wh = {};
-    try {
-        wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
-    } catch { return []; }
-
-    const rangeStr = resolveRangeForDate(wh, date);
+    const workingHours = parseWorkingHours(clinic);
+    const rangeStr = resolveRangeForDate(workingHours, date, timezone);
     const parsed = parseHoursRange(rangeStr);
     if (!parsed) return [];
 
@@ -64,10 +147,11 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
     });
 
     const bookedHours = new Set(
-        existing.map(a => {
-            const d = new Date(a.startTime);
-            return d.getHours();
-        })
+        existing.map(a => Number(new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            hour: '2-digit',
+            hour12: false,
+        }).format(new Date(a.startTime))))
     );
 
     const slots = [];
@@ -83,5 +167,6 @@ module.exports = {
     parseHoursRange,
     resolveRangeForDate,
     isWithinWorkingHours,
-    getAvailableSlots
+    getAvailableSlots,
+    getLocalDateParts,
 };

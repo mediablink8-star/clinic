@@ -1118,34 +1118,99 @@ html[data-theme="dark"] body {
   z-index: 1;
 }
 
+.register-layout {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  position: relative;
+  overflow-x: hidden;
+  color: white;
+}
+
+.register-success-layout {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.register-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.register-features {
+  display: flex;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.register-right {
+  width: min(520px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
 @media (max-width: 900px) {
-  .login-layout {
+  .login-layout,
+  .register-layout {
     flex-direction: column;
     overflow-y: auto;
     height: auto;
     min-height: 100vh;
   }
-  .login-left {
+  .login-left,
+  .register-left {
     padding: 3rem 1.5rem 1.5rem;
     flex: none;
     align-items: center;
     text-align: center;
   }
-  .login-left h2 {
+  .login-left h2,
+  .register-left h2 {
     font-size: 2.2rem !important;
   }
-  .login-left p {
+  .login-left p,
+  .register-left p {
     text-align: center;
   }
-  .login-features {
+  .login-features,
+  .register-features {
     justify-content: center;
     flex-wrap: wrap;
     gap: 1.5rem !important;
   }
-  .login-right {
+  .login-right,
+  .register-right {
     width: 100%;
     padding: 1rem;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .register-left {
+    padding: 2rem 1rem 1rem;
+  }
+
+  .register-left h2 {
+    font-size: 1.9rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .register-right > div {
+    padding: 1.25rem !important;
+    border-radius: 20px !important;
   }
 }
 

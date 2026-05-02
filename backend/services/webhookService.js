@@ -98,6 +98,9 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
             .createHmac('sha256', secret)
             .update(body)
             .digest('hex');
+        // Existing n8n workflows validate this shared-key header. Keep the
+        // HMAC signature above for consumers that support body signing.
+        headers['X-Webhook-Key'] = secret;
     }
 
     const startTime = Date.now();

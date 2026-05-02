@@ -56,14 +56,7 @@ const ClinicRegister = ({ onRegister }) => {
 
   if (success) {
     return (
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-        color: 'white'
-      }}>
+      <div className="register-layout register-success-layout">
         <div style={{
           textAlign: 'center',
           background: 'rgba(255,255,255,0.05)',
@@ -86,27 +79,13 @@ const ClinicRegister = ({ onRegister }) => {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <div className="register-layout">
       {/* Background glows */}
       <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
       {/* Left panel — branding */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '4rem',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div className="register-left">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '3rem' }}>
           <div style={{ background: 'var(--primary)', padding: '10px', borderRadius: '14px', display: 'flex' }}>
             <Building2 color="white" size={28} />
@@ -123,7 +102,7 @@ const ClinicRegister = ({ onRegister }) => {
           Δημιουργήστε το δικό σας ψηφιακό ιατρείο σε λιγότερο από 2 λεπτά και κερδίστε χρόνο για τους ασθενείς σας.
         </p>
 
-        <div style={{ display: 'flex', gap: '2rem', marginTop: '3rem' }}>
+        <div className="register-features">
           {[['ΔΩΡΕΑΝ', 'Δοκιμή'], ['100', 'Credits'], ['AI', 'Έτοιμο']].map(([val, lbl]) => (
             <div key={val}>
               <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white', letterSpacing: '-1px' }}>{val}</p>
@@ -134,15 +113,7 @@ const ClinicRegister = ({ onRegister }) => {
       </div>
 
       {/* Right panel — form */}
-      <div style={{
-        width: '520px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        position: 'relative',
-        zIndex: 1
-      }}>
+      <div className="register-right">
         <div style={{
           width: '100%',
           background: 'rgba(255,255,255,0.05)',

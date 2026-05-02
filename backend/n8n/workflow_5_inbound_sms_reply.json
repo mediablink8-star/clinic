@@ -130,7 +130,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/webhooks/inbound-sms",
+        "url": "={{ $env.BACKEND_API_URL }}/webhook/inbound-sms",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
