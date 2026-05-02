@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
-const AiAssistant = ({ token }) => {
+const AiAssistant = ({ token, isMobile = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
@@ -138,10 +138,10 @@ const AiAssistant = ({ token }) => {
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
                     position: 'fixed',
-                    bottom: '24px',
-                    right: '24px',
-                    width: '60px',
-                    height: '60px',
+                    bottom: isMobile ? '16px' : '24px',
+                    right: isMobile ? '16px' : '24px',
+                    width: isMobile ? '56px' : '60px',
+                    height: isMobile ? '56px' : '60px',
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                     border: 'none',
@@ -155,15 +155,19 @@ const AiAssistant = ({ token }) => {
                     animation: isOpen ? 'none' : 'pulse 2s infinite'
                 }}
                 onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(99,102,241,0.5)';
+                    if (!isMobile) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(99,102,241,0.5)';
+                    }
                 }}
                 onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.4)';
+                    if (!isMobile) {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.4)';
+                    }
                 }}
             >
-                {isOpen ? <X size={24} color="white" /> : <Sparkles size={24} color="white" />}
+                {isOpen ? <X size={isMobile ? 22 : 24} color="white" /> : <Sparkles size={isMobile ? 22 : 24} color="white" />}
             </button>
 
             {/* Chat Window */}
@@ -171,18 +175,20 @@ const AiAssistant = ({ token }) => {
                 <div
                     style={{
                         position: 'fixed',
-                        bottom: '100px',
-                        right: '24px',
-                        width: '400px',
-                        height: '600px',
+                        bottom: isMobile ? '0' : '100px',
+                        right: isMobile ? '0' : '24px',
+                        left: isMobile ? '0' : 'auto',
+                        width: isMobile ? '100%' : '400px',
+                        height: isMobile ? '100vh' : '600px',
+                        maxHeight: isMobile ? '100vh' : '80vh',
                         background: 'var(--modal-bg)',
-                        borderRadius: '20px',
+                        borderRadius: isMobile ? '0' : '20px',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                         display: 'flex',
                         flexDirection: 'column',
                         zIndex: 998,
                         overflow: 'hidden',
-                        animation: 'slideUp 0.3s ease'
+                        animation: isMobile ? 'slideUpFull 0.3s ease' : 'slideUp 0.3s ease'
                     }}
                 >
                     {/* Header */}
@@ -369,6 +375,10 @@ const AiAssistant = ({ token }) => {
                 @keyframes slideUp {
                     from { transform: translateY(20px); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes slideUpFull {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
                 }
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(10px); }

@@ -50,7 +50,7 @@ const Dashboard = ({
     recoveryStats = { recovered: 0, pending: 0, revenue: 0, potentialRevenue: 0 },
     recoveryLog = [], recoveryInsights = {}, systemStatus = {}, systemStats = {},
     apiUsage = {}, spending = {}, loading, warnings = [], notifications = [],
-    upcomingAppointments = [], onUpdate, onRefresh, onNotificationAction
+    upcomingAppointments = [], onUpdate, onRefresh, onNotificationAction, isMobile = false
 }) => {
     const [hasLoaded, setHasLoaded] = React.useState(false);
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
@@ -174,7 +174,7 @@ const Dashboard = ({
             </div>
 
             {/* AI Assistant Bubble */}
-            <AiAssistant token={token} />
+            <AiAssistant token={token} isMobile={isMobile} />
         </div>
     );
 };
