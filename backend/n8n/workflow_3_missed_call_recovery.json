@@ -22,7 +22,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['x-api-key'] }}",
+              "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
               "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
@@ -353,6 +353,55 @@
         200
       ],
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "sms_failed"
+            },
+            {
+              "name": "executionId",
+              "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"
+            },
+            {
+              "name": "entityType",
+              "value": "missed_call"
+            },
+            {
+              "name": "entityId",
+              "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Set Variables\"].json.phone }}"
+            },
+            {
+              "name": "error",
+              "value": "={{ $node[\"Log Failure\"].json.error }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_notify_backend_failure",
+      "name": "Notify Backend of Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        400
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
@@ -470,6 +519,17 @@
         [
           {
             "node": "Notify Backend of Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Failure": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend of Failure",
             "type": "main",
             "index": 0
           }

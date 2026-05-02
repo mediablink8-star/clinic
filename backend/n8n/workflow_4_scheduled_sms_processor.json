@@ -26,6 +26,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [460, 300],
+      "continueOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
@@ -45,7 +46,7 @@
       "name": "Any Processed?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [680, 160]
     },
     {
       "parameters": {
@@ -58,7 +59,8 @@
       "name": "Poll Pending Notifications",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [900, 300],
+      "position": [680, 440],
+      "continueOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
@@ -78,7 +80,7 @@
       "name": "Has Notifications?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1120, 300]
+      "position": [900, 440]
     },
     {
       "parameters": {
@@ -89,7 +91,7 @@
       "name": "Split Notifications",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 1,
-      "position": [1340, 300]
+      "position": [1120, 440]
     },
     {
       "parameters": {
@@ -109,7 +111,7 @@
       "name": "Send Notification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1560, 300],
+      "position": [1340, 440],
       "credentials": {
         "httpHeaderAuth": {
           "id": "backend_api_key",
@@ -129,20 +131,23 @@
       "name": "More Items?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1780, 300]
+      "position": [1560, 440]
     }
   ],
   "connections": {
     "Every 5 Minutes": {
-      "main": [[{ "node": "Process Scheduled Missed Calls", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          { "node": "Process Scheduled Missed Calls", "type": "main", "index": 0 }
+        ]
+      ]
     },
     "Process Scheduled Missed Calls": {
-      "main": [[{ "node": "Any Processed?", "type": "main", "index": 0 }]]
-    },
-    "Any Processed?": {
       "main": [
-        [{ "node": "Poll Pending Notifications", "type": "main", "index": 0 }],
-        []
+        [
+          { "node": "Any Processed?", "type": "main", "index": 0 },
+          { "node": "Poll Pending Notifications", "type": "main", "index": 0 }
+        ]
       ]
     },
     "Poll Pending Notifications": {
@@ -168,6 +173,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "workflow_0_global_error_handler"
   }
 }
