@@ -108,9 +108,9 @@ async function ensureMonthlyUsageWindow(clinicId) {
     }
 
     // Check daily reset
-    if (shouldResetDailyUsage(clinic.lastDailyResetDate)) {
+    if (shouldResetDailyUsage(clinic.lastResetDay)) {
         updates.dailyUsedCount = 0;
-        updates.lastDailyResetDate = startOfCurrentDay();
+        updates.lastResetDay = startOfCurrentDay();
     }
 
     if (Object.keys(updates).length > 0) {
