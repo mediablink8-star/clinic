@@ -255,6 +255,60 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                         </div>
                     </div>
 
+                    {/* AI Conversation */}
+                    {(() => {
+                        try {
+                            const conv = log.aiConversation ? (typeof log.aiConversation === 'string' ? JSON.parse(log.aiConversation) : log.aiConversation) : null;
+                            if (!Array.isArray(conv) || conv.length === 0) return null;
+                            
+                            return (
+                                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontSize: '0.68rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <MessageSquare size={12} color="var(--primary)" />
+                                        Συνομιλία AI
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                                        {conv.map((msg, idx) => {
+                                            // Determine message role and content
+                                            const isPatient = msg.role === 'user' || msg.direction === 'inbound' || msg.from === 'patient';
+                                            const isSystem = msg.role === 'system';
+                                            const content = msg.content || msg.body || msg.text || '';
+                                            
+                                            // Skip empty messages or system metadata
+                                            if (!content || (isSystem && content.startsWith('vapi_call_id:'))) return null;
+                                            
+                                            return (
+                                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: isPatient ? 'flex-end' : 'flex-start' }}>
+                                                    <div style={{ 
+                                                        maxWidth: '85%',
+                                                        padding: '8px 12px', 
+                                                        borderRadius: isPatient ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                                                        background: isPatient ? 'rgba(59,130,246,0.12)' : isSystem ? 'rgba(148,163,184,0.08)' : 'rgba(99,91,255,0.12)',
+                                                        border: `1px solid ${isPatient ? 'rgba(59,130,246,0.2)' : isSystem ? 'rgba(148,163,184,0.15)' : 'rgba(99,91,255,0.2)'}`,
+                                                    }}>
+                                                        <div style={{ fontSize: '0.65rem', fontWeight: '800', color: isPatient ? '#3b82f6' : isSystem ? '#64748b' : 'var(--primary)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                                            {isPatient ? 'Ασθενής' : isSystem ? 'Σύστημα' : 'AI Assistant'}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.78rem', color: 'var(--text)', lineHeight: '1.4', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                                            {content}
+                                                        </div>
+                                                        {msg.timestamp && (
+                                                            <div style={{ fontSize: '0.62rem', color: 'var(--text-light)', marginTop: '4px', opacity: 0.7 }}>
+                                                                {new Date(msg.timestamp).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        } catch (e) {
+                            return null;
+                        }
+                    })()}
+
                     {/* Recovery status */}
                     <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: '0.68rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Κατάσταση Ανάκτησης</div>
