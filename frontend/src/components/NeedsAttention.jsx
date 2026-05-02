@@ -17,7 +17,11 @@ const ReplyModal = ({ patients, token, onClose }) => {
         setSending(true);
         try {
             await axios.post(`${API_BASE}/messages/send`,
-                { patientId: selected.patientId || selected.id, message: message.trim() },
+                { 
+                    patientId: selected.patientId || undefined,
+                    phone: !selected.patientId ? selected.phone : undefined,
+                    message: message.trim()
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success('Απάντηση εστάλη!');

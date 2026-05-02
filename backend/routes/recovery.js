@@ -126,6 +126,7 @@ router.get('/insights', asyncHandler(async (req, res) => {
         type,
         phone: mc.fromNumber,
         patientName: mc.patient?.name || null,
+        patientId: mc.patient?.id || null,
         lastSmsSentAt: mc.lastSmsSentAt,
         createdAt: mc.createdAt,
         smsError: mc.smsError || null,
