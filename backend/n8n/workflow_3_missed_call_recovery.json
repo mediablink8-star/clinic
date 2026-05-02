@@ -538,6 +538,7 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "workflow_0_global_error_handler"
   }
 }

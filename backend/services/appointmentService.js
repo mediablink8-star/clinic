@@ -99,41 +99,50 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } });
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
 
-    const appointment = await prisma.$transaction(async (tx) => {
-        const conflict = await tx.appointment.findFirst({
-            where: {
-                clinicId,
-                status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-                AND: [
-                    { startTime: { lt: end } },
-                    { endTime:   { gt: start } }
-                ]
-            }
-        });
-        if (conflict) throw new AppError('CONFLICT', 'Time slot already booked', 409);
+    let appointment;
+    try {
+        appointment = await prisma.$transaction(async (tx) => {
+            const conflict = await tx.appointment.findFirst({
+                where: {
+                    clinicId,
+                    status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+                    AND: [
+                        { startTime: { lt: end } },
+                        { endTime:   { gt: start } }
+                    ]
+                }
+            });
+            if (conflict) throw new AppError('CONFLICT', 'Time slot already booked', 409);
 
-        const created = await tx.appointment.create({
-            data: {
+            const created = await tx.appointment.create({
+                data: {
+                    clinicId,
+                    patientId,
+                    reason,
+                    startTime: start,
+                    endTime: end,
+                    priority: priority || 'NORMAL',
+                    status: 'CONFIRMED'
+                }
+            });
+            await logAction({
                 clinicId,
-                patientId,
-                reason,
-                startTime: start,
-                endTime: end,
-                priority: priority || 'NORMAL',
-                status: 'CONFIRMED'
-            }
+                userId: actor.userId,
+                action: 'CREATE_APPOINTMENT',
+                entity: 'APPOINTMENT',
+                entityId: created.id,
+                details: { reason, startTime },
+                ipAddress: actor.ip
+            });
+            return created;
         });
-        await logAction({
-            clinicId,
-            userId: actor.userId,
-            action: 'CREATE_APPOINTMENT',
-            entity: 'APPOINTMENT',
-            entityId: created.id,
-            details: { reason, startTime },
-            ipAddress: actor.ip
-        });
-        return created;
-    });
+    } catch (err) {
+        // Handle Prisma unique constraint violation (race condition)
+        if (err.code === 'P2002') {
+            throw new AppError('CONFLICT', 'Time slot already booked', 409);
+        }
+        throw err;
+    }
 
     // Fire appointment.created webhook → n8n workflow 1
     if (appointment) {

@@ -27,8 +27,11 @@ router.post('/send', asyncHandler(async (req, res) => {
             where: { clinicId: req.clinicId, phone: normalized }
         });
         if (!patient) {
+            // Use last 4 digits as placeholder name instead of full phone number
+            const last4 = normalized.slice(-4);
+            const placeholderName = `Ασθενής ***${last4}`;
             patient = await prisma.patient.create({
-                data: { clinicId: req.clinicId, name: normalized, phone: normalized }
+                data: { clinicId: req.clinicId, name: placeholderName, phone: normalized }
             });
         }
         resolvedPatientId = patient.id;
