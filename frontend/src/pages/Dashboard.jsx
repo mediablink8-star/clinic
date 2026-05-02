@@ -2,8 +2,6 @@ import React from 'react';
 import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import ActionCenter from '../components/ActionCenter';
@@ -11,6 +9,9 @@ import RevenueCard from '../components/RevenueCard';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 import Skeleton from '../components/Skeleton';
 import NotificationBell from '../components/NotificationBell';
+import AiAssistant from '../components/AiAssistant';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const DashboardSkeleton = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
@@ -171,6 +172,9 @@ const Dashboard = ({
                     </div>
                 </div>
             </div>
+
+            {/* AI Assistant Bubble */}
+            <AiAssistant token={token} />
         </div>
     );
 };
