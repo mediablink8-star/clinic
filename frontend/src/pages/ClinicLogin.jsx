@@ -222,7 +222,7 @@ const ClinicLogin = ({ onLogin }) => {
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κωδικός</label>
-                        <button type="button" onClick={() => setForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0 }}>
+                        <button type="button" onClick={() => setForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0, outline: 'none' }}>
                             Ξεχάσατε τον κωδικό;
                         </button>
                       </div>
@@ -262,7 +262,7 @@ const ClinicLogin = ({ onLogin }) => {
 
               <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
                 <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
-                  Δεν έχετε ιατρείο; <button onClick={() => navigateTo('/register')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '700', cursor: 'pointer', textDecoration: 'none' }}>Δημιουργία Λογαριασμού</button>
+                  Δεν έχετε ιατρείο; <button onClick={() => navigateTo('/register')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', outline: 'none' }}>Δημιουργία Λογαριασμού</button>
                 </p>
               </div>
 
