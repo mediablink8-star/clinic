@@ -138,7 +138,7 @@ const Dashboard = ({
                         <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
-                        <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                        <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, overflowY: 'scroll', minHeight: 0, maxHeight: '100%' }}>
                             <RecoveryFeed logs={recoveryLog} muted={true} token={token} onNavigate={setCurrentTab} />
                         </div>
                     </div>
