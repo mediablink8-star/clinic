@@ -182,7 +182,7 @@ router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
 
 // PUT /api/clinic/vapi — store Vapi credentials (Vapi + Vonage for Greek numbers)
 router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
-    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled, geminiApiKey } = req.body;
+    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled } = req.body;
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },
@@ -192,7 +192,6 @@ router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
             ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId || null }),
             ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId || null }),
             ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
-            ...(geminiApiKey !== undefined && { geminiApiKey: geminiApiKey ? encrypt(geminiApiKey) : null }),
         },
         select: { vapiAssistantId: true, vapiPhoneNumberId: true, voiceEnabled: true }
     });
@@ -219,6 +218,36 @@ router.get('/vapi-config', asyncHandler(async (req, res) => {
         hasAssistant: !!clinic?.vapiAssistantId,
         hasPhoneNumber: !!clinic?.vapiPhoneNumberId,
     });
+}));
+
+// PUT /api/clinic/gemini — store Gemini API key
+router.put('/gemini', requireOwner, asyncHandler(async (req, res) => {
+    const { geminiApiKey } = req.body;
+
+    if (!geminiApiKey || !geminiApiKey.trim()) {
+        return res.status(400).json({ success: false, error: 'Gemini API Key is required' });
+    }
+
+    await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: {
+            geminiApiKey: encrypt(geminiApiKey)
+        }
+    });
+
+    res.json({ success: true, message: 'Gemini API Key saved successfully' });
+}));
+
+// GET /api/clinic/gemini-config — check if Gemini is configured
+router.get('/gemini-config', asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { geminiApiKey: true }
+    });
+
+    const configured = !!(clinic?.geminiApiKey || process.env.GEMINI_API_KEY);
+
+    res.json({ configured });
 }));
 
 module.exports = router;

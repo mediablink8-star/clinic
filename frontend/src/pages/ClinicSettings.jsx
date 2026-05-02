@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Globe, BarChart2, Activity, Zap, Phone,
+    Globe, BarChart2, Activity, Zap, Phone, Sparkles,
     Shield, Loader, Check,
     Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
 } from 'lucide-react';
@@ -430,13 +430,42 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         vapiAssistantId: clinic?.vapiAssistantId || '',
         vapiPhoneNumberId: clinic?.vapiPhoneNumberId || '',
         voiceEnabled: clinic?.voiceEnabled || false,
-        geminiApiKey: '',
     });
     const [savingVapi, setSavingVapi] = React.useState(false);
     const [testingVapi, setTestingVapi] = React.useState(false);
     const [vapiStatus, setVapiStatus] = React.useState(null);
 
+    // Gemini AI Assistant state
+    const [geminiData, setGeminiData] = React.useState({
+        geminiApiKey: '',
+    });
+    const [savingGemini, setSavingGemini] = React.useState(false);
+    const [geminiStatus, setGeminiStatus] = React.useState(null);
+
+    React.useEffect(() => {
+        // Check if Gemini is configured
+        axios.get(`${API_BASE}/clinic/gemini-config`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => setGeminiStatus(r.data.configured ? 'configured' : 'not_configured'))
+            .catch(() => setGeminiStatus('not_configured'));
+    }, []);
+
     const vapiConfigured = !!(vapiData.vapiAssistantId && vapiData.vapiPhoneNumberId);
+
+    const handleSaveGemini = async () => {
+        if (!geminiData.geminiApiKey?.trim()) {
+            showToast('Το Gemini API Key είναι υποχρεωτικό', 'error');
+            return;
+        }
+        setSavingGemini(true);
+        try {
+            await axios.put(`${API_BASE}/clinic/gemini`, geminiData, { headers: { Authorization: `Bearer ${token}` } });
+            setGeminiStatus('configured');
+            setGeminiData({ geminiApiKey: '' }); // Clear after save
+            showToast('Gemini API Key αποθηκεύτηκε!', 'success');
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
+        } finally { setSavingGemini(false); }
+    };
 
     const handleSaveVapi = async () => {
         // Validate required fields
@@ -950,11 +979,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Αν left κενό, χρησιμοποιείται το env variable</p>
                 </FormGroup>
                 
-                <FormGroup label="Gemini API Key (για AI Assistant)" flex="1 1 100%">
-                <input style={inputStyle} type="password" placeholder="AIza..." value={vapiData.geminiApiKey} onChange={e => setVapiData(d => ({ ...d, geminiApiKey: e.target.value }))} />
-                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Απαιτείται για τον AI βοηθό στο dashboard. Αν left κενό, χρησιμοποιείται το env variable</p>
-                </FormGroup>
-                
                         <FormRow>
                             <FormGroup label="Assistant ID *">
                                 <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />
@@ -972,6 +996,57 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
 <button type="button" className="btn btn-primary" onClick={handleSaveVapi} disabled={savingVapi}>
                         {savingVapi ? 'Αποθήκευση...' : 'Αποθήκευση Voice AI'}
+                    </button>
+                </div>
+            </SectionCard>
+
+            {/* 5.5 · Gemini AI Assistant */}
+            <SectionCard id="s-gemini" number="5.5" icon={<Sparkles size={15} color="#6366f1" />} iconBg="rgba(99,102,241,0.1)"
+                title="AI Assistant (Σοφία)" subtitle="Gemini AI για φυσική γλώσσα εντολών">
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#4338ca', fontWeight: '600', margin: 0 }}>
+                        Η Σοφία είναι ο AI βοηθός που εμφανίζεται στο dashboard. Χρησιμοποιεί το Gemini για να καταλαβαίνει εντολές σε φυσική γλώσσα.
+                    </p>
+                </div>
+
+                {/* Status indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: geminiStatus === 'configured' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${geminiStatus === 'configured' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: geminiStatus === 'configured' ? '#10b981' : '#f59e0b' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: geminiStatus === 'configured' ? '#065f46' : '#92400e' }}>
+                            {geminiStatus === 'configured' ? 'Ρυθμισμένο ✓' : 'Δεν έχει ρυθμιστεί'}
+                        </span>
+                    </div>
+                </div>
+
+                <FormGroup label="Gemini API Key *" flex="1 1 100%">
+                    <input 
+                        style={inputStyle} 
+                        type="password" 
+                        placeholder={geminiStatus === 'configured' ? '***configured***' : 'AIzaSy...'} 
+                        value={geminiData.geminiApiKey} 
+                        onChange={e => setGeminiData(d => ({ ...d, geminiApiKey: e.target.value }))} 
+                    />
+                    <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>
+                        Πάρτε το API key από: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>Google AI Studio</a>
+                    </p>
+                </FormGroup>
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.1)', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#4338ca', margin: '0 0 4px' }}>Τι μπορεί να κάνει η Σοφία;</p>
+                    <ul style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: '4px 0 0', paddingLeft: '1.2rem' }}>
+                        <li>Αποστολή SMS σε ασθενείς</li>
+                        <li>Κλήσεις ασθενών με AI</li>
+                        <li>Κλείσιμο & ακύρωση ραντεβού</li>
+                        <li>Προβολή σημερινών ραντεβού</li>
+                        <li>Προβολή αναπάντητων κλήσεων</li>
+                    </ul>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveGemini} disabled={savingGemini}>
+                        {savingGemini ? 'Αποθήκευση...' : 'Αποθήκευση Gemini AI'}
                     </button>
                 </div>
             </SectionCard>
