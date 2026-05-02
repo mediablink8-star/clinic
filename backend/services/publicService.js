@@ -2,15 +2,7 @@ const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
 const { getAvailableSlots: getSlotsForDate, isWithinWorkingHours } = require('./slotUtils');
-
-function normalizePhone(phone) {
-    if (!phone) return null;
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
-    if (cleaned.startsWith('+30')) return cleaned;
-    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
-    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
-    return cleaned;
-}
+const { normalizePhone } = require('../utils/phone');
 
 function getDateTimeParts(date, timezone = 'Europe/Athens') {
     const parts = new Intl.DateTimeFormat('en-CA', {

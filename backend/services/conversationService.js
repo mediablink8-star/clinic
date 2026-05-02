@@ -7,9 +7,9 @@ const { detectIntent } = require('./intentService');
 const { checkWorkingHours } = require('./workingHours');
 const { sendManagedSms } = require('./messagingService');
 const { createAppointment } = require('./appointmentService');
+const { normalizePhone } = require('../utils/phone');
 
-const SYSTEM_ACTOR = { userId: 'system-conversation', ip: 'auto' };
-
+// Restore getTemplate which was removed in the normalizePhone cleanup
 function getTemplate(clinic, key, fallback) {
     try {
         const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
@@ -19,14 +19,7 @@ function getTemplate(clinic, key, fallback) {
     }
 }
 
-function normalizePhone(phone) {
-    if (!phone) return null;
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
-    if (cleaned.startsWith('+30')) return cleaned;
-    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
-    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
-    return cleaned;
-}
+const SYSTEM_ACTOR = { userId: 'system-conversation', ip: 'auto' };
 
 function stripGreekAccents(value) {
     return (value || '')

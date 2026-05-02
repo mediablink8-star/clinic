@@ -3,18 +3,10 @@ const { triggerWebhook } = require('./webhookService');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours } = require('./slotUtils');
+const { normalizePhone } = require('../utils/phone');
 
 const MIN_APPOINTMENT_MINUTES = 15;
 const MAX_APPOINTMENT_MINUTES = 240;
-
-function normalizePhone(phone) {
-    if (!phone) return null;
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
-    if (cleaned.startsWith('+30')) return cleaned;
-    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
-    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
-    return cleaned;
-}
 
 async function listPatients(clinicId) {
     const data = await prisma.patient.findMany({

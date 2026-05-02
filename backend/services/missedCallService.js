@@ -12,15 +12,7 @@ const https = require('https');
 const { decrypt } = require('./encryptionService');
 const { sendSmsFailureAlert } = require('./emailService');
 const http = require('http');
-
-function normalizePhone(phone) {
-    if (!phone) return null;
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
-    if (cleaned.startsWith('+30')) return cleaned;
-    if (/^[26]/.test(cleaned)) return `+30${cleaned}`;
-    if (cleaned.startsWith('0')) return `+30${cleaned.slice(1)}`;
-    return cleaned;
-}
+const { normalizePhone } = require('../utils/phone');
 
 /**
  * Non-blocking fire-and-forget trigger to n8n.

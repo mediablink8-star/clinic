@@ -6,24 +6,7 @@ const { handleMissedCall } = require('../services/missedCallService');
 const { forwardInboundMessage } = require('../services/webhookService');
 const { recordInboundMessage } = require('../services/recoveryTrackingService');
 const { handleInboundReply } = require('../services/conversationService');
-
-function normalizePhone(phone) {
-    if (!phone) return '';
-
-    let value = String(phone).trim();
-    value = value.replace(/[\s\-()]/g, '');
-
-    if (value.startsWith('00')) {
-        value = `+${value.slice(2)}`;
-    }
-
-    if (value.startsWith('+30')) return value;
-    if (value.startsWith('+')) return value;
-    if (/^[26]\d{9}$/.test(value)) return `+30${value}`;
-    if (value.startsWith('0')) return `+30${value.slice(1)}`;
-
-    return value;
-}
+const { normalizePhone } = require('../utils/phone');
 
 router.post('/missed-call', asyncHandler(async (req, res) => {
     const { phone = '+30690000000', clinicId, callSid } = req.body;
