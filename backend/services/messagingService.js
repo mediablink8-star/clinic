@@ -12,12 +12,15 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
     await assertWithinSmsLimit(clinicId);
 
     let webhookResult = { success: true };
-    if (clinic.webhookUrl) {
+    const hasAnyWebhook = clinic.webhookUrl || clinic.webhookMissedCall || clinic.webhookAppointment ||
+        clinic.webhookReminders || clinic.webhookDirectSms || clinic.webhookInboundSms;
+
+    if (hasAnyWebhook) {
         try {
             webhookResult = await triggerWebhook(
                 eventType,
                 payload,
-                clinic.webhookUrl,
+                clinic.webhookUrl || null,  // pass null to let resolveWebhookUrl pick event-specific URL
                 clinic.webhookSecret,
                 { awaitResponse: true, clinic }
             );
@@ -28,7 +31,7 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
         webhookResult = { success: false, message: 'No webhook URL configured' };
     }
 
-    const deliveryStatus = clinic.webhookUrl
+    const deliveryStatus = hasAnyWebhook
         ? (webhookResult.success ? 'SENT' : 'FAILED')
         : (treatMissingWebhookAsSimulated ? 'SIMULATED' : 'FAILED');
 

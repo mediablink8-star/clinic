@@ -160,7 +160,10 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
         include: { clinic: true }
     });
     if (!mc) return res.status(404).json({ error: 'Not found' });
-    if (!mc.clinic.webhookUrl) return res.status(400).json({ error: 'No webhook configured' });
+
+    // Check any webhook is configured (global or event-specific)
+    const hasWebhook = mc.clinic.webhookUrl || mc.clinic.webhookDirectSms || mc.clinic.webhookReminders;
+    if (!hasWebhook) return res.status(400).json({ error: 'No webhook configured for this clinic' });
 
     const { sendManagedSms } = require('../services/messagingService');
     let result;
@@ -171,6 +174,7 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
             eventType: 'missed_call.followup',
             payload: { phone: mc.fromNumber, missedCallId: mc.id, clinicId: mc.clinicId, isFollowUp: true },
             logType: 'SMS',
+            treatMissingWebhookAsSimulated: false,
         });
         result = { success: true };
     } catch (err) {
