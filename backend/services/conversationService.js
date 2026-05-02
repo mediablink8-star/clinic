@@ -7,6 +7,9 @@ const prisma = require('./prisma');
 const { detectIntent } = require('./intentService');
 const { checkWorkingHours } = require('./workingHours');
 const { sendManagedSms } = require('./messagingService');
+const { createAppointment } = require('./appointmentService');
+
+const SYSTEM_ACTOR = { userId: 'system-conversation', ip: 'auto' };
 
 
 // ── Get SMS template from clinic aiConfig with fallback ──────────────────────
@@ -263,21 +266,16 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
 
         const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour slot
 
-        // Create appointment if patient was found/created
+        // Create appointment using appointmentService (validates working hours, conflict, audit)
         if (patient) {
             try {
-                await prisma.appointment.create({
-                    data: {
-                        clinicId: clinic.id,
-                        patientId: patient.id,
-                        startTime,
-                        endTime,
-                        reason: 'Ραντεβού από SMS ανάκτηση',
-                        notes: `Ημέρα: ${day} | Ώρα: ${time} | Τηλέφωνο: ${fromPhone}`,
-                        status: 'PENDING',
-                        priority: 'NORMAL',
-                    }
-                });
+                await createAppointment({
+                    clinicId: clinic.id,
+                    patientId: patient.id,
+                    startTime: startTime.toISOString(),
+                    endTime: endTime.toISOString(),
+                    reason: 'Ραντεβού από SMS ανάκτηση'
+                }, SYSTEM_ACTOR);
                 console.log(`[Conversation] Appointment created for ${fromPhone} — ${day} ${time}`);
             } catch (err) {
                 console.warn(`[Conversation] appointment create failed: ${err.message}`);

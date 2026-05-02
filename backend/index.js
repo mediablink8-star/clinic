@@ -120,9 +120,10 @@ const requireAuth = async (req, res, next) => {
     req.user = decoded; // { userId, clinicId, role }
     req.clinicId = decoded.clinicId;
 
-    // Optional: Hydrate clinic info if needed
+    // Check clinic is active
     const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
     if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
+    if (!clinic.isActive) return res.status(403).json({ error: 'Clinic account is deactivated' });
     req.clinic = clinic;
 
     next();

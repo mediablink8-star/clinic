@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
 const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, generateMfaToken } = require('../services/authService');
+const { encrypt, decrypt } = require('../services/encryptionService');
 const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
 const { triggerWebhook } = require('../services/webhookService');
 const crypto = require('crypto');
@@ -129,27 +130,46 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     }
 }));
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
     const { email, password } = req.body;
-    
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
-    }
-    
+
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { clinic: { select: { id: true, name: true } } }
+            include: { clinic: { select: { id: true, name: true, isActive: true } } }
         });
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // Check per-account lockout
+        if (user.failedLoginAttempts >= 5 && user.lastFailedLoginAt) {
+            const lockoutExpiry = new Date(user.lastFailedLoginAt.getTime() + 15 * 60 * 1000);
+            if (new Date() < lockoutExpiry) {
+                return res.status(429).json({ error: 'Account locked due to too many failed attempts. Try again in 15 minutes.' });
+            }
+        }
+
         const isMatch = await comparePassword(password, user.passwordHash);
 
         if (!isMatch) {
+            // Increment failed attempts
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    failedLoginAttempts: { increment: 1 },
+                    lastFailedLoginAt: new Date()
+                }
+            });
             return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Reset failed attempts on successful login
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: 0, lastFailedLoginAt: null }
+        });
         }
 
         const isAdmin = user.role === 'ADMIN';
@@ -448,23 +468,40 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
         const otpauth = authenticator.keyuri(user.email, 'ClinicFlow', secret);
         const qrImageUrl = await qrcode.toDataURL(otpauth);
 
-        // Store secret temporarily - we'll only confirm it after first verification
-        // For simplicity in this demo, we'll return it and the user will send it back to verify
-        res.json({ secret, qrImageUrl });
+        // Store encrypted secret temporarily for verification
+        const encryptedSecret = encrypt(secret);
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { mfaPendingSecret: encryptedSecret }
+        });
+
+        // Don't send secret to client - client just scans QR
+        res.json({ qrImageUrl });
     } catch (error) {
         res.status(500).json({ error: 'MFA setup failed' });
     }
 }));
 
-router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
-    const { secret, code } = req.body;
+router.post('/mfa/verify', requireHandler(async (req, res) => {
+    const { code } = req.body;
     try {
-        const isValid = authenticator.check(code, secret);
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user?.mfaPendingSecret) {
+            return res.status(400).json({ error: 'No MFA setup in progress' });
+        }
+
+        const pendingSecret = decrypt(user.mfaPendingSecret);
+        const isValid = authenticator.check(code, pendingSecret);
         if (!isValid) return res.status(400).json({ error: 'Invalid MFA code' });
 
+        // Store encrypted secret permanently
         await prisma.user.update({
-            where: { id: req.user.userId },
-            data: { mfaEnabled: true, mfaSecret: secret }
+            where: { id: user.id },
+            data: { 
+                mfaEnabled: true, 
+                mfaSecret: encrypt(pendingSecret),
+                mfaPendingSecret: null
+            }
         });
 
         res.json({ success: true });
@@ -530,9 +567,20 @@ router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
 }));
 
 router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    if (!password) {
+        return res.status(400).json({ error: 'Password required to disable MFA' });
+    }
+
     try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        const isValid = await comparePassword(password, user.passwordHash);
+        if (!isValid) {
+            return res.status(401).json({ error: 'Invalid password' });
+        }
+
         await prisma.user.update({
-            where: { id: req.user.userId },
+            where: { id: user.id },
             data: { mfaEnabled: false, mfaSecret: null }
         });
         res.json({ success: true });

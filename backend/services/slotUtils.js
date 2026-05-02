@@ -33,8 +33,50 @@ function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens' }
     return startHour >= parsed.openHour && endHour <= parsed.closeHour;
 }
 
-function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
-    return [];
+async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens') {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: clinicId },
+        select: { workingHours: true },
+    });
+    if (!clinic) return [];
+
+    let wh = {};
+    try {
+        wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
+    } catch { return []; }
+
+    const rangeStr = resolveRangeForDate(wh, date);
+    const parsed = parseHoursRange(rangeStr);
+    if (!parsed) return [];
+
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const existing = await prisma.appointment.findMany({
+        where: {
+            clinicId,
+            startTime: { gte: dayStart, lte: dayEnd },
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+        select: { startTime: true },
+    });
+
+    const bookedHours = new Set(
+        existing.map(a => {
+            const d = new Date(a.startTime);
+            return d.getHours();
+        })
+    );
+
+    const slots = [];
+    for (let h = parsed.openHour; h < parsed.closeHour; h++) {
+        if (!bookedHours.has(h)) {
+            slots.push(`${String(h).padStart(2, '0')}:00`);
+        }
+    }
+    return slots;
 }
 
 module.exports = {
