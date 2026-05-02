@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { UserPlus, Send, Calendar, X, Search, Phone, FlaskConical, Loader, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SendMessageModal from './SendMessageModal';
+import CallPatientModal from './CallPatientModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -132,7 +133,7 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
                 <QuickActionBtn icon={FlaskConical} label="Δοκιμή Ρύθμισης" onClick={() => setShowTest(true)} variant="secondary" />
             </div>
             {showSMS && <SendMessageModal patients={patients} token={token} onClose={() => setShowSMS(false)} />}
-            {showCall && <CallPatientModal patients={patients} onClose={() => setShowCall(false)} />}
+            {showCall && <CallPatientModal patients={patients} token={token} onClose={() => setShowCall(false)} />}
             {showTest && <TestSetupModal token={token} clinic={clinic} onClose={() => setShowTest(false)} />}
         </>
     );
