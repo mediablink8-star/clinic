@@ -39,6 +39,11 @@ const SectionHeader = ({ children, icon: Icon }) => (
     </div>
 );
 
+const toFiniteNumber = (value) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+};
+
 const Dashboard = ({
     clinic, todayAppointments = [], patients = [], token, setCurrentTab, setShowModal,
     recoveryStats = { recovered: 0, pending: 0, revenue: 0, potentialRevenue: 0 },
@@ -69,7 +74,20 @@ const Dashboard = ({
     const recovered = recoveryStats.recovered || 0;
     const revenue = recoveryStats.revenue || 0;
     const potentialRevenue = recoveryStats.potentialRevenue || 0;
-    const recoveryRate = systemStats.recoveryRate ?? (missedCallsToday > 0 ? Math.round((recovered / missedCallsToday) * 100) : 0);
+    const recoveredFromLogs = logsArray.filter(l => l?.status === 'RECOVERED').length;
+    const systemTotalMissed = toFiniteNumber(systemStats.totalMissedCalls);
+    const totalMissedForRate = systemTotalMissed ?? logsArray.length;
+    const recoveredForRate = systemTotalMissed !== null
+        ? (toFiniteNumber(systemStats.recoveredThisMonth) ?? 0)
+        : (recovered || recoveredFromLogs);
+    const systemRate = toFiniteNumber(systemStats.recoveryRate);
+    const weeklyRate = toFiniteNumber(recoveryStats.trend?.thisWeek?.rate);
+    const logRate = totalMissedForRate > 0 ? Math.min(100, Math.round((recoveredForRate / totalMissedForRate) * 100)) : 0;
+    const recoveryRate = systemRate && systemRate > 0
+        ? systemRate
+        : weeklyRate && weeklyRate > 0
+            ? weeklyRate
+            : logRate;
     const revenueSubtitle = recovered > 0
         ? `${recovered} ανακτήθηκαν${potentialRevenue > 0 ? ` · ~€${potentialRevenue.toLocaleString()} σε εξέλιξη` : ''}`
         : potentialRevenue > 0 ? `~€${potentialRevenue.toLocaleString()} σε εξέλιξη` : 'Δεν υπάρχουν ακόμα';

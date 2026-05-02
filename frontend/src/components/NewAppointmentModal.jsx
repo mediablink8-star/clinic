@@ -208,7 +208,7 @@ const NewAppointmentModal = ({
                             flex: 2, padding: '12px',
                             borderRadius: '14px', border: '1px solid rgba(255,255,255,0.22)',
                             background: isValid && !booking
-                                ? 'linear-gradient(135deg, rgba(0,181,173,0.82) 0%, rgba(37,99,235,0.62) 100%)'
+                                ? 'linear-gradient(135deg, rgba(99,91,255,0.9) 0%, rgba(139,92,246,0.72) 100%)'
                                 : 'var(--glass-control-soft)',
                             color: isValid && !booking ? 'white' : 'var(--text-light)',
                             fontSize: '0.9rem', fontWeight: '800',

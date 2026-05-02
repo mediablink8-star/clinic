@@ -121,6 +121,7 @@ router.get('/stats', asyncHandler(async (req, res) => {
         smsFailedToday,
         pendingNotifications,
         recoveredThisMonth,
+        totalMissedCalls,
         recoveryRate,
     });
 }));

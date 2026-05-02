@@ -54,7 +54,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     justifyContent: 'center',
                     padding: '14px',
                     borderRadius: '14px',
-                    background: 'linear-gradient(135deg, rgba(0,181,173,0.78) 0%, rgba(38,198,189,0.56) 100%)',
+                    background: 'linear-gradient(135deg, rgba(99,91,255,0.88) 0%, rgba(139,92,246,0.72) 100%)',
                     border: '1px solid rgba(255,255,255,0.26)',
                     boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
                 }} onClick={() => {
@@ -97,15 +97,15 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                                     textDecoration: 'none',
                                     color: currentTab === item.id ? 'var(--primary)' : 'var(--text-light)',
                                     background: currentTab === item.id
-                                        ? 'linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(0,181,173,0.14) 100%)'
+                                        ? 'linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(99,91,255,0.14) 100%)'
                                         : 'transparent',
                                     borderRadius: '16px',
                                     fontWeight: currentTab === item.id ? '800' : '650',
                                     marginBottom: '4px',
                                     transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                                     fontSize: '0.9rem',
-                                    border: `1px solid ${currentTab === item.id ? 'rgba(0,181,173,0.18)' : 'transparent'}`,
-                                    boxShadow: currentTab === item.id ? '0 10px 24px -16px rgba(0,181,173,0.6)' : 'none'
+                                    border: `1px solid ${currentTab === item.id ? 'rgba(99,91,255,0.2)' : 'transparent'}`,
+                                    boxShadow: currentTab === item.id ? '0 10px 24px -16px rgba(99,91,255,0.62)' : 'none'
                                 }}
                             >
                                 <span className="nav-link__icon" style={{

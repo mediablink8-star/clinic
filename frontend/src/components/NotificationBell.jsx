@@ -167,8 +167,8 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                 aria-label={`Ειδοποιήσεις${totalCount > 0 ? ` (${totalCount})` : ''}`}
                 style={{
                     width: '38px', height: '38px', borderRadius: '12px',
-                    border: open ? '1px solid rgba(0,181,173,0.35)' : '1px solid rgba(255,255,255,0.22)',
-                    background: open ? 'linear-gradient(135deg,rgba(0,181,173,0.18) 0%,rgba(0,181,173,0.08) 100%)' : 'var(--glass-control)',
+                    border: open ? '1px solid rgba(99,91,255,0.36)' : '1px solid rgba(255,255,255,0.22)',
+                    background: open ? 'linear-gradient(135deg,rgba(99,91,255,0.18) 0%,rgba(139,92,246,0.1) 100%)' : 'var(--glass-control)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: open ? 'var(--primary)' : 'var(--text-light)',
                     position: 'relative', transition: 'all 0.18s ease',
