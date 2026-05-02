@@ -37,7 +37,7 @@ function triggerN8n(path, payload) {
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(body),
-                'x-api-key': secret,
+                'x-webhook-key': secret,
             },
         }, (res) => {
             res.resume(); // drain response
