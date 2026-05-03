@@ -28,6 +28,13 @@ module.exports = async function automationAuth(req, res, next) {
         // API key auth doesn't have a user context — set a sentinel so downstream services know
         req.user = { userId: 'automation', role: 'AUTOMATION' };
         req.clinicId = req.body?.clinicId || req.query?.clinicId || null;
+        // Verify clinic exists and is active when clinicId is provided
+        if (req.clinicId) {
+            const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
+            if (!clinic) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Clinic not found' } });
+            if (!clinic.isActive) return res.status(403).json({ error: { code: 'CLINIC_INACTIVE', message: 'Clinic is not active' } });
+            req.clinic = clinic;
+        }
         return next();
     }
 

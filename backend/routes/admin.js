@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { getUsage, getLogs, addCredits } = require('../services/adminService');
 const { PLANS, getPlanLimits } = require('../services/planService');
 const prisma = require('../services/prisma');
+const { validate, addCreditsSchema } = require('../services/validationService');
 
 router.get('/usage', asyncHandler(async (req, res) => {
     const { data } = await getUsage();
@@ -15,7 +16,7 @@ router.get('/logs', asyncHandler(async (req, res) => {
     res.json(data);
 }));
 
-router.post('/add-credits', asyncHandler(async (req, res) => {
+router.post('/add-credits', validate(addCreditsSchema), asyncHandler(async (req, res) => {
     const { clinicId, amount } = req.body;
     const { data } = await addCredits({ clinicId, amount });
     res.json({ success: true, ...data });

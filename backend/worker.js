@@ -32,9 +32,11 @@ if (process.env.NODE_ENV === 'production' && process.env.BACKEND_API_URL) {
         try {
             const lib = url.startsWith('https') ? https : http;
             const req = lib.get(url, (res) => { res.resume(); });
-            req.on('error', () => {});
+            req.on('error', (err) => console.warn('[Keep-alive] Request error:', err.message));
             req.setTimeout(5000, () => req.destroy());
-        } catch {}
+        } catch (err) {
+            console.warn('[Keep-alive] Failed to ping:', err.message);
+        }
     }, 10 * 60 * 1000); // every 10 minutes
     console.log('✅ Keep-alive ping enabled.');
 }

@@ -73,12 +73,11 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                     name: clinicName,
                     phone: phone,
                     email: email,
-                    location: "Αθήνα, Ελλάδα", // Default location
-                    services: JSON.stringify([]), // Default empty services
-                    policies: JSON.stringify({}), // Default empty policies
-                    // Default values for a new clinic
+                    location: "",
+                    services: JSON.stringify([]),
+                    policies: JSON.stringify({}),
                     workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
-                    messageCredits: 500, // Free trial credits
+                    messageCredits: 500,
                     dailyMessageCap: 300
                 }
             });

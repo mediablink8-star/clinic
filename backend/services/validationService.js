@@ -79,6 +79,37 @@ const registerSchema = Joi.object({
     agreedToTerms: Joi.boolean().valid(true).required()
 });
 
+const publicBookingSchema = Joi.object({
+    clinicId: Joi.string().required(),
+    name: Joi.string().min(2).max(100).required(),
+    phone: Joi.string().pattern(greekPhoneRegex).required().messages({
+        'string.pattern.base': greekPhoneMessage
+    }),
+    email: Joi.string().email().allow(null, ''),
+    reason: Joi.string().max(500).allow(null, ''),
+    startTime: Joi.date().iso().required()
+});
+
+const missedCallSchema = Joi.object({
+    phone: Joi.string().required(),
+    clinicId: Joi.string().required(),
+    callSid: Joi.string().allow(null, '')
+});
+
+const markRecoveredSchema = Joi.object({
+    clinicId: Joi.string().required(),
+    missedCallId: Joi.string().required()
+});
+
+const sendNotificationSchema = Joi.object({
+    notificationId: Joi.string().required()
+});
+
+const addCreditsSchema = Joi.object({
+    clinicId: Joi.string().required(),
+    amount: Joi.number().integer().min(1).max(10000).required()
+});
+
 const validate = (schema) => (req, res, next) => {
     if (!req.body || Object.keys(req.body).length === 0) {
         console.warn(`[VALIDATION] Empty body received for ${req.url}`);
@@ -101,5 +132,10 @@ module.exports = {
     loginSchema,
     resetPasswordSchema,
     registerSchema,
+    publicBookingSchema,
+    missedCallSchema,
+    markRecoveredSchema,
+    sendNotificationSchema,
+    addCreditsSchema,
     validate
 };

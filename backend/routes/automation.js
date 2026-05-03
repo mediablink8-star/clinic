@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { handleMissedCall, processScheduledMissedCalls, markRecovered } = require('../services/missedCallService');
 const { getDueNotifications, processNotification } = require('../services/notificationService');
 const { processFollowUps } = require('../services/followUpService');
+const { validate, missedCallSchema, markRecoveredSchema, sendNotificationSchema } = require('../services/validationService');
 
 /**
  * POST /api/automation/missed-call
@@ -16,13 +17,8 @@ const { processFollowUps } = require('../services/followUpService');
  *   { "success": true, "data": { "missedCallId": "abc123", "smsStatus": "scheduled", "scheduledSmsAt": "..." } }
  *   { "success": true, "data": { "duplicate": true, "missedCallId": "abc123" } }
  */
-router.post('/missed-call', asyncHandler(async (req, res) => {
+router.post('/missed-call', validate(missedCallSchema), asyncHandler(async (req, res) => {
     const { phone, clinicId, callSid } = req.body;
-
-    if (!phone || !clinicId) {
-        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'phone and clinicId are required' } });
-    }
-
     const { data } = await handleMissedCall({ phone, clinicId, callSid });
     res.json({ success: true, data });
 }));
@@ -67,13 +63,8 @@ router.get('/pending-notifications', asyncHandler(async (req, res) => {
  *   { "success": true, "data": {} }
  *   { "success": false, "data": { "reason": "Already processed" } }
  */
-router.post('/send-notification', asyncHandler(async (req, res) => {
+router.post('/send-notification', validate(sendNotificationSchema), asyncHandler(async (req, res) => {
     const { notificationId } = req.body;
-
-    if (!notificationId) {
-        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'notificationId is required' } });
-    }
-
     const result = await processNotification(notificationId);
     res.json({ success: result.success, data: result.reason ? { reason: result.reason } : {} });
 }));
@@ -88,13 +79,8 @@ router.post('/send-notification', asyncHandler(async (req, res) => {
  * Example response:
  *   { "success": true, "data": { "missedCallId": "abc123", "status": "RECOVERED" } }
  */
-router.post('/mark-recovered', asyncHandler(async (req, res) => {
+router.post('/mark-recovered', validate(markRecoveredSchema), asyncHandler(async (req, res) => {
     const { clinicId, missedCallId } = req.body;
-
-    if (!clinicId || !missedCallId) {
-        return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'clinicId and missedCallId are required' } });
-    }
-
     const { data } = await markRecovered({ clinicId, missedCallId });
     res.json({ success: true, data });
 }));
