@@ -59,7 +59,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     };
 
     const allSorted = Array.isArray(logs)
-        ? [...logs].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)).slice(0, 20)
+        ? [...logs].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)).slice(0, 8)
         : [];
     const sorted = allSorted.filter(l => !dismissed.has(l.id));
 
@@ -188,17 +188,17 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
 
             <style>{`
                 .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-                .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 12px 16px; background: var(--bg-subtle); border-radius: 12px; margin-bottom: 12px; flex-shrink: 0; }
-                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-                .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--text); }
-                .stat-label { font-size: 0.6rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; }
+                .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 16px 20px; background: var(--bg-subtle); border-radius: 14px; margin-bottom: 14px; flex-shrink: 0; }
+                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+                .stat-value { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+                .stat-label { font-size: 0.65rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; }
                 .stat-item.success .stat-value { color: #10b981; }
                 .stat-item.warning .stat-value { color: #3b82f6; }
-                .stat-divider { width: 1px; height: 24px; background: var(--border); }
+                .stat-divider { width: 1px; height: 28px; background: var(--border); }
                 .feed-header { display: flex; justify-content: flex-end; margin-bottom: 8px; flex-shrink: 0; }
                 .clear-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 0.72rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; transition: all 0.15s; }
                 .clear-btn:hover { background: var(--bg-subtle); color: var(--text); }
-                .feed-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+                .feed-list { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
                 
                 .feed-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1.5rem; text-align: center; gap: 1rem; border-radius: 16px; background: linear-gradient(135deg, var(--bg-subtle) 0%, rgba(16,185,129,0.03) 100%); border: 1px solid var(--border); }
                 .empty-icon { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%); display: flex; align-items: center; justify-content: center; }
@@ -209,35 +209,35 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
                 .empty-status span { font-size: 0.7rem; font-weight: 600; color: #059669; }
                 
-                .feed-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--bg-card); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; }
+                .feed-item { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden; }
                 .feed-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: var(--primary); }
                 .feed-item.RECOVERED { border-left: 3px solid #10b981; }
                 .feed-item.RECOVERING { border-left: 3px solid #3b82f6; }
                 .feed-item.DETECTED { border-left: 3px solid #ef4444; }
                 .feed-item.LOST { border-left: 3px solid #94a3b8; }
                 
-                .feed-status-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-                .feed-icon-wrapper { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+                .feed-status-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+                .feed-icon-wrapper { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
                 
                 .feed-content { flex: 1; min-width: 0; }
-                .feed-main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-                .feed-name-row { display: flex; align-items: center; gap: 6px; }
-                .feed-name { font-size: 0.9rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+                .feed-main-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+                .feed-name-row { display: flex; align-items: center; gap: 8px; }
+                .feed-name { font-size: 1rem; font-weight: 700; color: var(--text); white-space: nowrap; }
                 .priority-icon { color: #ef4444; animation: flame 1s infinite; }
                 @keyframes flame { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-                .feed-time { font-size: 0.7rem; color: var(--text-light); font-weight: 500; }
+                .feed-time { font-size: 0.75rem; color: var(--text-light); font-weight: 500; }
                 .feed-sub-row { display: flex; align-items: center; gap: 8px; }
-                .feed-preview { font-size: 0.75rem; color: #3b82f6; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
-                .feed-phone { font-size: 0.75rem; color: var(--text-light); }
+                .feed-preview { font-size: 0.85rem; color: #3b82f6; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+                .feed-phone { font-size: 0.85rem; color: var(--text-light); }
                 
-                .feed-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-                .badge-recovered { font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: rgba(16,185,129,0.15); color: #059669; }
-                .badge-recovering { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(59,130,246,0.15); color: #2563eb; }
-                .btn-retry { width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+                .feed-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+                .badge-recovered { font-size: 0.85rem; font-weight: 800; padding: 6px 14px; border-radius: 20px; background: rgba(16,185,129,0.15); color: #059669; }
+                .badge-recovering { font-size: 0.85rem; font-weight: 700; padding: 6px 14px; border-radius: 20px; background: rgba(59,130,246,0.15); color: #2563eb; }
+                .btn-retry { width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
                 .btn-retry:hover { background: rgba(239,68,68,0.2); transform: rotate(180deg); }
                 .btn-retry.sent { background: rgba(16,185,129,0.15); color: #059669; }
-                .status-dot-wrapper { width: 10px; height: 10px; display: flex; align-items: center; justify-content: center; }
-                .status-dot-small { width: 8px; height: 8px; border-radius: 50%; }
+                .status-dot-wrapper { width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; }
+                .status-dot-small { width: 10px; height: 10px; border-radius: 50%; }
                 
                 .feed-item.urgent { border-color: #ef4444; }
 
