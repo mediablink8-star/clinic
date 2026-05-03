@@ -83,8 +83,19 @@ async function parseCommand(command, context = {}) {
         
         return parsed;
     } catch (err) {
-        console.error('[AI Command] Parse error:', err);
-        throw new AppError('AI_ERROR', 'Failed to parse command: ' + err.message, 500);
+        console.error('[AI Command] Error:', err.message);
+
+        // Handle quota exceeded errors
+        if (err.message.includes('429') || err.message.includes('quota') || err.message.includes('Too Many Requests')) {
+            throw new AppError('AI_QUOTA_EXCEEDED', 'AI service quota exceeded. Please try again later or contact support.', 503);
+        }
+
+        // Handle authentication errors
+        if (err.message.includes('API_KEY') || err.message.includes('401') || err.message.includes('403')) {
+            throw new AppError('AI_AUTH_ERROR', 'AI service API key is invalid or expired.', 503);
+        }
+
+        throw new AppError('AI_ERROR', 'Failed to process command: ' + err.message, 500);
     }
 }
 
