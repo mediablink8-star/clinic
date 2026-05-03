@@ -56,9 +56,8 @@ async function parseCommand(command, context = {}) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Use gemini-1.5-flash (without -latest suffix) for v1 API
-        const model = genAI.getGenerativeModel({ 
-            model: 'gemini-1.5-flash'
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.0-flash'
         });
         
         const contextInfo = context.currentDate ? `\nCurrent date: ${context.currentDate}` : '';
