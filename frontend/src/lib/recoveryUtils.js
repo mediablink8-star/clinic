@@ -1,15 +1,15 @@
 import { MessageSquare, PhoneMissed, CheckCircle2, AlertCircle, Clock, RefreshCw, Reply, Phone, PhoneCall } from 'lucide-react';
 
 export const EVENT_TYPES = {
-    RECOVERED:  { label: 'Ραντεβού κλείστηκε', icon: CheckCircle2, dot: '#10b981', bg: 'rgba(16,185,129,0.07)',  border: 'rgba(16,185,129,0.15)' },
-    RECOVERING: { label: 'Ασθενής απάντησε',   icon: Reply,        dot: '#3b82f6', bg: 'rgba(59,130,246,0.07)',  border: 'rgba(59,130,246,0.15)' },
-    DETECTED:   { label: 'Νέα αναπάντητη',     icon: PhoneMissed,  dot: '#ef4444', bg: 'rgba(239,68,68,0.06)',   border: 'rgba(239,68,68,0.12)'  },
-    LOST:       { label: 'Δεν απάντησε',        icon: AlertCircle,  dot: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.12)' },
-    SMS_SENT:   { label: 'SMS εστάλη',          icon: MessageSquare,dot: 'var(--primary)', bg: 'var(--primary-light)',  border: 'rgba(99,91,255,0.16)' },
-    SMS_FAILED: { label: 'Αποτυχία SMS',        icon: AlertCircle,  dot: '#ef4444', bg: 'rgba(239,68,68,0.07)',   border: 'rgba(239,68,68,0.2)'   },
-    PENDING:    { label: 'SMS εκκρεμεί',        icon: Clock,        dot: 'rgba(99,91,255,0.82)', bg: 'var(--primary-light)',  border: 'rgba(99,91,255,0.13)' },
-    VOICE_CALL: { label: 'AI Κλήση εστάλη',     icon: Phone,        dot: '#7c3aed', bg: 'rgba(124,58,237,0.07)', border: 'rgba(124,58,237,0.15)' },
-    VOICE_ANSWERED: { label: 'Κλήση απαντήθηκε', icon: PhoneCall,   dot: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.15)' },
+    RECOVERED:  { label: 'Ραντεβού κλείστηκε', icon: CheckCircle2, dot: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)' },
+    RECOVERING: { label: 'Ασθενής απάντησε',   icon: Reply,        dot: '#635BFF', bg: 'rgba(99,91,255,0.08)',  border: 'rgba(99,91,255,0.2)' },
+    DETECTED:   { label: 'Νέα αναπάντητη',     icon: PhoneMissed,  dot: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)'  },
+    LOST:       { label: 'Δεν απάντησε',        icon: AlertCircle,  dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
+    SMS_SENT:   { label: 'SMS εστάλη',          icon: MessageSquare,dot: '#635BFF', bg: 'rgba(99,91,255,0.08)',  border: 'rgba(99,91,255,0.2)' },
+    SMS_FAILED: { label: 'Αποτυχία SMS',        icon: AlertCircle,  dot: '#ef4444', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)'   },
+    PENDING:    { label: 'SMS εκκρεμεί',        icon: Clock,        dot: '#635BFF', bg: 'rgba(99,91,255,0.08)',  border: 'rgba(99,91,255,0.2)' },
+    VOICE_CALL: { label: 'AI Κλήση εστάλη',     icon: Phone,        dot: '#8B5CF6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+    VOICE_ANSWERED: { label: 'Κλήση απαντήθηκε', icon: PhoneCall,   dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
 };
 
 export const getEvent = (log) => {

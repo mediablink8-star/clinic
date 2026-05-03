@@ -129,10 +129,10 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                         <div
                             key={log.id}
                             className={`feed-item ${log.status}`}
+                            style={{ borderLeftColor: event.dot, background: event.bg }}
                             onClick={() => setSelected(log)}
                         >
-                            <div className="feed-status-bar" style={{ background: event.dot }} />
-                            <div className="feed-icon">
+                            <div className="feed-icon" style={{ background: event.bg, borderColor: event.border }}>
                                 <IconComponent size={18} color={event.dot} />
                             </div>
                             <div className="feed-content">
@@ -193,11 +193,10 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .empty-status .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
                 .empty-status span { font-size: 0.6rem; font-weight: 600; color: var(--primary); }
                 
-                .feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--glass-surface); border: 1px solid var(--border-glass); cursor: pointer; transition: all 0.15s; position: relative; }
-                .feed-item:hover { background: var(--primary-light); }
-                .feed-status-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 10px 0 0 10px; }
+                .feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
+                .feed-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
                 
-                .feed-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--bg-subtle); flex-shrink: 0; }
+                .feed-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
                 .feed-content { flex: 1; min-width: 0; }
                 .feed-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
                 .feed-sub { font-size: 0.75rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
@@ -205,7 +204,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .feed-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
                 .feed-time { font-size: 0.65rem; color: var(--text-light); font-weight: 500; }
                 .badge-success { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #059669; }
-                .badge-primary { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: var(--primary-light); color: var(--primary); }
+                .badge-primary { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(99,91,255,0.12); color: var(--primary); }
                 .btn-retry { width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
                 .btn-retry.sent { background: rgba(16,185,129,0.12); color: #059669; }
                 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
