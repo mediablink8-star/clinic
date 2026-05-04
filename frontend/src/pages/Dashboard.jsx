@@ -132,7 +132,7 @@ const Dashboard = ({
             </div>
 
             {/* ── HERO: DOMINANT REVENUE + CONNECTING STORY ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
                 {/* Main Revenue - DOMINANT */}
                 {revenue > 0 && (
                     <div style={{
@@ -167,46 +167,81 @@ const Dashboard = ({
                     </div>
                 )}
 
-                {/* CONNECTING STORY LINE */}
+                {/* THE KILLER SENTENCE - connects everything emotionally */}
+                {totalMissed > 0 && totalRecovered > 0 && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                        borderRadius: '12px',
+                        padding: '0.65rem 1rem',
+                        textAlign: 'center',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
+                    }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'white' }}>
+                            <span style={{ color: '#ef4444' }}>Χάσατε {totalMissed - totalRecovered} ασθενείς</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}> — </span>
+                            <span style={{ color: '#10b981' }}>η AI ανέκτησε €{weeklyRevenue}</span>
+                        </span>
+                    </div>
+                )}
+
+                {/* CONNECTING STORY LINE - tighter gap */}
                 {totalMissed > 0 ? (
                     <div style={{
                         display: 'flex',
-                        gap: '0.5rem',
+                        gap: '0.4rem',
                         flexWrap: 'wrap'
                     }}>
                         {/* Lost - smaller */}
                         <div style={{
                             background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                             borderRadius: '14px',
-                            padding: '0.7rem 1rem',
+                            padding: '0.6rem 0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            flex: '1 1 120px',
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)'
+                            gap: '6px',
+                            flex: '1 1 110px',
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.12)'
                         }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'white' }}>
                                 {totalMissed - totalRecovered} χάθηκαν
                             </span>
                         </div>
 
-                        {/* AI - smaller */}
+                        {/* AI - tighter wording */}
                         <div style={{
                             background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
                             borderRadius: '14px',
-                            padding: '0.7rem 1rem',
+                            padding: '0.6rem 0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            flex: '1 1 160px',
-                            boxShadow: '0 2px 12px rgba(8, 145, 178, 0.2)'
+                            gap: '6px',
+                            flex: '1 1 150px',
+                            boxShadow: '0 2px 10px rgba(8, 145, 178, 0.18)'
                         }}>
-                            <Bot size={16} color="white" />
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
-                                🤖 AI: {totalMissed} κλήσεις → €{weeklyRevenue}
+                            <Bot size={14} color="white" />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'white' }}>
+                                🤖 AI έκλεισε {totalRecovered} — +€{weeklyRevenue}
                             </span>
                         </div>
+
+                        {/* Recovery rate - smaller */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                            borderRadius: '14px',
+                            padding: '0.6rem 0.9rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            flex: '0 0 auto',
+                            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.18)'
+                        }}>
+                            <Activity size={12} color="white" />
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
+                        </div>
+                    </div>
+                ) : (
 
                         {/* Recovery rate - smaller */}
                         <div style={{
@@ -228,21 +263,21 @@ const Dashboard = ({
                     /* No missed calls - clean message */
                     <div style={{
                         display: 'flex',
-                        gap: '0.5rem',
+                        gap: '0.4rem',
                         alignItems: 'center'
                     }}>
                         <div style={{
                             background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
                             borderRadius: '14px',
-                            padding: '0.7rem 1rem',
+                            padding: '0.6rem 0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
+                            gap: '6px',
                             flex: 1,
-                            boxShadow: '0 2px 12px rgba(16, 185, 129, 0.2)'
+                            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.2)'
                         }}>
-                            <span style={{ fontSize: '1rem' }}>🎉</span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                            <span style={{ fontSize: '0.9rem' }}>🎉</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
                                 Καμία αναπάντητη κλήση σήμερα!
                             </span>
                         </div>
