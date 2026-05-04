@@ -131,43 +131,92 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── HERO SECTION: Three equal-width stat cards ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', flexShrink: 0 }}>
-                {/* Έσοδα Ανάκτησης - green tint */}
+            {/* ── HERO SECTION: Big Revenue + 2 smaller cards ── */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'stretch' }}>
+                {/* BIG Revenue Card - screams "YOU MADE €X" */}
                 {revenue > 0 && (
-                    <StatCard
-                        icon={Euro}
-                        color="#10b981"
-                        bg="#10b98114"
-                        title="Έσοδα Ανάκτησης"
-                        value={`€${revenue.toLocaleString()}`}
-                        subtitle="από AI κλήσεις"
-                        size="compact"
-                    />
+                    <div style={{
+                        flex: '2 1 200px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderRadius: '20px',
+                        padding: '1.25rem 1.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            position: 'absolute', top: '-30px', right: '-30px',
+                            width: '120px', height: '120px',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+                            pointerEvents: 'none'
+                        }} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+                            Ανάκτηση από AI
+                        </span>
+                        <span style={{ fontSize: '2.4rem', fontWeight: '950', color: 'white', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                            €{revenue.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.85)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <TrendingUp size={14} />
+                            +€{weeklyRevenue || 0} αυτή την εβδομάδα
+                        </span>
+                    </div>
                 )}
 
-                {/* Αναπάντητες Σήμερα - red/pink tint */}
-                <StatCard
-                    icon={PhoneMissed}
-                    color="#ef4444"
-                    bg="#ef444414"
-                    title="Αναπάντητες Σήμερα"
-                    value={missedCallsToday}
-                    subtitle="εκκρεμείς κλήσεις"
-                    size="compact"
-                />
+                {/* 2 smaller equal cards */}
+                <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 180px' }}>
+                    {/* Αναπάντητες Σήμερα - red */}
+                    <StatCard
+                        icon={PhoneMissed}
+                        color="#ef4444"
+                        bg="#ef444414"
+                        title="Αναπάντητες Σήμερα"
+                        value={missedCallsToday}
+                        subtitle="εκκρεμείς κλήσεις"
+                        size="compact"
+                    />
 
-                {/* Ποσοστό Ανάκτησης - purple tint */}
-                <StatCard
-                    icon={Activity}
-                    color="#8b5cf6"
-                    bg="#8b5cf614"
-                    title="Ποσοστό Ανάκτησης"
-                    value={`${recoveryRate}%`}
-                    subtitle="επιτυχία ανάκτησης"
-                    size="compact"
-                />
+                    {/* Ποσοστό Ανάκτησης - purple */}
+                    <StatCard
+                        icon={Activity}
+                        color="#8b5cf6"
+                        bg="#8b5cf614"
+                        title="Ποσοστό Ανάκτησης"
+                        value={`${recoveryRate}%`}
+                        subtitle="επιτυχία ανάκτησης"
+                        size="compact"
+                    />
+                </div>
             </div>
+
+            {/* AI Stats Banner - make AI visible */}
+            {totalRecovered > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    borderRadius: '14px',
+                    padding: '0.7rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px',
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                    flexShrink: 0
+                }}>
+                    <Bot size={18} color="white" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                        🤖 Η AI έκανε <strong>{logsArray.length}</strong> κλήσεις σήμερα
+                    </span>
+                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>•</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                        <strong>{totalRecovered}</strong> ραντεβού κλείστηκαν
+                    </span>
+                </div>
+            )}
 
             {/* ── MAIN GRID ── */}
             <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1, minHeight: 0 }}>
