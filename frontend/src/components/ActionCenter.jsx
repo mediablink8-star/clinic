@@ -238,7 +238,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Ενεργές', tooltip: 'Ενεργές προσπάθειες ανάκτησης' },
                         { icon: MessageCircle, color: '#6366f1', value: awaitingReply, label: 'Αναμένουν', tooltip: 'Αναμένουν απάντηση από ασθενείς' },
                     ].map(({ icon: Icon, color, value, label, tooltip }) => (
-                        <Tooltip key={label} text={tooltip} position="top">
+                        <Tooltip key={label} text={tooltip} position="top" style={{ height: '100%' }}>
                             <div
                             onClick={() => onNavigate && onNavigate('analytics')}
                             style={{ 
@@ -251,9 +251,9 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                 transition: 'all 0.2s ease',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                minHeight: '110px',
+                                height: '120px',
                                 display: 'flex',
-                                flexDirection: 'column',
+                                alignItems: 'center',
                                 justifyContent: 'center'
                             }}
                             onMouseEnter={e => {

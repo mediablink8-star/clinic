@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Tooltip = ({ children, text, position = 'top' }) => {
+const Tooltip = ({ children, text, position = 'top', style = {} }) => {
     const [show, setShow] = useState(false);
 
     const positions = {
@@ -12,7 +12,7 @@ const Tooltip = ({ children, text, position = 'top' }) => {
 
     return (
         <div
-            style={{ position: 'relative', display: 'inline-flex' }}
+            style={{ position: 'relative', display: 'inline-flex', ...style }}
             onMouseEnter={() => setShow(true)}
             onMouseLeave={() => setShow(false)}
         >
