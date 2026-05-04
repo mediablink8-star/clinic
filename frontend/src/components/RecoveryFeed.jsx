@@ -146,7 +146,12 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                         <div
                             key={log.id}
                             className={`feed-item ${log.status}`}
-                            style={{ borderLeftColor: event.dot, background: event.bg }}
+                            style={{ 
+                                borderLeftColor: event.dot, 
+                                background: event.bg,
+                                // Zebra striping for better scannability
+                                backgroundColor: sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent'
+                            }}
                             onClick={() => setSelected(log)}
                         >
                             <div className="feed-icon" style={{ background: event.bg, borderColor: event.border }}>
@@ -213,8 +218,8 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .empty-status .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); }
                 .empty-status span { font-size: 0.55rem; font-weight: 600; color: var(--primary); }
                 
-.feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
-                .feed-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; position: relative; }
+                .feed-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); background: var(--glass-surface) !important; }
                 
                 .feed-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
                 .feed-content { flex: 1; min-width: 0; }
