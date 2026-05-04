@@ -125,6 +125,23 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     const replyPreview = getReplyPreview(log);
                     const revenue = getRevenue(log);
 
+                    // Outcome badges
+                    const getOutcomeBadge = () => {
+                        if (log.status === 'RECOVERED') {
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>🟢 Κλείστηκε</span>;
+                        }
+                        if (log.status === 'RECOVERING') {
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(99,91,255,0.12)', color: '#6366f1', border: '1px solid rgba(99,91,255,0.2)' }}>🟡 Ενεργό</span>;
+                        }
+                        if (log.status === 'LOST') {
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>🔴 Χάθηκε</span>;
+                        }
+                        if (log.smsStatus === 'failed') {
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>❌ Απέτυχε</span>;
+                        }
+                        return null;
+                    };
+
                     return (
                         <div
                             key={log.id}
@@ -136,7 +153,10 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                                 <IconComponent size={18} color={event.dot} />
                             </div>
                             <div className="feed-content">
-                                <div className="feed-name">{name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                    <div className="feed-name">{name}</div>
+                                    {getOutcomeBadge()}
+                                </div>
                                 <div className="feed-sub">
                                     {replyPreview || log.fromNumber || '—'}
                                 </div>

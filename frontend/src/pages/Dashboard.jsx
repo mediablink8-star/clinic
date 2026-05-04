@@ -131,92 +131,123 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── UNIFIED STORY: Revenue + Recovery + AI ── */}
-            <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                flexShrink: 0,
-                flexWrap: 'wrap'
-            }}>
-                {/* Main Revenue - Primary Purple */}
+            {/* ── HERO: DOMINANT REVENUE + CONNECTING STORY ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+                {/* Main Revenue - DOMINANT */}
                 {revenue > 0 && (
                     <div style={{
                         background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
-                        borderRadius: '16px',
-                        padding: '1rem 1.4rem',
-                        boxShadow: '0 4px 20px rgba(99, 91, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                        borderRadius: '20px',
+                        padding: '1.5rem 2rem',
+                        boxShadow: '0 8px 32px rgba(99, 91, 255, 0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        flex: '1 1 auto',
-                        minWidth: '150px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        justifyContent: 'space-between',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        position: 'relative',
+                        overflow: 'hidden'
                     }}>
-                        <Euro size={20} color="white" strokeWidth={2.5} />
-                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
+                        <div style={{
+                            position: 'absolute',
+                            top: '-50px',
+                            right: '-50px',
+                            width: '200px',
+                            height: '200px',
+                            background: 'rgba(255,255,255,0.08)',
+                            borderRadius: '50%',
+                            filter: 'blur(60px)'
+                        }} />
+                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Euro size={32} color="white" strokeWidth={2.5} />
+                            <div>
+                                <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>€{revenue.toLocaleString()}</span>
+                                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginLeft: '10px' }}>ανακτήθηκαν αυτόν τον μήνα</span>
+                            </div>
+                        </div>
                     </div>
                 )}
 
-                {/* Lost vs Recovered - Dark */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '16px',
-                    padding: '0.9rem 1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    flex: '1 1 auto',
-                    minWidth: '150px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                    border: '1px solid rgba(255,255,255,0.08)'
-                }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        <span style={{ color: '#ef4444' }}>{totalMissed - totalRecovered}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 4px' }}>/</span>
-                        <span style={{ color: '#10b981' }}>{totalRecovered}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', marginLeft: '6px', fontSize: '0.72rem' }}>χάθ/ανακτ</span>
-                    </span>
-                </div>
+                {/* CONNECTING STORY LINE */}
+                {totalMissed > 0 ? (
+                    <div style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap'
+                    }}>
+                        {/* Lost - smaller */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                            borderRadius: '14px',
+                            padding: '0.7rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: '1 1 120px',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)'
+                        }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                                {totalMissed - totalRecovered} χάθηκαν
+                            </span>
+                        </div>
 
-                {/* AI Stats - Secondary accent */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-                    borderRadius: '16px',
-                    padding: '0.9rem 1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flex: '1 1 auto',
-                    minWidth: '150px',
-                    boxShadow: '0 4px 16px rgba(8, 145, 178, 0.25)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                    <Bot size={18} color="white" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        AI: {totalMissed} κλ.
-                    </span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>
-                        → €{weeklyRevenue}
-                    </span>
-                </div>
+                        {/* AI - smaller */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+                            borderRadius: '14px',
+                            padding: '0.7rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: '1 1 160px',
+                            boxShadow: '0 2px 12px rgba(8, 145, 178, 0.2)'
+                        }}>
+                            <Bot size={16} color="white" />
+                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                                🤖 AI: {totalMissed} κλήσεις → €{weeklyRevenue}
+                            </span>
+                        </div>
 
-                {/* Recovery Rate - Accent */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                    borderRadius: '16px',
-                    padding: '0.9rem 1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flex: '0 0 auto',
-                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                    <Activity size={16} color="white" />
-                    <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
-                </div>
+                        {/* Recovery rate - smaller */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                            borderRadius: '14px',
+                            padding: '0.7rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: '0 0 auto',
+                            boxShadow: '0 2px 12px rgba(16, 185, 129, 0.2)'
+                        }}>
+                            <Activity size={14} color="white" />
+                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
+                        </div>
+                    </div>
+                ) : (
+                    /* No missed calls - clean message */
+                    <div style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        alignItems: 'center'
+                    }}>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                            borderRadius: '14px',
+                            padding: '0.7rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: 1,
+                            boxShadow: '0 2px 12px rgba(16, 185, 129, 0.2)'
+                        }}>
+                            <span style={{ fontSize: '1rem' }}>🎉</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                                Καμία αναπάντητη κλήση σήμερα!
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ── MAIN GRID ── */}
