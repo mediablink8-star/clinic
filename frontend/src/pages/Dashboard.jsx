@@ -137,13 +137,13 @@ const Dashboard = ({
                 {revenue > 0 && (
                     <div style={{
                         flex: '2 1 200px',
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        background: 'linear-gradient(135deg, #635BFF 0%, #4338CA 100%)',
                         borderRadius: '20px',
                         padding: '1.25rem 1.5rem',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
-                        boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
+                        boxShadow: '0 8px 24px rgba(99, 91, 255, 0.4)',
                         border: '1px solid rgba(255,255,255,0.2)',
                         position: 'relative',
                         overflow: 'hidden'
