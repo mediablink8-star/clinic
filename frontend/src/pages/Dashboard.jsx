@@ -1,7 +1,6 @@
 import React from 'react';
 import { Euro, Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
 import axios from 'axios';
-import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import ActionCenter from '../components/ActionCenter';
@@ -56,6 +55,26 @@ const Dashboard = ({
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     React.useEffect(() => { if (!loading) setHasLoaded(true); }, [loading]);
     if (!hasLoaded && loading) return <DashboardSkeleton />;
+
+    // Safety checks for all props
+    if (!clinic) {
+        return <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Φόρτωση δεδομένων κλινικής...</p>
+        </div>;
+    }
+
+    if (!token) {
+        return <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Σφάλμα ελέγχου ταυτότητας. Παρακαλώ συνδεθείτε ξανά.</p>
+        </div>;
+    }
+
+    if (!setCurrentTab || !setShowModal) {
+        console.error('[Dashboard] Missing required callbacks:', { setCurrentTab, setShowModal });
+        return <div style={{ padding: '2rem', textAlign: 'center', color: 'red' }}>
+            <p>Σφάλμα διαμόρφωσης εφαρμογής. Παρακαλώ ανανεώστε τη σελίδα.</p>
+        </div>;
+    }
 
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλό απόγευμα' : 'Καλό βράδυ';

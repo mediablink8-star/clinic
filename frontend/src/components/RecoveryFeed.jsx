@@ -222,7 +222,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .feed-sub { font-size: 0.78rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
                 
                 .feed-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-                .feed-time { fontSize: 0.72rem; color: var(--text-light); font-weight: 500; }
+                .feed-time { font-size: 0.72rem; color: var(--text-light); font-weight: 500; }
                 .badge-success { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #059669; }
                 .badge-primary { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(99,91,255,0.12); color: var(--primary); }
                 .btn-retry { width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
