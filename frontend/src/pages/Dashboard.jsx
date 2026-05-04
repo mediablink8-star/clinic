@@ -134,82 +134,88 @@ const Dashboard = ({
             {/* ── UNIFIED STORY: Revenue + Recovery + AI ── */}
             <div style={{
                 display: 'flex',
-                gap: '0.4rem',
+                gap: '0.5rem',
                 flexShrink: 0,
                 flexWrap: 'wrap'
             }}>
-                {/* Main Revenue - Green */}
+                {/* Main Revenue - Primary Purple */}
                 {revenue > 0 && (
                     <div style={{
-                        background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                        borderRadius: '14px',
-                        padding: '0.8rem 1.1rem',
-                        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
+                        background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
+                        borderRadius: '16px',
+                        padding: '1rem 1.4rem',
+                        boxShadow: '0 4px 20px rgba(99, 91, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '10px',
                         flex: '1 1 auto',
-                        minWidth: '140px'
+                        minWidth: '150px',
+                        border: '1px solid rgba(255,255,255,0.1)'
                     }}>
-                        <Euro size={18} color="white" strokeWidth={2.5} />
-                        <span style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
+                        <Euro size={20} color="white" strokeWidth={2.5} />
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
                     </div>
                 )}
 
                 {/* Lost vs Recovered - Dark */}
                 <div style={{
                     background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '14px',
-                    padding: '0.7rem 1rem',
+                    borderRadius: '16px',
+                    padding: '0.9rem 1.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    flex: '1 1 auto',
+                    minWidth: '150px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                        <span style={{ color: '#ef4444' }}>{totalMissed - totalRecovered}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 4px' }}>/</span>
+                        <span style={{ color: '#10b981' }}>{totalRecovered}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', marginLeft: '6px', fontSize: '0.72rem' }}>χάθ/ανακτ</span>
+                    </span>
+                </div>
+
+                {/* AI Stats - Secondary accent */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+                    borderRadius: '16px',
+                    padding: '0.9rem 1.2rem',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     flex: '1 1 auto',
-                    minWidth: '140px'
+                    minWidth: '150px',
+                    boxShadow: '0 4px 16px rgba(8, 145, 178, 0.25)',
+                    border: '1px solid rgba(255,255,255,0.1)'
                 }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
-                        <span style={{ color: '#ef4444' }}>{totalMissed - totalRecovered}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 4px' }}>/</span>
-                        <span style={{ color: '#10b981' }}>{totalRecovered}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', marginLeft: '6px', fontSize: '0.7rem' }}>χάθηκαν/ανακτήθηκαν</span>
+                    <Bot size={18} color="white" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
+                        AI: {totalMissed} κλ.
                     </span>
-                </div>
-
-                {/* AI Stats - Purple */}
-                <div style={{
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                    borderRadius: '14px',
-                    padding: '0.7rem 1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    flex: '1 1 auto',
-                    minWidth: '140px',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.25)'
-                }}>
-                    <Bot size={16} color="white" />
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
-                        AI: {totalMissed} κλήσεις
-                    </span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>
                         → €{weeklyRevenue}
                     </span>
                 </div>
 
-                {/* Recovery Rate - Blue */}
+                {/* Recovery Rate - Accent */}
                 <div style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    borderRadius: '14px',
-                    padding: '0.7rem 1rem',
+                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                    borderRadius: '16px',
+                    padding: '0.9rem 1.2rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    flex: '0 0 auto'
+                    gap: '8px',
+                    flex: '0 0 auto',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
+                    border: '1px solid rgba(255,255,255,0.1)'
                 }}>
-                    <Activity size={14} color="white" />
-                    <span style={{ fontSize: '1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
+                    <Activity size={16} color="white" />
+                    <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
                 </div>
             </div>
 
