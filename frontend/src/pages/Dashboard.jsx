@@ -202,8 +202,8 @@ const Dashboard = ({
                 {/* Left column: live feed (flex) + recovery performance (fixed) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0 }}>
                     {/* Live feed — takes all remaining height */}
-                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                        <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
+                    <div className="card-glass" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                        <div style={{ padding: '0.4rem 0.7rem 0.15rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
                         <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

@@ -191,35 +191,35 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
 
             <style>{`
                 .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-                .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 14px 16px; background: var(--glass-surface); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 14px; margin-bottom: 12px; flex-shrink: 0; }
-                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-                .stat-value { font-size: 1.2rem; font-weight: 800; color: var(--secondary); }
-                .stat-label { font-size: 0.6rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; }
+                .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 8px 12px; background: var(--glass-surface); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 10px; margin-bottom: 6px; flex-shrink: 0; }
+                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+                .stat-value { font-size: 0.95rem; font-weight: 800; color: var(--secondary); }
+                .stat-label { font-size: 0.55rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; }
                 .stat-item.success .stat-value { color: #10b981; }
                 .stat-item.warning .stat-value { color: var(--primary); }
                 .stat-divider { width: 1px; height: 24px; background: var(--border); }
                 
-                .feed-header { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-                .clear-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 0.7rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+                .feed-header { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+                .clear-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
                 .clear-btn:hover { background: var(--primary-light); color: var(--primary); }
                 
-                .feed-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+                .feed-list { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
                 
-                .feed-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1.5rem; text-align: center; gap: 1rem; border-radius: 14px; background: var(--glass-surface); border: 1px solid var(--border-glass); }
-                .empty-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
+                .feed-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; gap: 0.5rem; border-radius: 10px; background: var(--glass-surface); border: 1px solid var(--border-glass); }
+                .empty-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
                 .empty-icon svg { color: var(--primary); }
-                .empty-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin: 0; }
-                .empty-status { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: var(--primary-light); }
-                .empty-status .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); }
-                .empty-status span { font-size: 0.6rem; font-weight: 600; color: var(--primary); }
+                .empty-title { font-size: 0.75rem; font-weight: 700; color: var(--text); margin: 0; }
+                .empty-status { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 8px; background: var(--primary-light); }
+                .empty-status .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); }
+                .empty-status span { font-size: 0.55rem; font-weight: 600; color: var(--primary); }
                 
-                .feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
+                .feed-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
                 .feed-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
                 
-                .feed-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
+                .feed-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
                 .feed-content { flex: 1; min-width: 0; }
-                .feed-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
-                .feed-sub { font-size: 0.75rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+                .feed-name { font-size: 0.8rem; font-weight: 700; color: var(--text); }
+                .feed-sub { font-size: 0.7rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
                 
                 .feed-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
                 .feed-time { font-size: 0.65rem; color: var(--text-light); font-weight: 500; }
