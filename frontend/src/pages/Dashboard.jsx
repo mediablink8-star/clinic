@@ -135,22 +135,22 @@ const Dashboard = ({
             <div style={{ flexShrink: 0 }}>
                 {/* Desktop: Main revenue card - smaller but still dominant, next to other cards */}
                 <div className="desktop-hero-row" style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column' }}>
-                    {/* Main Revenue - biggest card */}
+                    {/* Main Revenue - smaller but biggest */}
                     {revenue > 0 && (
                         <div className="hero-main-card" style={{
                             background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
-                            borderRadius: '16px',
-                            padding: '0.8rem 1.2rem',
-                            boxShadow: '0 6px 20px rgba(99, 91, 255, 0.35)',
+                            borderRadius: '14px',
+                            padding: '0.6rem 0.9rem',
+                            boxShadow: '0 4px 14px rgba(99, 91, 255, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px',
-                            border: '1px solid rgba(255,255,255,0.15)',
-                            flex: '1 1 180px',
-                            minWidth: '150px'
+                            gap: '6px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            flex: '1 1 140px',
+                            minWidth: '120px'
                         }}>
-                            <Euro size={24} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                            <span style={{ fontSize: '1.6rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
+                            <Euro size={18} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
                         </div>
                     )}
 
@@ -174,61 +174,52 @@ const Dashboard = ({
                             </div>
                         )}
 
-                        {/* 3 metric cards - fill the space */}
-                        <div style={{ display: 'flex', gap: '0.5rem', flex: '2 1 300px' }}>
-                            {/* Lost - dark card */}
+                        {/* 3 smaller metric cards */}
+                        <div style={{ display: 'flex', gap: '0.4rem', flex: '1 1 250px' }}>
+                            {/* Lost - dark */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                                borderRadius: '16px',
-                                padding: '0.7rem 1rem',
+                                borderRadius: '12px',
+                                padding: '0.5rem 0.7rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                flex: '1 1 120px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                border: '1px solid rgba(255,255,255,0.08)'
+                                gap: '5px',
+                                flex: '1 1 90px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                             }}>
-                                <span style={{ fontSize: '1rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
-                                <div>
-                                    <span style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>{totalMissed - totalRecovered}</span>
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.6)', marginLeft: '4px' }}>χάθηκαν</span>
-                                </div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>{totalMissed - totalRecovered}</span>
                             </div>
 
-                            {/* AI - cyan card */}
+                            {/* AI - cyan */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-                                borderRadius: '16px',
-                                padding: '0.7rem 1rem',
+                                borderRadius: '12px',
+                                padding: '0.5rem 0.7rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                flex: '1 1 140px',
-                                boxShadow: '0 4px 12px rgba(8, 145, 178, 0.2)',
-                                border: '1px solid rgba(255,255,255,0.1)'
+                                gap: '5px',
+                                flex: '1 1 100px',
+                                boxShadow: '0 2px 8px rgba(8, 145, 178, 0.15)'
                             }}>
-                                <Bot size={16} color="white" />
-                                <div>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>{totalRecovered} ανακτήθηκαν</span>
-                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>→ €{weeklyRevenue}</span>
-                                </div>
+                                <Bot size={12} color="white" />
+                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>{totalRecovered} → €{weeklyRevenue}</span>
                             </div>
 
-                            {/* Recovery rate - green card */}
+                            {/* Recovery rate - green */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                borderRadius: '16px',
-                                padding: '0.7rem 1rem',
+                                borderRadius: '12px',
+                                padding: '0.5rem 0.7rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
+                                gap: '5px',
                                 flex: '0 0 auto',
-                                minWidth: '100px',
-                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                                border: '1px solid rgba(255,255,255,0.1)'
+                                minWidth: '70px',
+                                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
                             }}>
-                                <Activity size={16} color="white" />
-                                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
+                                <Activity size={11} color="white" />
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
                             </div>
                         </div>
                     </div>
