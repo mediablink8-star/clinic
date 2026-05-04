@@ -125,6 +125,20 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     const replyPreview = getReplyPreview(log);
                     const revenue = getRevenue(log);
 
+                    // Get background color based on status
+                    const getStatusBackground = () => {
+                        if (log.status === 'RECOVERED') {
+                            return 'rgba(16,185,129,0.08)'; // Green
+                        }
+                        if (log.status === 'RECOVERING') {
+                            return 'rgba(99,102,241,0.08)'; // Purple
+                        }
+                        if (log.status === 'LOST' || log.smsStatus === 'failed') {
+                            return 'rgba(239,68,68,0.08)'; // Red
+                        }
+                        return sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent';
+                    };
+
                     // Outcome badges
                     const getOutcomeBadge = () => {
                         if (log.status === 'RECOVERED') {
@@ -149,8 +163,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                             style={{ 
                                 borderLeftColor: event.dot, 
                                 background: event.bg,
-                                // Zebra striping for better scannability
-                                backgroundColor: sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent'
+                                backgroundColor: getStatusBackground()
                             }}
                             onClick={() => setSelected(log)}
                         >
