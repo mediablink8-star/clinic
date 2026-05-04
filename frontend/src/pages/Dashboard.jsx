@@ -1,5 +1,5 @@
 import React from 'react';
-import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart, TrendingUp, Bot } from 'lucide-react';
+import { Euro, Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
@@ -192,50 +192,7 @@ const Dashboard = ({
                 </div>
             </div>
 
-            {/* EMOTIONAL SENTENCE - "You missed X — we recovered Y" */}
-            {totalMissed > 0 && (
-                <div style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '14px',
-                    padding: '0.8rem 1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                    flexShrink: 0
-                }}>
-                    <span style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>
-                        <span style={{ color: '#ef4444' }}>Χάσατε {totalMissed - totalRecovered} ασθενείς</span>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}> — </span>
-                        <span style={{ color: '#10b981' }}>ανακτήθηκαν {totalRecovered}</span>
-                    </span>
-                </div>
-            )}
-
-            {/* AI Stats Banner - make AI visible */}
-            {logsArray.length > 0 && (
-                <div style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    borderRadius: '14px',
-                    padding: '0.7rem 1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-                    flexShrink: 0
-                }}>
-                    <Bot size={18} color="white" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        🤖 AI: <strong>{logsArray.length}</strong> κλήσεις
-                    </span>
-                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>•</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        📅 <strong>{totalRecovered}</strong> ραντεβού
-                    </span>
-                </div>
-            )}
+            
 
             {/* ── MAIN GRID ── */}
             <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1, minHeight: 0 }}>
