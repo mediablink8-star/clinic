@@ -168,29 +168,27 @@ const Dashboard = ({
                     </div>
                 )}
 
-                {/* 2 smaller equal cards */}
+                {/* Stats display */}
                 <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 180px' }}>
-                    {/* Αναπάντητες Σήμερα - red */}
-                    <StatCard
-                        icon={PhoneMissed}
-                        color="#ef4444"
-                        bg="#ef444414"
-                        title="Αναπάντητες Σήμερα"
-                        value={missedCallsToday}
-                        subtitle="εκκρεμείς κλήσεις"
-                        size="compact"
-                    />
-
-                    {/* Ποσοστό Ανάκτησης - purple */}
-                    <StatCard
-                        icon={Activity}
-                        color="#8b5cf6"
-                        bg="#8b5cf614"
-                        title="Ποσοστό Ανάκτησης"
-                        value={`${recoveryRate}%`}
-                        subtitle="επιτυχία ανάκτησης"
-                        size="compact"
-                    />
+                    <div style={{
+                        background: '#1e293b',
+                        borderRadius: '12px',
+                        padding: '1rem',
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem'
+                    }}>
+                        <div style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>
+                            Χάσατε {missedCallsToday} ασθενείς — ανακτήθηκαν {recovered}
+                        </div>
+                        <div style={{ color: '#8b5cf6', fontSize: '0.85rem' }}>
+                            🤖 AI: {logsArray.length} κλήσεις
+                        </div>
+                        <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                            • 📅 {todayAppointments?.length ?? 0} ραντεβού
+                        </div>
+                    </div>
                 </div>
             </div>
 
