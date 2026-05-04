@@ -88,6 +88,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
 
     return (
         <div className="feed-container">
+            {/* Compact stats bar */}
             <div className="feed-stats">
                 <div className="stat-item">
                     <span className="stat-value">{stats.total}</span>
@@ -101,84 +102,84 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 <div className="stat-divider" />
                 <div className="stat-item warning">
                     <span className="stat-value">{stats.recovering}</span>
-                    <span className="stat-label">Σε εξέλιξη</span>
+                    <span className="stat-label">Ενεργές</span>
                 </div>
                 <div className="stat-divider" />
                 <div className="stat-item">
                     <span className="stat-value">{stats.rate}%</span>
-                    <span className="stat-label">Ποσοστό</span>
+                    <span className="stat-label">Επιτυχία</span>
                 </div>
             </div>
             
-            <div className="feed-header">
-                <button className="clear-btn" onClick={() => dismissAll(allSorted.map(l => l.id))}>
-                    Καθαρισμός
-                </button>
-            </div>
-            
+            {/* Activity feed */}
             <div className="feed-list">
-                {sorted.map((log) => {
+                {sorted.map((log, index) => {
                     const event = getEvent(log);
                     const IconComponent = STATUS_ICONS[log.status] || PhoneMissed;
                     const name = getPatientLabel(log);
+                    const initials = getInitials(name);
                     const isFailed = log.smsStatus === 'failed';
                     const replyPreview = getReplyPreview(log);
                     const revenue = getRevenue(log);
 
-                    // Outcome badges
-                    const getOutcomeBadge = () => {
+                    // Status badge
+                    const getStatusBadge = () => {
                         if (log.status === 'RECOVERED') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>🟢 Κλείστηκε</span>;
+                            return { text: 'Κλείστηκε', color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: '✓' };
                         }
                         if (log.status === 'RECOVERING') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(99,91,255,0.12)', color: '#6366f1', border: '1px solid rgba(99,91,255,0.2)' }}>🟡 Ενεργό</span>;
+                            return { text: 'Ενεργό', color: '#6366f1', bg: 'rgba(99,102,241,0.12)', icon: '⟳' };
                         }
                         if (log.status === 'LOST') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>🔴 Χάθηκε</span>;
+                            return { text: 'Χάθηκε', color: '#dc2626', bg: 'rgba(239,68,68,0.1)', icon: '✕' };
                         }
                         if (log.smsStatus === 'failed') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>❌ Απέτυχε</span>;
+                            return { text: 'Απέτυχε', color: '#dc2626', bg: 'rgba(239,68,68,0.1)', icon: '!' };
                         }
                         return null;
                     };
 
+                    const statusBadge = getStatusBadge();
+
                     return (
                         <div
                             key={log.id}
-                            className={`feed-item ${log.status}`}
-                            style={{ 
-                                borderLeftColor: event.dot, 
-                                background: event.bg,
-                                // Zebra striping for better scannability
-                                backgroundColor: sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent'
-                            }}
+                            className="feed-item-modern"
                             onClick={() => setSelected(log)}
                         >
-                            <div className="feed-icon" style={{ background: event.bg, borderColor: event.border }}>
-                                <IconComponent size={18} color={event.dot} />
+                            {/* Avatar with initials */}
+                            <div className="feed-avatar" style={{ background: event.bg, borderColor: event.dot }}>
+                                <span style={{ color: event.dot, fontSize: '0.75rem', fontWeight: '800' }}>{initials}</span>
                             </div>
-                            <div className="feed-content">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                                    <div className="feed-name">{name}</div>
-                                    {getOutcomeBadge()}
+
+                            {/* Content */}
+                            <div className="feed-content-modern">
+                                <div className="feed-header-row">
+                                    <span className="feed-name-modern">{name}</span>
+                                    {statusBadge && (
+                                        <span className="status-badge-modern" style={{ background: statusBadge.bg, color: statusBadge.color }}>
+                                            <span className="status-icon">{statusBadge.icon}</span>
+                                            {statusBadge.text}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="feed-sub">
-                                    {replyPreview || log.fromNumber || '—'}
+                                <div className="feed-message">
+                                    {replyPreview || log.fromNumber || 'Αναπάντητη κλήση'}
                                 </div>
                             </div>
-                            <div className="feed-right">
-                                <span className="feed-time">{formatTime(log.updatedAt || log.createdAt)}</span>
+
+                            {/* Right side - time and revenue */}
+                            <div className="feed-meta">
+                                <span className="feed-time-modern">{formatTime(log.updatedAt || log.createdAt)}</span>
                                 {log.status === 'RECOVERED' ? (
-                                    <span className="badge-success">+€{revenue}</span>
+                                    <span className="revenue-badge success">+€{revenue}</span>
                                 ) : log.status === 'RECOVERING' ? (
-                                    <span className="badge-primary">~€{revenue}</span>
+                                    <span className="revenue-badge pending">~€{revenue}</span>
                                 ) : isFailed ? (
-                                    <button className={`btn-retry ${retrying[log.id]}`} onClick={(e) => handleRetry(log.id, e)} disabled={!!retrying[log.id]}>
-                                        {retrying[log.id] === 'retrying' ? '...' : retrying[log.id] === 'sent' ? '✓' : '↻'}
+                                    <button className={`retry-btn-modern ${retrying[log.id]}`} onClick={(e) => handleRetry(log.id, e)} disabled={!!retrying[log.id]}>
+                                        {retrying[log.id] === 'retrying' ? <RefreshCw size={12} className="spinning" /> : retrying[log.id] === 'sent' ? '✓' : '↻'}
                                     </button>
-                                ) : (
-                                    <span className="status-dot" style={{ background: event.dot }} />
-                                )}
+                                ) : null}
                             </div>
                         </div>
                     );
@@ -195,48 +196,266 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
             )}
 
             <style>{`
-                .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-                .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 8px 12px; background: var(--glass-surface); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 10px; margin-bottom: 6px; flex-shrink: 0; }
-                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-                .stat-value { font-size: 1.25rem; font-weight: 900; color: var(--secondary); letterSpacing: '-0.02em'; }
-                .stat-label { font-size: 0.55rem; fontWeight: 500; color: var(--text-muted); text-transform: uppercase; letterSpacing: '0.05em'; }
+                .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 8px; }
+                
+                /* Stats bar */
+                .feed-stats { 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: space-around; 
+                    padding: 10px 14px; 
+                    background: linear-gradient(135deg, var(--glass-surface) 0%, var(--bg-subtle) 100%); 
+                    backdrop-filter: blur(16px); 
+                    border: 1.5px solid var(--border-glass); 
+                    border-radius: 12px; 
+                    flex-shrink: 0;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+                }
+                .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+                .stat-value { font-size: 1.35rem; font-weight: 900; color: var(--secondary); letter-spacing: -0.03em; }
+                .stat-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
                 .stat-item.success .stat-value { color: #10b981; }
                 .stat-item.warning .stat-value { color: var(--primary); }
-                .stat-divider { width: 1px; height: 24px; background: var(--border); }
+                .stat-divider { width: 1px; height: 28px; background: var(--border); opacity: 0.5; }
                 
-                .feed-header { display: flex; justify-content: flex-end; margin-bottom: 4px; }
-                .clear-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-                .clear-btn:hover { background: var(--primary-light); color: var(--primary); }
+                /* Feed list */
+                .feed-list { 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 6px; 
+                    flex: 1; 
+                    min-height: 0; 
+                    overflow-y: auto; 
+                    padding-right: 2px;
+                }
                 
-                .feed-list { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; }
+                /* Modern feed item */
+                .feed-item-modern {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 12px 14px;
+                    border-radius: 12px;
+                    background: var(--glass-surface);
+                    border: 1.5px solid var(--border-glass);
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                }
                 
-                .feed-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; gap: 0.5rem; border-radius: 10px; background: var(--glass-surface); border: 1px solid var(--border-glass); }
-                .empty-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; }
+                .feed-item-modern::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background: var(--primary);
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
+                }
+                
+                .feed-item-modern:hover {
+                    transform: translateX(2px);
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+                    border-color: var(--primary);
+                    background: linear-gradient(135deg, var(--glass-surface) 0%, var(--bg-subtle) 100%);
+                }
+                
+                .feed-item-modern:hover::before {
+                    opacity: 1;
+                }
+                
+                /* Avatar */
+                .feed-avatar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    border: 2px solid;
+                    font-weight: 800;
+                    transition: transform 0.2s ease;
+                }
+                
+                .feed-item-modern:hover .feed-avatar {
+                    transform: scale(1.05);
+                }
+                
+                /* Content */
+                .feed-content-modern {
+                    flex: 1;
+                    min-width: 0;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                
+                .feed-header-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .feed-name-modern {
+                    font-size: 0.9rem;
+                    font-weight: 800;
+                    color: var(--text);
+                    letter-spacing: -0.01em;
+                }
+                
+                .status-badge-modern {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 3px 8px;
+                    border-radius: 8px;
+                    font-size: 0.7rem;
+                    font-weight: 800;
+                    letter-spacing: 0.01em;
+                }
+                
+                .status-icon {
+                    font-size: 0.65rem;
+                }
+                
+                .feed-message {
+                    font-size: 0.8rem;
+                    color: var(--text-light);
+                    font-weight: 500;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    max-width: 200px;
+                }
+                
+                /* Meta (time + revenue) */
+                .feed-meta {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-end;
+                    gap: 6px;
+                    flex-shrink: 0;
+                }
+                
+                .feed-time-modern {
+                    font-size: 0.72rem;
+                    color: var(--text-muted);
+                    font-weight: 600;
+                }
+                
+                .revenue-badge {
+                    font-size: 0.75rem;
+                    font-weight: 900;
+                    padding: 4px 10px;
+                    border-radius: 8px;
+                    letter-spacing: -0.01em;
+                }
+                
+                .revenue-badge.success {
+                    background: rgba(16,185,129,0.15);
+                    color: #059669;
+                    box-shadow: 0 0 12px rgba(16,185,129,0.2);
+                }
+                
+                .revenue-badge.pending {
+                    background: rgba(99,102,241,0.15);
+                    color: var(--primary);
+                    box-shadow: 0 0 12px rgba(99,102,241,0.2);
+                }
+                
+                .retry-btn-modern {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 8px;
+                    border: none;
+                    background: rgba(239,68,68,0.12);
+                    color: #dc2626;
+                    font-size: 0.8rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                }
+                
+                .retry-btn-modern:hover {
+                    background: rgba(239,68,68,0.2);
+                    transform: scale(1.05);
+                }
+                
+                .retry-btn-modern.sent {
+                    background: rgba(16,185,129,0.15);
+                    color: #059669;
+                }
+                
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                
+                .spinning {
+                    animation: spin 1s linear infinite;
+                }
+                
+                /* Empty state */
+                .feed-empty { 
+                    display: flex; 
+                    flex-direction: column; 
+                    align-items: center; 
+                    justify-content: center; 
+                    padding: 2rem 1rem; 
+                    text-align: center; 
+                    gap: 0.75rem; 
+                    border-radius: 12px; 
+                    background: var(--glass-surface); 
+                    border: 1.5px solid var(--border-glass); 
+                }
+                .empty-icon { 
+                    width: 48px; 
+                    height: 48px; 
+                    border-radius: 12px; 
+                    background: var(--primary-light); 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                }
                 .empty-icon svg { color: var(--primary); }
-                .empty-title { font-size: 0.75rem; font-weight: 700; color: var(--text); margin: 0; }
-                .empty-status { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 8px; background: var(--primary-light); }
-                .empty-status .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); }
-                .empty-status span { font-size: 0.55rem; font-weight: 600; color: var(--primary); }
+                .empty-title { font-size: 0.9rem; font-weight: 800; color: var(--text); margin: 0; }
+                .empty-status { 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 6px; 
+                    padding: 6px 12px; 
+                    border-radius: 10px; 
+                    background: var(--primary-light); 
+                }
+                .empty-status .status-dot { 
+                    width: 6px; 
+                    height: 6px; 
+                    border-radius: 50%; 
+                    background: var(--primary); 
+                }
+                .empty-status span { 
+                    font-size: 0.75rem; 
+                    font-weight: 700; 
+                    color: var(--primary); 
+                }
                 
-.feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; position: relative; }
-                .feed-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); background: var(--glass-surface) !important; }
-                
-                .feed-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
-                .feed-content { flex: 1; min-width: 0; }
-                .feed-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
-                .feed-sub { font-size: 0.78rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-                
-                .feed-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-                .feed-time { font-size: 0.72rem; color: var(--text-light); font-weight: 500; }
-                .badge-success { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #059669; }
-                .badge-primary { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(99,91,255,0.12); color: var(--primary); }
-                .btn-retry { width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-                .btn-retry.sent { background: rgba(16,185,129,0.12); color: #059669; }
-                .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-                
-                .feed-list::-webkit-scrollbar { width: 3px; }
+                /* Scrollbar */
+                .feed-list::-webkit-scrollbar { width: 4px; }
                 .feed-list::-webkit-scrollbar-track { background: transparent; }
-                .feed-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+                .feed-list::-webkit-scrollbar-thumb { 
+                    background: var(--border); 
+                    border-radius: 4px; 
+                }
+                .feed-list::-webkit-scrollbar-thumb:hover { 
+                    background: var(--primary); 
+                }
             `}</style>
         </div>
     );
