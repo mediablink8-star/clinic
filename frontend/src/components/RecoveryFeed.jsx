@@ -213,16 +213,16 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .empty-status .status-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--primary); }
                 .empty-status span { font-size: 0.55rem; font-weight: 600; color: var(--primary); }
                 
-                .feed-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
-                .feed-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-glass); border-left: 3px solid; cursor: pointer; transition: all 0.15s; }
+                .feed-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
                 
-                .feed-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
+                .feed-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid; }
                 .feed-content { flex: 1; min-width: 0; }
-                .feed-name { font-size: 0.8rem; font-weight: 700; color: var(--text); }
-                .feed-sub { font-size: 0.7rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+                .feed-name { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+                .feed-sub { font-size: 0.78rem; color: var(--text-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
                 
-                .feed-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-                .feed-time { font-size: 0.65rem; color: var(--text-light); font-weight: 500; }
+                .feed-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+                .feed-time { fontSize: 0.72rem; color: var(--text-light); font-weight: 500; }
                 .badge-success { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 10px; background: rgba(16,185,129,0.12); color: #059669; }
                 .badge-primary { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; background: rgba(99,91,255,0.12); color: var(--primary); }
                 .btn-retry { width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(239,68,68,0.1); color: #dc2626; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
