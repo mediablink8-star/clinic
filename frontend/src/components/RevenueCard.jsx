@@ -33,18 +33,28 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
 
     return (
         <div style={{
-            borderRadius: '24px',
+            borderRadius: '20px',
             overflow: 'hidden',
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(135deg, #0f172a 0%, #062c2b 100%)',
-            boxShadow: '0 20px 48px -12px rgba(15,23,42,0.3)',
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            boxShadow: '0 8px 32px -8px rgba(15,23,42,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
             position: 'relative',
-            border: '1px solid rgba(255,255,255,0.08)'
-        }}>
-            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(70px)', opacity: 0.2, pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.15, pointerEvents: 'none' }} />
+            border: '1px solid rgba(255,255,255,0.1)',
+            transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 12px 40px -8px rgba(15,23,42,0.5), 0 0 0 1px rgba(255,255,255,0.08)';
+        }}
+        onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 32px -8px rgba(15,23,42,0.4), 0 0 0 1px rgba(255,255,255,0.05)';
+        }}
+        >
+            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(70px)', opacity: 0.18, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.12, pointerEvents: 'none' }} />
 
             <div style={{ padding: '0.85rem 1.25rem', display: 'flex', gap: '1rem', flex: 1, position: 'relative', zIndex: 1 }}>
                 {/* Left: performance metrics */}
@@ -59,28 +69,55 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                         <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>30 days</span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', flex: 1 }}>
                         {[
                             { icon: Users,         label: 'Ασθενείς',    value: recovered },
                             { icon: CalendarCheck, label: 'Ραντεβού',    value: booked },
                             { icon: BarChart3,     label: 'Μέση αξία',   value: `€${avgValue}` },
                             { icon: Target,        label: 'Έσοδα',       value: `€${revenue.toLocaleString()}` },
                         ].map(({ icon: Icon, label, value }) => (
-                            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '0.45rem 0.6rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                    <Icon size={10} color="rgba(255,255,255,0.4)" />
-                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase' }}>{label}</span>
+                            <div key={label} style={{ 
+                                background: 'rgba(255,255,255,0.05)', 
+                                border: '1px solid rgba(255,255,255,0.08)', 
+                                borderRadius: '12px', 
+                                padding: '0.5rem 0.65rem',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer'
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                                    <Icon size={11} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</span>
                                 </div>
-                                <p style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white', margin: 0 }}>{value}</p>
+                                <p style={{ fontSize: '1.15rem', fontWeight: '900', color: 'white', margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
                             </div>
                         ))}
                     </div>
 
                     {/* AI impact badge */}
                     {aiRate > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px', borderRadius: '8px', background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#a5b4fc' }}>
-                                AI ανέκτησε {aiRate}% των αναπάντητων κλήσεων
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '6px', 
+                            padding: '6px 11px', 
+                            borderRadius: '10px', 
+                            background: 'rgba(99,102,241,0.15)', 
+                            border: '1px solid rgba(99,102,241,0.25)',
+                            boxShadow: '0 0 20px rgba(99,102,241,0.15)'
+                        }}>
+                            <span style={{ fontSize: '0.76rem', fontWeight: '800', color: '#c7d2fe', letterSpacing: '0.01em' }}>
+                                ✨ AI ανέκτησε {aiRate}% των αναπάντητων κλήσεων
                             </span>
                         </div>
                     )}
