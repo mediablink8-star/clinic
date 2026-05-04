@@ -1,5 +1,5 @@
 import React from 'react';
-import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart } from 'lucide-react';
+import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
@@ -89,9 +89,18 @@ const Dashboard = ({
         : weeklyRate && weeklyRate > 0
             ? weeklyRate
             : logRate;
-    const revenueSubtitle = recovered > 0
-        ? `${recovered} ανακτήθηκαν${potentialRevenue > 0 ? ` · ~€${potentialRevenue.toLocaleString()} σε εξέλιξη` : ''}`
-        : potentialRevenue > 0 ? `~€${potentialRevenue.toLocaleString()} σε εξέλιξη` : 'Δεν υπάρχουν ακόμα';
+
+    // Weekly revenue calculation
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+    const weeklyRevenue = recoveryStats.trend?.thisWeek?.recovered
+        ? recoveryStats.trend.thisWeek.recovered * 150
+        : logsArray.filter(l => l?.status === 'RECOVERED' && l?.recoveredAt && new Date(l.recoveredAt) >= weekStart).length * 150;
+
+    // Emotional stats
+    const totalMissed = totalMissedForRate || 0;
+    const totalRecovered = recoveredForRate || 0;
+    const missedNotRecovered = totalMissed - totalRecovered;
 
     return (
         <div className="animate-fade dashboard-shell" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', height: '100%', overflow: 'hidden' }}>
@@ -122,9 +131,116 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
+            {/* ── PROMINENT REVENUE BANNER ── */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: revenue > 0 ? '2fr 1fr' : '1fr',
+                gap: '0.5rem',
+                flexShrink: 0
+            }}>
+                {/* Main Revenue Banner - TOP CENTER IMPOSSIBLE TO IGNORE */}
+                {revenue > 0 && (
+                    <div style={{
+                        background: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)',
+                        borderRadius: '20px',
+                        padding: '1.5rem 2rem',
+                        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            top: '-30px',
+                            right: '-30px',
+                            width: '120px',
+                            height: '120px',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '50%',
+                            filter: 'blur(40px)'
+                        }} />
+                        <div style={{ position: 'relative', zIndex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <Euro size={28} color="white" strokeWidth={2.5} />
+                                <span style={{ fontSize: '3rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                    {revenue.toLocaleString()}
+                                </span>
+                            </div>
+                            <p style={{ fontSize: '1.1rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)', margin: 0 }}>
+                                ανακτήθηκαν αυτόν τον μήνα
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.2)',
+                                    padding: '4px 10px',
+                                    borderRadius: '99px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    <TrendingUp size={12} color="white" />
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'white' }}>
+                                        +€{weeklyRevenue.toLocaleString()} αυτή την εβδομάδα
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Emotional Sentence - RIGHT NEXT TO REVENUE */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    borderRadius: '20px',
+                    padding: revenue > 0 ? '1.25rem 1.5rem' : '1.5rem 2rem',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: revenue > 0 ? 'flex-start' : 'center',
+                    textAlign: revenue > 0 ? 'left' : 'center'
+                }}>
+                    {totalMissed > 0 ? (
+                        <>
+                            <p style={{
+                                fontSize: revenue > 0 ? '1.15rem' : '1.4rem',
+                                fontWeight: '900',
+                                color: 'white',
+                                margin: 0,
+                                lineHeight: 1.4
+                            }}>
+                                <span style={{ color: '#ef4444' }}>{totalMissed}</span> ασθενείς χάθηκαν —{' '}
+                                <span style={{ color: '#10b981' }}>{totalRecovered}</span> ανακτήθηκαν
+                            </p>
+                            <p style={{
+                                fontSize: '0.85rem',
+                                color: 'rgba(255,255,255,0.6)',
+                                margin: '8px 0 0',
+                                fontWeight: '600'
+                            }}>
+                                {missedNotRecovered > 0 ? `Χάθηκαν €${(missedNotRecovered * 150).toLocaleString()} από ${missedNotRecovered} ασθενείς` : 'Όλοι οι ασθενείς ανακτήθηκαν!'}
+                            </p>
+                        </>
+                    ) : (
+                        <p style={{
+                            fontSize: '1.1rem',
+                            fontWeight: '700',
+                            color: 'rgba(255,255,255,0.8)',
+                            margin: 0,
+                            textAlign: 'center'
+                        }}>
+                            Δεν υπάρχουν αναπάντητες κλήσεις ακόμα
+                        </p>
+                    )}
+                </div>
+            </div>
+
             {/* ── STATS STRIP ── */}
-            <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr', gap: '0.4rem', flexShrink: 0 }}>
-                <StatCard title="Έσοδα Ανάκτησης" value={`€${revenue.toLocaleString()}`} subtitle={revenueSubtitle} icon={Euro} color="#10b981" size="compact" />
+            <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', flexShrink: 0 }}>
                 <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
                 <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
             </div>
@@ -149,7 +265,7 @@ const Dashboard = ({
                     </div>
                 </div>
 
-                {/* Right column: action center + quick actions */}
+                {/* Right column: action center FIRST (moved up) + quick actions */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0, overflowY: 'auto' }}>
                     <ActionCenter
                         pendingCount={Array.isArray(todayAppointments) ? todayAppointments.filter(a => a.status === 'PENDING').length : 0}

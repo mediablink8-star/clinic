@@ -109,12 +109,12 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                     Κέντρο Δράσης
                 </h3>
                 <span style={{
-                    fontSize: '0.7rem', fontWeight: '800', padding: '3px 9px', borderRadius: '99px',
-                    background: urgentCount > 0 ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.1)',
-                    color: urgentCount > 0 ? '#b45309' : '#15803d',
-                    border: `1px solid ${urgentCount > 0 ? 'rgba(245,158,11,0.25)' : 'rgba(16,185,129,0.2)'}`,
+                    fontSize: '0.7rem', fontWeight: '800', padding: '4px 10px', borderRadius: '99px',
+                    background: urgentCount > 0 ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.1)',
+                    color: urgentCount > 0 ? '#dc2626' : '#15803d',
+                    border: `1px solid ${urgentCount > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.2)'}`,
                 }}>
-                    {urgentCount > 0 ? `${urgentCount} εκκρεμή` : 'Όλα εντάξει'}
+                    {urgentCount > 0 ? `⚠️ ${urgentCount} χρειάζονται δράση` : '✅ Όλα καλά'}
                 </span>
             </div>
 
@@ -123,27 +123,69 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     <SectionLabel>Χρειάζεται Δράση</SectionLabel>
                     {staleCount > 0 && (
-                        <ActionRow icon={Send} color="#7c3aed" label={`${staleCount} ασθενείς δεν απάντησαν (24h+)`} sublabel="Αποστολή follow-up" cta="Στείλε" loading={sending.followup} onClick={sendFollowUps} urgent />
+                        <ActionRow
+                            icon={Send}
+                            color="#7c3aed"
+                            label={`⚠️ ${staleCount} ασθενείς περιμένουν — απάντησε τώρα`}
+                            sublabel={`€${(staleCount * 150).toLocaleString()} σε κίνδυνο`}
+                            cta="Στείλε"
+                            loading={sending.followup}
+                            onClick={sendFollowUps}
+                            urgent
+                        />
                     )}
                     {patientRepliedCount > 0 && (
-                        <ActionRow icon={Reply} color="#3b82f6" label={`${patientRepliedCount} ασθενής απάντησε`} sublabel="Απαντήστε τώρα" cta="Απάντηση" onClick={() => setShowReply(true)} urgent />
+                        <ActionRow
+                            icon={Reply}
+                            color="#3b82f6"
+                            label={`📩 ${patientRepliedCount} ασθενής απάντησε — κλείσε το ραντεβού!`}
+                            sublabel="Μην χάσεις την κράτηση"
+                            cta="Απάντηση"
+                            onClick={() => setShowReply(true)}
+                            urgent
+                        />
                     )}
                     {failedSmsCount > 0 && (
-                        <ActionRow icon={RefreshCw} color="#dc2626" label={`${failedSmsCount} αποτυχία SMS`} sublabel="Επανάληψη αποστολής" cta="Retry" loading={retryingAll} onClick={retryFailedSms} urgent />
+                        <ActionRow
+                            icon={RefreshCw}
+                            color="#dc2626"
+                            label={`❌ ${failedSmsCount} μηνύματα απέτυχαν — στείλε ξανά για να κλείσουν ραντεβού`}
+                            sublabel={`€${(failedSmsCount * 150).toLocaleString()} χαμένα`}
+                            cta="Επανάληψη"
+                            loading={retryingAll}
+                            onClick={retryFailedSms}
+                            urgent
+                        />
                     )}
                     {callbackCount > 0 && (
-                        <ActionRow icon={PhoneCall} color="#7c3aed" label={`${callbackCount} ασθενής ζητά επανάκληση`} sublabel="Καλέστε τώρα" cta="Δείτε" onClick={() => onNavigate && onNavigate('patients')} urgent />
+                        <ActionRow
+                            icon={PhoneCall}
+                            color="#7c3aed"
+                            label={`📞 ${callbackCount} ασθενής ζητά επανάκληση — κάλεσε τώρα`}
+                            sublabel="Εξασφάλισε την κράτηση"
+                            cta="Δείτε"
+                            onClick={() => onNavigate && onNavigate('patients')}
+                            urgent
+                        />
                     )}
                     {pendingCount > 0 && (
-                        <ActionRow icon={Clock} color="#d97706" label={`${pendingCount} εκκρεμή ραντεβού`} sublabel="Επιβεβαίωση" cta="Δείτε" onClick={() => onNavigate && onNavigate('appointments')} urgent />
+                        <ActionRow
+                            icon={Clock}
+                            color="#d97706"
+                            label={`⏰ ${pendingCount} ραντεβού περιμένουν επιβεβαίωση`}
+                            sublabel="Επιβεβαίωσε για να μην χαθούν"
+                            cta="Δείτε"
+                            onClick={() => onNavigate && onNavigate('appointments')}
+                            urgent
+                        />
                     )}
                 </div>
             )}
 
             {urgentCount === 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)' }}>
-                    <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 5px rgba(16,185,129,0.5)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#065f46' }}>Όλα εντάξει — δεν υπάρχουν εκκρεμότητες</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 14px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.08) 100%)', border: '1px solid rgba(16,185,129,0.2)' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px rgba(16,185,129,0.6)', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#065f46' }}>🎉 Όλα καλά — κανένα χαμένο ραντεβού!</span>
                 </div>
             )}
 
