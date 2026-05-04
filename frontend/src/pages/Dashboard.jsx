@@ -135,35 +135,35 @@ const Dashboard = ({
             <div style={{ flexShrink: 0 }}>
                 {/* Desktop: Main revenue card - smaller but still dominant, next to other cards */}
                 <div className="desktop-hero-row" style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column' }}>
-                    {/* Main Revenue - smaller but biggest */}
+                    {/* Main Revenue - even smaller */}
                     {revenue > 0 && (
                         <div className="hero-main-card" style={{
                             background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
-                            borderRadius: '18px',
-                            padding: '1rem 1.5rem',
-                            boxShadow: '0 6px 24px rgba(99, 91, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            borderRadius: '16px',
+                            padding: '0.7rem 1rem',
+                            boxShadow: '0 4px 16px rgba(99, 91, 255, 0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '10px',
+                            gap: '8px',
                             border: '1px solid rgba(255,255,255,0.1)',
                             position: 'relative',
                             overflow: 'hidden',
-                            flex: '2 1 200px'
+                            flex: '2 1 160px'
                         }}>
                             <div style={{
                                 position: 'absolute',
-                                top: '-30px',
-                                right: '-30px',
-                                width: '120px',
-                                height: '120px',
+                                top: '-20px',
+                                right: '-20px',
+                                width: '80px',
+                                height: '80px',
                                 background: 'rgba(255,255,255,0.08)',
                                 borderRadius: '50%',
-                                filter: 'blur(40px)'
+                                filter: 'blur(30px)'
                             }} />
-                            <Euro size={24} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                                <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>€{revenue.toLocaleString()}</span>
-                                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
+                            <Euro size={20} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                <span style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>€{revenue.toLocaleString()}</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
                             </div>
                         </div>
                     )}
