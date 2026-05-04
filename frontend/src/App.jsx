@@ -130,8 +130,10 @@ const App = () => {
         setToken(refreshedToken);
         setAuthToken(refreshedToken);
         // Load from localStorage immediately so UI isn't blank
-        const localClinic = JSON.parse(savedClinic);
-        setClinic(localClinic);
+        let localClinic = null;
+        try { localClinic = JSON.parse(savedClinic); }
+        catch (e) { console.warn('[App] Failed to parse clinic data:', e); localStorage.removeItem('clinic_data'); }
+        if (localClinic) setClinic(localClinic);
         // Then fetch fresh clinic data from API to pick up any DB changes (e.g. webhook URLs)
         try {
           const res = await fetch(`${API_BASE}/clinic`, {

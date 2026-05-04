@@ -4,12 +4,17 @@ const AppError = require('../errors/AppError');
 const { ensureMonthlyUsageWindow, DEFAULT_SMS_LIMIT, DEFAULT_AI_LIMIT } = require('./usageService');
 
 function formatClinicResponse(clinic) {
+    const safeJsonParse = (val, fallback) => {
+        if (!val) return fallback;
+        try { return JSON.parse(val); }
+        catch (e) { console.warn('[ClinicService] JSON parse failed:', e.message); return fallback; }
+    };
     return {
         ...clinic,
-        workingHours: clinic.workingHours ? JSON.parse(clinic.workingHours) : {},
-        services: clinic.services ? JSON.parse(clinic.services) : [],
-        policies: clinic.policies ? JSON.parse(clinic.policies) : {},
-        aiConfig: clinic.aiConfig ? JSON.parse(clinic.aiConfig) : null
+        workingHours: safeJsonParse(clinic.workingHours, {}),
+        services: safeJsonParse(clinic.services, []),
+        policies: safeJsonParse(clinic.policies, {}),
+        aiConfig: safeJsonParse(clinic.aiConfig, null)
     };
 }
 

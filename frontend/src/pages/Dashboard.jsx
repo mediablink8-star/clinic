@@ -1,5 +1,5 @@
 import React from 'react';
-import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
+import { PhoneMissed, Euro, Zap, Plus, Activity, LineChart, TrendingUp, Bot } from 'lucide-react';
 import axios from 'axios';
 import StatCard from '../components/StatCard';
 import RecoveryFeed from '../components/RecoveryFeed';
@@ -131,76 +131,86 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── REVENUE BANNER ── */}
+            {/* ── UNIFIED STORY: Revenue + Recovery + AI ── */}
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: revenue > 0 ? '1.5fr 1fr' : '1fr',
+                display: 'flex',
                 gap: '0.4rem',
-                flexShrink: 0
+                flexShrink: 0,
+                flexWrap: 'wrap'
             }}>
-                {/* Main Revenue Banner */}
+                {/* Main Revenue - Green */}
                 {revenue > 0 && (
                     <div style={{
                         background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
                         borderRadius: '14px',
-                        padding: '0.9rem 1.25rem',
+                        padding: '0.8rem 1.1rem',
                         boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px'
+                        gap: '8px',
+                        flex: '1 1 auto',
+                        minWidth: '140px'
                     }}>
-                        <Euro size={20} color="white" strokeWidth={2.5} />
-                        <div>
-                            <span style={{ fontSize: '1.6rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>
-                                €{revenue.toLocaleString()}
-                            </span>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginLeft: '8px' }}>
-                                ανακτήθηκαν
-                            </span>
-                        </div>
-                        <div style={{
-                            background: 'rgba(255,255,255,0.2)',
-                            padding: '2px 8px',
-                            borderRadius: '99px',
-                            marginLeft: 'auto',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px'
-                        }}>
-                            <TrendingUp size={10} color="white" />
-                            <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>
-                                +€{weeklyRevenue}
-                            </span>
-                        </div>
+                        <Euro size={18} color="white" strokeWidth={2.5} />
+                        <span style={{ fontSize: '1.4rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
                     </div>
                 )}
 
-                {/* Emotional Sentence */}
+                {/* Lost vs Recovered - Dark */}
                 <div style={{
                     background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                     borderRadius: '14px',
-                    padding: '0.75rem 1rem',
+                    padding: '0.7rem 1rem',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    gap: '8px',
+                    flex: '1 1 auto',
+                    minWidth: '140px'
                 }}>
-                    {totalMissed > 0 ? (
-                        <p style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white', margin: 0 }}>
-                            <span style={{ color: '#ef4444' }}>{totalMissed}</span> χάθηκαν —{' '}
-                            <span style={{ color: '#10b981' }}>{totalRecovered}</span> ανακτήθηκαν
-                        </p>
-                    ) : (
-                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
-                            Καμία αναπάντητη
-                        </p>
-                    )}
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                        <span style={{ color: '#ef4444' }}>{totalMissed - totalRecovered}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', margin: '0 4px' }}>/</span>
+                        <span style={{ color: '#10b981' }}>{totalRecovered}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', marginLeft: '6px', fontSize: '0.7rem' }}>χάθηκαν/ανακτήθηκαν</span>
+                    </span>
                 </div>
-            </div>
 
-            {/* ── STATS STRIP ── */}
-            <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', flexShrink: 0 }}>
-                <StatCard title="Αναπάντητες σήμερα" value={missedCallsToday} icon={PhoneMissed} color="#ef4444" size="compact" />
-                <StatCard title="Ποσοστό ανάκτησης" value={`${recoveryRate}%`} icon={Activity} color="#6366f1" size="compact" />
+                {/* AI Stats - Purple */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
+                    borderRadius: '14px',
+                    padding: '0.7rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flex: '1 1 auto',
+                    minWidth: '140px',
+                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.25)'
+                }}>
+                    <Bot size={16} color="white" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                        AI: {totalMissed} κλήσεις
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>
+                        → €{weeklyRevenue}
+                    </span>
+                </div>
+
+                {/* Recovery Rate - Blue */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    borderRadius: '14px',
+                    padding: '0.7rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    flex: '0 0 auto'
+                }}>
+                    <Activity size={14} color="white" />
+                    <span style={{ fontSize: '1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
+                </div>
             </div>
 
             {/* ── MAIN GRID ── */}

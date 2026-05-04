@@ -126,7 +126,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow
                             icon={Send}
                             color="#7c3aed"
-                            label={`⚠️ ${staleCount} ασθενείς περιμένουν — απάντησε τώρα`}
+                            label={`⚠️ ${staleCount} ασθενείς περιμένουν`}
                             sublabel={`€${(staleCount * 150).toLocaleString()} σε κίνδυνο`}
                             cta="Στείλε"
                             loading={sending.followup}
@@ -138,8 +138,8 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow
                             icon={Reply}
                             color="#3b82f6"
-                            label={`📩 ${patientRepliedCount} ασθενής απάντησε — κλείσε το ραντεβού!`}
-                            sublabel="Μην χάσεις την κράτηση"
+                            label={`📩 ${patientRepliedCount} απάντησαν — κλείστε τώρα!`}
+                            sublabel="Μην χάσετε τα ραντεβού"
                             cta="Απάντηση"
                             onClick={() => setShowReply(true)}
                             urgent
@@ -149,7 +149,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow
                             icon={RefreshCw}
                             color="#dc2626"
-                            label={`❌ ${failedSmsCount} μηνύματα απέτυχαν — στείλε ξανά για να κλείσουν ραντεβού`}
+                            label={`❌ ${failedSmsCount} μηνύματα απέτυχαν`}
                             sublabel={`€${(failedSmsCount * 150).toLocaleString()} χαμένα`}
                             cta="Επανάληψη"
                             loading={retryingAll}
@@ -161,8 +161,8 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow
                             icon={PhoneCall}
                             color="#7c3aed"
-                            label={`📞 ${callbackCount} ασθενής ζητά επανάκληση — κάλεσε τώρα`}
-                            sublabel="Εξασφάλισε την κράτηση"
+                            label={`📞 ${callbackCount} ζητάνε επανάκληση`}
+                            sublabel="Καλέστε τώρα"
                             cta="Δείτε"
                             onClick={() => onNavigate && onNavigate('patients')}
                             urgent
@@ -172,8 +172,8 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <ActionRow
                             icon={Clock}
                             color="#d97706"
-                            label={`⏰ ${pendingCount} ραντεβού περιμένουν επιβεβαίωση`}
-                            sublabel="Επιβεβαίωσε για να μην χαθούν"
+                            label={`⏰ ${pendingCount} ραντεβού χρειάζονται επιβεβαίωση`}
+                            sublabel="Επιβεβαιώστε για να μη χαθούν"
                             cta="Δείτε"
                             onClick={() => onNavigate && onNavigate('appointments')}
                             urgent
