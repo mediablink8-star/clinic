@@ -131,50 +131,122 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── HERO: DOMINANT REVENUE + CONNECTING STORY ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
-                {/* Main Revenue - DOMINANT */}
-                {revenue > 0 && (
-                    <div style={{
-                        background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
-                        borderRadius: '20px',
-                        padding: '1.5rem 2rem',
-                        boxShadow: '0 8px 32px rgba(99, 91, 255, 0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            position: 'absolute',
-                            top: '-50px',
-                            right: '-50px',
-                            width: '200px',
-                            height: '200px',
-                            background: 'rgba(255,255,255,0.08)',
-                            borderRadius: '50%',
-                            filter: 'blur(60px)'
-                        }} />
-                        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <Euro size={32} color="white" strokeWidth={2.5} />
-                            <div>
-                                <span style={{ fontSize: '2.5rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>€{revenue.toLocaleString()}</span>
-                                <span style={{ fontSize: '1rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginLeft: '10px' }}>ανακτήθηκαν αυτόν τον μήνα</span>
+            {/* ── HERO SECTION: Desktop = row, Mobile = stacked ── */}
+            <div style={{ flexShrink: 0 }}>
+                {/* Desktop: Main revenue card - smaller but still dominant, next to other cards */}
+                <div className="desktop-hero-row" style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column' }}>
+                    {/* Main Revenue - smaller but biggest */}
+                    {revenue > 0 && (
+                        <div className="hero-main-card" style={{
+                            background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
+                            borderRadius: '18px',
+                            padding: '1rem 1.5rem',
+                            boxShadow: '0 6px 24px rgba(99, 91, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            flex: '2 1 200px'
+                        }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '-30px',
+                                right: '-30px',
+                                width: '120px',
+                                height: '120px',
+                                background: 'rgba(255,255,255,0.08)',
+                                borderRadius: '50%',
+                                filter: 'blur(40px)'
+                            }} />
+                            <Euro size={24} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                                <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>€{revenue.toLocaleString()}</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>ανακτήθηκαν</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Side cards for desktop - smaller and compact */}
+                    <div className="hero-side-cards" style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column' }}>
+                        {/* THE KILLER SENTENCE - desktop only */}
+                        {totalMissed > 0 && totalRecovered > 0 && (
+                            <div className="killer-sentence-desktop" style={{
+                                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                                borderRadius: '12px',
+                                padding: '0.55rem 0.9rem',
+                                textAlign: 'center',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                                display: 'none'
+                            }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                                    <span style={{ color: '#ef4444' }}>Χάσατε {totalMissed - totalRecovered}</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.5)' }}> — </span>
+                                    <span style={{ color: '#10b981' }}>AI €{weeklyRevenue}</span>
+                                </span>
+                            </div>
+                        )}
+
+                        {/* 3 small cards row */}
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            {/* Lost */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                                borderRadius: '14px',
+                                padding: '0.55rem 0.8rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                flex: '1 1 100px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>{totalMissed - totalRecovered} χάθηκαν</span>
+                            </div>
+
+                            {/* AI */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
+                                borderRadius: '14px',
+                                padding: '0.55rem 0.8rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                flex: '1 1 130px',
+                                boxShadow: '0 2px 8px rgba(8, 145, 178, 0.15)'
+                            }}>
+                                <Bot size={12} color="white" />
+                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>🤖 {totalRecovered} → €{weeklyRevenue}</span>
+                            </div>
+
+                            {/* Recovery rate */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                borderRadius: '14px',
+                                padding: '0.55rem 0.8rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                flex: '0 0 auto',
+                                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
+                            }}>
+                                <Activity size={11} color="white" />
+                                <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
-                {/* THE KILLER SENTENCE - connects everything emotionally */}
+                {/* Mobile-only: Killer sentence (shown below main card on mobile) */}
                 {totalMissed > 0 && totalRecovered > 0 && (
-                    <div style={{
+                    <div className="mobile-killer-sentence" style={{
                         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
                         borderRadius: '12px',
                         padding: '0.65rem 1rem',
                         textAlign: 'center',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+                        marginTop: '0.4rem'
                     }}>
                         <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'white' }}>
                             <span style={{ color: '#ef4444' }}>Χάσατε {totalMissed - totalRecovered} ασθενείς</span>
@@ -184,106 +256,49 @@ const Dashboard = ({
                     </div>
                 )}
 
-                {/* CONNECTING STORY LINE - tighter gap */}
-                {totalMissed > 0 ? (
+                {/* Mobile-only: No missed calls message */}
+                {totalMissed === 0 && (
                     <div style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                        borderRadius: '14px',
+                        padding: '0.6rem 0.9rem',
                         display: 'flex',
-                        gap: '0.4rem',
-                        flexWrap: 'wrap'
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginTop: '0.4rem',
+                        boxShadow: '0 2px 10px rgba(16, 185, 129, 0.2)'
                     }}>
-                        {/* Lost - smaller */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                            borderRadius: '14px',
-                            padding: '0.6rem 0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flex: '1 1 110px',
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.12)'
-                        }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'white' }}>
-                                {totalMissed - totalRecovered} χάθηκαν
-                            </span>
-                        </div>
-
-                        {/* AI - tighter wording */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-                            borderRadius: '14px',
-                            padding: '0.6rem 0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flex: '1 1 150px',
-                            boxShadow: '0 2px 10px rgba(8, 145, 178, 0.18)'
-                        }}>
-                            <Bot size={14} color="white" />
-                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'white' }}>
-                                🤖 AI έκλεισε {totalRecovered} — +€{weeklyRevenue}
-                            </span>
-                        </div>
-
-                        {/* Recovery rate - smaller */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                            borderRadius: '14px',
-                            padding: '0.6rem 0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flex: '0 0 auto',
-                            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.18)'
-                        }}>
-                            <Activity size={12} color="white" />
-                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
-                            <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
-                        </div>
-                    </div>
-                ) : (
-
-                        {/* Recovery rate - smaller */}
-                        <div style={{
-                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                            borderRadius: '14px',
-                            padding: '0.7rem 1rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flex: '0 0 auto',
-                            boxShadow: '0 2px 12px rgba(16, 185, 129, 0.2)'
-                        }}>
-                            <Activity size={14} color="white" />
-                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)' }}>ανάκτηση</span>
-                        </div>
-                    </div>
-                ) : (
-                    /* No missed calls - clean message */
-                    <div style={{
-                        display: 'flex',
-                        gap: '0.4rem',
-                        alignItems: 'center'
-                    }}>
-                        <div style={{
-                            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                            borderRadius: '14px',
-                            padding: '0.6rem 0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flex: 1,
-                            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.2)'
-                        }}>
-                            <span style={{ fontSize: '0.9rem' }}>🎉</span>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
-                                Καμία αναπάντητη κλήση σήμερα!
-                            </span>
-                        </div>
+                        <span style={{ fontSize: '0.9rem' }}>🎉</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>
+                            Καμία αναπάντητη κλήση σήμερα!
+                        </span>
                     </div>
                 )}
             </div>
+
+            {/* CSS for responsive layout */}
+            <style>{`
+                @media (min-width: 1024px) {
+                    .desktop-hero-row {
+                        flex-direction: row !important;
+                        align-items: stretch !important;
+                    }
+                    .hero-main-card {
+                        min-width: 200px;
+                    }
+                    .hero-side-cards {
+                        flex: '1 1 auto' !important;
+                        display: flex !important;
+                        flexDirection: 'column' !important;
+                    }
+                    .killer-sentence-desktop {
+                        display: block !important;
+                    }
+                    .mobile-killer-sentence {
+                        display: none !important;
+                    }
+                }
+            `}</style>
 
             {/* ── MAIN GRID ── */}
             <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1, minHeight: 0 }}>
