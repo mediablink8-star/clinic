@@ -232,7 +232,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
             {/* Pipeline overview */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <SectionLabel>Pipeline Εβδομάδας</SectionLabel>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', gridAutoRows: '1fr' }}>
                     {[
                         { icon: PhoneMissed, color: '#ef4444', value: missedThisWeek, label: 'Αναπάντητες', tooltip: 'Αναπάντητες κλήσεις αυτή την εβδομάδα' },
                         { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Ενεργές', tooltip: 'Ενεργές προσπάθειες ανάκτησης' },
@@ -313,7 +313,11 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                     color: 'var(--text-light)', 
                                     margin: 0,
                                     textTransform: 'uppercase',
-                                    letterSpacing: '0.02em'
+                                    letterSpacing: '0.02em',
+                                    minHeight: '2.2em',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}>{label}</p>
                             </div>
                         </div>
