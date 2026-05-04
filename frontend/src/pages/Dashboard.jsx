@@ -135,23 +135,22 @@ const Dashboard = ({
             <div style={{ flexShrink: 0 }}>
                 {/* Desktop: Main revenue card - smaller but still dominant, next to other cards */}
                 <div className="desktop-hero-row" style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column' }}>
-                    {/* Main Revenue - card size */}
+                    {/* Main Revenue - biggest card */}
                     {revenue > 0 && (
                         <div className="hero-main-card" style={{
                             background: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)',
-                            borderRadius: '14px',
-                            padding: '0.6rem 1rem',
-                            boxShadow: '0 4px 14px rgba(99, 91, 255, 0.25)',
+                            borderRadius: '16px',
+                            padding: '0.8rem 1.2rem',
+                            boxShadow: '0 6px 20px rgba(99, 91, 255, 0.35)',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            flex: '0 0 auto',
-                            minWidth: '130px',
-                            maxWidth: '180px'
+                            gap: '10px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            flex: '1 1 180px',
+                            minWidth: '150px'
                         }}>
-                            <Euro size={18} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
-                            <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
+                            <Euro size={24} color="white" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: '1.6rem', fontWeight: '900', color: 'white' }}>€{revenue.toLocaleString()}</span>
                         </div>
                     )}
 
@@ -175,51 +174,61 @@ const Dashboard = ({
                             </div>
                         )}
 
-                        {/* 3 small cards row - slightly smaller */}
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            {/* Lost */}
+                        {/* 3 metric cards - fill the space */}
+                        <div style={{ display: 'flex', gap: '0.5rem', flex: '2 1 300px' }}>
+                            {/* Lost - dark card */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                                borderRadius: '12px',
-                                padding: '0.45rem 0.7rem',
+                                borderRadius: '16px',
+                                padding: '0.7rem 1rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                flex: '1 1 90px',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                                gap: '8px',
+                                flex: '1 1 120px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                border: '1px solid rgba(255,255,255,0.08)'
                             }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
-                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white' }}>{totalMissed - totalRecovered} χάθηκαν</span>
+                                <span style={{ fontSize: '1rem', fontWeight: '800', color: '#ef4444' }}>❌</span>
+                                <div>
+                                    <span style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>{totalMissed - totalRecovered}</span>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.6)', marginLeft: '4px' }}>χάθηκαν</span>
+                                </div>
                             </div>
 
-                            {/* AI */}
+                            {/* AI - cyan card */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-                                borderRadius: '12px',
-                                padding: '0.45rem 0.7rem',
+                                borderRadius: '16px',
+                                padding: '0.7rem 1rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                flex: '1 1 110px',
-                                boxShadow: '0 2px 6px rgba(8, 145, 178, 0.12)'
+                                gap: '8px',
+                                flex: '1 1 140px',
+                                boxShadow: '0 4px 12px rgba(8, 145, 178, 0.2)',
+                                border: '1px solid rgba(255,255,255,0.1)'
                             }}>
-                                <Bot size={11} color="white" />
-                                <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'white' }}>{totalRecovered} → €{weeklyRevenue}</span>
+                                <Bot size={16} color="white" />
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white' }}>{totalRecovered} ανακτήθηκαν</span>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginLeft: '4px' }}>→ €{weeklyRevenue}</span>
+                                </div>
                             </div>
 
-                            {/* Recovery rate */}
+                            {/* Recovery rate - green card */}
                             <div style={{
                                 background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                                borderRadius: '12px',
-                                padding: '0.45rem 0.7rem',
+                                borderRadius: '16px',
+                                padding: '0.7rem 1rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
+                                gap: '8px',
                                 flex: '0 0 auto',
-                                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.12)'
+                                minWidth: '100px',
+                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                                border: '1px solid rgba(255,255,255,0.1)'
                             }}>
-                                <Activity size={10} color="white" />
-                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'white' }}>{recoveryRate}%</span>
+                                <Activity size={16} color="white" />
+                                <span style={{ fontSize: '1.1rem', fontWeight: '900', color: 'white' }}>{recoveryRate}%</span>
                             </div>
                         </div>
                     </div>
@@ -268,17 +277,19 @@ const Dashboard = ({
                 @media (min-width: 1024px) {
                     .desktop-hero-row {
                         flex-direction: row !important;
-                        align-items: flex-start !important;
+                        align-items: center !important;
                         justify-content: flex-start !important;
+                        gap: 0.5rem !important;
                     }
                     .hero-main-card {
-                        flex: '0 0 auto' !important;
-                        width: auto !important;
+                        flex: '1 1 180px' !important;
+                        min-width: 150px !important;
                     }
                     .hero-side-cards {
-                        flex: '1 1 auto' !important;
+                        flex: '2 1 350px' !important;
                         display: flex !important;
                         flexDirection: 'column' !important;
+                        gap: 0.4rem !important;
                     }
                     .killer-sentence-desktop {
                         display: block !important;
