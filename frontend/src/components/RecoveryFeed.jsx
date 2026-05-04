@@ -161,8 +161,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                             key={log.id}
                             className={`feed-item ${log.status}`}
                             style={{ 
-                                borderLeftColor: event.dot, 
-                                background: event.bg,
+                                borderLeftColor: event.dot,
                                 backgroundColor: getStatusBackground()
                             }}
                             onClick={() => setSelected(log)}
