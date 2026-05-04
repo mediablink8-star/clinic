@@ -12,7 +12,7 @@ const Tooltip = ({ children, text, position = 'top', style = {} }) => {
 
     return (
         <div
-            style={{ position: 'relative', display: 'inline-flex', ...style }}
+            style={{ position: 'relative', display: 'flex', ...style }}
             onMouseEnter={() => setShow(true)}
             onMouseLeave={() => setShow(false)}
         >

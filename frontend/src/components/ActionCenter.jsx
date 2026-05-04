@@ -251,7 +251,8 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                 transition: 'all 0.2s ease',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                height: '120px',
+                                height: '100%',
+                                width: '100%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center'
