@@ -131,109 +131,67 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── PROMINENT REVENUE BANNER ── */}
+            {/* ── REVENUE BANNER ── */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: revenue > 0 ? '2fr 1fr' : '1fr',
-                gap: '0.5rem',
+                gridTemplateColumns: revenue > 0 ? '1.5fr 1fr' : '1fr',
+                gap: '0.4rem',
                 flexShrink: 0
             }}>
-                {/* Main Revenue Banner - TOP CENTER IMPOSSIBLE TO IGNORE */}
+                {/* Main Revenue Banner */}
                 {revenue > 0 && (
                     <div style={{
-                        background: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)',
-                        borderRadius: '20px',
-                        padding: '1.5rem 2rem',
-                        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                        borderRadius: '14px',
+                        padding: '0.9rem 1.25rem',
+                        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
                         display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        position: 'relative',
-                        overflow: 'hidden'
+                        alignItems: 'center',
+                        gap: '12px'
                     }}>
+                        <Euro size={20} color="white" strokeWidth={2.5} />
+                        <div>
+                            <span style={{ fontSize: '1.6rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em' }}>
+                                €{revenue.toLocaleString()}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginLeft: '8px' }}>
+                                ανακτήθηκαν
+                            </span>
+                        </div>
                         <div style={{
-                            position: 'absolute',
-                            top: '-30px',
-                            right: '-30px',
-                            width: '120px',
-                            height: '120px',
-                            background: 'rgba(255,255,255,0.1)',
-                            borderRadius: '50%',
-                            filter: 'blur(40px)'
-                        }} />
-                        <div style={{ position: 'relative', zIndex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                <Euro size={28} color="white" strokeWidth={2.5} />
-                                <span style={{ fontSize: '3rem', fontWeight: '900', color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                                    {revenue.toLocaleString()}
-                                </span>
-                            </div>
-                            <p style={{ fontSize: '1.1rem', fontWeight: '700', color: 'rgba(255,255,255,0.9)', margin: 0 }}>
-                                ανακτήθηκαν αυτόν τον μήνα
-                            </p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    padding: '4px 10px',
-                                    borderRadius: '99px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }}>
-                                    <TrendingUp size={12} color="white" />
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'white' }}>
-                                        +€{weeklyRevenue.toLocaleString()} αυτή την εβδομάδα
-                                    </span>
-                                </div>
-                            </div>
+                            background: 'rgba(255,255,255,0.2)',
+                            padding: '2px 8px',
+                            borderRadius: '99px',
+                            marginLeft: 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                        }}>
+                            <TrendingUp size={10} color="white" />
+                            <span style={{ fontSize: '0.7rem', fontWeight: '700', color: 'white' }}>
+                                +€{weeklyRevenue}
+                            </span>
                         </div>
                     </div>
                 )}
 
-                {/* Emotional Sentence - RIGHT NEXT TO REVENUE */}
+                {/* Emotional Sentence */}
                 <div style={{
                     background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    borderRadius: '20px',
-                    padding: revenue > 0 ? '1.25rem 1.5rem' : '1.5rem 2rem',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '14px',
+                    padding: '0.75rem 1rem',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: revenue > 0 ? 'flex-start' : 'center',
-                    textAlign: revenue > 0 ? 'left' : 'center'
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }}>
                     {totalMissed > 0 ? (
-                        <>
-                            <p style={{
-                                fontSize: revenue > 0 ? '1.15rem' : '1.4rem',
-                                fontWeight: '900',
-                                color: 'white',
-                                margin: 0,
-                                lineHeight: 1.4
-                            }}>
-                                <span style={{ color: '#ef4444' }}>{totalMissed}</span> ασθενείς χάθηκαν —{' '}
-                                <span style={{ color: '#10b981' }}>{totalRecovered}</span> ανακτήθηκαν
-                            </p>
-                            <p style={{
-                                fontSize: '0.85rem',
-                                color: 'rgba(255,255,255,0.6)',
-                                margin: '8px 0 0',
-                                fontWeight: '600'
-                            }}>
-                                {missedNotRecovered > 0 ? `Χάθηκαν €${(missedNotRecovered * 150).toLocaleString()} από ${missedNotRecovered} ασθενείς` : 'Όλοι οι ασθενείς ανακτήθηκαν!'}
-                            </p>
-                        </>
+                        <p style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white', margin: 0 }}>
+                            <span style={{ color: '#ef4444' }}>{totalMissed}</span> χάθηκαν —{' '}
+                            <span style={{ color: '#10b981' }}>{totalRecovered}</span> ανακτήθηκαν
+                        </p>
                     ) : (
-                        <p style={{
-                            fontSize: '1.1rem',
-                            fontWeight: '700',
-                            color: 'rgba(255,255,255,0.8)',
-                            margin: 0,
-                            textAlign: 'center'
-                        }}>
-                            Δεν υπάρχουν αναπάντητες κλήσεις ακόμα
+                        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                            Καμία αναπάντητη
                         </p>
                     )}
                 </div>
