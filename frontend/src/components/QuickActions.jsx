@@ -10,27 +10,37 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge }) {
     const isPrimary = variant === 'primary';
     const isAi = variant === 'ai';
+    const isSecondary = variant === 'secondary';
 
     const bg = isPrimary ? 'linear-gradient(135deg, var(--primary) 0%, #009a93 100%)'
         : isAi ? 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)'
+        : isSecondary ? 'linear-gradient(135deg, var(--glass-surface) 0%, var(--bg-subtle) 100%)'
         : 'var(--bg-subtle)';
 
     const color = (isPrimary || isAi) ? 'white' : 'var(--secondary)';
-    const border = (isPrimary || isAi) ? 'none' : '1px solid var(--border)';
-    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : 'var(--shadow-sm)';
+    const border = (isPrimary || isAi) ? 'none' : '1.5px solid var(--border)';
+    const shadow = isPrimary ? '0 8px 24px -6px rgba(59,130,246,0.45)' : isAi ? '0 8px 24px -6px rgba(99,102,241,0.4)' : '0 2px 8px rgba(0,0,0,0.04)';
     const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : 'var(--primary-light)';
     const iconColor = (isPrimary || isAi) ? 'white' : 'var(--primary)';
 
     return (
         <button className={`quick-action-btn ${isPrimary || isAi ? 'quick-action-btn--wide' : ''}`} onClick={onClick} onMouseEnter={e => {
-            e.currentTarget.style.transform = 'scale(1.02)';
-            e.currentTarget.style.boxShadow = isPrimary ? '0 12px 32px -8px rgba(59,130,246,0.55)' : isAi ? '0 12px 32px -8px rgba(99,102,241,0.5)' : '0 6px 16px rgba(0,0,0,0.1)';
+            e.currentTarget.style.transform = isPrimary ? 'scale(1.02)' : 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = isPrimary ? '0 12px 32px -8px rgba(59,130,246,0.55)' : isAi ? '0 12px 32px -8px rgba(99,102,241,0.5)' : '0 8px 20px rgba(0,0,0,0.12)';
+            if (isSecondary) {
+                e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.querySelector('.icon-container').style.transform = 'scale(1.1)';
+            }
         }} onMouseLeave={e => {
-            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.transform = isPrimary ? 'scale(1)' : 'translateY(0)';
             e.currentTarget.style.boxShadow = shadow;
-        }} style={{ width: '100%', flex: (isPrimary || isAi) ? undefined : 1, padding: (isPrimary || isAi) ? '1rem' : '0.75rem', borderRadius: '14px', border, background: bg, backdropFilter: 'blur(8px)', color, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: (isPrimary || isAi) ? '800' : '600', fontSize: (isPrimary || isAi) ? '0.9rem' : '0.82rem', cursor: 'pointer', boxShadow: shadow, transition: 'all 0.2s ease', position: 'relative', opacity: isPrimary ? 1 : 0.9 }}>
-            <div style={{ background: iconBg, padding: (isPrimary || isAi) ? '8px' : '7px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon size={(isPrimary || isAi) ? 18 : 16} color={iconColor} />
+            if (isSecondary) {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.querySelector('.icon-container').style.transform = 'scale(1)';
+            }
+        }} style={{ width: '100%', flex: (isPrimary || isAi) ? undefined : 1, padding: (isPrimary || isAi) ? '1rem' : '0.8rem', borderRadius: '14px', border, background: bg, backdropFilter: 'blur(8px)', color, display: 'flex', alignItems: 'center', gap: '10px', fontWeight: (isPrimary || isAi) ? '800' : '700', fontSize: (isPrimary || isAi) ? '0.9rem' : '0.82rem', cursor: 'pointer', boxShadow: shadow, transition: 'all 0.2s ease', position: 'relative', opacity: 1 }}>
+            <div className="icon-container" style={{ background: iconBg, padding: (isPrimary || isAi) ? '8px' : '8px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.2s ease' }}>
+                <Icon size={(isPrimary || isAi) ? 18 : 17} color={iconColor} strokeWidth={2.5} />
             </div>
             {label}
             {badge && <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: '800', padding: '2px 7px', borderRadius: '99px', background: 'rgba(255,255,255,0.25)', color: 'white', letterSpacing: '0.03em' }}>{badge}</span>}
