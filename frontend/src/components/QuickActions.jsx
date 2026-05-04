@@ -4,10 +4,11 @@ import { UserPlus, Send, Calendar, X, Search, Phone, FlaskConical, Loader, Check
 import toast from 'react-hot-toast';
 import SendMessageModal from './SendMessageModal';
 import CallPatientModal from './CallPatientModal';
+import Tooltip from './Tooltip';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
-function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge }) {
+function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge, tooltip }) {
     const isPrimary = variant === 'primary';
     const isAi = variant === 'ai';
     const isSecondary = variant === 'secondary';
@@ -23,7 +24,7 @@ function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge
     const iconBg = isPrimary ? 'rgba(255,255,255,0.18)' : isAi ? 'rgba(99,102,241,0.3)' : 'var(--primary-light)';
     const iconColor = (isPrimary || isAi) ? 'white' : 'var(--primary)';
 
-    return (
+    const button = (
         <button className={`quick-action-btn ${isPrimary || isAi ? 'quick-action-btn--wide' : ''}`} onClick={onClick} onMouseEnter={e => {
             e.currentTarget.style.transform = isPrimary ? 'scale(1.02)' : 'translateY(-2px)';
             e.currentTarget.style.boxShadow = isPrimary ? '0 12px 32px -8px rgba(59,130,246,0.55)' : isAi ? '0 12px 32px -8px rgba(99,102,241,0.5)' : '0 8px 20px rgba(0,0,0,0.12)';
@@ -46,6 +47,8 @@ function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge
             {badge && <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: '800', padding: '2px 7px', borderRadius: '99px', background: 'rgba(255,255,255,0.25)', color: 'white', letterSpacing: '0.03em' }}>{badge}</span>}
         </button>
     );
+
+    return tooltip ? <Tooltip text={tooltip} position="top">{button}</Tooltip> : button;
 }
 
 function TestSetupModal({ token, clinic, onClose }) {
@@ -140,13 +143,13 @@ function QuickActions({ onViewSchedule, onAddPatient, onNewAppointment, patients
     return (
         <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" />
+                <QuickActionBtn icon={Calendar} label="+ Νέο Ραντεβού" onClick={onNewAppointment || onViewSchedule} variant="primary" tooltip="Δημιουργία νέου ραντεβού" />
                 <div className="quick-actions-row" style={{ display: 'flex', gap: '0.5rem' }}>
-                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient || onViewSchedule} variant="secondary" />
-                    <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" />
-                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" />
+                    <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient || onViewSchedule} variant="secondary" tooltip="Διαχείριση ασθενών" />
+                    <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" tooltip="Αποστολή SMS σε ασθενείς" />
+                    <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" tooltip="Κλήση ασθενούς" />
                 </div>
-                <QuickActionBtn icon={FlaskConical} label="Δοκιμή Ρύθμισης" onClick={() => setShowTest(true)} variant="secondary" />
+                <QuickActionBtn icon={FlaskConical} label="Δοκιμή Ρύθμισης" onClick={() => setShowTest(true)} variant="secondary" tooltip="Δοκιμή συστήματος ανάκτησης" />
             </div>
             {showSMS && <SendMessageModal patients={patients} token={token} onClose={() => setShowSMS(false)} />}
             {showCall && <CallPatientModal patients={patients} token={token} onClose={() => setShowCall(false)} />}

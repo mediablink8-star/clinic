@@ -6,6 +6,7 @@ import {
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import SendMessageModal from './SendMessageModal';
+import Tooltip from './Tooltip';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -233,12 +234,12 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                 <SectionLabel>Pipeline Εβδομάδας</SectionLabel>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                     {[
-                        { icon: PhoneMissed, color: '#ef4444', value: missedThisWeek, label: 'Αναπάντητες' },
-                        { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Ενεργές' },
-                        { icon: MessageCircle, color: '#6366f1', value: awaitingReply, label: 'Αναμένουν' },
-                    ].map(({ icon: Icon, color, value, label }) => (
-                        <div
-                            key={label}
+                        { icon: PhoneMissed, color: '#ef4444', value: missedThisWeek, label: 'Αναπάντητες', tooltip: 'Αναπάντητες κλήσεις αυτή την εβδομάδα' },
+                        { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Ενεργές', tooltip: 'Ενεργές προσπάθειες ανάκτησης' },
+                        { icon: MessageCircle, color: '#6366f1', value: awaitingReply, label: 'Αναμένουν', tooltip: 'Αναμένουν απάντηση από ασθενείς' },
+                    ].map(({ icon: Icon, color, value, label, tooltip }) => (
+                        <Tooltip key={label} text={tooltip} position="top">
+                            <div
                             onClick={() => onNavigate && onNavigate('analytics')}
                             style={{ 
                                 padding: '14px 10px', 
@@ -312,6 +313,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                 }}>{label}</p>
                             </div>
                         </div>
+                        </Tooltip>
                     ))}
                 </div>
             </div>
