@@ -142,6 +142,7 @@ const Dashboard = ({
                         title="Έσοδα Ανάκτησης"
                         value={`€${revenue.toLocaleString()}`}
                         subtitle="από AI κλήσεις"
+                        size="compact"
                     />
                 )}
 
@@ -153,6 +154,7 @@ const Dashboard = ({
                     title="Αναπάντητες Σήμερα"
                     value={missedCallsToday}
                     subtitle="εκκρεμείς κλήσεις"
+                    size="compact"
                 />
 
                 {/* Ποσοστό Ανάκτησης - purple tint */}
@@ -163,6 +165,7 @@ const Dashboard = ({
                     title="Ποσοστό Ανάκτησης"
                     value={`${recoveryRate}%`}
                     subtitle="επιτυχία ανάκτησης"
+                    size="compact"
                 />
             </div>
 
