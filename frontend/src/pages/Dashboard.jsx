@@ -143,8 +143,8 @@ const Dashboard = ({
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
-                        boxShadow: '0 8px 24px rgba(99, 91, 255, 0.4)',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: 'var(--shadow-elevation-high)',
+                        border: '1px solid rgba(255,255,255,0.15)',
                         position: 'relative',
                         overflow: 'hidden'
                     }}>

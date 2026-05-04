@@ -12,13 +12,17 @@
   --primary-light: rgba(99, 91, 255, 0.1);
   --secondary: #111827;
   --accent: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --urgent: #ef4444;
+  --urgent-glow: rgba(239, 68, 68, 0.2);
+  --ai-blue: #3B82F6;
+  --ai-blue-glow: rgba(59, 130, 246, 0.2);
   --bg: #f6f8fb;
   --sidebar-bg: rgba(255, 255, 255, 0.9);
   --card-bg: rgba(255, 255, 255, 0.82);
   --text: #202a37;
   --text-light: #667085;
   --text-muted: #94a3b8;
-  --urgent: #ef4444;
   --normal: #10b981;
   --border: rgba(99, 115, 129, 0.13);
   --border-glass: rgba(255, 255, 255, 0.55);
@@ -28,6 +32,10 @@
   --shadow-lg: 0 22px 46px -24px rgba(16, 24, 40, 0.26), 0 12px 24px -20px rgba(16, 24, 40, 0.18);
   --shadow-xl: 0 34px 70px -34px rgba(16, 24, 40, 0.34), 0 18px 42px -30px rgba(16, 24, 40, 0.22);
   --shadow-2xl: 0 25px 50px -12px rgba(0,0,0,0.25);
+  /* Depth hierarchy */
+  --shadow-elevation-high: 0 20px 40px -12px rgba(99, 91, 255, 0.35), 0 8px 16px -8px rgba(0, 0, 0, 0.15);
+  --shadow-elevation-medium: 0 12px 24px -10px rgba(99, 91, 255, 0.2), 0 4px 12px -6px rgba(0, 0, 0, 0.1);
+  --shadow-elevation-low: 0 4px 12px -4px rgba(0, 0, 0, 0.06);
   --shadow-glow: 0 0 0 1px rgba(99,102,241,0.08), 0 8px 32px rgba(99,102,241,0.1);
   --section-gap: 2.5rem;
   --radius: 16px;
@@ -412,11 +420,11 @@ header p { color: var(--text-light); font-weight: 550; }
   background: var(--glass-surface);
   backdrop-filter: var(--glass-strong);
   -webkit-backdrop-filter: var(--glass-strong);
-  border: 1px solid rgba(255,255,255,0.7);
-  box-shadow: var(--shadow-md);
-  transition: box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-              border-color 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-              transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255,255,255,0.4);
+  box-shadow: var(--shadow-elevation-low);
+  transition: box-shadow 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              border-color 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
 }
@@ -426,16 +434,16 @@ header p { color: var(--text-light); font-weight: 550; }
   inset: 0;
   background: var(--glass-sheen);
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.7;
 }
 .card-glass::after {
   content: '';
   position: absolute;
   inset: 1px;
   border-radius: inherit;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.7;
 }
 
 .card-glass > *,
@@ -448,11 +456,11 @@ header p { color: var(--text-light); font-weight: 550; }
   z-index: 1;
 }
 .card-glass:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.42);
-  border-color: rgba(255,255,255,0.88);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevation-medium), inset 0 1px 0 rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.6);
 }
-.card-glass:active { transform: translateY(0); }
+.card-glass:active { transform: translateY(-1px); }
 
 /* ── Stat Cards ── */
 .stat-card {

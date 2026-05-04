@@ -20,10 +20,19 @@ const ActionRow = ({ icon: Icon, color, label, sublabel, cta, onClick, loading, 
             border: `1px solid ${urgent ? color + '28' : 'var(--border)'}`,
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            transition: 'all 0.18s ease',
+            transition: 'all 0.2s ease',
+            boxShadow: urgent ? `0 0 20px ${color}15` : 'none',
         }}
-        onMouseEnter={e => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+        onMouseEnter={e => { 
+            if (!loading) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = urgent ? `0 0 24px ${color}25` : '0 4px 12px rgba(0,0,0,0.08)';
+            }
+        }}
+        onMouseLeave={e => { 
+            e.currentTarget.style.transform = 'translateY(0)'; 
+            e.currentTarget.style.boxShadow = urgent ? `0 0 20px ${color}15` : 'none';
+        }}
     >
         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon size={16} color={color} />
