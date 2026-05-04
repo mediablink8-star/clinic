@@ -125,16 +125,27 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     const replyPreview = getReplyPreview(log);
                     const revenue = getRevenue(log);
 
-                    // Get background color based on status
-                    const getStatusBackground = () => {
+                    // Get background color based on action type
+                    const getActionBackground = () => {
+                        // Purple for recovered appointments
                         if (log.status === 'RECOVERED') {
-                            return 'rgba(16,185,129,0.08)'; // Green
+                            return 'rgba(147,51,234,0.08)'; // Purple
                         }
-                        if (log.status === 'RECOVERING') {
-                            return 'rgba(99,102,241,0.08)'; // Purple
-                        }
-                        if (log.status === 'LOST' || log.smsStatus === 'failed') {
+                        // Red for missed calls / detected
+                        if (log.status === 'DETECTED' || log.status === 'LOST') {
                             return 'rgba(239,68,68,0.08)'; // Red
+                        }
+                        // Yellow for SMS sent
+                        if (log.smsStatus === 'sent' || log.smsStatus === 'simulated') {
+                            return 'rgba(234,179,8,0.08)'; // Yellow
+                        }
+                        // Red for failed SMS
+                        if (log.smsStatus === 'failed') {
+                            return 'rgba(239,68,68,0.08)'; // Red
+                        }
+                        // Green for recovering/active conversations
+                        if (log.status === 'RECOVERING') {
+                            return 'rgba(16,185,129,0.08)'; // Green
                         }
                         return sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent';
                     };
@@ -162,7 +173,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                             className={`feed-item ${log.status}`}
                             style={{ 
                                 borderLeftColor: event.dot,
-                                backgroundColor: getStatusBackground()
+                                backgroundColor: getActionBackground()
                             }}
                             onClick={() => setSelected(log)}
                         >
