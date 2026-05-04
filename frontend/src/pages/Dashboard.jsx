@@ -171,22 +171,24 @@ const Dashboard = ({
                 {/* Stats display */}
                 <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 180px' }}>
                     <div style={{
-                        background: '#1e293b',
-                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+                        borderRadius: '14px',
                         padding: '1rem',
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '0.5rem'
+                        gap: '0.5rem',
+                        boxShadow: '0 4px 20px rgba(49, 46, 129, 0.4)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)'
                     }}>
-                        <div style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.9rem' }}>
+                        <div style={{ color: '#f87171', fontWeight: 700, fontSize: '0.95rem', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                             Χάσατε {missedCallsToday} ασθενείς — ανακτήθηκαν {recovered}
                         </div>
-                        <div style={{ color: '#8b5cf6', fontSize: '0.85rem' }}>
+                        <div style={{ color: '#c4b5fd', fontSize: '0.9rem', fontWeight: 600 }}>
                             🤖 AI: {logsArray.length} κλήσεις
                         </div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-                            • 📅 {todayAppointments?.length ?? 0} ραντεβού
+                        <div style={{ color: '#a5b4fc', fontSize: '0.9rem', fontWeight: 500 }}>
+                            📅 {todayAppointments?.length ?? 0} ραντεβού
                         </div>
                     </div>
                 </div>
@@ -200,7 +202,7 @@ const Dashboard = ({
                 {/* Left column: live feed (flex) + recovery performance (fixed) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0 }}>
                     {/* Live feed — takes all remaining height */}
-                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, opacity: 0.75 }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                         <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
@@ -209,7 +211,7 @@ const Dashboard = ({
                         </div>
                     </div>
                     {/* Recovery Performance — fixed height */}
-                    <div style={{ height: '190px', flexShrink: 0, opacity: 0.75 }}>
+                    <div style={{ height: '190px', flexShrink: 0 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
@@ -223,7 +225,7 @@ const Dashboard = ({
                         token={token}
                         onNavigate={setCurrentTab}
                     />
-                    <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', opacity: 0.7 }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
