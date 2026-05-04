@@ -112,20 +112,50 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
     return (
         <div className="card-glass" style={{ padding: '1.1rem 1.25rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: urgentCount > 0 ? '0.3rem' : '0' }}>
                 <h3 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
                     <AlertCircle size={14} color={urgentCount > 0 ? '#f59e0b' : '#10b981'} />
                     Κέντρο Δράσης
                 </h3>
                 <span style={{
-                    fontSize: '0.7rem', fontWeight: '800', padding: '4px 10px', borderRadius: '99px',
-                    background: urgentCount > 0 ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.1)',
+                    fontSize: '0.72rem', fontWeight: '900', padding: '6px 12px', borderRadius: '99px',
+                    background: urgentCount > 0 ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.12) 100%)' : 'rgba(16,185,129,0.1)',
                     color: urgentCount > 0 ? '#dc2626' : '#15803d',
-                    border: `1px solid ${urgentCount > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.2)'}`,
+                    border: `1.5px solid ${urgentCount > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.2)'}`,
+                    boxShadow: urgentCount > 0 ? '0 0 16px rgba(239,68,68,0.2), 0 2px 8px rgba(239,68,68,0.15)' : 'none',
+                    animation: urgentCount > 0 ? 'pulse-warning 2s ease-in-out infinite' : 'none',
                 }}>
                     {urgentCount > 0 ? `⚠️ ${urgentCount} χρειάζονται δράση` : '✅ Όλα καλά'}
                 </span>
             </div>
+
+            {/* Urgent banner when there are actions needed */}
+            {urgentCount > 0 && (
+                <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(220,38,38,0.05) 100%)',
+                    border: '1.5px solid rgba(239,68,68,0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: '0.3rem',
+                    boxShadow: '0 0 20px rgba(239,68,68,0.1)',
+                }}>
+                    <div style={{
+                        width: '10px',
+                        height: '10px',
+                        borderRadius: '50%',
+                        background: '#dc2626',
+                        boxShadow: '0 0 12px rgba(220,38,38,0.6)',
+                        animation: 'pulse-dot 2s ease-in-out infinite',
+                        flexShrink: 0
+                    }} />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#991b1b', flex: 1 }}>
+                        Υπάρχουν {urgentCount} ενέργει{urgentCount === 1 ? 'α' : 'ες'} που χρειάζ{urgentCount === 1 ? 'εται' : 'ονται'} την προσοχή σας
+                    </span>
+                </div>
+            )}
 
             {/* Urgent actions */}
             {urgentCount > 0 && (
@@ -230,6 +260,30 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                     subtitle={`${patientEngaged.length} ασθενής απάντησε`}
                 />
             )}
+
+            <style>{`
+                @keyframes pulse-warning {
+                    0%, 100% { 
+                        box-shadow: 0 0 16px rgba(239,68,68,0.2), 0 2px 8px rgba(239,68,68,0.15);
+                        transform: scale(1);
+                    }
+                    50% { 
+                        box-shadow: 0 0 24px rgba(239,68,68,0.35), 0 4px 12px rgba(239,68,68,0.25);
+                        transform: scale(1.02);
+                    }
+                }
+                
+                @keyframes pulse-dot {
+                    0%, 100% { 
+                        box-shadow: 0 0 12px rgba(220,38,38,0.6);
+                        opacity: 1;
+                    }
+                    50% { 
+                        box-shadow: 0 0 20px rgba(220,38,38,0.8);
+                        opacity: 0.8;
+                    }
+                }
+            `}</style>
         </div>
     );
 };
