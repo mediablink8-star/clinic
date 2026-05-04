@@ -229,9 +229,9 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
             )}
 
             {/* Pipeline overview */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <SectionLabel>Pipeline Εβδομάδας</SectionLabel>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                     {[
                         { icon: PhoneMissed, color: '#ef4444', value: missedThisWeek, label: 'Αναπάντητες' },
                         { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Ενεργές' },
@@ -240,11 +240,77 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         <div
                             key={label}
                             onClick={() => onNavigate && onNavigate('analytics')}
-                            style={{ padding: '10px 8px', borderRadius: '12px', background: `${color}0d`, border: `1px solid ${color}20`, cursor: 'pointer', textAlign: 'center' }}
+                            style={{ 
+                                padding: '14px 10px', 
+                                borderRadius: '14px', 
+                                background: `linear-gradient(135deg, ${color}10 0%, ${color}08 100%)`, 
+                                border: `1.5px solid ${color}25`, 
+                                cursor: 'pointer', 
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+                                e.currentTarget.style.boxShadow = `0 8px 24px ${color}25`;
+                                e.currentTarget.style.borderColor = `${color}40`;
+                                e.currentTarget.style.background = `linear-gradient(135deg, ${color}15 0%, ${color}10 100%)`;
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.borderColor = `${color}25`;
+                                e.currentTarget.style.background = `linear-gradient(135deg, ${color}10 0%, ${color}08 100%)`;
+                            }}
                         >
-                            <Icon size={14} color={color} style={{ marginBottom: '4px' }} />
-                            <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--secondary)', margin: '2px 0 1px', letterSpacing: '-0.03em' }}>{value}</p>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', margin: 0 }}>{label}</p>
+                            {/* Background glow effect */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '-50%',
+                                right: '-50%',
+                                width: '100%',
+                                height: '100%',
+                                background: color,
+                                borderRadius: '50%',
+                                filter: 'blur(30px)',
+                                opacity: 0.08,
+                                pointerEvents: 'none'
+                            }} />
+                            
+                            {/* Content */}
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    margin: '0 auto 8px',
+                                    borderRadius: '10px',
+                                    background: `${color}18`,
+                                    border: `1px solid ${color}30`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'transform 0.2s ease'
+                                }}>
+                                    <Icon size={18} color={color} strokeWidth={2.5} />
+                                </div>
+                                <p style={{ 
+                                    fontSize: '1.4rem', 
+                                    fontWeight: '900', 
+                                    color: 'var(--secondary)', 
+                                    margin: '4px 0 2px', 
+                                    letterSpacing: '-0.04em',
+                                    lineHeight: 1
+                                }}>{value}</p>
+                                <p style={{ 
+                                    fontSize: '0.74rem', 
+                                    fontWeight: '700', 
+                                    color: 'var(--text-light)', 
+                                    margin: 0,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.02em'
+                                }}>{label}</p>
+                            </div>
                         </div>
                     ))}
                 </div>
