@@ -250,7 +250,11 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                 textAlign: 'center',
                                 transition: 'all 0.2s ease',
                                 position: 'relative',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                minHeight: '110px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center'
                             }}
                             onMouseEnter={e => {
                                 e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
