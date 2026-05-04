@@ -194,6 +194,27 @@ const Dashboard = ({
                 </div>
             </div>
 
+            {/* EMOTIONAL SENTENCE - "You missed X — we recovered Y" */}
+            {totalMissed > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    borderRadius: '14px',
+                    padding: '0.8rem 1.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    flexShrink: 0
+                }}>
+                    <span style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>
+                        <span style={{ color: '#ef4444' }}>Χάσατε {totalMissed - totalRecovered} ασθενείς</span>
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}> — </span>
+                        <span style={{ color: '#10b981' }}>ανακτήθηκαν {totalRecovered}</span>
+                    </span>
+                </div>
+            )}
+
             {/* AI Stats Banner - make AI visible */}
             {totalRecovered > 0 && (
                 <div style={{
