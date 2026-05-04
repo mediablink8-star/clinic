@@ -165,6 +165,11 @@ const Dashboard = ({
                             <TrendingUp size={14} />
                             +€{weeklyRevenue || 0} αυτή την εβδομάδα
                         </span>
+                        {weeklyRevenue > 0 && (
+                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginTop: '6px', fontStyle: 'italic' }}>
+                                Η AI ανέκτησε €{weeklyRevenue} αυτή την εβδομάδα από χαμένες κλήσεις
+                            </span>
+                        )}
                     </div>
                 )}
 
