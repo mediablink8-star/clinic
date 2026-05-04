@@ -7,7 +7,7 @@ import CallPatientModal from './CallPatientModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
-const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge }) => {
+function QuickActionBtn({ icon: Icon, label, onClick, variant = 'outline', badge }) {
     const isPrimary = variant === 'primary';
     const isAi = variant === 'ai';
 
@@ -36,9 +36,9 @@ const QuickActionBtn = ({ icon: Icon, label, onClick, variant = 'outline', badge
             {badge && <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: '800', padding: '2px 7px', borderRadius: '99px', background: 'rgba(255,255,255,0.25)', color: 'white', letterSpacing: '0.03em' }}>{badge}</span>}
         </button>
     );
-};
+}
 
-const TestSetupModal = ({ token, clinic, onClose }) => {
+function TestSetupModal({ token, clinic, onClose }) {
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -119,10 +119,10 @@ const TestSetupModal = ({ token, clinic, onClose }) => {
         </div>,
         document.body
     );
-};
+}
 
 
-const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic, onRefresh }) => {
+function QuickActions({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic, onRefresh }) {
     const [showSMS, setShowSMS] = useState(false);
     const [showCall, setShowCall] = useState(false);
     const [showTest, setShowTest] = useState(false);
@@ -143,6 +143,6 @@ const QuickActions = ({ onViewSchedule, onAddPatient, onNewAppointment, patients
             {showTest && <TestSetupModal token={token} clinic={clinic} onClose={() => setShowTest(false)} />}
         </>
     );
-};
+}
 
 export default QuickActions;
