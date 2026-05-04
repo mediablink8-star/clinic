@@ -216,7 +216,7 @@ const Dashboard = ({
             )}
 
             {/* AI Stats Banner - make AI visible */}
-            {totalRecovered > 0 && (
+            {logsArray.length > 0 && (
                 <div style={{
                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                     borderRadius: '14px',
@@ -230,11 +230,11 @@ const Dashboard = ({
                 }}>
                     <Bot size={18} color="white" />
                     <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        🤖 Η AI έκανε <strong>{logsArray.length}</strong> κλήσεις σήμερα
+                        🤖 AI: <strong>{logsArray.length}</strong> κλήσεις
                     </span>
                     <span style={{ color: 'rgba(255,255,255,0.5)' }}>•</span>
                     <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>
-                        <strong>{totalRecovered}</strong> ραντεβού κλείστηκαν
+                        📅 <strong>{totalRecovered}</strong> ραντεβού
                     </span>
                 </div>
             )}
@@ -245,7 +245,7 @@ const Dashboard = ({
                 {/* Left column: live feed (flex) + recovery performance (fixed) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 0 }}>
                     {/* Live feed — takes all remaining height */}
-                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, opacity: 0.75 }}>
                         <div style={{ padding: '0.55rem 0.9rem 0.25rem', flexShrink: 0 }}>
                             <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
                         </div>
@@ -254,7 +254,7 @@ const Dashboard = ({
                         </div>
                     </div>
                     {/* Recovery Performance — fixed height */}
-                    <div style={{ height: '190px', flexShrink: 0 }}>
+                    <div style={{ height: '190px', flexShrink: 0, opacity: 0.75 }}>
                         <RevenueCard stats={recoveryStats} recoveryLog={recoveryLog} />
                     </div>
                 </div>
@@ -268,7 +268,7 @@ const Dashboard = ({
                         token={token}
                         onNavigate={setCurrentTab}
                     />
-                    <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', opacity: 0.7 }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
