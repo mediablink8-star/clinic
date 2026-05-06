@@ -284,9 +284,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const fetchLogs = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/audit-logs`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get('/audit-logs');
             setLogs(res.data);
         } catch (err) {
             console.error('Failed to fetch audit logs:', err);
@@ -295,9 +293,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const fetchUsage = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/clinic/usage`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.get('/clinic/usage');
             setUsageData(res.data);
         } catch (err) {
             console.error('Failed to fetch usage data:', err);
@@ -334,9 +330,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleStartMfaSetup = async () => {
         try {
-            const res = await axios.post(`${API_BASE}/auth/mfa/setup`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await api.post('/auth/mfa/setup', {});
             setMfaSetup({ ...mfaSetup, step: 'QR', secret: res.data.secret, qrImageUrl: res.data.qrImageUrl });
         } catch {
             showToast('Failed to start MFA setup.', 'error');
@@ -345,10 +339,10 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const handleVerifyMfa = async () => {
         try {
-            await axios.post(`${API_BASE}/auth/mfa/verify`, {
+            await api.post('/auth/mfa/verify', {
                 secret: mfaSetup.secret,
                 code: mfaSetup.code
-            }, { headers: { 'Authorization': `Bearer ${token}` } });
+            });
             showToast('MFA enabled successfully!');
             setMfaSetup({ step: '', secret: '', qrImageUrl: '', code: '' });
             if (onUpdate) onUpdate({ mfaEnabled: true });
@@ -360,9 +354,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const handleDisableMfa = async () => {
         if (!window.confirm('Are you sure you want to disable MFA?')) return;
         try {
-            await axios.post(`${API_BASE}/auth/mfa/disable`, {}, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await api.post('/auth/mfa/disable', {});
             showToast('MFA disabled.');
             if (onUpdate) onUpdate({ mfaEnabled: false });
         } catch {
@@ -385,9 +377,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setSavingWebhooks(true);
         setWebhookSaved(false);
         try {
-            await axios.put(`${API_BASE}/clinic/webhooks`, webhookData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/clinic/webhooks', webhookData);
             setWebhookSaved(true);
             showToast('Webhooks αποθηκεύτηκαν!', 'success');
             if (onUpdate) onUpdate(webhookData);
@@ -404,7 +394,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [savingVonage, setSavingVonage] = React.useState(false);
 
     React.useEffect(() => {
-        axios.get(`${API_BASE}/clinic/vonage`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/clinic/vonage')
             .then(r => setVonageStatus(r.data.vonageApiKey ? 'configured' : 'not_configured'))
             .catch(() => setVonageStatus('not_configured'));
     }, []);
@@ -415,7 +405,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
         setSavingVonage(true);
         try {
-            await axios.put(`${API_BASE}/clinic/vonage`, vonageData, { headers: { Authorization: `Bearer ${token}` } });
+            await api.put('/clinic/vonage', vonageData);
             setVonageStatus('configured');
             setVonageData(d => ({ ...d, vonageApiKey: '', vonageApiSecret: '' }));
             showToast('Vonage credentials αποθηκεύτηκαν!', 'success');
@@ -444,7 +434,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     React.useEffect(() => {
         // Check if Gemini is configured
-        axios.get(`${API_BASE}/clinic/gemini-config`, { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/clinic/gemini-config')
             .then(r => setGeminiStatus(r.data.configured ? 'configured' : 'not_configured'))
             .catch(() => setGeminiStatus('not_configured'));
     }, []);
@@ -458,7 +448,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
         setSavingGemini(true);
         try {
-            await axios.put(`${API_BASE}/clinic/gemini`, geminiData, { headers: { Authorization: `Bearer ${token}` } });
+            await api.put('/clinic/gemini', geminiData);
             setGeminiStatus('configured');
             setGeminiData({ geminiApiKey: '' }); // Clear after save
             showToast('Gemini API Key αποθηκεύτηκε!', 'success');
@@ -480,7 +470,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setSavingVapi(true);
         setVapiStatus(null);
         try {
-            await axios.put(`${API_BASE}/clinic/vapi`, vapiData, { headers: { Authorization: `Bearer ${token}` } });
+            await api.put('/clinic/vapi', vapiData);
             showToast('Voice AI (Vapi) settings αποθηκεύτηκαν!', 'success');
             if (onUpdate) onUpdate({ voiceEnabled: vapiData.voiceEnabled, vapiAssistantId: vapiData.vapiAssistantId });
         } catch (err) {
@@ -496,7 +486,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTestingVapi(true);
         setVapiStatus(null);
         try {
-            const res = await axios.get(`${API_BASE}/system/status`, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await api.get('/system/status');
             setVapiStatus(res.data?.voiceEnabled ? 'connected' : 'not_configured');
             showToast('Voice AI connected!', 'success');
         } catch (err) {
