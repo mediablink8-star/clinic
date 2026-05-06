@@ -299,7 +299,7 @@ app.listen(port, () => {
     console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing GEMINI_API_KEY'}`);
     console.log(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
     console.log(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
-    console.log(`  Worker:         ✅ Running (embedded)`);
+    console.log(`  Worker:         ${process.env.DISABLE_WORKER === 'true'                             ? '⚠  Disabled (DISABLE_WORKER=true)' : '✅ Running (embedded)'}`);
     console.log(`  Port:           ${port}`);
     console.log(`  Node:           ${process.version}`);
     console.log(`  Env:            ${process.env.NODE_ENV || 'development'}`);
@@ -311,6 +311,10 @@ app.listen(port, () => {
     console.log('====================\n');
 });
 
-if (process.env.RUN_WORKER_INLINE === 'true') {
+// Start background worker by default (disable with DISABLE_WORKER=true)
+if (process.env.DISABLE_WORKER !== 'true') {
+    console.log('[WORKER] Starting background worker for reminders and follow-ups...');
     require('./worker');
+} else {
+    console.warn('[WORKER] Background worker is DISABLED. No automated reminders will be sent.');
 }

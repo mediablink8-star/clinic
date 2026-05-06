@@ -23,8 +23,10 @@ module.exports = function webhookAuth(req, res, next) {
         return next();
     }
 
-    // Mode 1: simple secret header (x-webhook-secret or x-api-key)
-    const headerSecret = req.headers['x-webhook-secret'] || req.headers['x-api-key'];
+    // Mode 1: simple secret header (x-webhook-secret, x-api-key, or x-webhook-key)
+    const headerSecret = req.headers['x-webhook-secret'] 
+                      || req.headers['x-api-key'] 
+                      || req.headers['x-webhook-key'];
     if (headerSecret) {
         if (headerSecret === envSecret) {
             // Check clinicId allowlist if provided
