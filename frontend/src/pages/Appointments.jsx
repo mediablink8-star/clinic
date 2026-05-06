@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, ChevronDown, Plus, Calendar } from 'lucide-react';
+import { Search, Filter, ChevronDown, Plus, Calendar, RefreshCw } from 'lucide-react';
 import AppointmentCard from '../components/AppointmentCard';
 import MessageModal from '../components/MessageModal';
 import Skeleton from '../components/Skeleton';
@@ -170,6 +170,15 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
                             >
                                 <Plus size={14} strokeWidth={3} />
                                 Νέο Ραντεβού
+                            </button>
+                        )}
+                        {onRetry && (
+                            <button
+                                onClick={onRetry}
+                                title="Ανανέωση"
+                                style={{ padding: '10px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-light)' }}
+                            >
+                                <RefreshCw size={15} />
                             </button>
                         )}
                 </div>

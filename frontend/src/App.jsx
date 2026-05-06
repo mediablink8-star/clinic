@@ -162,8 +162,9 @@ const App = () => {
     queryKey: ['appointments'],
     queryFn: () => api.get('/appointments').then(res => res.data),
     enabled: !!token,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
     retry: 1,
   });
 
@@ -171,8 +172,9 @@ const App = () => {
     queryKey: ['patients'],
     queryFn: () => api.get('/patients').then(res => res.data),
     enabled: !!token,
-    refetchInterval: 120000,
-    staleTime: 60000,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
     retry: 1,
   });
 
