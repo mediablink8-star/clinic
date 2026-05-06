@@ -48,7 +48,14 @@ const PatientBooking = () => {
         setError(null);
         try {
             const startTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
-            await axios.post(`${API_BASE}/public/book`, { ...formData, clinicId, startTime });
+            await axios.post(`${API_BASE}/public/book`, {
+                clinicId,
+                name: formData.name,
+                phone: formData.phone,
+                email: formData.email || undefined,
+                reason: formData.reason || undefined,
+                startTime,
+            });
             setStep(3);
         } catch (err) {
             if (err.response?.status === 409) {
