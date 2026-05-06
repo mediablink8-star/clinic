@@ -147,13 +147,14 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', ste
     });
 
     // Mark every slot occupied by each appointment (handles multi-hour appointments)
+    // Use timezone-aware hour/minute extraction to match how slots are built
     const step = Math.max(15, stepMinutes);
     const bookedMinutes = new Set();
     for (const appt of existing) {
-        const apptStart = new Date(appt.startTime);
-        const apptEnd = new Date(appt.endTime);
-        let cur = apptStart.getHours() * 60 + apptStart.getMinutes();
-        const endMin = apptEnd.getHours() * 60 + apptEnd.getMinutes();
+        const apptStartParts = getLocalDateParts(new Date(appt.startTime), timezone);
+        const apptEndParts = getLocalDateParts(new Date(appt.endTime), timezone);
+        let cur = apptStartParts.minutes;
+        const endMin = apptEndParts.minutes;
         while (cur < endMin) {
             bookedMinutes.add(cur);
             cur += step;

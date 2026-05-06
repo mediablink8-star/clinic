@@ -53,6 +53,10 @@ const PatientBooking = () => {
         } catch (err) {
             if (err.response?.status === 409) {
                 setError("Η συγκεκριμένη ώρα έχει ήδη κλειστεί. Παρακαλώ επιλέξτε μια άλλη ώρα.");
+            } else if (err.response?.status === 400) {
+                setError(err.response.data?.error || "Παρακαλώ ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.");
+            } else if (err.response?.status === 403) {
+                setError("Το ιατρείο δεν δέχεται κρατήσεις αυτή τη στιγμή.");
             } else {
                 setError("Η κράτηση απέτυχε. Παρακαλώ δοκιμάστε ξανά.");
             }
@@ -61,12 +65,12 @@ const PatientBooking = () => {
         }
     };
 
-    if (error) return (
+    if (error && step !== 2) return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '2rem' }}>
             <div style={{ textAlign: 'center', padding: '2rem', background: '#fee2e2', borderRadius: '16px', color: '#b91c1c' }}>
                 <AlertCircle size={48} style={{ marginBottom: '1rem' }} />
                 <p style={{ marginBottom: '1.5rem', fontWeight: '600' }}>{error}</p>
-                <button className="btn btn-primary" onClick={() => { setError(null); setStep(2); }}>Δοκιμάστε ξανά</button>
+                <button className="btn btn-primary" onClick={() => { setError(null); setStep(1); }}>Δοκιμάστε ξανά</button>
             </div>
         </div>
     );
@@ -161,11 +165,17 @@ const PatientBooking = () => {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <button className="btn btn-outline" style={{ flex: 1, padding: '14px', borderRadius: '12px' }} onClick={() => setStep(1)}>Πίσω</button>
+                                    <button className="btn btn-outline" style={{ flex: 1, padding: '14px', borderRadius: '12px' }} onClick={() => { setStep(1); setError(null); }}>Πίσω</button>
                                     <button className="btn btn-primary" style={{ flex: 2, padding: '14px', borderRadius: '12px' }} onClick={handleSubmit} disabled={!formData.date || !formData.time || loading}>
                                         {loading ? 'Γίνεται κράτηση...' : 'Επιβεβαίωση Ραντεβού'}
                                     </button>
                                 </div>
+                                {error && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.875rem', fontWeight: '600' }}>
+                                        <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                                        {error}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

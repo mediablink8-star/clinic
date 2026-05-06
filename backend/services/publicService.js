@@ -82,7 +82,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const timezone = clinic.timezone || 'Europe/Athens';
     const requested = getDateTimeParts(start, timezone);
     const availableSlots = await getAvailableSlots(clinicId, requested.date);
-    if (!availableSlots.includes(requested.time)) {
+    // Only reject if slots are configured AND the requested time isn't in them
+    if (availableSlots.length > 0 && !availableSlots.includes(requested.time)) {
         throw new AppError('SLOT_UNAVAILABLE', 'Selected time slot is not available', 400);
     }
 
