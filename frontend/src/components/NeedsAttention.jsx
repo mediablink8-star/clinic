@@ -1,5 +1,5 @@
 import { AlertCircle, ChevronRight, Clock, Reply, PhoneOff, Send, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
@@ -16,14 +16,11 @@ const ReplyModal = ({ patients, token, onClose }) => {
         if (!selected || !message.trim() || sending) return;
         setSending(true);
         try {
-            await axios.post(`${API_BASE}/messages/send`,
-                { 
-                    patientId: selected.patientId || undefined,
-                    phone: !selected.patientId ? selected.phone : undefined,
-                    message: message.trim()
-                },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await api.post('/messages/send', {
+                patientId: selected.patientId || undefined,
+                phone: !selected.patientId ? selected.phone : undefined,
+                message: message.trim()
+            });
             toast.success('Απάντηση εστάλη!');
             onClose();
         } catch (err) {
@@ -144,9 +141,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], recoveryInsights =
         let sent = 0;
         for (const mc of staleNoReply.slice(0, 10)) {
             try {
-                await axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post(`/recovery/${mc.id}/followup`);
                 sent++;
             } catch { /* continue */ }
         }

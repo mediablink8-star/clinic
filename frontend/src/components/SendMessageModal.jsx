@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Send, CheckCircle2, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -29,10 +29,10 @@ const SendMessageModal = ({
         setSending(true);
         setStatus(null);
         try {
-            const resp = await axios.post(`${API_BASE}/messages/send`, { 
-                patientId: selected.id, 
-                message: message.trim() 
-            }, { headers: { Authorization: `Bearer ${token}` } });
+            const resp = await api.post('/messages/send', {
+                patientId: selected.id,
+                message: message.trim()
+            });
             if (resp.data.success) {
                 const s = resp.data.deliveryStatus;
                 const isError = s === 'FAILED';

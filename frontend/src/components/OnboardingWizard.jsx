@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import {
     Building2, Phone, Zap, CheckCircle2, ArrowRight,
     ArrowLeft, X, Loader, Eye, EyeOff
@@ -75,9 +75,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
             return false;
         }
         try {
-            await axios.put(`${API_BASE}/clinic/settings`, info, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/clinic/settings', info);
             if (onUpdate) onUpdate(info);
             return true;
         } catch (err) {
@@ -88,9 +86,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
 
     const saveAiConfig = async () => {
         try {
-            await axios.put(`${API_BASE}/clinic/ai-config`, aiConfig, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/clinic/ai-config', aiConfig);
             if (onUpdate) onUpdate({ aiConfig: JSON.stringify(aiConfig) });
             return true;
         } catch (err) {
@@ -115,9 +111,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         }
 
         try {
-            await axios.put(`${API_BASE}/clinic/vapi`, voiceData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/clinic/vapi', voiceData);
             if (onUpdate) onUpdate({ voiceEnabled: voiceData.voiceEnabled });
             return true;
         } catch (err) {
@@ -130,9 +124,7 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         // Webhooks are optional — skip if empty
         if (!webhooks.webhookMissedCall && !webhooks.webhookDirectSms) return true;
         try {
-            await axios.put(`${API_BASE}/clinic/webhooks`, webhooks, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/clinic/webhooks', webhooks);
             if (onUpdate) onUpdate(webhooks);
             return true;
         } catch (err) {
