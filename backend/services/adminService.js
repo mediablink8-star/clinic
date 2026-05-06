@@ -4,7 +4,9 @@ const AppError = require('../errors/AppError');
 // Admin-scoped: intentionally no clinicId filter — returns all clinics
 async function getUsage() {
     const data = await prisma.clinic.findMany({
-        select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, dailyUsedCount: true, dailyMessageCap: true, creditResetDate: true }
+        select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, dailyUsedCount: true, dailyMessageCap: true, creditResetDate: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100
     });
     return { success: true, data };
 }

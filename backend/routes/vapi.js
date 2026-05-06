@@ -114,7 +114,13 @@ async function handleVapiEvent(event) {
         });
 
         if (!wasBooked) {
-            await triggerSmsFallback(mc);
+            const clinic = mc.clinic;
+            if (clinic) {
+                const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}`;
+                const smsBody = `Σας καλέσαμε από το ${clinic.name || 'το ιατρείο'} αλλά δεν απαντήσατε.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
+                console.log(`[Vapi] SMS fallback → ${mc.fromNumber}`);
+                await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id);
+            }
         }
     }
 }
@@ -206,18 +212,6 @@ async function handleVoiceCallback(mc) {
         where: { id: mc.id },
         data: { conversationState: 'CALLBACK', status: 'RECOVERING' }
     });
-}
-
-async function triggerSmsFallback(mc) {
-    const clinic = mc.clinic;
-    if (!clinic) return;
-
-    const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}`;
-    const clinicName = clinic.name || 'το ιατρείο';
-    const smsBody = `Σας καλέσαμε από το ${clinicName} αλλά δεν απαντήσατε.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
-
-    console.log(`[Vapi] SMS fallback → ${mc.fromNumber}`);
-    await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id);
 }
 
 module.exports = router;
