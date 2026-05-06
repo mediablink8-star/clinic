@@ -51,6 +51,15 @@ async function listAppointments(clinicId) {
         orderBy: { startTime: 'desc' },
         take: 200
     });
+    console.log(`[LIST APPOINTMENTS] Clinic ${clinicId}: Found ${data.length} appointments`);
+    if (data.length > 0) {
+        console.log('[LIST APPOINTMENTS] Sample appointment:', {
+            id: data[0].id,
+            patientName: data[0].patient?.name,
+            startTime: data[0].startTime,
+            status: data[0].status
+        });
+    }
     return { success: true, data };
 }
 

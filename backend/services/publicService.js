@@ -166,6 +166,16 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         const appt = await tx.appointment.create({
             data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' },
         });
+        console.log('[PUBLIC BOOKING] Created appointment:', {
+            id: appt.id,
+            clinicId: appt.clinicId,
+            patientId: appt.patientId,
+            patientName: pt.name,
+            startTime: appt.startTime,
+            endTime: appt.endTime,
+            status: appt.status,
+            reason: appt.reason
+        });
         return { patient: pt, appointment: appt };
     });
 
