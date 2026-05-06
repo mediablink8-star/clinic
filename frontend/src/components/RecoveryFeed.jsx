@@ -38,12 +38,11 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         e.stopPropagation();
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
-        const authToken = token || localStorage.getItem('accessToken');
-        if (!authToken) { toast.error('Session expired.'); return; }
+        if (!token) { toast.error('Session expired.'); return; }
         try {
             const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` }
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
             const status = data.data?.smsStatus === 'sent' ? 'sent' : 'failed';
@@ -221,8 +220,8 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
                 .feed-stats { display: flex; align-items: center; justify-content: space-around; padding: 8px 12px; background: var(--glass-surface); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 10px; margin-bottom: 6px; flex-shrink: 0; }
                 .stat-item { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-                .stat-value { font-size: 1.25rem; font-weight: 900; color: var(--secondary); letterSpacing: '-0.02em'; }
-                .stat-label { font-size: 0.55rem; fontWeight: 500; color: var(--text-muted); text-transform: uppercase; letterSpacing: '0.05em'; }
+                .stat-value { font-size: 1.25rem; font-weight: 900; color: var(--secondary); letter-spacing: -0.02em; }
+                .stat-label { font-size: 0.55rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
                 .stat-item.success .stat-value { color: #10b981; }
                 .stat-item.warning .stat-value { color: var(--primary); }
                 .stat-divider { width: 1px; height: 24px; background: var(--border); }

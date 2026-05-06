@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
-import { Menu, Building2, Keyboard } from 'lucide-react';
-import { setAuthToken, clearAuthToken } from './lib/api';
+import { Menu, Building2 } from 'lucide-react';
+import api, { setAuthToken, clearAuthToken } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -158,14 +158,10 @@ const App = () => {
       });
   }, []);
 
-  const getHeaders = () => {
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  };
-
   // React Queries
   const { data: appointments = [], isLoading: loadingApts, isFetching: fetchingApts, refetch: refetchApts, error: appointmentsError } = useQuery({
     queryKey: ['appointments'],
-    queryFn: () => axios.get(`${API_BASE}/appointments`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/appointments').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     staleTime: 30000,
@@ -174,7 +170,7 @@ const App = () => {
 
   const { data: patients = [], isLoading: loadingPatients, isFetching: fetchingPatients, error: patientsError } = useQuery({
     queryKey: ['patients'],
-    queryFn: () => axios.get(`${API_BASE}/patients`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/patients').then(res => res.data),
     enabled: !!token,
     refetchInterval: 120000,
     staleTime: 60000,
@@ -183,7 +179,7 @@ const App = () => {
 
   const { data: rawNotifications = [], isLoading: loadingNotifs } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => axios.get(`${API_BASE}/notifications`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/notifications').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -191,10 +187,7 @@ const App = () => {
 
   const { data: recoveryStats = { recovered: 0, pending: 0, revenue: 0 }, isLoading: loadingStats, refetch: refetchStats } = useQuery({
     queryKey: ['recovery-stats'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/stats`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryFn: () => api.get('/recovery/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     staleTime: 0,
@@ -203,10 +196,7 @@ const App = () => {
 
   const { data: recoveryLog = [], isLoading: loadingLog, refetch: refetchLog } = useQuery({
     queryKey: ['recovery-log'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/log?limit=200`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryFn: () => api.get('/recovery/log?limit=200').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
     staleTime: 0,
@@ -215,10 +205,7 @@ const App = () => {
 
   const { data: recoveryInsights = { staleNoReply: [], patientEngaged: [], failedSms: [], summary: {} } } = useQuery({
     queryKey: ['recovery-insights'],
-    queryFn: async () => {
-      const res = await axios.get(`${API_BASE}/recovery/insights`, { headers: getHeaders() });
-      return res.data;
-    },
+    queryFn: () => api.get('/recovery/insights').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
     retry: 1,
@@ -226,7 +213,7 @@ const App = () => {
 
   const { data: apiUsage = {}, isLoading: loadingUsage } = useQuery({
     queryKey: ['api-usage'],
-    queryFn: () => axios.get(`${API_BASE}/clinic/usage`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/clinic/usage').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -234,7 +221,7 @@ const App = () => {
 
   const { data: spending = { totalCreditsUsed: 0, monthCreditsUsed: 0, totalMessagesSent: 0 } } = useQuery({
     queryKey: ['clinic-spending'],
-    queryFn: () => axios.get(`${API_BASE}/clinic/spending`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/clinic/spending').then(res => res.data),
     enabled: !!token,
     refetchInterval: 120000,
     retry: 1,
@@ -242,7 +229,7 @@ const App = () => {
 
   const { data: systemStatus = {}, isLoading: loadingSystem } = useQuery({
     queryKey: ['system-status'],
-    queryFn: () => axios.get(`${API_BASE}/system/status`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/system/status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -250,7 +237,7 @@ const App = () => {
 
   const { data: systemStats = {}, isLoading: loadingSystemStats } = useQuery({
     queryKey: ['system-stats'],
-    queryFn: () => axios.get(`${API_BASE}/system/stats`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/system/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -258,7 +245,7 @@ const App = () => {
 
   const { data: systemConfigStatus = { warnings: [] }, isLoading: loadingConfig } = useQuery({
     queryKey: ['system-config'],
-    queryFn: () => axios.get(`${API_BASE}/system/config-status`, { headers: getHeaders() }).then(res => res.data),
+    queryFn: () => api.get('/system/config-status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
     retry: 1,
@@ -591,13 +578,12 @@ const App = () => {
             if (action === 'view_recovery' || action === 'followup') handleSetCurrentTab('dashboard');
             if (action === 'view_appointments') handleSetCurrentTab('appointments');
             if (action === 'retry_sms' && data?.id) {
-              axios.post(`${API_BASE}/recovery/${data.id}/retry`, {}, { headers: getHeaders() })
-                .then(() => { refetchLog(); refetchStats(); toast.success('SMS επαναστάλθηκε!'); })
+              api.post(`/recovery/${data.id}/retry`).then(() => { refetchLog(); refetchStats(); toast.success('SMS επαναστάλθηκε!'); })
                 .catch(() => toast.error('Αποτυχία επανάληψης SMS.'));
             }
             if (action === 'followup' && Array.isArray(data)) {
               Promise.all(data.slice(0, 10).map(mc =>
-                axios.post(`${API_BASE}/recovery/${mc.id}/followup`, {}, { headers: getHeaders() }).catch(() => {})
+                api.post(`/recovery/${mc.id}/followup`).catch(() => {})
               )).then(() => {
                 setTimeout(() => { refetchLog(); refetchStats(); }, 1000);
                 toast.success('Follow-up SMS εστάλη!');

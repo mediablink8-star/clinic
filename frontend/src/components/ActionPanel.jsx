@@ -18,21 +18,20 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
     const [savingPatient, setSavingPatient] = React.useState(false);
     const [patientName, setPatientName] = React.useState('');
     const [showNameInput, setShowNameInput] = React.useState(false);
-    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null);
     const isKnownPatient = !!(log.patient?.id || patientData?.id);
 
     React.useEffect(() => {
         if (log.patient?.id) {
             setLoadingPatient(true);
             fetch(`${API_BASE}/appointments/patients`, {
-                headers: { Authorization: `Bearer ${authToken}` }
+                headers: { Authorization: `Bearer ${token}` }
             }).then(r => r.ok ? r.json() : null).then(data => {
                 const patient = Array.isArray(data) ? data.find(p => p.id === log.patient.id) : null;
                 if (patient) setPatientData(patient);
             }).catch(() => {}).finally(() => setLoadingPatient(false));
         } else if (log.fromNumber) {
             fetch(`${API_BASE}/appointments/patients`, {
-                headers: { Authorization: `Bearer ${authToken}` }
+                headers: { Authorization: `Bearer ${token}` }
             }).then(r => r.ok ? r.json() : null).then(data => {
                 const match = Array.isArray(data) ? data.find(p => p.phone === log.fromNumber) : null;
                 if (match) setPatientData(match);
@@ -47,7 +46,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
             if (isKnownPatient) {
                 await fetch(`${API_BASE}/messages/send`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ patientId: log.patient.id, message: smsText.trim() })
                 });
             } else {
@@ -70,7 +69,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
         try {
             const res = await fetch(`${API_BASE}/patients`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ name: patientName.trim(), phone })
             });
             const data = await res.json();

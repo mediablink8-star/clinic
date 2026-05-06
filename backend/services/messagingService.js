@@ -36,10 +36,13 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
         : (treatMissingWebhookAsSimulated ? 'SIMULATED' : 'FAILED');
 
     const log = await prisma.$transaction(async (tx) => {
-        await tx.clinic.update({
-            where: { id: clinicId },
+        const updated = await tx.clinic.updateMany({
+            where: { id: clinicId, messageCredits: { gt: 0 } },
             data: { messageCredits: { decrement: 1 }, dailyUsedCount: { increment: 1 } }
         });
+        if (updated.count === 0) {
+            throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
+        }
         await incrementSmsUsage(clinicId, tx);
         return tx.messageLog.create({
             data: {
