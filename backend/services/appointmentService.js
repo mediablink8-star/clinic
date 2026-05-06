@@ -48,7 +48,7 @@ async function listAppointments(clinicId) {
     const data = await prisma.appointment.findMany({
         where: { clinicId },
         include: { patient: true },
-        orderBy: { startTime: 'asc' },
+        orderBy: { startTime: 'desc' },
         take: 200
     });
     return { success: true, data };
