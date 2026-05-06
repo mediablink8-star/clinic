@@ -13,6 +13,7 @@ const { processFollowUps } = require('./followUpService');
 let schedulerQueue = null;
 let schedulerWorker = null;
 let reminderWorker = null;
+let workersRunning = false;
 
 function startNotificationWorker() {
     const { connection } = require('./queueService');
@@ -20,8 +21,11 @@ function startNotificationWorker() {
     // Check if Redis is available
     if (!connection) {
         console.warn('[Worker] Redis not available - workers cannot start. Set REDIS_URL to enable background jobs.');
+        workersRunning = false;
         return;
     }
+    
+    workersRunning = true;
 
     // Single queue for all scheduled tasks
     schedulerQueue = new Queue('scheduler', {
@@ -131,5 +135,6 @@ module.exports = {
     startFollowUpWorker, 
     startScheduledSmsWorker, 
     get schedulerWorker() { return schedulerWorker; },
-    get reminderWorker() { return reminderWorker; }
+    get reminderWorker() { return reminderWorker; },
+    get isRunning() { return workersRunning; }
 };

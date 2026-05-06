@@ -7,10 +7,11 @@ const { connection } = require('../services/queueService');
 // Import both workers for status checks
 let _schedulerWorker = null;
 let _reminderWorker = null;
+let _workersModule = null;
 try { 
-    const workers = require('../services/notificationWorker');
-    _schedulerWorker = workers.schedulerWorker;
-    _reminderWorker = workers.reminderWorker;
+    _workersModule = require('../services/notificationWorker');
+    _schedulerWorker = _workersModule.schedulerWorker;
+    _reminderWorker = _workersModule.reminderWorker;
 } catch {}
 
 const prisma = require('../services/prisma');
@@ -66,12 +67,12 @@ router.get('/status', asyncHandler(async (req, res) => {
 
     res.json({
         redis: connection ? connection.status === 'ready' : false,
-        worker: (_schedulerWorker && _schedulerWorker.isRunning()) || (_reminderWorker && _reminderWorker.isRunning()),
+        worker: _workersModule ? _workersModule.isRunning : false,
         aiConfigured: !!process.env.GEMINI_API_KEY,
         smsConfigured,
         voiceConfigured,
         webhookConfigured,
-        workflowsActive: ((_schedulerWorker && _schedulerWorker.isRunning()) || (_reminderWorker && _reminderWorker.isRunning())),
+        workflowsActive: _workersModule ? _workersModule.isRunning : false,
         lastExecutionAt: lastExecution?.timestamp || null,
         warnings,
     });

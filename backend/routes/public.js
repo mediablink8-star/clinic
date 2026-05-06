@@ -53,14 +53,14 @@ router.get('/clinic/:id/slots', clinicEnumerationLimiter, asyncHandler(async (re
 }));
 
 router.post('/book', validate(publicBookingSchema), asyncHandler(async (req, res) => {
-    const { clinicId, name, phone, email, reason, startTime } = req.body;
+    const { clinicId, name, phone, email, reason, startTime, date, time } = req.body;
     // Apply per-clinic rate limit dynamically
     if (clinicId) {
         await new Promise((resolve, reject) => {
             getBookingLimiter(clinicId)(req, res, (err) => err ? reject(err) : resolve());
         });
     }
-    const { data } = await bookAppointment({ clinicId, name, phone, email, reason, startTime });
+    const { data } = await bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time });
     res.json({ success: true, ...data });
 }));
 
