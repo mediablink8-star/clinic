@@ -58,9 +58,13 @@ async function getAvailableSlots(clinicId, dateStr) {
     return getSlotsForDate(clinicId, date, clinic.timezone || 'Europe/Athens');
 }
 
-async function bookAppointment({ clinicId, name, phone, email, reason, startTime }) {
-    if (!clinicId || !name || !phone || !startTime) {
-        throw new AppError('VALIDATION_ERROR', 'clinicId, name, phone and startTime are required', 400);
+async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time }) {
+    if (!clinicId || !name || !phone) {
+        throw new AppError('VALIDATION_ERROR', 'clinicId, name, and phone are required', 400);
+    }
+    
+    if (!startTime && (!date || !time)) {
+        throw new AppError('VALIDATION_ERROR', 'Either startTime or both date and time are required', 400);
     }
 
     const clinic = await prisma.clinic.findUnique({
@@ -70,16 +74,61 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     if (!clinic.isActive) throw new AppError('CLINIC_INACTIVE', 'This clinic is not currently accepting bookings', 403);
 
-    const start = new Date(startTime);
+    const timezone = clinic.timezone || 'Europe/Athens';
+    let start;
+    
+    // If date and time are provided separately, construct the datetime in clinic's timezone
+    if (date && time) {
+        const [year, month, day] = date.split('-').map(Number);
+        const [hour, minute] = time.split(':').map(Number);
+        
+        // Create a date string in the clinic's timezone
+        // Use Intl.DateTimeFormat to properly handle timezone conversion
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+        
+        // Parse this as a local date and adjust for timezone
+        // We need to find what UTC time corresponds to this local time in the clinic's timezone
+        const localDate = new Date(year, month - 1, day, hour, minute, 0);
+        
+        // Get the timezone offset for this specific date (handles DST)
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        
+        // Create a reference date to calculate offset
+        const refDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+        const parts = formatter.formatToParts(refDate);
+        const tzYear = parseInt(parts.find(p => p.type === 'year').value);
+        const tzMonth = parseInt(parts.find(p => p.type === 'month').value);
+        const tzDay = parseInt(parts.find(p => p.type === 'day').value);
+        const tzHour = parseInt(parts.find(p => p.type === 'hour').value);
+        const tzMinute = parseInt(parts.find(p => p.type === 'minute').value);
+        
+        // Calculate the offset
+        const tzDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0));
+        const offset = refDate.getTime() - tzDate.getTime();
+        
+        // Apply offset to get correct UTC time
+        start = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offset);
+    } else {
+        start = new Date(startTime);
+    }
+    
     if (Number.isNaN(start.getTime())) {
-        throw new AppError('VALIDATION_ERROR', 'startTime must be a valid ISO date', 400);
+        throw new AppError('VALIDATION_ERROR', 'Invalid date/time provided', 400);
     }
     if (start < new Date()) {
         throw new AppError('VALIDATION_ERROR', 'Cannot create appointments in the past', 400);
     }
 
     const end = new Date(start.getTime() + 60 * 60 * 1000);
-    const timezone = clinic.timezone || 'Europe/Athens';
     const requested = getDateTimeParts(start, timezone);
     const availableSlots = await getAvailableSlots(clinicId, requested.date);
     // Only reject if slots are configured AND the requested time isn't in them

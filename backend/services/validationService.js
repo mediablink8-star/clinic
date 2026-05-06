@@ -87,8 +87,11 @@ const publicBookingSchema = Joi.object({
     }),
     email: Joi.string().email().allow(null, ''),
     reason: Joi.string().max(500).allow(null, ''),
-    startTime: Joi.date().iso().required()
-});
+    // Accept either startTime (ISO) or date+time (separate fields)
+    startTime: Joi.date().iso(),
+    date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+    time: Joi.string().pattern(/^\d{2}:\d{2}$/)
+}).or('startTime', 'date');
 
 const missedCallSchema = Joi.object({
     phone: Joi.string().required(),

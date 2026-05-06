@@ -47,14 +47,15 @@ const PatientBooking = () => {
         setLoading(true);
         setError(null);
         try {
-            const startTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+            // Send date and time separately - backend will handle timezone conversion
             await axios.post(`${API_BASE}/public/book`, {
                 clinicId,
                 name: formData.name,
                 phone: formData.phone,
                 email: formData.email || undefined,
                 reason: formData.reason || undefined,
-                startTime,
+                date: formData.date,
+                time: formData.time,
             });
             setStep(3);
         } catch (err) {
@@ -92,9 +93,26 @@ const PatientBooking = () => {
         <div style={{ minHeight: '100vh', background: 'var(--bg-mesh)', padding: '2rem 1rem' }}>
             <div style={{ maxWidth: '600px', margin: '0 auto' }}>
                 <header style={{ textAlign: 'center', marginBottom: 'var(--section-gap)' }}>
-                    {clinic.avatarUrl && <img src={clinic.avatarUrl} alt={clinic.name} style={{ width: '100px', height: '100px', borderRadius: '32px', marginBottom: '1.5rem', objectFit: 'cover', boxShadow: 'var(--shadow-md)' }} />}
+                    <div style={{ 
+                        width: '100px', 
+                        height: '100px', 
+                        borderRadius: '32px', 
+                        marginBottom: '1.5rem', 
+                        background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 1.5rem auto',
+                        boxShadow: 'var(--shadow-md)',
+                        fontSize: '1.5rem',
+                        fontWeight: '900',
+                        color: 'white',
+                        letterSpacing: '-0.5px'
+                    }}>
+                        CF
+                    </div>
                     <h1 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--secondary)', marginBottom: '0.75rem', letterSpacing: '-1.5px' }}>{clinic.name}</h1>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', color: '#64748b', fontSize: '0.95rem', fontWeight: '700' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', color: '#64748b', fontSize: '0.95rem', fontWeight: '700', flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={18} color="var(--primary)" /> {clinic.location}</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={18} color="var(--primary)" /> {clinic.phone}</span>
                     </div>
@@ -203,8 +221,26 @@ const PatientBooking = () => {
                     )}
                 </div>
 
-                <footer style={{ textAlign: 'center', marginTop: '3rem', color: '#94a3b8', fontSize: '0.75rem' }}>
-                    <p>Powered by ClinicFlow SaaS • Ασφαλής Σύνδεση</p>
+                <footer style={{ textAlign: 'center', marginTop: '3rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <div style={{ 
+                            width: '32px', 
+                            height: '32px', 
+                            borderRadius: '8px', 
+                            background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: '900',
+                            color: 'white',
+                            letterSpacing: '-0.5px'
+                        }}>
+                            CF
+                        </div>
+                        <span style={{ fontWeight: '700', color: 'var(--secondary)', fontSize: '1rem' }}>ClinicFlow</span>
+                    </div>
+                    <p style={{ fontSize: '0.75rem' }}>Ασφαλής Σύνδεση • Προστασία Δεδομένων</p>
                 </footer>
             </div>
         </div>
