@@ -522,7 +522,8 @@ const App = () => {
 
   // Filter Logic
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  // Use local date string instead of ISO (which is UTC) to avoid timezone issues
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const apts = Array.isArray(appointments) ? appointments : [];
 
   const todayAppointments = apts.filter(a => a.startTime && typeof a.startTime === 'string' && a.startTime.startsWith(todayStr));

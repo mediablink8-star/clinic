@@ -131,7 +131,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     }
 }));
 
-router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
+router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -197,7 +197,7 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res) => {
         console.error('[LOGIN] ERROR:', error);
         res.status(500).json({ error: 'Server error during login' });
     }
-});
+}));
 
 router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, res) => {
     const { email } = req.body;

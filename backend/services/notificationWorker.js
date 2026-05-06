@@ -12,6 +12,7 @@ const { processFollowUps } = require('./followUpService');
 
 let schedulerQueue = null;
 let schedulerWorker = null;
+let reminderWorker = null;
 
 function startNotificationWorker() {
     const { connection } = require('./queueService');
@@ -21,6 +22,40 @@ function startNotificationWorker() {
         connection,
         defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } }
     });
+
+    // CRITICAL: Create worker for 'reminders' queue to process actual notification sending
+    reminderWorker = new Worker('reminders', async (job) => {
+        const { processNotification } = require('./notificationService');
+        const { notificationId } = job.data;
+        
+        if (!notificationId) {
+            console.warn('[Reminder Worker] Missing notificationId in job data');
+            return { success: false, reason: 'Missing notificationId' };
+        }
+
+        try {
+            await processNotification(notificationId);
+            return { success: true, notificationId };
+        } catch (err) {
+            console.error(`[Reminder Worker] Failed to process notification ${notificationId}:`, err.message);
+            throw err; // Let BullMQ handle retries
+        }
+    }, {
+        connection,
+        concurrency: 5, // Process up to 5 reminders concurrently
+        removeOnComplete: { count: 100 },
+        removeOnFail: { count: 200 },
+    });
+
+    reminderWorker.on('completed', (job) => {
+        console.log(`[Reminder Worker] Notification ${job.data.notificationId} sent successfully`);
+    });
+
+    reminderWorker.on('failed', (job, err) => {
+        console.error(`[Reminder Worker] Notification ${job?.data?.notificationId} failed: ${err.message}`);
+    });
+
+    console.log('✅ BullMQ reminder worker started (processes notification sending)');
 
     // Register repeatable jobs — BullMQ ensures only one fires per interval cluster-wide
     schedulerQueue.add('process-notifications', {}, {
@@ -85,4 +120,10 @@ function startNotificationWorker() {
 function startFollowUpWorker() {}
 function startScheduledSmsWorker() {}
 
-module.exports = { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker, get schedulerWorker() { return schedulerWorker; } };
+module.exports = { 
+    startNotificationWorker, 
+    startFollowUpWorker, 
+    startScheduledSmsWorker, 
+    get schedulerWorker() { return schedulerWorker; },
+    get reminderWorker() { return reminderWorker; }
+};

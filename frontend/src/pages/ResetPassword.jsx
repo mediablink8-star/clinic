@@ -29,8 +29,8 @@ const ResetPassword = () => {
       setError('Οι κωδικοί δεν ταιριάζουν.');
       return;
     }
-    if (password.length < 6) {
-      setError('Ο κωδικός πρέπει να είναι τουλάχιστον 6 χαρακτήρες.');
+    if (password.length < 8) {
+      setError('Ο κωδικός πρέπει να είναι τουλάχιστον 8 χαρακτήρες.');
       return;
     }
 

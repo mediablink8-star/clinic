@@ -10,6 +10,7 @@ function validateEnv() {
     ];
 
     const recommended = [
+        'REFRESH_TOKEN_SECRET',
         'WEBHOOK_SECRET',
         'AUTOMATION_API_KEY',
         'GEMINI_API_KEY',
@@ -50,6 +51,9 @@ function validateEnv() {
     }
 
     // Specific critical warnings
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+        console.warn('⚠️  REFRESH_TOKEN_SECRET not set — using JWT_SECRET as fallback (not recommended for production).');
+    }
     if (!process.env.SMTP_HOST) {
         console.warn('⚠️  SMTP_HOST not set — password reset emails will NOT be delivered in production.');
     }
