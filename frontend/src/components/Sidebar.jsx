@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2, CalendarCheck } from 'lucide-react';
 
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
     const navSections = [
@@ -7,7 +7,8 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             label: 'Κύρια Μενού',
             items: [
                 { id: 'dashboard', label: 'Πίνακας Ελέγχου', icon: LayoutDashboard },
-                { id: 'appointments', label: 'Ραντεβού', icon: Calendar },
+                { id: 'calendar', label: 'Ημερολόγιο', icon: Calendar },
+                { id: 'appointments', label: 'Ραντεβού', icon: CalendarCheck },
                 { id: 'patients', label: 'Ασθενείς', icon: Users },
             ]
         },

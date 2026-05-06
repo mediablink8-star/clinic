@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import ClinicSettings from './pages/ClinicSettings';
 import AISettings from './pages/AISettings';
 import Dashboard from './pages/Dashboard';
+import CalendarView from './pages/CalendarView';
 import Appointments from './pages/Appointments';
 import Patients from './pages/Patients';
 import Reports from './pages/Reports';
@@ -94,14 +95,17 @@ const App = () => {
         setCurrentTab('dashboard');
       } else if (e.key === '2' && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        setCurrentTab('appointments');
+        setCurrentTab('calendar');
       } else if (e.key === '3' && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        setCurrentTab('patients');
+        setCurrentTab('appointments');
       } else if (e.key === '4' && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        setCurrentTab('analytics');
+        setCurrentTab('patients');
       } else if (e.key === '5' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('analytics');
+      } else if (e.key === '6' && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         setCurrentTab('settings');
       } else if ((e.key === 'n' || e.key === 'Ν') && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -589,6 +593,15 @@ const App = () => {
             localStorage.setItem('clinic_data', JSON.stringify(next));
           }}
           warnings={systemConfigStatus.warnings || []}
+        />;
+      case 'calendar':
+        return <CalendarView 
+          appointments={appointments} 
+          onAppointmentClick={(apt) => {
+            // Navigate to appointments tab and potentially highlight the appointment
+            setCurrentTab('appointments');
+            toast.success(`Ραντεβού: ${apt.patient?.name || 'Ασθενής'}`);
+          }}
         />;
       case 'appointments':
         return <Appointments appointments={appointments} token={token} onConfirm={handleConfirmAppointment} onCancel={handleCancelAppointment} onNewAppointment={() => setShowModal(true)} isLoading={fetchingApts} error={appointmentsError} onRetry={refetchApts} />;
