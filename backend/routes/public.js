@@ -13,21 +13,18 @@ const publicLimiter = rateLimit({
 
 // Strict limiter for clinic enumeration prevention
 const clinicEnumerationLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 10, // Max 10 different clinic lookups per minute per IP
-    keyGenerator: (req) => req.ip,
+    windowMs: 60 * 1000,
+    max: 10,
     message: { error: 'Too many clinic lookups, please try again later' }
 });
 
 // Per-clinic booking limiter: 10 bookings per hour per IP per clinic
-// Max 100 clinics cached to prevent unbounded memory growth
 const MAX_LIMITER_CACHE = 100;
 const bookingLimiterMap = new Map();
 let accessOrder = [];
 
 function getBookingLimiter(clinicId) {
     if (!bookingLimiterMap.has(clinicId)) {
-        // Evict oldest entry if cache is full
         if (bookingLimiterMap.size >= MAX_LIMITER_CACHE && accessOrder.length > 0) {
             const oldest = accessOrder.shift();
             bookingLimiterMap.delete(oldest);
@@ -35,7 +32,6 @@ function getBookingLimiter(clinicId) {
         bookingLimiterMap.set(clinicId, rateLimit({
             windowMs: 60 * 60 * 1000,
             max: 10,
-            keyGenerator: (req) => `${req.ip}:${clinicId}`,
             message: { error: 'Too many booking attempts for this clinic. Please try again later.' }
         }));
         accessOrder.push(clinicId);
