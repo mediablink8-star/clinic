@@ -46,6 +46,14 @@ const PatientBooking = () => {
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
+        
+        // Validate date and time are selected
+        if (!formData.date || !formData.time) {
+            setError("Παρακαλώ επιλέξτε ημερομηνία και ώρα.");
+            setLoading(false);
+            return;
+        }
+        
         try {
             // Send date and time separately - backend will handle timezone conversion
             await axios.post(`${API_BASE}/public/book`, {

@@ -63,7 +63,11 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         throw new AppError('VALIDATION_ERROR', 'clinicId, name, and phone are required', 400);
     }
     
-    if (!startTime && (!date || !time)) {
+    // Check if we have either startTime OR both date and time (not empty strings)
+    const hasStartTime = startTime && startTime.trim();
+    const hasDateTime = date && date.trim() && time && time.trim();
+    
+    if (!hasStartTime && !hasDateTime) {
         throw new AppError('VALIDATION_ERROR', 'Either startTime or both date and time are required', 400);
     }
 
