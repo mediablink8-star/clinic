@@ -21,7 +21,7 @@ async function processVoiceIntent(transcript, clinic) {
       Clinic Services: ${aiConfig.services || 'General Dental Services'}
       Clinic Policies: ${aiConfig.policies || 'Standard clinic policies'}
       AI Tone: ${aiConfig.tone || 'Professional'}
-      Average Appointment Value: ${aiConfig.avgAppointmentValue || 150}
+      Average Appointment Value: ${aiConfig.avgAppointmentValue || 80}
       Phone: ${clinic.phone}
 
       Analyze this transcript from a phone call (in Greek):

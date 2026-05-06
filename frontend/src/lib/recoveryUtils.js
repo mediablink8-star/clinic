@@ -81,7 +81,8 @@ export const getReplyPreview = (log) => {
 };
 
 export const getRevenue = (log) => {
-    return log.estimatedRevenue || (log.status === 'RECOVERED' || log.status === 'RECOVERING' ? 150 : null);
+    // Use estimatedRevenue if available, otherwise default to 80€ for recovered cases
+    return log.estimatedRevenue || (log.status === 'RECOVERED' || log.status === 'RECOVERING' ? 80 : null);
 };
 
 export const getInitials = (log) => {

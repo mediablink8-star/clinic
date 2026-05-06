@@ -58,13 +58,21 @@ const SectionLabel = ({ children }) => (
 );
 
 // ─── Main ActionCenter ────────────────────────────────────────────────────────
-const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {}, token, onNavigate }) => {
+const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {}, token, onNavigate, clinic }) => {
     const [sending, setSending] = useState({});
     const [retryingAll, setRetryingAll] = useState(false);
     const [showReply, setShowReply] = useState(false);
 
     const { staleNoReply = [], patientEngaged = [], failedSms: failedInsights = [], callbackRequested = [], summary = {} } = recoveryInsights;
     const logs = Array.isArray(recoveryLog) ? recoveryLog : [];
+
+    // Get average appointment value from clinic config (default to 80€)
+    const avgAppointmentValue = (() => {
+        try {
+            const ai = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {});
+            return parseFloat(ai.avgAppointmentValue) || 80;
+        } catch { return 80; }
+    })();
 
     const failedSmsCount = summary.failedCount ?? logs.filter(l => l?.smsStatus === 'failed').length;
     const patientRepliedCount = summary.engagedCount ?? 0;
@@ -167,7 +175,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                             icon={Send}
                             color="#7c3aed"
                             label={`⚠️ ${staleCount} ασθενείς περιμένουν`}
-                            sublabel={`€${(staleCount * 150).toLocaleString()} σε κίνδυνο`}
+                            sublabel={`€${(staleCount * avgAppointmentValue).toLocaleString()} σε κίνδυνο`}
                             cta="Στείλε"
                             loading={sending.followup}
                             onClick={sendFollowUps}
@@ -190,7 +198,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                             icon={RefreshCw}
                             color="#dc2626"
                             label={`❌ ${failedSmsCount} μηνύματα απέτυχαν`}
-                            sublabel={`€${(failedSmsCount * 150).toLocaleString()} χαμένα`}
+                            sublabel={`€${(failedSmsCount * avgAppointmentValue).toLocaleString()} χαμένα`}
                             cta="Επανάληψη"
                             loading={retryingAll}
                             onClick={retryFailedSms}

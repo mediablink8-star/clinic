@@ -109,12 +109,20 @@ const Dashboard = ({
             ? weeklyRate
             : logRate;
 
+    // Get average appointment value from clinic config (default to 80€)
+    const avgAppointmentValue = (() => {
+        try {
+            const ai = typeof clinic?.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic?.aiConfig || {});
+            return parseFloat(ai.avgAppointmentValue) || 80;
+        } catch { return 80; }
+    })();
+
     // Weekly revenue calculation
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - 7);
     const weeklyRevenue = recoveryStats.trend?.thisWeek?.recovered
-        ? recoveryStats.trend.thisWeek.recovered * 150
-        : logsArray.filter(l => l?.status === 'RECOVERED' && l?.recoveredAt && new Date(l.recoveredAt) >= weekStart).length * 150;
+        ? recoveryStats.trend.thisWeek.recovered * avgAppointmentValue
+        : logsArray.filter(l => l?.status === 'RECOVERED' && l?.recoveredAt && new Date(l.recoveredAt) >= weekStart).length * avgAppointmentValue;
 
     // Emotional stats
     const totalMissed = totalMissedForRate || 0;
@@ -248,6 +256,7 @@ const Dashboard = ({
                         recoveryInsights={recoveryInsights}
                         token={token}
                         onNavigate={setCurrentTab}
+                        clinic={clinic}
                     />
                     <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
