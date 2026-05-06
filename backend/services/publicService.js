@@ -1,7 +1,7 @@
 const prisma = require('./prisma');
 const { triggerWebhook } = require('./webhookService');
 const AppError = require('../errors/AppError');
-const { getAvailableSlots: getSlotsForDate, isWithinWorkingHours } = require('./slotUtils');
+const { getAvailableSlots: getSlotsForDate } = require('./slotUtils');
 const { normalizePhone } = require('../utils/phone');
 
 function getDateTimeParts(date, timezone = 'Europe/Athens') {
@@ -83,11 +83,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const requested = getDateTimeParts(start, timezone);
     const availableSlots = await getAvailableSlots(clinicId, requested.date);
     if (!availableSlots.includes(requested.time)) {
-        throw new AppError('VALIDATION_ERROR', 'Selected time slot is not available', 400);
-    }
-
-    if (!isWithinWorkingHours({ clinic, start, end, timezone })) {
-        throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic working hours', 400);
+        throw new AppError('SLOT_UNAVAILABLE', 'Selected time slot is not available', 400);
     }
 
     const normalizedPhone = normalizePhone(phone);
