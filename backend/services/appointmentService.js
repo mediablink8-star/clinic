@@ -102,17 +102,21 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     let appointment;
     try {
         appointment = await prisma.$transaction(async (tx) => {
-            const conflict = await tx.appointment.findFirst({
-                where: {
-                    clinicId,
-                    status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-                    AND: [
-                        { startTime: { lt: end } },
-                        { endTime:   { gt: start } }
-                    ]
-                }
-            });
-            if (conflict) throw new AppError('CONFLICT', 'Time slot already booked', 409);
+            // Use FOR UPDATE to lock conflicting appointments during check
+            // This prevents race conditions when multiple requests try to book the same slot
+            const conflict = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${clinicId}
+                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                AND "startTime" < ${end}
+                AND "endTime" > ${start}
+                FOR UPDATE
+                LIMIT 1
+            `;
+            
+            if (conflict && conflict.length > 0) {
+                throw new AppError('CONFLICT', 'Time slot already booked', 409);
+            }
 
             const created = await tx.appointment.create({
                 data: {

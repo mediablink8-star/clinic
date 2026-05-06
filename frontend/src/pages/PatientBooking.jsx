@@ -60,7 +60,15 @@ const PatientBooking = () => {
             setStep(3);
         } catch (err) {
             if (err.response?.status === 409) {
-                setError("Η συγκεκριμένη ώρα έχει ήδη κλειστεί. Παρακαλώ επιλέξτε μια άλλη ώρα.");
+                setError("Η συγκεκριμένη ώρα μόλις κλείστηκε από άλλον ασθενή. Παρακαλώ επιλέξτε μια άλλη ώρα.");
+                // Refresh available slots to show updated availability
+                try {
+                    const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}`);
+                    setAvailableSlots(resp.data.data);
+                    setFormData({ ...formData, time: '' }); // Clear selected time
+                } catch (refreshErr) {
+                    console.error("Failed to refresh slots:", refreshErr);
+                }
             } else if (err.response?.status === 400) {
                 setError(err.response.data?.error || "Παρακαλώ ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.");
             } else if (err.response?.status === 403) {
