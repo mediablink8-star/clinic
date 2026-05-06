@@ -3,18 +3,15 @@ const { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker } 
 
 console.log('🚀 SaaS-Grade Background Worker process starting...');
 
-// BullMQ worker always runs — it processes jobs enqueued by external workflows or internal cron
-console.log('✅ BullMQ reminder worker running.');
+// Start the BullMQ workers by default
+startNotificationWorker();
+console.log('✅ BullMQ workers started (reminders + scheduler).');
 
-// Internal cron automation — disabled by default.
-// Set USE_INTERNAL_AUTOMATION=true to use built-in scheduling instead of an external workflow tool.
+// Legacy automation flags (kept for backward compatibility)
 if (process.env.USE_INTERNAL_AUTOMATION === 'true') {
-    startNotificationWorker();
     startFollowUpWorker();
     startScheduledSmsWorker();
-    console.log('✅ Internal cron automation enabled (USE_INTERNAL_AUTOMATION=true).');
-} else {
-    console.log('ℹ️  Internal cron automation disabled. Use /api/automation/* endpoints instead.');
+    console.log('✅ Legacy internal cron automation enabled (USE_INTERNAL_AUTOMATION=true).');
 }
 
 // Keep process alive
