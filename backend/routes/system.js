@@ -3,10 +3,16 @@ const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const { logAction } = require('../services/auditService');
 const { connection } = require('../services/queueService');
-// schedulerWorker lives in notificationWorker — import it for status checks
+
+// Import both workers for status checks
 let _schedulerWorker = null;
-try { ({ schedulerWorker: _schedulerWorker } = require('../services/notificationWorker')); } catch {}
-const reminderWorker = _schedulerWorker;
+let _reminderWorker = null;
+try { 
+    const workers = require('../services/notificationWorker');
+    _schedulerWorker = workers.schedulerWorker;
+    _reminderWorker = workers.reminderWorker;
+} catch {}
+
 const prisma = require('../services/prisma');
 
 router.get('/config-status', asyncHandler(async (req, res) => {
@@ -21,7 +27,7 @@ router.get('/config-status', asyncHandler(async (req, res) => {
     res.json({
         AI: !!process.env.GEMINI_API_KEY,
         SMS: !!(process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
-        recovery: !!reminderWorker,
+        recovery: !!(_schedulerWorker || _reminderWorker),
         webhook: !!process.env.WEBHOOK_SECRET,
         warnings
     });
@@ -60,12 +66,12 @@ router.get('/status', asyncHandler(async (req, res) => {
 
     res.json({
         redis: connection ? connection.status === 'ready' : false,
-        worker: reminderWorker ? reminderWorker.isRunning() : false,
+        worker: (_schedulerWorker && _schedulerWorker.isRunning()) || (_reminderWorker && _reminderWorker.isRunning()),
         aiConfigured: !!process.env.GEMINI_API_KEY,
         smsConfigured,
         voiceConfigured,
         webhookConfigured,
-        workflowsActive: !!(reminderWorker && reminderWorker.isRunning()),
+        workflowsActive: ((_schedulerWorker && _schedulerWorker.isRunning()) || (_reminderWorker && _reminderWorker.isRunning())),
         lastExecutionAt: lastExecution?.timestamp || null,
         warnings,
     });
