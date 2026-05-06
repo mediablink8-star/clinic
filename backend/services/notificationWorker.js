@@ -17,6 +17,12 @@ let reminderWorker = null;
 function startNotificationWorker() {
     const { connection } = require('./queueService');
 
+    // Check if Redis is available
+    if (!connection) {
+        console.warn('[Worker] Redis not available - workers cannot start. Set REDIS_URL to enable background jobs.');
+        return;
+    }
+
     // Single queue for all scheduled tasks
     schedulerQueue = new Queue('scheduler', {
         connection,
