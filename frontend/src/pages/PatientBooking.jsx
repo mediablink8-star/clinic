@@ -4,6 +4,7 @@ import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin } from '
 
 const PatientBooking = () => {
     const clinicId = new URLSearchParams(window.location.search).get('clinicId');
+    const missedCallId = new URLSearchParams(window.location.search).get('missedCallId'); // Track recovery source
     const [clinic, setClinic] = useState(null);
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({ name: '', phone: '', email: '', reason: '', date: '', time: '' });
@@ -64,6 +65,7 @@ const PatientBooking = () => {
                 reason: formData.reason || undefined,
                 date: formData.date,
                 time: formData.time,
+                missedCallId: missedCallId || undefined, // Link to missed call if this is a recovery booking
             });
             setStep(3);
         } catch (err) {

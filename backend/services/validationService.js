@@ -90,7 +90,9 @@ const publicBookingSchema = Joi.object({
     // Accept either startTime (ISO) or date+time (separate fields)
     startTime: Joi.date().iso(),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
-    time: Joi.string().pattern(/^\d{2}:\d{2}$/)
+    time: Joi.string().pattern(/^\d{2}:\d{2}$/),
+    // Optional: link to missed call for recovery tracking
+    missedCallId: Joi.string().allow(null, '')
 }).or('startTime', 'date');
 
 const missedCallSchema = Joi.object({

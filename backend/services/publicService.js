@@ -58,7 +58,7 @@ async function getAvailableSlots(clinicId, dateStr) {
     return getSlotsForDate(clinicId, date, clinic.timezone || 'Europe/Athens');
 }
 
-async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time }) {
+async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId }) {
     if (!clinicId || !name || !phone) {
         throw new AppError('VALIDATION_ERROR', 'clinicId, name, and phone are required', 400);
     }
@@ -142,7 +142,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const normalizedPhone = normalizePhone(phone);
 
-    const { patient, appointment } = await prisma.$transaction(async (tx) => {
+    const { patient, appointment, missedCall } = await prisma.$transaction(async (tx) => {
         // Use FOR UPDATE to lock conflicting appointments during check
         // This prevents race conditions when multiple requests try to book the same slot
         const conflict = await tx.$queryRaw`
@@ -166,6 +166,54 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         const appt = await tx.appointment.create({
             data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' },
         });
+        
+        // If this booking is from a missed call recovery link, mark the missed call as RECOVERED
+        let mc = null;
+        if (missedCallId) {
+            mc = await tx.missedCall.findFirst({
+                where: { 
+                    id: missedCallId, 
+                    clinicId,
+                    status: { in: ['DETECTED', 'RECOVERING'] } // Only recover if not already recovered
+                }
+            });
+            
+            if (mc) {
+                // Get avgAppointmentValue from clinic config
+                const clinicData = await tx.clinic.findUnique({
+                    where: { id: clinicId },
+                    select: { aiConfig: true }
+                });
+                
+                let avgAppointmentValue = 80; // default
+                try {
+                    const aiConfig = typeof clinicData?.aiConfig === 'string' 
+                        ? JSON.parse(clinicData.aiConfig) 
+                        : (clinicData?.aiConfig || {});
+                    avgAppointmentValue = parseFloat(aiConfig.avgAppointmentValue) || 80;
+                } catch {}
+                
+                await tx.missedCall.update({
+                    where: { id: missedCallId },
+                    data: {
+                        status: 'RECOVERED',
+                        recoveredAt: new Date(),
+                        patientId: pt.id,
+                        appointmentId: appt.id,
+                        estimatedRevenue: avgAppointmentValue
+                    }
+                });
+                
+                // Also update recovery case if exists
+                await tx.recoveryCase.updateMany({
+                    where: { missedCallId },
+                    data: { state: 'RECOVERED' }
+                });
+                
+                console.log(`[PUBLIC BOOKING] Marked missed call ${missedCallId} as RECOVERED with revenue €${avgAppointmentValue}`);
+            }
+        }
+        
         console.log('[PUBLIC BOOKING] Created appointment:', {
             id: appt.id,
             clinicId: appt.clinicId,
@@ -174,9 +222,10 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             startTime: appt.startTime,
             endTime: appt.endTime,
             status: appt.status,
-            reason: appt.reason
+            reason: appt.reason,
+            linkedMissedCall: mc?.id || null
         });
-        return { patient: pt, appointment: appt };
+        return { patient: pt, appointment: appt, missedCall: mc };
     });
 
     if (clinic.webhookUrl) {
