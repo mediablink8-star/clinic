@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Brain, Activity, Check, MessageSquare } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -75,9 +75,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     };
 
     useEffect(() => {
-        axios.get(`${API_BASE}/system/status`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => setSystemStatus(r.data))
-            .catch(() => {});
+        api.get('/system/status').then(r => setSystemStatus(r.data)).catch(() => {});
     }, []);
 
     const set    = (key, val) => setFormData(p => ({ ...p, [key]: val }));
@@ -85,8 +83,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const handleSaveAiConfig = async () => {
         setAiConfigSaving(true);
         try {
-            await axios.put(`${API_BASE}/clinic/ai-config`, formData.aiConfig,
-                { headers: { Authorization: `Bearer ${token}` } });
+            await api.put('/clinic/ai-config', formData.aiConfig);
             showToast('AI Configuration updated!');
             if (onUpdate) onUpdate({ aiConfig: JSON.stringify(formData.aiConfig) });
         } catch (err) {

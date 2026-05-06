@@ -229,5 +229,22 @@ async function getAvailableSlots(clinicId, date) {
     return _getAvailableSlots(clinicId, date, timezone);
 }
 
-module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots };
+/**
+ * Get today's appointments for a clinic.
+ */
+async function getTodayAppointments(clinicId) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    const data = await prisma.appointment.findMany({
+        where: { clinicId, startTime: { gte: todayStart, lte: todayEnd } },
+        include: { patient: true },
+        orderBy: { startTime: 'asc' },
+        take: 50
+    });
+    return { success: true, data };
+}
+
+module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments };
 

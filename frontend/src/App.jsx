@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { Menu, Building2 } from 'lucide-react';
@@ -375,7 +374,7 @@ const App = () => {
   };
 
   const handleLogout = () => {
-    axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
+    api.post('/auth/logout').catch(() => {});
     clearAccessToken();
     setToken(null);
     clearAuthToken();
@@ -390,8 +389,7 @@ const App = () => {
     analysisTimeoutRef.current = setTimeout(async () => {
       setAnalyzing(true);
       try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        const resp = await axios.post(`${API_BASE}/analysis/analyze`, { reason }, { headers });
+        const resp = await api.post('/analysis/analyze', { reason });
         setAnalysis(resp.data);
       } catch (err) {
         console.error('AI analysis failed:', err);
@@ -408,13 +406,11 @@ const App = () => {
       const startTime = new Date(`${newAppt.date}T${newAppt.time}`);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
-      await axios.post(`${API_BASE}/appointments`, {
+      await api.post('/appointments', {
         patientId: newAppt.patientId,
         reason: newAppt.reason,
         startTime,
         endTime
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       setShowModal(false);
@@ -432,10 +428,7 @@ const App = () => {
 
   const handleConfirmAppointment = async (id) => {
     try {
-      await axios.put(`${API_BASE}/appointments/${id}/status`,
-        { status: 'CONFIRMED' },
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      await api.put(`/appointments/${id}/status`, { status: 'CONFIRMED' });
       refetchApts();
       toast.success('Ραντεβού επιβεβαιώθηκε!');
     } catch (err) {
@@ -470,9 +463,7 @@ const App = () => {
     });
     if (!confirmed) return;
     try {
-      await axios.delete(`${API_BASE}/appointments/${id}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+      await api.delete(`/appointments/${id}`);
       refetchApts();
       toast.success('Ραντεβού ακυρώθηκε.');
     } catch (err) {

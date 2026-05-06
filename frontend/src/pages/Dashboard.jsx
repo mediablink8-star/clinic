@@ -1,6 +1,6 @@
 import React from 'react';
-import { Euro, Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
-import axios from 'axios';
+import { Zap, Plus, Activity, LineChart, TrendingUp } from 'lucide-react';
+import api from '../lib/api';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
 import ActionCenter from '../components/ActionCenter';
@@ -87,7 +87,7 @@ const Dashboard = ({
         const nextState = !clinic?.isActive;
         if (onUpdate) onUpdate({ isActive: nextState });
         try {
-            await axios.post(`${API_BASE}/clinic/toggle-status`, { isActive: nextState }, { headers: { Authorization: `Bearer ${token}` } });
+            await api.post('/clinic/toggle-status', { isActive: nextState });
         } catch (err) { if (onUpdate) onUpdate({ isActive: !nextState }); }
     };
 

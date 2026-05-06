@@ -13,7 +13,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
-const { triggerN8nSms } = require('../services/smsFallbackService');
+const { triggerSmsFallback } = require('../services/smsFallbackService');
 const { createAppointment } = require('../services/appointmentService');
 const { parseAppointmentDay } = require('../services/conversationService');
 
@@ -217,7 +217,7 @@ async function triggerSmsFallback(mc) {
     const smsBody = `Σας καλέσαμε από το ${clinicName} αλλά δεν απαντήσατε.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
 
     console.log(`[Vapi] SMS fallback → ${mc.fromNumber}`);
-    await triggerN8nSms(clinic, mc.fromNumber, smsBody, mc.id);
+    await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id);
 }
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { User, Clock, Search, MessageSquare, UserPlus, X, Download, Send, Calendar, ChevronRight, Phone, Mail, CheckCircle2, AlertCircle, Users } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/api';
 import toast from 'react-hot-toast';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
@@ -41,7 +41,7 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post(`${API_BASE}/patients`, form, { headers: { Authorization: `Bearer ${token}` } });
+            await api.post('/patients', form);
             onCreated();
             onClose();
         } catch (err) {
@@ -124,7 +124,7 @@ const PatientProfilePanel = ({ patient, token, onClose }) => {
         if (!smsText.trim() || sending) return;
         setSending(true);
         try {
-            await axios.post(`${API_BASE}/messages/send`, { patientId: patient.id, message: smsText.trim() }, { headers: { Authorization: `Bearer ${token}` } });
+            await api.post('/messages/send', { patientId: patient.id, message: smsText.trim() });
             setSmsText('');
             toast.success('SMS εστάλη!');
         } catch (err) {
