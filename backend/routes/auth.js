@@ -31,6 +31,35 @@ const passwordResetLimiter = rateLimit({
     message: { error: 'Too many password reset requests. Please try again in an hour.' }
 });
 
+// Strict limiter for MFA code guessing — 5 attempts per 15 minutes per IP
+const mfaLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many MFA attempts. Please try again in 15 minutes.' }
+});
+
+// CSRF origin guard for cookie-only endpoints (/refresh, /logout)
+// sameSite:'none' is required for cross-domain SPA+API but also allows
+// cross-site cookie sending, so we enforce the Origin header ourselves.
+const csrfOriginGuard = (req, res, next) => {
+    const origin = req.headers.origin || req.headers.referer || '';
+    const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5175',
+    ].filter(Boolean);
+    // Allow requests with no Origin (e.g. server-to-server, curl in dev)
+    if (!origin) return next();
+    const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
+    if (!isAllowed) {
+        return res.status(403).json({ error: 'CSRF check failed: origin not allowed' });
+    }
+    next();
+};
+
 const isProduction = process.env.NODE_ENV === 'production';
 const refreshCookieMaxAge = 7 * 24 * 60 * 60 * 1000;
 const genericRegistrationError = 'Registration could not be completed with the provided details.';
@@ -296,7 +325,7 @@ router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async
     res.json({ success: true, message: 'Password reset successful' });
 }));
 
-router.post('/refresh', asyncHandler(async (req, res) => {
+router.post('/refresh', csrfOriginGuard, asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.status(401).json({ error: 'Refresh token missing' });
 
@@ -340,7 +369,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/logout', asyncHandler(async (req, res) => {
+router.post('/logout', csrfOriginGuard, asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (refreshToken) {
         await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
@@ -501,7 +530,7 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/login-verify', asyncHandler(async (req, res) => {
+router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
     const { mfaToken, code } = req.body;
     try {
         const decoded = verifyToken(mfaToken);

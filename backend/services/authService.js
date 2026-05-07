@@ -9,6 +9,9 @@ if (!JWT_SECRET) {
 if (!REFRESH_TOKEN_SECRET) {
     throw new Error('FATAL: REFRESH_TOKEN_SECRET environment variable is not set. Set it to a long random string separate from JWT_SECRET.');
 }
+if (REFRESH_TOKEN_SECRET === JWT_SECRET) {
+    throw new Error('FATAL: REFRESH_TOKEN_SECRET must be different from JWT_SECRET. Using the same value allows refresh tokens to be accepted as access tokens and vice versa.');
+}
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
 const PASSWORD_MIN_LENGTH = 8;
