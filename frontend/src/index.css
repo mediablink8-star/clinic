@@ -867,12 +867,6 @@ input:focus, textarea:focus, select:focus {
     color: var(--text-light);
   }
 
-  .dashboard-shell {
-    height: auto !important;
-    overflow: visible !important;
-    flex: none !important;
-  }
-
   .dashboard-header,
   .dashboard-skeleton__header,
   .appointments-toolbar {
