@@ -70,7 +70,6 @@ router.get('/log', asyncHandler(async (req, res) => {
 router.get('/insights', asyncHandler(async (req, res) => {
     const clinicId = req.clinicId;
     const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     const [staleNoReply, patientEngaged, failedSms, callbackRequested] = await Promise.all([
         // RECOVERING, SMS sent 24h+ ago, no reply (not ENGAGED in RecoveryCase)

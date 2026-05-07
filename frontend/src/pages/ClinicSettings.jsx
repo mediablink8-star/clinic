@@ -223,11 +223,11 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 timezone: formData.timezone
             }, { headers: { 'Authorization': `Bearer ${token}` } });
             setInfoSaved(true);
-            showToast('Clinic information updated!');
+            showToast('Τα στοιχεία του ιατρείου ενημερώθηκαν!');
             if (onUpdate) onUpdate(formData);
             setTimeout(() => setInfoSaved(false), 3000);
         } catch (err) {
-            showToast(err.response?.data?.error || 'Failed to save clinic info.', 'error');
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης στοιχείων.', 'error');
         } finally {
             setSavingInfo(false);
         }
@@ -340,25 +340,26 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const handleVerifyMfa = async () => {
         try {
             await api.post('/auth/mfa/verify', {
-                secret: mfaSetup.secret,
                 code: mfaSetup.code
             });
-            showToast('MFA enabled successfully!');
+            showToast('Το MFA ενεργοποιήθηκε επιτυχώς!');
             setMfaSetup({ step: '', secret: '', qrImageUrl: '', code: '' });
             if (onUpdate) onUpdate({ mfaEnabled: true });
         } catch {
-            showToast('Invalid code. Try again.', 'error');
+            showToast('Μη έγκυρος κωδικός. Δοκιμάστε ξανά.', 'error');
         }
     };
 
     const handleDisableMfa = async () => {
-        if (!window.confirm('Are you sure you want to disable MFA?')) return;
+        if (!window.confirm('Είστε σίγουροι ότι θέλετε να απενεργοποιήσετε το MFA;')) return;
+        const password = window.prompt('Εισάγετε τον κωδικό σας για επιβεβαίωση:');
+        if (!password) return;
         try {
-            await api.post('/auth/mfa/disable', {});
-            showToast('MFA disabled.');
+            await api.post('/auth/mfa/disable', { password });
+            showToast('Το MFA απενεργοποιήθηκε.');
             if (onUpdate) onUpdate({ mfaEnabled: false });
-        } catch {
-            showToast('Failed to disable MFA.', 'error');
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Αποτυχία απενεργοποίησης MFA.', 'error');
         }
     };
 

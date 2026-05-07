@@ -161,11 +161,11 @@ const PatientBooking = () => {
                                     <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Λόγος Επίσκεψης</label>
                                     <textarea placeholder="Περιγράψτε σύντομα τι σας απασχολεί..." style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '100px', resize: 'none' }} value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} />
                                 </div>
-                                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', marginTop: '1rem' }} onClick={() => setStep(2)} disabled={!formData.name || !formData.phone || !formData.reason}>
+                                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', marginTop: '1rem' }} onClick={() => setStep(2)} disabled={!formData.name || !formData.phone}>
                                     Συνέχεια
                                 </button>
                                 <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', marginTop: '1rem', lineHeight: 1.5 }}>
-                                    Κάνοντας κλικ στο "Συνέχεια", αποδέχεστε την επεξεργασία των δεδομένων σας για τον σκοπό της κράτησης ραντεβού, σύμφωνα με την <span style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline', cursor: 'pointer' }}>Πολιτική Απορρήτου</span> του ιατρείου.
+                                    Κάνοντας κλικ στο "Συνέχεια", αποδέχεστε την επεξεργασία των δεδομένων σας για τον σκοπό της κράτησης ραντεβού, σύμφωνα με την <span style={{ color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => window.open('/privacy', '_blank')}>Πολιτική Απορρήτου</span> του ιατρείου.
                                 </p>
                             </div>
                         </div>

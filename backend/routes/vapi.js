@@ -180,6 +180,11 @@ async function handleVoiceBooking(mc, input) {
             console.log(`[Vapi] Appointment created via appointmentService`);
         } catch (err) {
             console.warn('[Vapi] Appointment create failed:', err.message);
+            // Send SMS fallback with booking link so patient can self-book
+            const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}&missedCallId=${mc.id}`;
+            const smsBody = `Δεν μπορέσαμε να κλείσουμε το ραντεβού για ${preferred_day} στις ${preferred_time} (εκτός ωραρίου ή μη διαθέσιμη ώρα).\nΚλείστε εδώ: ${bookingLink}`;
+            const { triggerSmsFallback } = require('./smsFallbackService');
+            await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id).catch(() => {});
         }
     }
 

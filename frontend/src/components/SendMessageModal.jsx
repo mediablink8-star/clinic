@@ -11,8 +11,8 @@ const SendMessageModal = ({
     preSelectedPatient = null,
     token, 
     onClose, 
-    title = 'Send SMS',
-    subtitle = 'Select a patient and write a message'
+    title = 'Αποστολή SMS',
+    subtitle = 'Επιλέξτε ασθενή και γράψτε μήνυμα'
 }) => {
     const [search, setSearch] = useState('');
     const [selected, setSelected] = useState(preSelectedPatient);
@@ -38,17 +38,17 @@ const SendMessageModal = ({
                 const isError = s === 'FAILED';
                 setStatus({ 
                     type: isError ? 'error' : 'success', 
-                    text: s === 'SENT' ? 'Message sent successfully!' : s === 'SIMULATED' ? 'Simulated (no webhook configured).' : 'Delivery failed. Check SMS settings.' 
+                    text: s === 'SENT' ? 'Το μήνυμα εστάλη επιτυχώς!' : s === 'SIMULATED' ? 'Προσομοίωση (δεν έχει ρυθμιστεί webhook).' : 'Αποτυχία παράδοσης. Ελέγξτε τις ρυθμίσεις SMS.' 
                 });
                 if (!isError) {
                     setTimeout(() => onClose(), 2000);
                 }
             } else {
-                setStatus({ type: 'error', text: 'Send failed.' });
+                setStatus({ type: 'error', text: 'Αποτυχία αποστολής.' });
             }
         } catch (err) {
-            setStatus({ type: 'error', text: err.response?.data?.error || 'Error sending message.' });
-            toast.error('SMS failed');
+            setStatus({ type: 'error', text: err.response?.data?.error || 'Σφάλμα αποστολής μηνύματος.' });
+            toast.error('Αποτυχία SMS');
         } finally {
             setSending(false);
         }
@@ -98,7 +98,7 @@ const SendMessageModal = ({
                             <input 
                                 autoFocus 
                                 type="text" 
-                                placeholder="Search patient..." 
+                                placeholder="Αναζήτηση ασθενή..." 
                                 value={search} 
                                 onChange={e => setSearch(e.target.value)} 
                                 style={{ 
@@ -111,7 +111,7 @@ const SendMessageModal = ({
                         </div>
                         <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                             {filtered.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>No patients found</p>
+                                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', padding: '1rem' }}>Δεν βρέθηκαν ασθενείς</p>
                             ) : filtered.map(p => (
                                 <button 
                                     key={p.id} 
@@ -166,13 +166,13 @@ const SendMessageModal = ({
                         </div>
                         <div>
                             <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
-                                Message
+                                Μήνυμα
                             </label>
                             <textarea 
                                 autoFocus 
                                 value={message} 
                                 onChange={e => setMessage(e.target.value)} 
-                                placeholder="Type your message..." 
+                                placeholder="Γράψτε το μήνυμά σας..." 
                                 disabled={sending || status?.type === 'success'} 
                                 style={{ 
                                     width: '100%', padding: '12px', borderRadius: '10px', 
@@ -183,7 +183,7 @@ const SendMessageModal = ({
                                 }} 
                             />
                             <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>
-                                {message.length} chars
+                                {message.length} χαρακτήρες
                             </p>
                         </div>
                         {status && (
@@ -206,7 +206,7 @@ const SendMessageModal = ({
                                 background: 'var(--cancel-bg)', cursor: 'pointer', 
                                 fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' 
                             }}>
-                                Cancel
+                                Ακύρωση
                             </button>
                             <button 
                                 onClick={handleSend} 
@@ -221,7 +221,7 @@ const SendMessageModal = ({
                                 }}
                             >
                                 <Send size={15} />
-                                {sending ? 'Sending...' : 'Send SMS'}
+                                {sending ? 'Αποστολή...' : 'Αποστολή SMS'}
                             </button>
                         </div>
                     </div>

@@ -1,8 +1,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { assertWithinAiLimit, incrementAiUsage } = require('./usageService');
 
-function getModel() {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+function getModel(apiKey) {
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('No Gemini API key available');
+    const genAI = new GoogleGenerativeAI(key);
     return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 /**
@@ -15,6 +17,11 @@ async function analyzeSentiment(text, clinic) {
 
     try {
         await assertWithinAiLimit(clinic.id);
+
+        // Use per-clinic Gemini key if set, fall back to global
+        const { decrypt } = require('./encryptionService');
+        const clinicGeminiKey = clinic.geminiApiKey ? decrypt(clinic.geminiApiKey) : null;
+
         const prompt = `
       You are an expert customer experience analyst for "${clinic.name}".
       Analyze the following dental clinic feedback and classify it as: POSITIVE, NEUTRAL, or NEGATIVE.
@@ -24,7 +31,7 @@ async function analyzeSentiment(text, clinic) {
       Return ONLY the word (POSITIVE, NEUTRAL, or NEGATIVE).
     `;
 
-        const model = getModel();
+        const model = getModel(clinicGeminiKey);
 
         const result = await model.generateContent(prompt);
         const response = result.response.text().trim().toUpperCase();

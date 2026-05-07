@@ -8,8 +8,10 @@ const AppError = require('../errors/AppError');
  * @param {string} apiKey - The raw (decrypted) API key.
  * @returns {object} - The generative model instance.
  */
-function getModel() {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+function getModel(apiKey) {
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) throw new Error('No Gemini API key available');
+    const genAI = new GoogleGenerativeAI(key);
     return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 
@@ -25,6 +27,10 @@ async function classifyAppointment(reason, clinic) {
         let servicesList = '';
         try { servicesList = JSON.parse(clinic.services || '[]').map(s => s.name).join(', '); } catch {}
         const aiConfig = JSON.parse(clinic.aiConfig || '{}');
+
+        // Use per-clinic Gemini key if set, fall back to global
+        const { decrypt } = require('./encryptionService');
+        const clinicGeminiKey = clinic.geminiApiKey ? decrypt(clinic.geminiApiKey) : null;
 
         const prompt = `
       You are an expert dental receptionist at "${clinic.name}" in ${clinic.location}.
@@ -46,7 +52,7 @@ async function classifyAppointment(reason, clinic) {
       }
     `;
 
-        const model = getModel();
+        const model = getModel(clinicGeminiKey);
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();

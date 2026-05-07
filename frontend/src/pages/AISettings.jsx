@@ -84,10 +84,10 @@ const AISettings = ({ clinic, token, onUpdate }) => {
         setAiConfigSaving(true);
         try {
             await api.put('/clinic/ai-config', formData.aiConfig);
-            showToast('AI Configuration updated!');
+            showToast('Οι ρυθμίσεις AI ενημερώθηκαν!');
             if (onUpdate) onUpdate({ aiConfig: JSON.stringify(formData.aiConfig) });
         } catch (err) {
-            showToast(err.response?.data?.error || 'Failed to save AI configuration', 'error');
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης ρυθμίσεων AI.', 'error');
         } finally { setAiConfigSaving(false); }
     };
 

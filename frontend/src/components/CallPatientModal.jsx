@@ -17,19 +17,22 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
     const handleCall = async (patient) => {
         setCalling(true);
         try {
-            const res = await fetch(`${API_BASE}/voice/call`, {
+            const res = await fetch(`${API_BASE}/ai/command`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ 
-                    patientId: patient.id,
-                    phone: patient.phone,
-                    name: patient.name
+                    command: `Κάλεσε τον/την ${patient.name}`
                 })
             });
             
             if (res.ok) {
-                toast.success(`Κλήση προς ${patient.name} ξεκίνησε!`);
-                onClose();
+                const data = await res.json();
+                if (data.success) {
+                    toast.success(`Κλήση προς ${patient.name} ξεκίνησε!`);
+                    onClose();
+                } else {
+                    toast.error(data.error || 'Αποτυχία κλήσης — ελέγξτε τις ρυθμίσεις Voice AI');
+                }
             } else {
                 const data = await res.json();
                 toast.error(data.error || 'Αποτυχία κλήσης');
