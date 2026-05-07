@@ -77,7 +77,7 @@ const Dashboard = ({
     }
 
     const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλό απόγευμα' : 'Καλό βράδυ';
+    const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλησπέρα' : 'Καλησπέρα';
     const missedCallsToday = systemStats.missedCallsToday ?? logsArray.filter(l => {
         if (!l || !l.createdAt) return false;
         return new Date(l.createdAt).toDateString() === new Date().toDateString();
