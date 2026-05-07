@@ -867,6 +867,17 @@ input:focus, textarea:focus, select:focus {
     color: var(--text-light);
   }
 
+  /* Allow scrolling on mobile */
+  .main-content:has(.dashboard-shell) {
+    height: auto !important;
+    overflow-y: auto !important;
+  }
+
+  .dashboard-shell {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
   .dashboard-header,
   .dashboard-skeleton__header,
   .appointments-toolbar {
