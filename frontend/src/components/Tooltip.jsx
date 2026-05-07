@@ -46,7 +46,11 @@ const Tooltip = ({ children, text, position = 'top', style = {} }) => {
                 top = window.innerHeight - tooltipRect.height - padding;
             }
             
-            setTooltipStyle({ top: `${top}px`, left: `${left}px` });
+            setTooltipStyle({ 
+                top: `${top}px`, 
+                left: `${left}px`,
+                opacity: 1
+            });
         }
     }, [show, position]);
 
@@ -75,20 +79,11 @@ const Tooltip = ({ children, text, position = 'top', style = {} }) => {
                         pointerEvents: 'none',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(8px)',
-                        animation: 'tooltip-fade-in 0.15s ease-out',
+                        opacity: 0,
+                        transition: 'opacity 0.15s ease-out',
                     }}
                 >
                     {text}
-                    <style>{`
-                        @keyframes tooltip-fade-in {
-                            from {
-                                opacity: 0;
-                            }
-                            to {
-                                opacity: 1;
-                            }
-                        }
-                    `}</style>
                 </div>
             )}
         </div>
