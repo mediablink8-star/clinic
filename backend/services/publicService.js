@@ -86,41 +86,25 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         const [year, month, day] = date.split('-').map(Number);
         const [hour, minute] = time.split(':').map(Number);
         
-        // Create a date string in the clinic's timezone
-        // Use Intl.DateTimeFormat to properly handle timezone conversion
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`;
+        // Build a local datetime string and find the UTC equivalent for the clinic's timezone.
+        // Strategy: format a UTC candidate through the clinic's timezone and adjust until it matches.
+        // This correctly handles DST without double-applying offsets.
+        const localStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
         
-        // Parse this as a local date and adjust for timezone
-        // We need to find what UTC time corresponds to this local time in the clinic's timezone
-        const localDate = new Date(year, month - 1, day, hour, minute, 0);
-        
-        // Get the timezone offset for this specific date (handles DST)
-        const formatter = new Intl.DateTimeFormat('en-US', {
+        // Use a simple offset approach: get the UTC offset for this timezone on this date
+        const tempDate = new Date(`${localStr}Z`); // treat as UTC first
+        const formatter = new Intl.DateTimeFormat('en-CA', {
             timeZone: timezone,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', hour12: false
         });
-        
-        // Create a reference date to calculate offset
-        const refDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-        const parts = formatter.formatToParts(refDate);
-        const tzYear = parseInt(parts.find(p => p.type === 'year').value);
-        const tzMonth = parseInt(parts.find(p => p.type === 'month').value);
-        const tzDay = parseInt(parts.find(p => p.type === 'day').value);
-        const tzHour = parseInt(parts.find(p => p.type === 'hour').value);
-        const tzMinute = parseInt(parts.find(p => p.type === 'minute').value);
-        
-        // Calculate the offset
-        const tzDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0));
-        const offset = refDate.getTime() - tzDate.getTime();
-        
-        // Apply offset to get correct UTC time
-        start = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offset);
+        const formatted = formatter.format(tempDate);
+        // formatted is what UTC time looks like in the clinic's timezone
+        // We need to find the UTC time that equals localStr in the clinic's timezone
+        // offset = what UTC shows as in clinic TZ - what we want
+        const formattedDate = new Date(formatted.replace(', ', 'T') + ':00Z');
+        const offsetMs = tempDate.getTime() - formattedDate.getTime();
+        start = new Date(tempDate.getTime() - offsetMs);
     } else {
         start = new Date(startTime);
     }
