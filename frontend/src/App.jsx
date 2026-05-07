@@ -527,12 +527,14 @@ const App = () => {
     if (path === '/reset-password') return <ResetPassword />;
     if (path === '/' || path === '/login') return <ClinicLogin onLogin={handleLogin} />;
     
-    // If not one of the allowed public routes and not logged in, show login (default)
-    // unless it's a completely unknown path
+    // Public-only paths
     const publicPaths = ['/', '/login', '/register', '/reset-password', '/book', '/privacy', '/dpa'];
-    if (!publicPaths.includes(path)) {
-      return <NotFound />;
+    if (publicPaths.includes(path)) {
+      return <ClinicLogin onLogin={handleLogin} />;
     }
+    
+    // Any other path (e.g. /dashboard, /appointments) — user is not logged in
+    // Redirect to login instead of showing 404
     return <ClinicLogin onLogin={handleLogin} />;
   }
 

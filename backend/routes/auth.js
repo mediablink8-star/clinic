@@ -261,6 +261,10 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
         ).catch(err => console.error('[AUTH] Password reset webhook failed:', err.message));
     }
 
+    if (!emailSent && !user.clinic.webhookUrl) {
+        console.error('[AUTH] CRITICAL: Password reset requested but no email or webhook configured. User will be locked out.');
+    }
+
     console.log(`[AUTH] Password reset requested`);
 
     res.json({ success: true, message: 'Instructions sent if email exists' });

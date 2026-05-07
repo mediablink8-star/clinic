@@ -217,12 +217,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         console.log('[PUBLIC BOOKING] Created appointment:', {
             id: appt.id,
             clinicId: appt.clinicId,
-            patientId: appt.patientId,
-            patientName: pt.name,
             startTime: appt.startTime,
-            endTime: appt.endTime,
             status: appt.status,
-            reason: appt.reason,
             linkedMissedCall: mc?.id || null
         });
         return { patient: pt, appointment: appt, missedCall: mc };
