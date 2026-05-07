@@ -594,7 +594,7 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
 
         // Social login users have no password — skip the check
-        if (user.passwordHash !== 'social_login_no_password') {
+        if (user.passwordHash !== 'SOCIAL_LOGIN_NO_PASSWORD') {
             if (!password) {
                 return res.status(400).json({ error: 'Password required to disable MFA' });
             }
