@@ -220,4 +220,69 @@ router.post('/test-trigger', asyncHandler(async (req, res) => {
     res.json({ success: true, ...data });
 }));
 
+/**
+ * POST /api/recovery/simulate-recovered
+ * Creates a fake RECOVERED missed call for demo/testing purposes.
+ * No SMS sent, no Vonage needed. ADMIN/OWNER only.
+ */
+router.post('/simulate-recovered', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
+        return res.status(403).json({ error: 'Admin or Owner role required' });
+    }
+
+    const clinicId = req.clinicId;
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    const aiConfig = (() => { try { return JSON.parse(clinic.aiConfig || '{}'); } catch { return {}; } })();
+    const revenue = parseFloat(aiConfig.avgAppointmentValue) || 80;
+
+    // Create a fake patient
+    const fakePhone = `+3069${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const patient = await prisma.patient.create({
+        data: {
+            clinicId,
+            name: 'Δοκιμαστικός Ασθενής',
+            phone: fakePhone,
+        }
+    });
+
+    // Create appointment for tomorrow at 10:00
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    const endTime = new Date(tomorrow.getTime() + 60 * 60 * 1000);
+
+    const appointment = await prisma.appointment.create({
+        data: {
+            clinicId,
+            patientId: patient.id,
+            startTime: tomorrow,
+            endTime,
+            reason: 'Δοκιμαστικό ραντεβού',
+            status: 'CONFIRMED',
+        }
+    });
+
+    // Create a RECOVERED missed call
+    const missedCall = await prisma.missedCall.create({
+        data: {
+            clinicId,
+            fromNumber: fakePhone,
+            callSid: `sim_${Date.now()}`,
+            patientId: patient.id,
+            appointmentId: appointment.id,
+            status: 'RECOVERED',
+            smsStatus: 'sent',
+            estimatedRevenue: revenue,
+            recoveredAt: new Date(),
+            lastSmsSentAt: new Date(Date.now() - 5 * 60 * 1000),
+        }
+    });
+
+    const { ensureRecoveryCaseForMissedCall, markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+    await ensureRecoveryCaseForMissedCall(missedCall.id);
+    await markRecoveryCaseRecovered({ clinicId, missedCallId: missedCall.id, occurredAt: new Date() });
+
+    res.json({ success: true, missedCallId: missedCall.id, appointmentId: appointment.id, revenue });
+}));
+
 module.exports = router;

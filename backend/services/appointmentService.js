@@ -254,8 +254,6 @@ async function getTodayAppointments(clinicId) {
     return { success: true, data };
 }
 
-module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments, scheduleAppointmentReminder };
-
 /**
  * Schedule a 24-hour SMS reminder for an appointment.
  * Only schedules if the appointment is more than 25 hours away.
@@ -301,4 +299,6 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
         }
     });
 }
+
+module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments, scheduleAppointmentReminder };
 
