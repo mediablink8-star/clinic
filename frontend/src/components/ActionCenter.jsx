@@ -127,14 +127,18 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                     Κέντρο Δράσης
                 </h3>
                 <span style={{
-                    fontSize: '0.72rem', fontWeight: '900', padding: '6px 12px', borderRadius: '99px',
-                    background: urgentCount > 0 ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(220,38,38,0.12) 100%)' : 'rgba(16,185,129,0.1)',
-                    color: urgentCount > 0 ? '#dc2626' : '#15803d',
-                    border: `1.5px solid ${urgentCount > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.2)'}`,
-                    boxShadow: urgentCount > 0 ? '0 0 16px rgba(239,68,68,0.2), 0 2px 8px rgba(239,68,68,0.15)' : 'none',
+                    fontSize: urgentCount > 0 ? '0.82rem' : '0.72rem',
+                    fontWeight: '900',
+                    padding: urgentCount > 0 ? '7px 14px' : '6px 12px',
+                    borderRadius: '99px',
+                    background: urgentCount > 0 ? 'linear-gradient(135deg, rgba(220,38,38,0.22) 0%, rgba(185,28,28,0.18) 100%)' : 'rgba(16,185,129,0.1)',
+                    color: urgentCount > 0 ? '#b91c1c' : '#15803d',
+                    border: `2px solid ${urgentCount > 0 ? 'rgba(220,38,38,0.5)' : 'rgba(16,185,129,0.2)'}`,
+                    boxShadow: urgentCount > 0 ? '0 0 20px rgba(220,38,38,0.3), 0 2px 10px rgba(220,38,38,0.2)' : 'none',
                     animation: urgentCount > 0 ? 'pulse-warning 2s ease-in-out infinite' : 'none',
+                    letterSpacing: urgentCount > 0 ? '-0.01em' : 'normal',
                 }}>
-                    {urgentCount > 0 ? `⚠️ ${urgentCount} χρειάζονται δράση` : '✅ Όλα καλά'}
+                    {urgentCount > 0 ? `🚨 ${urgentCount} χρειάζονται δράση` : '✅ Όλα καλά'}
                 </span>
             </div>
 
