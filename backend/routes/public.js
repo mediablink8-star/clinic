@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const { getPublicClinic, getAvailableSlots, bookAppointment } = require('../services/publicService');
 const { validate, publicBookingSchema } = require('../services/validationService');
 

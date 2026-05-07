@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const Joi = require('joi');
 const { sendDirectMessage } = require('../services/messagingService');
 
@@ -13,7 +14,7 @@ const messageSchema = Joi.object({
 
 router.post('/send', asyncHandler(async (req, res) => {
     const { error, value } = messageSchema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) throw new AppError('VALIDATION_ERROR', error.details[0].message, 400);
 
     const { patientId, phone, message, type } = value;
 

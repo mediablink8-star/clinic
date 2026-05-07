@@ -65,7 +65,7 @@ function startNotificationWorker() {
         console.error(`[Reminder Worker] Notification ${job?.data?.notificationId} failed: ${err.message}`);
     });
 
-    console.log('✅ BullMQ reminder worker started (processes notification sending)');
+    console.info('✅ BullMQ reminder worker started (processes notification sending)');
 
     // Register repeatable jobs — BullMQ ensures only one fires per interval cluster-wide
     schedulerQueue.add('process-notifications', {}, {
@@ -123,7 +123,7 @@ function startNotificationWorker() {
         console.error(`[Scheduler] Job ${job?.name} failed: ${err.message}`);
     });
 
-    console.log('✅ BullMQ scheduler worker started (cluster-safe repeatable jobs)');
+    console.info('✅ BullMQ scheduler worker started (cluster-safe repeatable jobs)');
 }
 
 // Legacy exports kept for backward compatibility

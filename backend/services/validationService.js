@@ -115,15 +115,17 @@ const addCreditsSchema = Joi.object({
     amount: Joi.number().integer().min(1).max(10000).required()
 });
 
+const AppError = require('../errors/AppError');
+
 const validate = (schema) => (req, res, next) => {
     if (!req.body || Object.keys(req.body).length === 0) {
         console.warn(`[VALIDATION] Empty body received for ${req.url}`);
-        return res.status(400).json({ error: 'Request body is missing or empty' });
+        throw new AppError('VALIDATION_ERROR', 'Request body is missing or empty', 400);
     }
     const { error } = schema.validate(req.body);
     if (error) {
         console.warn(`[VALIDATION] Error for ${req.url}:`, error.details[0].message);
-        return res.status(400).json({ error: error.details[0].message });
+        throw new AppError('VALIDATION_ERROR', error.details[0].message, 400);
     }
     next();
 };

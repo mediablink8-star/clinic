@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const { validate, patientSchema, appointmentSchema } = require('../services/validationService');
 const {
     listPatients, createPatient,
@@ -59,6 +60,11 @@ router.get('/appointments/available', asyncHandler(async (req, res) => {
     const { date } = req.query;
     const { getAvailableSlots } = require('../services/appointmentService');
     const targetDate = date ? new Date(date) : new Date();
+
+    if (isNaN(targetDate.getTime())) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid date provided', 400);
+    }
+
     const slots = await getAvailableSlots(req.clinicId, targetDate);
     res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
 }));

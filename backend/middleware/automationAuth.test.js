@@ -38,10 +38,9 @@ describe('automationAuth', () => {
 
         await automationAuth(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(403);
-        expect(res.json).toHaveBeenCalledWith({
-            error: { code: 'CLINIC_INACTIVE', message: 'Clinic is not active' },
-        });
-        expect(next).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledWith(expect.any(Error));
+        const error = next.mock.calls[0][0];
+        expect(error.status).toBe(403);
+        expect(error.code).toBe('CLINIC_INACTIVE');
     });
 });

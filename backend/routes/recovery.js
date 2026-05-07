@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
+const AppError = require('../errors/AppError');
 const asyncHandler = require('../middleware/asyncHandler');
 const { retrySms } = require('../services/missedCallService');
 
@@ -159,11 +160,11 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
         where: { id, clinicId: req.clinicId },
         include: { clinic: true }
     });
-    if (!mc) return res.status(404).json({ error: 'Not found' });
+    if (!mc) throw new AppError('NOT_FOUND', 'Not found', 404);
 
     // Check any webhook is configured (global or event-specific)
     const hasWebhook = mc.clinic.webhookUrl || mc.clinic.webhookDirectSms || mc.clinic.webhookReminders;
-    if (!hasWebhook) return res.status(400).json({ error: 'No webhook configured for this clinic' });
+    if (!hasWebhook) throw new AppError('VALIDATION_ERROR', 'No webhook configured for this clinic', 400);
 
     const { sendManagedSms } = require('../services/messagingService');
     let result;
@@ -204,7 +205,7 @@ router.post('/:id/retry', asyncHandler(async (req, res) => {
  */
 router.post('/test-trigger', asyncHandler(async (req, res) => {
     if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
-        return res.status(403).json({ error: 'Admin or Owner role required' });
+        throw new AppError('FORBIDDEN', 'Admin or Owner role required', 403);
     }
     const { handleMissedCall } = require('../services/missedCallService');
     const { phone = '+30690000000', callSid = `test_${Date.now()}`, bypassCooldown = false } = req.body;
@@ -227,7 +228,7 @@ router.post('/test-trigger', asyncHandler(async (req, res) => {
  */
 router.post('/simulate-recovered', asyncHandler(async (req, res) => {
     if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
-        return res.status(403).json({ error: 'Admin or Owner role required' });
+        throw new AppError('FORBIDDEN', 'Admin or Owner role required', 403);
     }
 
     const clinicId = req.clinicId;

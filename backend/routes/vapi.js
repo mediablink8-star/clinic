@@ -10,6 +10,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
@@ -22,14 +23,14 @@ function vapiAuth(req, res, next) {
     const vapiSecret = process.env.VAPI_WEBHOOK_SECRET || process.env.VAPI_API_KEY;
     if (!vapiSecret) {
         if (process.env.NODE_ENV === 'production') {
-            return res.status(500).json({ error: 'Vapi webhook authentication not configured' });
+            throw new AppError('CONFIGURATION_ERROR', 'Vapi webhook authentication not configured', 500);
         }
         console.warn('[Vapi] WARNING: No VAPI_WEBHOOK_SECRET set — running unauthenticated in dev');
         return next();
     }
     const provided = req.headers['x-vapi-secret'] || req.headers['authorization']?.replace('Bearer ', '');
     if (!provided || provided !== vapiSecret) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
     }
     next();
 }
@@ -43,7 +44,7 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     const callId = event.id;
     const status = event.status;
 
-    console.log(`[Vapi] Webhook: status=${status} callId=${callId}`);
+    console.info(`[Vapi] Webhook: status=${status} callId=${callId}`);
 
     res.json({ success: true });
 
@@ -67,9 +68,9 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         }
     }
     if (!input || typeof input !== 'object') {
-        return res.status(400).json({ success: false, message: 'Missing tool arguments' });
+        throw new AppError('VALIDATION_ERROR', 'Missing tool arguments', 400);
     }
-    console.log(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
+    console.info(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
 
     const mc = await prisma.missedCall.findFirst({
         where: { callSid: call_id },
