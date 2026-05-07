@@ -133,7 +133,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
 
     return (
         <>
-            {/* Floating Button — hidden on mobile when chat is open (header has close button) */}
+            {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
@@ -147,7 +147,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                     border: 'none',
                     boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
                     cursor: 'pointer',
-                    display: isMobile && isOpen ? 'none' : 'flex',
+                    display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 999,
@@ -175,20 +175,20 @@ const AiAssistant = ({ token, isMobile = false }) => {
                 <div
                     style={{
                         position: 'fixed',
-                        bottom: isMobile ? '0' : '100px',
-                        right: isMobile ? '0' : '24px',
-                        left: isMobile ? '0' : 'auto',
-                        width: isMobile ? '100%' : '400px',
-                        height: isMobile ? '100vh' : '600px',
-                        maxHeight: isMobile ? '100vh' : '80vh',
+                        bottom: '80px',
+                        right: '16px',
+                        left: 'auto',
+                        width: isMobile ? 'calc(100vw - 32px)' : '400px',
+                        height: '520px',
+                        maxHeight: 'calc(100vh - 100px)',
                         background: 'var(--modal-bg)',
-                        borderRadius: isMobile ? '0' : '20px',
+                        borderRadius: '20px',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                         display: 'flex',
                         flexDirection: 'column',
                         zIndex: 998,
                         overflow: 'hidden',
-                        animation: isMobile ? 'slideUpFull 0.3s ease' : 'slideUp 0.3s ease'
+                        animation: 'slideUp 0.3s ease'
                     }}
                 >
                     {/* Header */}
@@ -400,10 +400,6 @@ const AiAssistant = ({ token, isMobile = false }) => {
                 @keyframes slideUp {
                     from { transform: translateY(20px); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
-                }
-                @keyframes slideUpFull {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
                 }
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(10px); }
