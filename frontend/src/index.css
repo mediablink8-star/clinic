@@ -750,6 +750,20 @@ input:focus, textarea:focus, select:focus {
 @media (max-width: 1024px) {
   body {
     overflow-x: hidden;
+    /* Fix mobile scroll rendering issues */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent backdrop-filter rendering issues on mobile */
+  .card-glass,
+  .stat-card,
+  .appointment-card,
+  .glass-panel,
+  .sidebar {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 
   .layout {
@@ -842,6 +856,11 @@ input:focus, textarea:focus, select:focus {
     position: sticky;
     top: 0.75rem;
     z-index: 30;
+    /* Fix rendering issues on scroll */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 
   .mobile-topbar__text {
