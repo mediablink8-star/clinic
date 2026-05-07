@@ -81,30 +81,23 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const timezone = clinic.timezone || 'Europe/Athens';
     let start;
     
-    // If date and time are provided separately, construct the datetime in clinic's timezone
     if (date && time) {
-        const [year, month, day] = date.split('-').map(Number);
-        const [hour, minute] = time.split(':').map(Number);
+        // Simplest correct approach: build an ISO string with the timezone offset
+        // For Europe/Athens (UTC+3 in summer, UTC+2 in winter), we need the actual offset
+        // We do this by creating a date in that timezone using a known trick:
+        // Parse "YYYY-MM-DDTHH:MM:00" as if it's in the target timezone
+        const localStr = `${date}T${time}:00`;
         
-        // Build a local datetime string and find the UTC equivalent for the clinic's timezone.
-        // Strategy: format a UTC candidate through the clinic's timezone and adjust until it matches.
-        // This correctly handles DST without double-applying offsets.
-        const localStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
+        // Get the UTC offset for this timezone on this specific date
+        // by comparing what a UTC timestamp looks like in the target timezone
+        const probe = new Date(`${localStr}Z`); // treat as UTC temporarily
+        const tzString = probe.toLocaleString('en-US', { timeZone: timezone, hour12: false });
+        // tzString is like "5/13/2026, 11:00:00 AM" but in 24h it's "5/13/2026, 11:00:00"
+        const probeInTz = new Date(tzString + ' UTC');
+        const offsetMs = probe.getTime() - probeInTz.getTime();
         
-        // Use a simple offset approach: get the UTC offset for this timezone on this date
-        const tempDate = new Date(`${localStr}Z`); // treat as UTC first
-        const formatter = new Intl.DateTimeFormat('en-CA', {
-            timeZone: timezone,
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', hour12: false
-        });
-        const formatted = formatter.format(tempDate);
-        // formatted is what UTC time looks like in the clinic's timezone
-        // We need to find the UTC time that equals localStr in the clinic's timezone
-        // offset = what UTC shows as in clinic TZ - what we want
-        const formattedDate = new Date(formatted.replace(', ', 'T') + ':00Z');
-        const offsetMs = tempDate.getTime() - formattedDate.getTime();
-        start = new Date(tempDate.getTime() - offsetMs);
+        // Now create the correct UTC time: local time minus the offset
+        start = new Date(probe.getTime() - offsetMs);
     } else {
         start = new Date(startTime);
     }
