@@ -213,7 +213,28 @@ function QuickActions({ onViewSchedule, onAddPatient, onNewAppointment, patients
                     <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient || onViewSchedule} variant="secondary" tooltip="Διαχείριση ασθενών" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" tooltip="Αποστολή SMS σε ασθενείς" />
                     <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" tooltip="Κλήση ασθενούς" />
-                    <QuickActionBtn icon={Bug} label="Bug" onClick={() => setShowBug(true)} variant="secondary" tooltip="Αναφορά σφάλματος" />
+                    <Tooltip text="Αναφορά σφάλματος" position="top">
+                        <button
+                            onClick={() => setShowBug(true)}
+                            style={{
+                                padding: '0.8rem',
+                                borderRadius: '14px',
+                                border: '1.5px solid var(--border)',
+                                background: 'linear-gradient(135deg, var(--glass-surface) 0%, var(--bg-subtle) 100%)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                            <Bug size={17} color="#ef4444" strokeWidth={2.5} />
+                        </button>
+                    </Tooltip>
                 </div>
                 <QuickActionBtn icon={FlaskConical} label="Δοκιμή Ρύθμισης" onClick={() => setShowTest(true)} variant="secondary" tooltip="Δοκιμή συστήματος ανάκτησης" />
             </div>
