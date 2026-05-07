@@ -752,25 +752,6 @@ input:focus, textarea:focus, select:focus {
     overflow-x: hidden;
   }
 
-  /* 
-   * Chrome mobile GPU compositing bug fix.
-   * Chrome on Android drops GPU layers for elements with backdrop-filter
-   * during scroll, causing them to disappear. Disabling backdrop-filter
-   * on mobile prevents this while keeping the layout identical.
-   * Other browsers (Safari, Firefox) don't have this issue.
-   */
-  .card-glass,
-  .stat-card,
-  .appointment-card,
-  .glass-panel,
-  .btn,
-  .nav-link,
-  .mobile-topbar,
-  .sidebar {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-
   .layout {
     display: block;
   }
