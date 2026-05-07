@@ -113,7 +113,7 @@ const SECTIONS = [
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
     { id: 's-voice', number: '5', label: 'Voice AI', icon: <Phone size={14} color="#7c3aed" />, iconBg: 'rgba(124,58,237,0.1)', title: 'Voice AI', subtitle: 'AI φωνητική ανάκτηση κλήσεων' },
     { id: 's7', number: '6', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
-    { id: 's8', number: '6', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's8', number: '7', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
