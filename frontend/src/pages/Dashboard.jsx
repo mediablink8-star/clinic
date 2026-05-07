@@ -85,10 +85,26 @@ const Dashboard = ({
 
     const handleToggleActive = async () => {
         const nextState = !clinic?.isActive;
+        
+        // Confirmation dialog when deactivating
+        if (!nextState) {
+            const confirmed = window.confirm(
+                '⚠️ ΠΡΟΣΟΧΗ: Θα σταματήσουν όλες οι αυτοματοποιήσεις!\n\n' +
+                '• Δεν θα στέλνονται SMS ανάκτησης\n' +
+                '• Δεν θα γίνονται φωνητικές κλήσεις\n' +
+                '• Τα δεδομένα σας θα παραμείνουν ασφαλή\n\n' +
+                'Είστε σίγουροι ότι θέλετε να θέσετε την κλινική ΣΕ ΠΑΥΣΗ;'
+            );
+            if (!confirmed) return;
+        }
+        
         if (onUpdate) onUpdate({ isActive: nextState });
         try {
             await api.post('/clinic/toggle-status', { isActive: nextState });
-        } catch (err) { if (onUpdate) onUpdate({ isActive: !nextState }); }
+        } catch (err) { 
+            if (onUpdate) onUpdate({ isActive: !nextState }); 
+            alert('Σφάλμα κατά την ενημέρωση κατάστασης. Δοκιμάστε ξανά.');
+        }
     };
 
     const recovered = recoveryStats.recovered || 0;
@@ -155,6 +171,48 @@ const Dashboard = ({
             <div style={{ flexShrink: 0 }}>
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
+
+            {/* ── INACTIVE WARNING ── */}
+            {!clinic?.isActive && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.85) 100%)',
+                    border: '2px solid rgba(239, 68, 68, 0.6)',
+                    borderRadius: '16px',
+                    padding: '1rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 8px 24px rgba(239, 68, 68, 0.3)',
+                    flexShrink: 0
+                }}>
+                    <div style={{ fontSize: '2rem' }}>⚠️</div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ color: 'white', fontWeight: '800', fontSize: '0.95rem', marginBottom: '4px' }}>
+                            Η Κλινική είναι ΣΕ ΠΑΥΣΗ
+                        </div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.95)', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                            Όλες οι αυτοματοποιήσεις είναι απενεργοποιημένες. Δεν θα στέλνονται SMS ή φωνητικές κλήσεις ανάκτησης.
+                        </div>
+                    </div>
+                    <button 
+                        onClick={handleToggleActive}
+                        style={{
+                            background: 'white',
+                            color: '#dc2626',
+                            border: 'none',
+                            padding: '10px 20px',
+                            borderRadius: '10px',
+                            fontSize: '0.85rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                        }}
+                    >
+                        Ενεργοποίηση Τώρα
+                    </button>
+                </div>
+            )}
 
             {/* ── HERO SECTION: Big Revenue + 2 smaller cards ── */}
             <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'stretch' }}>
