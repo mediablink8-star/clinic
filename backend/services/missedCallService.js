@@ -139,7 +139,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    const aiConfig = JSON.parse(clinic.aiConfig || '{}');
+    let aiConfig = {};
+    try {
+        aiConfig = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {});
+    } catch {
+        aiConfig = {};
+    }
     const { withinHours, scheduledAt } = checkWorkingHours(new Date(), aiConfig.workingHours || null);
 
     const missedCall = await prisma.missedCall.create({
@@ -171,6 +176,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 where: { clinicId, phone: normalizedPhone },
                 select: { name: true }
             });
+            patientName = existingPatient?.name || null;
             if (existingPatient?.name && existingPatient.name !== phone) {
                 console.log(`[Voice] Known patient lookup succeeded (${phone.slice(-4)})`);
             }

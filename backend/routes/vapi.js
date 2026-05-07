@@ -58,7 +58,17 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
  */
 router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     const { function: fn, arguments: args, call_id } = req.body;
-    const input = typeof args === 'string' ? JSON.parse(args) : args;
+    let input = args;
+    if (typeof args === 'string') {
+        try {
+            input = JSON.parse(args);
+        } catch {
+            return res.status(400).json({ success: false, message: 'Invalid tool arguments payload' });
+        }
+    }
+    if (!input || typeof input !== 'object') {
+        return res.status(400).json({ success: false, message: 'Missing tool arguments' });
+    }
     console.log(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
 
     const mc = await prisma.missedCall.findFirst({
@@ -162,6 +172,7 @@ async function handleVoiceBooking(mc, input) {
 
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
+    let booked = false;
     if (patient) {
         try {
             // Use createAppointment to enforce working hours, conflict detection, and audit logging
@@ -178,6 +189,7 @@ async function handleVoiceBooking(mc, input) {
                 { userId: null, ip: null }
             );
             console.log(`[Vapi] Appointment created via appointmentService`);
+            booked = true;
         } catch (err) {
             console.warn('[Vapi] Appointment create failed:', err.message);
             // Send SMS fallback with booking link so patient can self-book
@@ -188,27 +200,40 @@ async function handleVoiceBooking(mc, input) {
         }
     }
 
-    const recoveredAt = new Date();
+    if (booked) {
+        const recoveredAt = new Date();
+        await prisma.missedCall.update({
+            where: { id: mc.id },
+            data: {
+                status: 'RECOVERED',
+                recoveredAt,
+                conversationState: 'COMPLETED',
+                smsStatus: 'sent',
+                patientId: patient?.id || null,
+                estimatedRevenue: mc.estimatedRevenue > 0 ? mc.estimatedRevenue : 80,
+            }
+        });
+
+        try {
+            await ensureRecoveryCaseForMissedCall(mc.id);
+            await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
+        } catch (err) {
+            console.warn('[Vapi] markRecoveryCaseRecovered failed:', err.message);
+        }
+
+        console.log(`[Vapi] Case RECOVERED: ${mc.id}`);
+        return;
+    }
+
     await prisma.missedCall.update({
         where: { id: mc.id },
         data: {
-            status: 'RECOVERED',
-            recoveredAt,
-            conversationState: 'COMPLETED',
-            smsStatus: 'sent',
-            patientId: patient?.id || null,
-            estimatedRevenue: mc.estimatedRevenue > 0 ? mc.estimatedRevenue : 80,
+            status: 'RECOVERING',
+            conversationState: 'ACTIVE',
+            patientId: patient?.id || mc.patientId || null,
         }
     });
-
-    try {
-        await ensureRecoveryCaseForMissedCall(mc.id);
-        await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
-    } catch (err) {
-        console.warn('[Vapi] markRecoveryCaseRecovered failed:', err.message);
-    }
-
-    console.log(`[Vapi] Case RECOVERED: ${mc.id}`);
+    console.log(`[Vapi] Booking not completed, case remains RECOVERING: ${mc.id}`);
 }
 
 async function handleVoiceCallback(mc) {

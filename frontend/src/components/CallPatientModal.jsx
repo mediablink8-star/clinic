@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 
 const CallPatientModal = ({ patients = [], token, onClose }) => {
     const [search, setSearch] = useState('');
-    const [calling, setCalling] = useState(false);
+    const [callingPatientId, setCallingPatientId] = useState(null);
 
     const filtered = patients.filter(p => {
         const q = search.toLowerCase();
@@ -15,7 +15,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
     });
 
     const handleCall = async (patient) => {
-        setCalling(true);
+        setCallingPatientId(patient.id);
         try {
             const res = await fetch(`${API_BASE}/ai/command`, {
                 method: 'POST',
@@ -40,7 +40,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
         } catch (err) {
             toast.error('Σφάλμα σύνδεσης');
         } finally {
-            setCalling(false);
+            setCallingPatientId(null);
         }
     };
 
@@ -90,7 +90,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
                                 <div
                                     key={patient.id}
                                     style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', cursor: 'pointer', transition: 'all 0.15s' }}
-                                    onClick={() => !calling && handleCall(patient)}
+                                    onClick={() => !callingPatientId && handleCall(patient)}
                                     onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-light)'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-subtle)'}
                                 >
@@ -102,7 +102,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{patient.phone}</div>
                                     </div>
                                     <div style={{ padding: '6px 12px', borderRadius: '8px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
-                                        {calling ? (
+                                        {callingPatientId === patient.id ? (
                                             <Loader size={14} color="#7c3aed" style={{ animation: 'spin 1s linear infinite' }} />
                                         ) : (
                                             <Phone size={14} color="#7c3aed" />
