@@ -133,7 +133,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
 
     return (
         <>
-            {/* Floating Button */}
+            {/* Floating Button — hidden on mobile when chat is open (header has close button) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
@@ -147,7 +147,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                     border: 'none',
                     boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
                     cursor: 'pointer',
-                    display: 'flex',
+                    display: isMobile && isOpen ? 'none' : 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 999,
@@ -215,13 +215,38 @@ const AiAssistant = ({ token, isMobile = false }) => {
                             <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'white', margin: 0 }}>Σοφία AI</h3>
                             <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.8)', margin: '2px 0 0' }}>Η προσωπική σου βοηθός</p>
                         </div>
-                        <div style={{
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            background: '#10b981',
-                            boxShadow: '0 0 8px rgba(16,185,129,0.6)'
-                        }} />
+                        {/* Online indicator — hidden on mobile to make room for close button */}
+                        {!isMobile && (
+                            <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: '#10b981',
+                                boxShadow: '0 0 8px rgba(16,185,129,0.6)'
+                            }} />
+                        )}
+                        {/* Close button — always visible, critical on mobile */}
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            aria-label="Κλείσιμο"
+                            style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
+                                background: 'rgba(255,255,255,0.2)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                        >
+                            <X size={18} color="white" />
+                        </button>
                     </div>
 
                     {/* Messages */}
