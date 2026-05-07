@@ -176,6 +176,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     }
 
     return { success: true, data: appointment };
+}
 
 async function updateAppointmentStatus({ clinicId, appointmentId, status }, actor) {
     const VALID_STATUSES = ['CONFIRMED', 'PENDING', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
