@@ -923,7 +923,6 @@ input:focus, textarea:focus, select:focus {
   .dashboard-right-column,
   .dashboard-left-column {
     min-height: auto !important;
-    overflow: visible !important;
   }
 
   .dashboard-revenue-card {
@@ -989,9 +988,6 @@ input:focus, textarea:focus, select:focus {
   }
 
   .dashboard-shell {
-    height: auto !important;
-    overflow: visible !important;
-    flex: none !important;
     gap: 0.5rem !important;
   }
 
