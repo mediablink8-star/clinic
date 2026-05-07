@@ -62,6 +62,8 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
         return <AppointmentsSkeleton />;
     }
 
+    const STATUS_ORDER = { PENDING: 0, CONFIRMED: 1, CANCELLED: 2, NO_SHOW: 3, COMPLETED: 4 };
+
     const filtered = appointments.filter(a => {
         const matchSearch = !search.trim() || (
             a.patient?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -70,6 +72,11 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
         );
         const matchStatus = statusFilter === 'Όλα' || a.status === statusFilter;
         return matchSearch && matchStatus;
+    }).sort((a, b) => {
+        // PENDING first, CONFIRMED last, then by createdAt desc within same status
+        const statusDiff = (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99);
+        if (statusDiff !== 0) return statusDiff;
+        return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
     return (
