@@ -86,8 +86,8 @@ const Dashboard = ({
     const handleToggleActive = async () => {
         const nextState = !clinic?.isActive;
         
-        // Confirmation dialog when deactivating
-        if (!nextState) {
+        // Confirmation dialog ONLY when deactivating (going from true to false)
+        if (clinic?.isActive && !nextState) {
             const confirmed = window.confirm(
                 '⚠️ ΠΡΟΣΟΧΗ: Θα σταματήσουν όλες οι αυτοματοποιήσεις!\n\n' +
                 '• Δεν θα στέλνονται SMS ανάκτησης\n' +
