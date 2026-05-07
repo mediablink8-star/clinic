@@ -91,7 +91,19 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                 </div>
 
                 {showActions && (
-                    <div className="apt-actions" style={{ display: 'flex', gap: '6px' }}>
+                    <div className="apt-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {/* Status badge when confirmed */}
+                        {appointment.status === 'CONFIRMED' && (
+                            <span style={{
+                                fontSize: '0.72rem', fontWeight: '800', padding: '5px 10px',
+                                borderRadius: '8px', background: 'rgba(16,185,129,0.12)',
+                                color: '#059669', border: '1px solid rgba(16,185,129,0.25)',
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                <CheckCircle size={12} /> Επιβεβαιωμένο
+                            </span>
+                        )}
                         <button
                             title="Αποστολή Μηνύματος"
                             onClick={() => onMessage && onMessage(appointment.patient)}
@@ -99,13 +111,16 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                         >
                             <MessageSquare size={16} />
                         </button>
-                        <button
-                            title="Επιβεβαίωση"
-                            onClick={() => onConfirm && onConfirm(appointment.id)}
-                            style={{ padding: '8px', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.06)', color: '#10b981', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                        >
-                            <CheckCircle size={16} />
-                        </button>
+                        {/* Only show confirm button if not already confirmed */}
+                        {appointment.status !== 'CONFIRMED' && (
+                            <button
+                                title="Επιβεβαίωση"
+                                onClick={() => onConfirm && onConfirm(appointment.id)}
+                                style={{ padding: '8px', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(16,185,129,0.06)', color: '#10b981', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            >
+                                <CheckCircle size={16} />
+                            </button>
+                        )}
                         <button
                             title="Ακύρωση"
                             onClick={() => onCancel && onCancel(appointment.id)}
