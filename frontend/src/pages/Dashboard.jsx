@@ -273,7 +273,7 @@ const Dashboard = ({
                             Ανακτήθηκαν {recovered} ασθενείς από χαμένες κλήσεις
                         </div>
                         <div style={{ color: '#c4b5fd', fontSize: '0.9rem', fontWeight: 600 }}>
-                            🤖 AI: {logsArray.length} κλήσεις
+                            🤖 AI διαχειρίστηκε {logsArray.length} κλήσεις — +€{revenue > 0 ? revenue.toLocaleString() : (recovered * avgAppointmentValue).toLocaleString()}
                         </div>
                         <div style={{ color: '#a5b4fc', fontSize: '0.9rem', fontWeight: 500 }}>
                             📅 {todayAppointments?.length ?? 0} ραντεβού
