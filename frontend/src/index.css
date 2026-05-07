@@ -1070,7 +1070,16 @@ input:focus, textarea:focus, select:focus {
     overflow-y: visible !important;
   }
 
-  .dashboard-stats-grid,
+  .main-content:has(.dashboard-shell) {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .dashboard-shell {
+    height: auto !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
   .dashboard-skeleton__stats {
     grid-template-columns: repeat(2, 1fr) !important;
     display: flex !important;
