@@ -83,9 +83,16 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const handleSaveAiConfig = async () => {
         setAiConfigSaving(true);
         try {
-            await api.put('/clinic/ai-config', formData.aiConfig);
+            // Ensure required fields have defaults before sending
+            const payload = {
+                workingHours: {},
+                tone: 'Professional',
+                languages: ['Ελληνικά'],
+                ...formData.aiConfig,
+            };
+            await api.put('/clinic/ai-config', payload);
             showToast('Οι ρυθμίσεις AI ενημερώθηκαν!');
-            if (onUpdate) onUpdate({ aiConfig: JSON.stringify(formData.aiConfig) });
+            if (onUpdate) onUpdate({ aiConfig: JSON.stringify(payload) });
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης ρυθμίσεων AI.', 'error');
         } finally { setAiConfigSaving(false); }
