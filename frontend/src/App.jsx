@@ -166,9 +166,9 @@ const App = () => {
     queryKey: ['appointments'],
     queryFn: () => api.get('/appointments').then(res => res.data),
     enabled: !!token,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
     refetchOnWindowFocus: true,
-    staleTime: 10000,
+    staleTime: 5000,
     retry: 1,
   });
 
@@ -560,6 +560,11 @@ const App = () => {
 
   const handleSetCurrentTab = (tab) => {
     setCurrentTab(tab);
+    // Refetch appointments when navigating to appointments or calendar tab
+    // so public bookings and external changes show up immediately
+    if (tab === 'appointments' || tab === 'calendar') {
+      refetchApts();
+    }
     if (isMobile) {
       setIsSidebarOpen(false);
     }
