@@ -4,7 +4,7 @@
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+          "interval": [{"field": "minutes", "minutesInterval": 5}]
         }
       },
       "id": "node_cron",
@@ -19,60 +19,34 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
-        "options": { "timeout": 30000 }
+        "options": {"timeout": 30000}
       },
       "id": "node_process_scheduled",
       "name": "Process Scheduled Missed Calls",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [460, 300],
-      "continueOnFail": true,
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            { "value1": "={{ $json.data?.processedCount }}", "operation": "larger", "value2": 0 }
-          ]
-        }
-      },
-      "id": "node_any_processed",
-      "name": "Any Processed?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [680, 160]
+      "continueOnFail": true
     },
     {
       "parameters": {
         "url": "={{ $env.BACKEND_API_URL }}/automation/pending-notifications",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 10000 }
+        "options": {"timeout": 10000}
       },
       "id": "node_poll_notifications",
       "name": "Poll Pending Notifications",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [680, 440],
-      "continueOnFail": true,
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
-        }
-      }
+      "position": [680, 300],
+      "continueOnFail": true
     },
     {
       "parameters": {
         "conditions": {
           "number": [
-            { "value1": "={{ $json.data?.length }}", "operation": "larger", "value2": 0 }
+            {"value1": "={{ $json.data?.length }}", "operation": "larger", "value2": 0}
           ]
         }
       },
@@ -80,7 +54,7 @@
       "name": "Has Notifications?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 440]
+      "position": [900, 300]
     },
     {
       "parameters": {
@@ -91,7 +65,7 @@
       "name": "Split Notifications",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 1,
-      "position": [1120, 440]
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -102,28 +76,22 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "notificationId", "value": "={{ $json.id }}" }
+            {"name": "notificationId", "value": "={{ $json.id }}"}
           ]
         },
-        "options": { "timeout": 10000 }
+        "options": {"timeout": 10000}
       },
       "id": "node_send_notification",
       "name": "Send Notification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1340, 440],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend_api_key",
-          "name": "Backend API Key"
-        }
-      }
+      "position": [1340, 300]
     },
     {
       "parameters": {
         "conditions": {
           "number": [
-            { "value1": "={{ $json.length }}", "operation": "larger", "value2": 0 }
+            {"value1": "={{ $json.length }}", "operation": "larger", "value2": 0}
           ]
         }
       },
@@ -131,46 +99,17 @@
       "name": "More Items?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1560, 440]
+      "position": [1560, 300]
     }
   ],
   "connections": {
-    "Every 5 Minutes": {
-      "main": [
-        [
-          { "node": "Process Scheduled Missed Calls", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Process Scheduled Missed Calls": {
-      "main": [
-        [
-          { "node": "Any Processed?", "type": "main", "index": 0 },
-          { "node": "Poll Pending Notifications", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Poll Pending Notifications": {
-      "main": [[{ "node": "Has Notifications?", "type": "main", "index": 0 }]]
-    },
-    "Has Notifications?": {
-      "main": [
-        [{ "node": "Split Notifications", "type": "main", "index": 0 }],
-        []
-      ]
-    },
-    "Split Notifications": {
-      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
-    },
-    "Send Notification": {
-      "main": [[{ "node": "More Items?", "type": "main", "index": 0 }]]
-    },
-    "More Items?": {
-      "main": [
-        [{ "node": "Split Notifications", "type": "main", "index": 0 }],
-        [{ "node": "Poll Pending Notifications", "type": "main", "index": 0 }]
-      ]
-    }
+    "Every 5 Minutes": {"main": [[{"node": "Process Scheduled Missed Calls", "type": "main", "index": 0}]]},
+    "Process Scheduled Missed Calls": {"main": [[{"node": "Poll Pending Notifications", "type": "main", "index": 0}]]},
+    "Poll Pending Notifications": {"main": [[{"node": "Has Notifications?", "type": "main", "index": 0}]]},
+    "Has Notifications?": {"main": [[{"node": "Split Notifications", "type": "main", "index": 0}], []]},
+    "Split Notifications": {"main": [[{"node": "Send Notification", "type": "main", "index": 0}]]},
+    "Send Notification": {"main": [[{"node": "More Items?", "type": "main", "index": 0}]]},
+    "More Items?": {"main": [[{"node": "Split Notifications", "type": "main", "index": 0}], []]}
   },
   "settings": {
     "executionOrder": "v1",

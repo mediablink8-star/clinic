@@ -12,20 +12,13 @@
       "name": "Receive Appointment Event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        240,
-        400
-      ]
+      "position": [240, 400]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            {
-              "value1": "={{ $json.headers['x-webhook-key'] }}",
-              "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
-            }
+            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "={{ $env.WEBHOOK_SECRET }}"}
           ]
         }
       },
@@ -33,44 +26,27 @@
       "name": "Auth Check",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        460,
-        400
-      ]
+      "position": [460, 400]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
-        "options": {
-          "responseCode": 401
-        }
+        "options": {"responseCode": 401}
       },
       "id": "node_unauthorized",
       "name": "Return 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        680,
-        560
-      ]
+      "position": [680, 560]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            {
-              "value1": "={{ $json.body.data.phone }}",
-              "operation": "isNotEmpty"
-            },
-            {
-              "value1": "={{ $json.body.data.patientName }}",
-              "operation": "isNotEmpty"
-            },
-            {
-              "value1": "={{ $json.body.data.date }}",
-              "operation": "isNotEmpty"
-            }
+            {"value1": "={{ $json.body.data.phone }}", "operation": "isNotEmpty"},
+            {"value1": "={{ $json.body.data.patientName }}", "operation": "isNotEmpty"},
+            {"value1": "={{ $json.body.data.date }}", "operation": "isNotEmpty"}
           ]
         }
       },
@@ -78,73 +54,42 @@
       "name": "Validate Payload",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        680,
-        400
-      ]
+      "position": [680, 400]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"success\": false, \"error\": \"missing required fields\" }",
-        "options": {
-          "responseCode": 400
-        }
+        "options": {"responseCode": 400}
       },
       "id": "node_error_appt",
       "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        900,
-        560
-      ]
+      "position": [900, 560]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"received\": true }",
-        "options": {
-          "responseCode": 200
-        }
+        "options": {"responseCode": 200}
       },
       "id": "node_respond_immediately",
       "name": "Respond 200 Immediately",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        900,
-        400
-      ]
+      "position": [900, 400]
     },
     {
       "parameters": {
         "values": {
           "string": [
-            {
-              "name": "executionId",
-              "value": "={{ $json.body.data.appointmentId || $execution.id }}"
-            },
-            {
-              "name": "entityId",
-              "value": "={{ $json.body.data.appointmentId || '' }}"
-            },
-            {
-              "name": "entityType",
-              "value": "appointment"
-            },
-            {
-              "name": "phone",
-              "value": "={{ $json.body.data.phone }}"
-            },
-            {
-              "name": "clinicName",
-              "value": "={{ $json.body.clinic?.name || 'Ιατρείο' }}"
-            },
-            {
-              "name": "smsBody",
-              "value": "=Γεια σας {{ $json.body.data.patientName }}, το ραντεβού σας στο {{ $json.body.clinic?.name || 'ιατρείο' }} επιβεβαιώθηκε για {{ $json.body.data.date }} στις {{ $json.body.data.time }}."
-            }
+            {"name": "executionId", "value": "={{ $json.body.data.appointmentId || $execution.id }}"},
+            {"name": "entityId", "value": "={{ $json.body.data.appointmentId || '' }}"},
+            {"name": "entityType", "value": "appointment"},
+            {"name": "phone", "value": "={{ $json.body.data.phone }}"},
+            {"name": "clinicName", "value": "={{ $json.body.clinic?.name || 'Ιατρείο' }}"},
+            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.body.data.patientName }}, {{ $json.body.data.date }} {{ $json.body.data.time }} — {{ $json.body.clinic?.name || 'Ιατρείο' }}"}
           ]
         }
       },
@@ -152,75 +97,7 @@
       "name": "Format Confirmation Message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        1120,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            {
-              "value1": "={{ $json.smsBody.length }}",
-              "operation": "larger",
-              "value2": 70
-            }
-          ]
-        }
-      },
-      "id": "node_length_guard",
-      "name": "Message > 70 chars?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        1340,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "smsBody",
-              "value": "={{ $json.smsBody.length > 70 ? ($json.smsBody.substring(0, 70).lastIndexOf(' ') > -1 ? $json.smsBody.substring(0, $json.smsBody.substring(0, 70).lastIndexOf(' ')) : $json.smsBody.substring(0, 70)) : $json.smsBody }}"
-            },
-            {
-              "name": "isTruncated",
-              "value": "={{ $json.smsBody.length > 70 }}"
-            }
-          ]
-        }
-      },
-      "id": "node_truncate",
-      "name": "Smart Truncate to 70",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [
-        1560,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "smsBody",
-              "value": "={{ $json.smsBody + '...' }}"
-            }
-          ]
-        }
-      },
-      "id": "node_append_ellipsis",
-      "name": "Add Ellipsis",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [
-        1560,
-        440
-      ]
+      "position": [1120, 400]
     },
     {
       "parameters": {
@@ -229,40 +106,21 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "api_key",
-              "value": "={{ $env.VONAGE_API_KEY }}"
-            },
-            {
-              "name": "api_secret",
-              "value": "={{ $env.VONAGE_API_SECRET }}"
-            },
-            {
-              "name": "from",
-              "value": "={{ $env.VONAGE_FROM_NAME || 'ClinicFlow' }}"
-            },
-            {
-              "name": "to",
-              "value": "={{ $node[\"Format Confirmation Message\"].json.phone }}"
-            },
-            {
-              "name": "text",
-              "value": "={{ $json.smsBody }}"
-            }
+            {"name": "api_key", "value": "={{ $env.VONAGE_API_KEY }}"},
+            {"name": "api_secret", "value": "={{ $env.VONAGE_API_SECRET }}"},
+            {"name": "from", "value": "={{ $env.VONAGE_FROM_NAME || 'ClinicFlow' }}"},
+            {"name": "to", "value": "={{ $json.phone }}"},
+            {"name": "text", "value": "={{ $json.smsBody }}"},
+            {"name": "type", "value": "unicode"}
           ]
         },
-        "options": {
-          "timeout": 10000
-        }
+        "options": {"timeout": 10000}
       },
-"id": "node_twilio_appt",
+      "id": "node_twilio_appt",
       "name": "Send Confirmation SMS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        1920,
-        300
-      ],
+      "position": [1340, 400],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000,
@@ -272,11 +130,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {
-              "value1": "={{ $json.messages[0]['status'] }}",
-              "operation": "equal",
-              "value2": "0"
-            }
+            {"value1": "={{ $json.messages[0]['status'] }}", "operation": "equal", "value2": "0"}
           ]
         }
       },
@@ -284,27 +138,15 @@
       "name": "SMS Sent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        2140,
-        400
-      ]
+      "position": [1560, 400]
     },
     {
       "parameters": {
         "values": {
           "string": [
-            {
-              "name": "log",
-              "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json.phone }} | messageId: {{ $json.messages[0]['message-id'] }}"
-            },
-            {
-              "name": "smsStatus",
-              "value": "sent"
-            },
-            {
-              "name": "messageId",
-              "value": "={{ $json.messages[0]['message-id'] }}"
-            }
+            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json.phone }} | messageId: {{ $json.messages[0]['message-id'] }}"},
+            {"name": "smsStatus", "value": "sent"},
+            {"name": "messageId", "value": "={{ $json.messages[0]['message-id'] }}"}
           ]
         }
       },
@@ -312,10 +154,7 @@
       "name": "Log SMS Sent",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        2360,
-        280
-      ]
+      "position": [1780, 300]
     },
     {
       "parameters": {
@@ -326,183 +165,30 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "type",
-              "value": "sms_failure"
-            },
-            {
-              "name": "executionId",
-              "value": "={{ $node[\"Format Confirmation Message\"].json.executionId }}"
-            },
-            {
-              "name": "error",
-              "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
-            },
-            {
-              "name": "entityType",
-              "value": "appointment"
-            },
-            {
-              "name": "entityId",
-              "value": "={{ $node[\"Format Confirmation Message\"].json.entityId }}"
-            }
+            {"name": "type", "value": "sms_failure"},
+            {"name": "executionId", "value": "={{ $node[\"Format Confirmation Message\"].json.executionId }}"},
+            {"name": "error", "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"},
+            {"name": "entityType", "value": "appointment"},
+            {"name": "entityId", "value": "={{ $node[\"Format Confirmation Message\"].json.entityId }}"}
           ]
         },
-        "options": {
-          "timeout": 10000
-        }
+        "options": {"timeout": 10000}
       },
       "id": "node_log_failure",
       "name": "Log SMS Failure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        2360,
-        520
-      ]
+      "position": [1780, 500]
     }
   ],
   "connections": {
-    "Receive Appointment Event": {
-      "main": [
-        [
-          {
-            "node": "Auth Check",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Auth Check": {
-      "main": [
-        [
-          {
-            "node": "Validate Payload",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return 401",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Payload": {
-      "main": [
-        [
-          {
-            "node": "Respond 200 Immediately",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return 400",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Respond 200 Immediately": {
-      "main": [
-        [
-          {
-            "node": "Format Confirmation Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Confirmation Message": {
-      "main": [
-        [
-          {
-            "node": "Message > 70 chars?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Message > 70 chars?": {
-      "main": [
-        [
-          {
-            "node": "Smart Truncate to 70",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Send Confirmation SMS",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Smart Truncate to 70": {
-      "main": [
-        [
-          {
-            "node": "Add Ellipsis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Add Ellipsis": {
-      "main": [
-        [
-          {
-            "node": "Send Confirmation SMS",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Confirmation SMS": {
-      "main": [
-        [
-          {
-            "node": "SMS Sent?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SMS Sent?": {
-      "main": [
-        [
-          {
-            "node": "Log SMS Sent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log SMS Failure",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Receive Appointment Event": {"main": [[{"node": "Auth Check", "type": "main", "index": 0}]]},
+    "Auth Check": {"main": [[{"node": "Validate Payload", "type": "main", "index": 0}], [{"node": "Return 401", "type": "main", "index": 0}]]},
+    "Validate Payload": {"main": [[{"node": "Respond 200 Immediately", "type": "main", "index": 0}], [{"node": "Return 400", "type": "main", "index": 0}]]},
+    "Respond 200 Immediately": {"main": [[{"node": "Format Confirmation Message", "type": "main", "index": 0}]]},
+    "Format Confirmation Message": {"main": [[{"node": "Send Confirmation SMS", "type": "main", "index": 0}]]},
+    "Send Confirmation SMS": {"main": [[{"node": "SMS Sent?", "type": "main", "index": 0}]]},
+    "SMS Sent?": {"main": [[{"node": "Log SMS Sent", "type": "main", "index": 0}], [{"node": "Log SMS Failure", "type": "main", "index": 0}]]}
   },
-  "settings": {
-    "executionOrder": "v1"
-  }
+  "settings": {"executionOrder": "v1"}
 }
