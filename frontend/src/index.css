@@ -752,10 +752,27 @@ input:focus, textarea:focus, select:focus {
     overflow-x: hidden;
   }
 
-  /* Fix mobile rendering with minimal CSS changes */
-  * {
-    -webkit-transform: translate3d(0, 0, 0);
-    transform: translate3d(0, 0, 0);
+  /* Fix Chrome mobile rendering bug with gradients and complex backgrounds */
+  .card-glass,
+  .stat-card,
+  .feed-item,
+  .btn,
+  [style*="background: linear-gradient"],
+  [style*="background: radial-gradient"] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+  }
+
+  /* Specifically fix revenue card and stats */
+  .dashboard-shell > div:nth-child(3) > div,
+  .dashboard-shell > div:nth-child(3) > div > div {
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+    will-change: transform;
   }
 
   .layout {
