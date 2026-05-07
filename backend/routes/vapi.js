@@ -116,7 +116,7 @@ async function handleVapiEvent(event) {
         if (!wasBooked) {
             const clinic = mc.clinic;
             if (clinic) {
-                const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}`;
+                const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}&missedCallId=${mc.id}`;
                 const smsBody = `Σας καλέσαμε από το ${clinic.name || 'το ιατρείο'} αλλά δεν απαντήσατε.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
                 console.log(`[Vapi] SMS fallback → ${mc.fromNumber}`);
                 await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id);

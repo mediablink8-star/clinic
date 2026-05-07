@@ -216,12 +216,19 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // Non-blocking trigger to n8n missed call recovery workflow
     const clinicName = clinic.name || 'το ιατρείο';
-    const defaultSms = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
+    const bookingLink = `${frontendUrl}/book?clinicId=${clinicId}&missedCallId=${missedCall.id}`;
+    
+    // Default SMS with booking link
+    const defaultSms = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
     let smartSmsBody = defaultSms;
     try {
         const aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
         if (aiCfg.smsInitial && aiCfg.smsInitial.trim()) {
-            smartSmsBody = aiCfg.smsInitial.replace('{clinic_name}', clinicName);
+            // Replace placeholders in custom SMS template
+            smartSmsBody = aiCfg.smsInitial
+                .replace('{clinic_name}', clinicName)
+                .replace('{booking_link}', bookingLink);
         }
     } catch { /* use default */ }
 
