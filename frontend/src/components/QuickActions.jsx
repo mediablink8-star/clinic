@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { UserPlus, Send, Calendar, X, Search, Phone, FlaskConical, Loader, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { UserPlus, Send, Calendar, X, Search, Phone, FlaskConical, Loader, CheckCircle2, AlertTriangle, Bug } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SendMessageModal from './SendMessageModal';
 import CallPatientModal from './CallPatientModal';
@@ -135,10 +135,75 @@ function TestSetupModal({ token, clinic, onClose }) {
 }
 
 
+function BugReportModal({ onClose }) {
+    const [description, setDescription] = useState('');
+    const [sent, setSent] = useState(false);
+
+    const handleSend = () => {
+        if (!description.trim()) return;
+        // Opens email client with pre-filled bug report
+        const subject = encodeURIComponent('[ClinicFlow] Αναφορά Σφάλματος');
+        const body = encodeURIComponent(
+            `Περιγραφή σφάλματος:\n${description}\n\n` +
+            `URL: ${window.location.href}\n` +
+            `Ώρα: ${new Date().toLocaleString('el-GR')}\n` +
+            `Browser: ${navigator.userAgent}`
+        );
+        window.open(`mailto:mediablink8@gmail.com?subject=${subject}&body=${body}`);
+        setSent(true);
+        setTimeout(onClose, 1500);
+    };
+
+    return createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '20px', border: '1px solid var(--border)', padding: '1.75rem', width: '100%', maxWidth: '420px', boxShadow: 'var(--shadow-lg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Bug size={16} color="#ef4444" />
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: '800', fontSize: '0.95rem', color: 'var(--text)' }}>Αναφορά Σφάλματος</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-light)' }}>Περιγράψτε τι δεν λειτουργεί</div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', display: 'flex' }}><X size={18} /></button>
+                </div>
+
+                {sent ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                        <CheckCircle2 size={40} color="#10b981" style={{ margin: '0 auto 12px' }} />
+                        <p style={{ fontWeight: '700', color: 'var(--text)' }}>Ευχαριστούμε! Θα το δούμε σύντομα.</p>
+                    </div>
+                ) : (
+                    <>
+                        <textarea
+                            autoFocus
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="π.χ. Όταν πατάω 'Νέο Ραντεβού' δεν ανοίγει το παράθυρο..."
+                            rows={5}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', boxSizing: 'border-box', outline: 'none', marginBottom: '1rem' }}
+                        />
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer' }}>Ακύρωση</button>
+                            <button onClick={handleSend} disabled={!description.trim()} style={{ padding: '9px 18px', borderRadius: '10px', border: 'none', background: '#ef4444', color: 'white', fontSize: '0.82rem', fontWeight: '800', cursor: description.trim() ? 'pointer' : 'not-allowed', opacity: description.trim() ? 1 : 0.6, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Bug size={13} /> Αποστολή
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>,
+        document.body
+    );
+}
+
 function QuickActions({ onViewSchedule, onAddPatient, onNewAppointment, patients = [], token, clinic, onRefresh }) {
     const [showSMS, setShowSMS] = useState(false);
     const [showCall, setShowCall] = useState(false);
     const [showTest, setShowTest] = useState(false);
+    const [showBug, setShowBug] = useState(false);
 
     return (
         <>
@@ -148,12 +213,14 @@ function QuickActions({ onViewSchedule, onAddPatient, onNewAppointment, patients
                     <QuickActionBtn icon={UserPlus} label="Ασθενείς" onClick={onAddPatient || onViewSchedule} variant="secondary" tooltip="Διαχείριση ασθενών" />
                     <QuickActionBtn icon={Send} label="SMS" onClick={() => setShowSMS(true)} variant="secondary" tooltip="Αποστολή SMS σε ασθενείς" />
                     <QuickActionBtn icon={Phone} label="Κλήση" onClick={() => setShowCall(true)} variant="secondary" tooltip="Κλήση ασθενούς" />
+                    <QuickActionBtn icon={Bug} label="Bug" onClick={() => setShowBug(true)} variant="secondary" tooltip="Αναφορά σφάλματος" />
                 </div>
                 <QuickActionBtn icon={FlaskConical} label="Δοκιμή Ρύθμισης" onClick={() => setShowTest(true)} variant="secondary" tooltip="Δοκιμή συστήματος ανάκτησης" />
             </div>
             {showSMS && <SendMessageModal patients={patients} token={token} onClose={() => setShowSMS(false)} />}
             {showCall && <CallPatientModal patients={patients} token={token} onClose={() => setShowCall(false)} />}
             {showTest && <TestSetupModal token={token} clinic={clinic} onClose={() => setShowTest(false)} />}
+            {showBug && <BugReportModal onClose={() => setShowBug(false)} />}
         </>
     );
 }
