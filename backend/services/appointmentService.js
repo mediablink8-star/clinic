@@ -168,11 +168,14 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                 clinic.webhookSecret,
                 { clinic }
             ).catch(err => console.warn('[Webhook] appointment.created failed:', err.message));
+
+            // Schedule 24h reminder if appointment is more than 25h away
+            scheduleAppointmentReminder({ appointment, patient, clinic })
+                .catch(err => console.warn('[Reminder] Failed to schedule:', err.message));
         }
     }
 
     return { success: true, data: appointment };
-}
 
 async function updateAppointmentStatus({ clinicId, appointmentId, status }, actor) {
     const VALID_STATUSES = ['CONFIRMED', 'PENDING', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
@@ -251,5 +254,51 @@ async function getTodayAppointments(clinicId) {
     return { success: true, data };
 }
 
-module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments };
+module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments, scheduleAppointmentReminder };
+
+/**
+ * Schedule a 24-hour SMS reminder for an appointment.
+ * Only schedules if the appointment is more than 25 hours away.
+ */
+async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
+    if (!patient?.phone) return;
+
+    const appointmentStart = new Date(appointment.startTime);
+    const reminderTime = new Date(appointmentStart.getTime() - 24 * 60 * 60 * 1000); // 24h before
+    const now = new Date();
+
+    // Only schedule if reminder time is at least 1 hour in the future
+    if (reminderTime <= new Date(now.getTime() + 60 * 60 * 1000)) return;
+
+    const clinicName = clinic.name || 'το ιατρείο';
+    const dateStr = appointmentStart.toLocaleDateString('el-GR', {
+        weekday: 'long', day: 'numeric', month: 'long'
+    });
+    const timeStr = appointmentStart.toLocaleTimeString('el-GR', {
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}.\nΣας περιμένουμε! 😊`;
+
+    // Avoid duplicate reminders for the same appointment
+    const existing = await prisma.notification.findFirst({
+        where: {
+            appointmentId: appointment.id,
+            type: 'REMINDER',
+            status: { in: ['SCHEDULED', 'ENQUEUED', 'SENT'] }
+        }
+    });
+    if (existing) return;
+
+    await prisma.notification.create({
+        data: {
+            clinicId: appointment.clinicId,
+            appointmentId: appointment.id,
+            type: 'REMINDER',
+            message,
+            scheduledFor: reminderTime,
+            status: 'SCHEDULED',
+        }
+    });
+}
 

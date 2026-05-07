@@ -240,6 +240,11 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         ).catch(err => console.error('[publicService] Webhook trigger failed:', err.message));
     }
 
+    // Schedule 24h reminder
+    const { scheduleAppointmentReminder } = require('./appointmentService');
+    scheduleAppointmentReminder({ appointment, patient, clinic })
+        .catch(err => console.warn('[Reminder] Failed to schedule from public booking:', err.message));
+
     return { success: true, data: { appointmentId: appointment.id } };
 }
 

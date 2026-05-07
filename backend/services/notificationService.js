@@ -21,10 +21,13 @@ async function processNotification(notificationId) {
         return { success: false, reason: 'Already processed or not found' };
     }
 
-    // Fetch the claimed notification with clinic data
+    // Fetch the claimed notification with clinic and appointment+patient data
     const notification = await prisma.notification.findUnique({
         where: { id: notificationId },
-        include: { clinic: true }
+        include: { 
+            clinic: true,
+            appointment: { include: { patient: true } }
+        }
     });
 
     if (!notification) {
@@ -57,7 +60,11 @@ async function processNotification(notificationId) {
                 notificationId: notification.id,
                 type: notification.type,
                 message: notification.message,
-                clinicName: clinic.name
+                clinicName: clinic.name,
+                // Include patient phone so n8n/webhook knows where to send the SMS
+                phone: notification.appointment?.patient?.phone || null,
+                patientName: notification.appointment?.patient?.name || null,
+                appointmentId: notification.appointmentId || null,
             },
             logType: notification.type,
         });
