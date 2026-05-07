@@ -38,6 +38,7 @@ const ClinicRegister = ({ onRegister }) => {
       setSuccess(true);
       // Optional: Auto-login after 2 seconds or let user click a button
       setTimeout(() => {
+        window.history.replaceState({}, '', '/');
         onRegister(resp.data);
       }, 2000);
     } catch (err) {

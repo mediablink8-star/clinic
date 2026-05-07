@@ -50,10 +50,6 @@ function validateEnv() {
         console.warn('   (Some features like Webhooks or AI might be disabled or limited)\n');
     }
 
-    // Specific critical warnings
-    if (!process.env.REFRESH_TOKEN_SECRET) {
-        console.warn('⚠️  REFRESH_TOKEN_SECRET not set — using JWT_SECRET as fallback (not recommended for production).');
-    }
     if (!process.env.SMTP_HOST) {
         console.warn('⚠️  SMTP_HOST not set — password reset emails will NOT be delivered in production.');
     }

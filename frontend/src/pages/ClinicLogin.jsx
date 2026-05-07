@@ -24,6 +24,7 @@ const ClinicLogin = ({ onLogin }) => {
       if (resp.data.mfaRequired) {
         setMfaData({ required: true, token: resp.data.mfaToken, code: '' });
       } else {
+        window.history.replaceState({}, '', '/');
         onLogin(resp.data);
       }
     } catch (err) {
@@ -61,6 +62,7 @@ const ClinicLogin = ({ onLogin }) => {
         mfaToken: mfaData.token,
         code: mfaData.code
       }, { withCredentials: true });
+      window.history.replaceState({}, '', '/');
       onLogin(resp.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Ο κωδικός MFA είναι λανθασμένος.');
@@ -74,6 +76,7 @@ const ClinicLogin = ({ onLogin }) => {
     setError('');
     try {
       const resp = await axios.post(`${API_BASE}/auth/google`, { idToken: credentialResponse.credential }, { withCredentials: true });
+      window.history.replaceState({}, '', '/');
       onLogin(resp.data);
     } catch {
       setError('Η σύνδεση μέσω Google απέτυχε.');

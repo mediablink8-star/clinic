@@ -51,7 +51,6 @@ async function listAppointments(clinicId) {
         orderBy: { createdAt: 'desc' },
         take: 200
     });
-    console.log(`[LIST APPOINTMENTS] Clinic ${clinicId}: Found ${data.length} appointments`);
     return { success: true, data };
 }
 

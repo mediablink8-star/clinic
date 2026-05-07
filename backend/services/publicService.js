@@ -208,18 +208,9 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                     where: { missedCallId },
                     data: { state: 'RECOVERED' }
                 });
-                
-                console.log(`[PUBLIC BOOKING] Marked missed call ${missedCallId} as RECOVERED with revenue €${avgAppointmentValue}`);
+
             }
         }
-        
-        console.log('[PUBLIC BOOKING] Created appointment:', {
-            id: appt.id,
-            clinicId: appt.clinicId,
-            startTime: appt.startTime,
-            status: appt.status,
-            linkedMissedCall: mc?.id || null
-        });
         return { patient: pt, appointment: appt, missedCall: mc };
     });
 
@@ -236,7 +227,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             },
             clinic.webhookUrl,
             clinic.webhookSecret
-        ).catch(err => console.error('[publicService] Webhook trigger failed:', err.message));
+        ).catch(() => {});
     }
 
     // Schedule 24h reminder

@@ -28,7 +28,9 @@ module.exports = function webhookAuth(req, res, next) {
                       || req.headers['x-api-key'] 
                       || req.headers['x-webhook-key'];
     if (headerSecret) {
-        if (headerSecret === envSecret) {
+        const hBuf = Buffer.from(headerSecret);
+        const sBuf = Buffer.from(envSecret);
+        if (hBuf.length === sBuf.length && crypto.timingSafeEqual(hBuf, sBuf)) {
             // Check clinicId allowlist if provided
             if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
                 if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {

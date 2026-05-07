@@ -123,7 +123,6 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
             }
         });
     } catch (error) {
-        console.error('Registration error:', error);
         if (error?.code === 'P2002') {
             return res.status(400).json({ error: genericRegistrationError });
         }
@@ -185,7 +184,6 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         if (!user.clinic) {
-            console.error('[LOGIN] User has no clinic:', user.id);
             return res.status(500).json({ error: 'Account configuration error — clinic not found' });
         }
 
@@ -194,7 +192,6 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: null, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
         });
     } catch (error) {
-        console.error('[LOGIN] ERROR:', error);
         res.status(500).json({ error: 'Server error during login' });
     }
 }));
@@ -243,7 +240,6 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
     try {
         emailSent = await sendPasswordResetEmail(user.email, resetLink);
     } catch (err) {
-        console.error('[AUTH] Failed to send direct email:', err.message);
     }
 
     // Fallback: Send via Webhook (to n8n) if direct email setup fails but webhooks are active
@@ -258,14 +254,11 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
             },
             user.clinic.webhookUrl,
             user.clinic.webhookSecret
-        ).catch(err => console.error('[AUTH] Password reset webhook failed:', err.message));
+        ).catch(() => {});
     }
 
     if (!emailSent && !user.clinic.webhookUrl) {
-        console.error('[AUTH] CRITICAL: Password reset requested but no email or webhook configured. User will be locked out.');
     }
-
-    console.log(`[AUTH] Password reset requested`);
 
     res.json({ success: true, message: 'Instructions sent if email exists' });
 }));
@@ -366,62 +359,56 @@ router.post('/google', asyncHandler(async (req, res) => {
         const payload = ticket.getPayload();
         const { sub: googleId, email, name, picture } = payload;
 
-        let clinic = await prisma.clinic.findFirst({
-            where: {
-                OR: [
-                    { googleId },
-                    { email }
-                ]
-            }
-        });
-
-        let user;
-        if (!clinic) {
-            // Sign-up: Create new clinic and admin user
-            clinic = await prisma.clinic.create({
-                data: {
-                    name: name || 'Νέο Ιατρείο',
-                    email: email,
-                    phone: '',
-                    location: '',
-                    googleId,
-                    avatarUrl: picture,
-                    workingHours: '{}',
-                    services: '[]',
-                    policies: '{}'
-                }
+        // Wrap find+create in a transaction to prevent race conditions on
+        // concurrent first-time Google logins from the same account
+        const { clinic, user, isAdmin } = await prisma.$transaction(async (tx) => {
+            let c = await tx.clinic.findFirst({
+                where: { OR: [{ googleId }, { email }] }
             });
-
-            user = await prisma.user.create({
-                data: {
-                    email,
-                    passwordHash: 'social_login_no_password',
-                    role: 'OWNER',
-                    clinicId: clinic.id
-                }
-            });
-        } else {
-            user = await prisma.user.findUnique({ where: { email } });
-            if (!user) {
-                user = await prisma.user.create({
+            let u;
+            if (!c) {
+                c = await tx.clinic.create({
                     data: {
+                        name: name || 'Νέο Ιατρείο',
                         email,
-                        passwordHash: 'social_login_no_password',
-                        role: 'OWNER',
-                        clinicId: clinic.id
+                        phone: '',
+                        location: '',
+                        googleId,
+                        avatarUrl: picture,
+                        workingHours: '{}',
+                        services: '[]',
+                        policies: '{}'
                     }
                 });
-            }
-
-            if (!clinic.googleId) {
-                await prisma.clinic.update({
-                    where: { id: clinic.id },
-                    data: { googleId, avatarUrl: picture }
+                u = await tx.user.create({
+                    data: {
+                        email,
+                        passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
+                        role: 'OWNER',
+                        clinicId: c.id
+                    }
                 });
+            } else {
+                u = await tx.user.findUnique({ where: { email } });
+                if (!u) {
+                    u = await tx.user.create({
+                        data: {
+                            email,
+                            passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
+                            role: 'OWNER',
+                            clinicId: c.id
+                        }
+                    });
+                }
+                if (!c.googleId) {
+                    c = await tx.clinic.update({
+                        where: { id: c.id },
+                        data: { googleId, avatarUrl: picture }
+                    });
+                }
             }
-        }
-
-        const isAdmin = user.role === 'ADMIN' || user.role === 'OWNER';
+            return { clinic: c, user: u, isAdmin: u.role === 'ADMIN' || u.role === 'OWNER' };
+        });
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
@@ -447,7 +434,6 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Google Auth Error:', error);
         res.status(401).json({ error: 'Google authentication failed' });
     }
 }));

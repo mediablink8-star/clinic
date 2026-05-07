@@ -2,9 +2,12 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 if (!JWT_SECRET) {
     throw new Error('FATAL: JWT_SECRET environment variable is not set.');
+}
+if (!REFRESH_TOKEN_SECRET) {
+    throw new Error('FATAL: REFRESH_TOKEN_SECRET environment variable is not set. Set it to a long random string separate from JWT_SECRET.');
 }
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';

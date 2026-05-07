@@ -20,23 +20,29 @@ const clinicEnumerationLimiter = rateLimit({
 
 // Per-clinic booking limiter: 10 bookings per hour per IP per clinic
 const MAX_LIMITER_CACHE = 100;
+// Map preserves insertion order; re-inserting on access gives true LRU eviction
 const bookingLimiterMap = new Map();
-let accessOrder = [];
 
 function getBookingLimiter(clinicId) {
-    if (!bookingLimiterMap.has(clinicId)) {
-        if (bookingLimiterMap.size >= MAX_LIMITER_CACHE && accessOrder.length > 0) {
-            const oldest = accessOrder.shift();
-            bookingLimiterMap.delete(oldest);
-        }
-        bookingLimiterMap.set(clinicId, rateLimit({
-            windowMs: 60 * 60 * 1000,
-            max: 10,
-            message: { error: 'Too many booking attempts for this clinic. Please try again later.' }
-        }));
-        accessOrder.push(clinicId);
+    if (bookingLimiterMap.has(clinicId)) {
+        // Move to end (most-recently-used) by re-inserting
+        const limiter = bookingLimiterMap.get(clinicId);
+        bookingLimiterMap.delete(clinicId);
+        bookingLimiterMap.set(clinicId, limiter);
+        return limiter;
     }
-    return bookingLimiterMap.get(clinicId);
+    if (bookingLimiterMap.size >= MAX_LIMITER_CACHE) {
+        // First key is least-recently-used
+        const lruKey = bookingLimiterMap.keys().next().value;
+        bookingLimiterMap.delete(lruKey);
+    }
+    const limiter = rateLimit({
+        windowMs: 60 * 60 * 1000,
+        max: 10,
+        message: { error: 'Too many booking attempts for this clinic. Please try again later.' }
+    });
+    bookingLimiterMap.set(clinicId, limiter);
+    return limiter;
 }
 
 router.use(publicLimiter);
