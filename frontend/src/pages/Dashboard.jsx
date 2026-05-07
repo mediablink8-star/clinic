@@ -270,7 +270,7 @@ const Dashboard = ({
                         border: '1px solid rgba(139, 92, 246, 0.3)'
                     }}>
                         <div style={{ color: '#f87171', fontWeight: 700, fontSize: '0.95rem', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                            Χάσατε {missedCallsToday} ασθενείς — ανακτήθηκαν {recovered}
+                            Ανακτήθηκαν {recovered} ασθενείς από χαμένες κλήσεις
                         </div>
                         <div style={{ color: '#c4b5fd', fontSize: '0.9rem', fontWeight: 600 }}>
                             🤖 AI: {logsArray.length} κλήσεις
