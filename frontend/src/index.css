@@ -752,15 +752,6 @@ input:focus, textarea:focus, select:focus {
     overflow-x: hidden;
   }
 
-  /* Fix Chrome mobile rendering bug - simpler approach */
-  .card-glass,
-  .stat-card,
-  .feed-item,
-  .btn {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
-
   .layout {
     display: block;
   }
