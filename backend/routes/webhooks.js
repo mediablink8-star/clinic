@@ -57,7 +57,7 @@ router.post('/sms', asyncHandler(async (req, res) => {
     });
 
     if (!clinic.webhookUrl) {
-        console.log(`[SMS Inbound] clinicId=${clinicId} - no webhookUrl configured, skipping forward`);
+        console.info(`[SMS Inbound] clinicId=${clinicId} - no webhookUrl configured, skipping forward`);
         return res.json({ success: true, forwarded: false, reason: 'No webhook URL configured' });
     }
 
@@ -100,7 +100,7 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
     if (providerMessageSid) {
         const existing = await prisma.message.findFirst({ where: { providerMessageSid, clinicId } });
         if (existing) {
-            console.log(`[Inbound] Duplicate message ${providerMessageSid} skipped`);
+            console.info(`[Inbound] Duplicate message ${providerMessageSid} skipped`);
             return res.json({ success: true, duplicate: true });
         }
     } else {
@@ -115,7 +115,7 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
             }
         });
         if (recentDupe) {
-            console.log(`[Inbound] Duplicate body from ${normalizedFrom} within 30s skipped`);
+            console.info(`[Inbound] Duplicate body from ${normalizedFrom} within 30s skipped`);
             return res.json({ success: true, duplicate: true });
         }
     }

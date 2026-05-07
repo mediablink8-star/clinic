@@ -116,7 +116,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         const hasReplied = lastInbound && lastInbound.createdAt > recentActive.lastSmsSentAt;
         if (!hasReplied) {
             // Patient hasn't replied and cooldown active — skip SMS, just log
-            console.log(`[Cooldown] Skipping SMS for ***${phone.slice(-4)} — active case ${recentActive.id} within 6h`);
+            console.info(`[Cooldown] Skipping SMS for ***${phone.slice(-4)} — active case ${recentActive.id} within 6h`);
             const missedCall = await prisma.missedCall.create({
                 data: {
                     clinicId,
@@ -178,7 +178,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             });
             patientName = existingPatient?.name || null;
             if (existingPatient?.name && existingPatient.name !== phone) {
-                console.log(`[Voice] Known patient lookup succeeded (${phone.slice(-4)})`);
+                console.info(`[Voice] Known patient lookup succeeded (${phone.slice(-4)})`);
             }
         } catch (err) {
             console.warn('[Voice] Patient lookup failed:', err.message);
@@ -193,7 +193,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         });
 
         if (callResult.success) {
-            console.log(`[Voice] Outbound call triggered for ***${phone.slice(-4)} — callId: ${callResult.callId} (vapi)`);
+            console.info(`[Voice] Outbound call triggered for ***${phone.slice(-4)} — callId: ${callResult.callId} (vapi)`);
             await prisma.missedCall.update({
                 where: { id: missedCall.id },
                 data: {
@@ -408,7 +408,7 @@ async function processScheduledMissedCalls() {
     }
 
     if (processed > 0) {
-        console.log(`[ScheduledSMS] Processed ${processed} scheduled SMS: ${succeeded} sent, ${failed} failed`);
+        console.info(`[ScheduledSMS] Processed ${processed} scheduled SMS: ${succeeded} sent, ${failed} failed`);
     }
 
     return { processed, succeeded, failed };

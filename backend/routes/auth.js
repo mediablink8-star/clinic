@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
+const AppError = require('../errors/AppError');
 const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken, verifyToken, verifyRefreshToken, generateMfaToken } = require('../services/authService');
 const { encrypt, decrypt } = require('../services/encryptionService');
 const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
@@ -89,7 +90,7 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-        return res.status(400).json({ error: genericRegistrationError });
+        throw new AppError('CONFLICT', genericRegistrationError, 409);
     }
 
     try {
@@ -152,10 +153,11 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
             }
         });
     } catch (error) {
+        if (error instanceof AppError) throw error;
         if (error?.code === 'P2002') {
-            return res.status(400).json({ error: genericRegistrationError });
+            throw new AppError('CONFLICT', genericRegistrationError, 409);
         }
-        res.status(500).json({ error: 'Server error during registration' });
+        throw new AppError('INTERNAL_ERROR', 'Server error during registration', 500);
     }
 }));
 
@@ -169,12 +171,12 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
         });
 
         if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            throw new AppError('AUTH_FAILED', 'Invalid credentials', 401);
         }
 
         // Check per-account lockout
         if (user.lockedUntil && user.lockedUntil > new Date()) {
-                return res.status(429).json({ error: 'Account locked due to too many failed attempts. Try again in 15 minutes.' });
+            throw new AppError('ACCOUNT_LOCKED', 'Account locked due to too many failed attempts. Try again in 15 minutes.', 429);
         }
 
         const isMatch = await comparePassword(password, user.passwordHash);
@@ -187,7 +189,7 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
                     ? { failedAttempts, lockedUntil: new Date(Date.now() + lockoutMs) }
                     : { failedAttempts }
             });
-            return res.status(401).json({ error: 'Invalid credentials' });
+            throw new AppError('AUTH_FAILED', 'Invalid credentials', 401);
         }
 
         // Reset failed attempts on successful login
@@ -213,7 +215,7 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
         if (!user.clinic) {
-            return res.status(500).json({ error: 'Account configuration error — clinic not found' });
+            throw new AppError('CONFIGURATION_ERROR', 'Account configuration error — clinic not found', 500);
         }
 
         res.json({
@@ -221,7 +223,8 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: null, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
         });
     } catch (error) {
-        res.status(500).json({ error: 'Server error during login' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('INTERNAL_ERROR', 'Server error during login', 500);
     }
 }));
 
@@ -301,7 +304,7 @@ router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
-        return res.status(400).json({ error: 'Invalid or expired reset token' });
+        throw new AppError('INVALID_TOKEN', 'Invalid or expired reset token', 400);
     }
 
     const passwordHash = await hashPassword(password);
@@ -327,7 +330,7 @@ router.post('/reset-password', validate(resetPasswordSchema), asyncHandler(async
 
 router.post('/refresh', csrfOriginGuard, asyncHandler(async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) return res.status(401).json({ error: 'Refresh token missing' });
+    if (!refreshToken) throw new AppError('REFRESH_TOKEN_MISSING', 'Refresh token missing', 401);
 
     try {
         const storedToken = await prisma.refreshToken.findUnique({
@@ -336,12 +339,12 @@ router.post('/refresh', csrfOriginGuard, asyncHandler(async (req, res) => {
         });
 
         if (!storedToken || storedToken.expiresAt < new Date()) {
-            return res.status(401).json({ error: 'Invalid or expired refresh token' });
+            throw new AppError('INVALID_REFRESH_TOKEN', 'Invalid or expired refresh token', 401);
         }
 
         const decoded = verifyRefreshToken(refreshToken);
         if (!decoded || decoded.userId !== storedToken.userId) {
-            return res.status(401).json({ error: 'Invalid token' });
+            throw new AppError('INVALID_TOKEN', 'Invalid token', 401);
         }
 
         // Rotate: delete old token, issue new one
@@ -365,7 +368,8 @@ router.post('/refresh', csrfOriginGuard, asyncHandler(async (req, res) => {
 
         res.json({ token: accessToken });
     } catch (error) {
-        res.status(500).json({ error: 'Refresh failed' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('REFRESH_FAILED', 'Refresh failed', 500);
     }
 }));
 
@@ -463,26 +467,26 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(401).json({ error: 'Google authentication failed' });
+        throw new AppError('AUTH_FAILED', 'Google authentication failed', 401);
     }
 }));
 
 // --- MFA ENDPOINTS ---
 
-const requireAuth = async (req, res, next) => {
+const requireAuth = asyncHandler(async (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ error: 'Unauthorized' });
+    if (!decoded) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
     req.user = decoded;
     next();
-};
+});
 
 router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
 
         const secret = authenticator.generateSecret();
         const otpauth = authenticator.keyuri(user.email, 'ClinicFlow', secret);
@@ -498,7 +502,8 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
         // Don't send secret to client - client just scans QR
         res.json({ qrImageUrl });
     } catch (error) {
-        res.status(500).json({ error: 'MFA setup failed' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('MFA_SETUP_FAILED', 'MFA setup failed', 500);
     }
 }));
 
@@ -507,12 +512,12 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user?.mfaPendingSecret) {
-            return res.status(400).json({ error: 'No MFA setup in progress' });
+            throw new AppError('VALIDATION_ERROR', 'No MFA setup in progress', 400);
         }
 
         const pendingSecret = decrypt(user.mfaPendingSecret);
         const isValid = authenticator.check(code, pendingSecret);
-        if (!isValid) return res.status(400).json({ error: 'Invalid MFA code' });
+        if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
         // Store encrypted secret permanently
         await prisma.user.update({
@@ -526,7 +531,8 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: 'MFA verification failed' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('MFA_VERIFICATION_FAILED', 'MFA verification failed', 500);
     }
 }));
 
@@ -535,7 +541,7 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
     try {
         const decoded = verifyToken(mfaToken);
         if (!decoded || decoded.type !== 'MFA_CHALLENGE') {
-            return res.status(401).json({ error: 'Invalid or expired MFA token' });
+            throw new AppError('INVALID_MFA_TOKEN', 'Invalid or expired MFA token', 401);
         }
 
         const user = await prisma.user.findUnique({
@@ -551,11 +557,11 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
             }
         });
 
-        if (!user || !user.mfaSecret) return res.status(401).json({ error: 'Invalid request' });
+        if (!user || !user.mfaSecret) throw new AppError('INVALID_REQUEST', 'Invalid request', 401);
 
         const secret = decrypt(user.mfaSecret);
         const isValid = authenticator.check(code, secret);
-        if (!isValid) return res.status(400).json({ error: 'Invalid MFA code' });
+        if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
         const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
         const refreshToken = generateRefreshToken({ userId: user.id });
@@ -583,7 +589,8 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ error: 'MFA login failed' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('MFA_LOGIN_FAILED', 'MFA login failed', 500);
     }
 }));
 
@@ -596,11 +603,11 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
         // Social login users have no password — skip the check
         if (user.passwordHash !== 'SOCIAL_LOGIN_NO_PASSWORD') {
             if (!password) {
-                return res.status(400).json({ error: 'Password required to disable MFA' });
+                throw new AppError('VALIDATION_ERROR', 'Password required to disable MFA', 400);
             }
             const isValid = await comparePassword(password, user.passwordHash);
             if (!isValid) {
-                return res.status(401).json({ error: 'Invalid password' });
+                throw new AppError('AUTH_FAILED', 'Invalid password', 401);
             }
         }
 
@@ -610,7 +617,8 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
         });
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to disable MFA' });
+        if (error instanceof AppError) throw error;
+        throw new AppError('INTERNAL_ERROR', 'Failed to disable MFA', 500);
     }
 }));
 

@@ -17,6 +17,7 @@ const { bookAppointment, getAvailableSlots, parseDateTimeInTimezone } = require(
 
 const clinic = {
     id: 'clinic_1',
+    isActive: true,
     webhookUrl: null,
     webhookSecret: 'secret',
     workingHours: JSON.stringify({ weekdays: '09:00 - 18:00', saturday: 'Closed', sunday: 'Closed' }),
@@ -45,15 +46,16 @@ describe('publicService', () => {
             phone: '6912345678',
             email: '',
             reason: 'Checkup',
-            startTime: '2026-05-04T06:30:00.000Z',
+            startTime: '2026-05-20T06:30:00.000Z',
         })).rejects.toMatchObject({
-            code: 'VALIDATION_ERROR',
+            code: 'SLOT_UNAVAILABLE',
             status: 400,
         });
     });
 
     test('normalizes phone before creating public booking', async () => {
         const tx = {
+            $queryRaw: jest.fn().mockResolvedValue([]),
             appointment: {
                 findFirst: jest.fn().mockResolvedValue(null),
                 create: jest.fn().mockResolvedValue({ id: 'appt_1' }),
@@ -71,7 +73,7 @@ describe('publicService', () => {
             phone: '691 234 5678',
             email: '',
             reason: 'Checkup',
-            startTime: '2026-05-04T06:00:00.000Z',
+            startTime: '2026-05-20T06:00:00.000Z',
         });
 
         expect(result.data.appointmentId).toBe('appt_1');

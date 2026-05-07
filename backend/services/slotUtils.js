@@ -144,6 +144,7 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', ste
             status: { notIn: ['CANCELLED', 'NO_SHOW'] },
         },
         select: { startTime: true, endTime: true },
+        take: 200
     });
 
     // Mark every slot occupied by each appointment (handles multi-hour appointments)

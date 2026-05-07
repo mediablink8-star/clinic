@@ -154,7 +154,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     const state = mc.conversationState || 'NEW';
     const text = (messageBody || '').trim();
 
-    console.log(`[Conversation] case=${mc.id} state=${state} from=***${normalizedFromPhone.slice(-4)} msg="${text.slice(0, 20)}..."`);
+    console.info(`[Conversation] case=${mc.id} state=${state} from=***${normalizedFromPhone.slice(-4)} msg="${text.slice(0, 20)}..."`);
 
     if (!shouldReplyNow(clinic)) {
         sendReply(clinic, normalizedFromPhone, outsideHoursMessage(clinic));
@@ -199,7 +199,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     }
 
     const intent = detectIntent(text);
-    console.log(`[Conversation] intent=${intent} for ***${normalizedFromPhone.slice(-4)} (case=${mc.id})`);
+    console.info(`[Conversation] intent=${intent} for ***${normalizedFromPhone.slice(-4)} (case=${mc.id})`);
 
     if (intent === 'BOOKING') {
         await prisma.missedCall.update({
@@ -235,7 +235,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
 
 async function handleBookingStep(mc, clinic, text, fromPhone) {
     const step = mc.bookingStep;
-    console.log(`[Conversation] booking step=${step} for ***${fromPhone.slice(-4)}`);
+    console.info(`[Conversation] booking step=${step} for ***${fromPhone.slice(-4)}`);
 
     if (step === 'ASKED_NAME') {
         await prisma.missedCall.update({
@@ -328,7 +328,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             patientId: patient.id,
         }
     });
-    console.log(`[Conversation] BOOKING completed for ***${fromPhone.slice(-4)} - day=${day} time=${time}`);
+    console.info(`[Conversation] BOOKING completed for ***${fromPhone.slice(-4)} - day=${day} time=${time}`);
 }
 
 module.exports = {

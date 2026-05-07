@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../services/prisma');
+const AppError = require('../errors/AppError');
 const { hashPassword } = require('../services/authService');
 const { logAction } = require('../services/auditService');
 const asyncHandler = require('../middleware/asyncHandler');
@@ -23,7 +24,8 @@ router.get('/', asyncHandler(async (req, res) => {
             createdAt: true,
             mfaEnabled: true,
         },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
+        take: 100
     });
     res.json(users);
 }));
@@ -34,28 +36,28 @@ router.get('/', asyncHandler(async (req, res) => {
  */
 router.post('/', asyncHandler(async (req, res) => {
     if (!OWNER_ROLES.includes(req.user.role)) {
-        return res.status(403).json({ error: 'Μόνο ο ιδιοκτήτης μπορεί να προσθέσει μέλη.' });
+        throw new AppError('FORBIDDEN', 'Μόνο ο ιδιοκτήτης μπορεί να προσθέσει μέλη.', 403);
     }
 
     const { email, name, role, password } = req.body;
     const trimmedPassword = typeof password === 'string' ? password.trim() : '';
 
     if (!email || !trimmedPassword) {
-        return res.status(400).json({ error: 'Email και κωδικός είναι υποχρεωτικά.' });
+        throw new AppError('VALIDATION_ERROR', 'Email και κωδικός είναι υποχρεωτικά.', 400);
     }
 
     if (trimmedPassword.length < 8) {
-        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+        throw new AppError('VALIDATION_ERROR', 'Password must be at least 8 characters.', 400);
     }
 
     const allowedRoles = ['OWNER', 'RECEPTIONIST', 'ASSISTANT'];
     if (!allowedRoles.includes(role)) {
-        return res.status(400).json({ error: 'Μη έγκυρος ρόλος.' });
+        throw new AppError('VALIDATION_ERROR', 'Μη έγκυρος ρόλος.', 400);
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-        return res.status(409).json({ error: 'Υπάρχει ήδη χρήστης με αυτό το email.' });
+        throw new AppError('CONFLICT', 'Υπάρχει ήδη χρήστης με αυτό το email.', 409);
     }
 
     const passwordHash = await hashPassword(trimmedPassword);
@@ -89,24 +91,24 @@ router.post('/', asyncHandler(async (req, res) => {
  */
 router.put('/:id', asyncHandler(async (req, res) => {
     if (!OWNER_ROLES.includes(req.user.role)) {
-        return res.status(403).json({ error: 'Μόνο ο ιδιοκτήτης μπορεί να αλλάξει ρόλους.' });
+        throw new AppError('FORBIDDEN', 'Μόνο ο ιδιοκτήτης μπορεί να αλλάξει ρόλους.', 403);
     }
 
     const { role } = req.body;
     const allowedRoles = ['OWNER', 'RECEPTIONIST', 'ASSISTANT'];
     if (!allowedRoles.includes(role)) {
-        return res.status(400).json({ error: 'Μη έγκυρος ρόλος.' });
+        throw new AppError('VALIDATION_ERROR', 'Μη έγκυρος ρόλος.', 400);
     }
 
     // Prevent demoting yourself
     if (req.params.id === req.user.userId) {
-        return res.status(400).json({ error: 'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο.' });
+        throw new AppError('VALIDATION_ERROR', 'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο.', 400);
     }
 
     const target = await prisma.user.findFirst({
         where: { id: req.params.id, clinicId: req.clinicId }
     });
-    if (!target) return res.status(404).json({ error: 'Χρήστης δεν βρέθηκε.' });
+    if (!target) throw new AppError('NOT_FOUND', 'Χρήστης δεν βρέθηκε.', 404);
 
     const updated = await prisma.user.update({
         where: { id: req.params.id },
@@ -133,17 +135,17 @@ router.put('/:id', asyncHandler(async (req, res) => {
  */
 router.delete('/:id', asyncHandler(async (req, res) => {
     if (!OWNER_ROLES.includes(req.user.role)) {
-        return res.status(403).json({ error: 'Μόνο ο ιδιοκτήτης μπορεί να αφαιρέσει μέλη.' });
+        throw new AppError('FORBIDDEN', 'Μόνο ο ιδιοκτήτης μπορεί να αφαιρέσει μέλη.', 403);
     }
 
     if (req.params.id === req.user.userId) {
-        return res.status(400).json({ error: 'Δεν μπορείτε να αφαιρέσετε τον εαυτό σας.' });
+        throw new AppError('VALIDATION_ERROR', 'Δεν μπορείτε να αφαιρέσετε τον εαυτό σας.', 400);
     }
 
     const target = await prisma.user.findFirst({
         where: { id: req.params.id, clinicId: req.clinicId }
     });
-    if (!target) return res.status(404).json({ error: 'Χρήστης δεν βρέθηκε.' });
+    if (!target) throw new AppError('NOT_FOUND', 'Χρήστης δεν βρέθηκε.', 404);
 
     // Delete refresh tokens first (FK constraint)
     await prisma.refreshToken.deleteMany({ where: { userId: req.params.id } });
