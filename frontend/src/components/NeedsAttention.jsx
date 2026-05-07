@@ -205,7 +205,7 @@ const NeedsAttention = ({ pendingCount = 0, recoveryLog = [], recoveryInsights =
                         bg="#fef2f2"
                         label={`${failedSmsCount} αποτυχία αποστολής SMS`}
                         sublabel="ΕΠΑΝΑΛΗΨΗ"
-                        action="Retry"
+                        action="Επανάληψη"
                         onClick={() => onNavigate && onNavigate('dashboard')}
                     />
                 )}

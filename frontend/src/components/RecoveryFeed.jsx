@@ -38,7 +38,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
         e.stopPropagation();
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
-        if (!token) { toast.error('Session expired.'); return; }
+        if (!token) { toast.error('Η σύνδεση έληξε. Παρακαλώ συνδεθείτε ξανά.'); return; }
         try {
             const res = await fetch(`${API_BASE}/recovery/${logId}/retry`, {
                 method: 'POST',

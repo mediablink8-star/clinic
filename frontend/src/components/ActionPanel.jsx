@@ -109,7 +109,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                             return (
                                 <div key={idx} className={`message-bubble ${isPatient ? 'patient' : isSystem ? 'system' : 'ai'}`}>
                                     <div className="message-role">
-                                        {isPatient ? 'Ασθενής' : isSystem ? 'Σύστημα' : 'AI Assistant'}
+                                        {isPatient ? 'Ασθενής' : isSystem ? 'Σύστημα' : 'AI Βοηθός'}
                                     </div>
                                     <div className="message-content">{content}</div>
                                     {msg.timestamp && (

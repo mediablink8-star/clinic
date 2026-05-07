@@ -16,7 +16,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             label: 'Εργαλεία',
             items: [
                 ...(clinic?.role !== 'ASSISTANT' ? [{ id: 'ai', label: 'Τεχνητή Νοημοσύνη', icon: Brain }] : []),
-                { id: 'analytics', label: 'Recovery Analytics', icon: BarChart2 },
+                { id: 'analytics', label: 'Αναλυτικά Ανάκτησης', icon: BarChart2 },
                 { id: 'reports', label: 'Αναφορές', icon: TrendingUp },
             ]
         },

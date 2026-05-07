@@ -208,7 +208,7 @@ const SystemStatus = ({ status = {}, stats = {}, setCurrentTab }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '0.75rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                 <RefreshCw size={10} color="#94a3b8" />
                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '600' }}>
-                    Last synced: {fmt(lastSync)}
+                    Τελευταία ενημέρωση: {fmt(lastSync)}
                 </span>
             </div>
         </div>
