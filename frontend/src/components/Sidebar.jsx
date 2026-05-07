@@ -151,7 +151,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     }}
                 >
                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
-                        {darkMode ? 'Dark Mode' : 'Light Mode'}
+                        {darkMode ? 'Σκοτεινή Λειτουργία' : 'Φωτεινή Λειτουργία'}
                     </span>
                     <div style={{
                         width: '36px',

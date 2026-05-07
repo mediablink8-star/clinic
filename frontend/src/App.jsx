@@ -419,11 +419,27 @@ const App = () => {
         endTime
       });
 
-      setShowModal(false);
-      setNewAppt({ patientId: '', reason: '', date: '', time: '' });
-      setAnalysis(null);
+      // Show success toast first
+      toast.success('✓ Το ραντεβού καταχωρήθηκε επιτυχώς!', {
+        duration: 4000,
+        style: {
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: 'white',
+          fontWeight: '800',
+          fontSize: '0.9rem',
+          padding: '14px 18px',
+          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+        }
+      });
+      
+      // Small delay to let user see the success message, then close modal
+      setTimeout(() => {
+        setShowModal(false);
+        setNewAppt({ patientId: '', reason: '', date: '', time: '' });
+        setAnalysis(null);
+      }, 500);
+      
       refetchApts();
-      toast.success('Το ραντεβού καταχωρήθηκε!');
     } catch (err) {
       const msg = err.response?.data?.error || 'Σφάλμα κατά την κράτηση ραντεβού.';
       toast.error(msg);
