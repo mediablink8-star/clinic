@@ -49,7 +49,12 @@ module.exports = function webhookAuth(req, res, next) {
             .createHmac('sha256', envSecret)
             .update(body)
             .digest('hex');
-        if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        const signatureBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expected);
+        if (signatureBuffer.length !== expectedBuffer.length) {
+            return res.status(401).json({ error: 'Invalid webhook signature' });
+        }
+        if (crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
             // Check clinicId allowlist if provided
             if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
                 if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {

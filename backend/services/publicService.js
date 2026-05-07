@@ -24,6 +24,43 @@ function getDateTimeParts(date, timezone = 'Europe/Athens') {
     };
 }
 
+function parseDateTimeInTimezone(date, time, timezone = 'Europe/Athens') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid date/time provided', 400);
+    }
+
+    const [year, month, day] = date.split('-').map((n) => parseInt(n, 10));
+    const [hour, minute] = time.split(':').map((n) => parseInt(n, 10));
+
+    // Build UTC candidate then adjust using target timezone offset
+    const utcCandidate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+    const tzParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    }).formatToParts(utcCandidate).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+
+    const asUtcInTimezone = Date.UTC(
+        parseInt(tzParts.year, 10),
+        parseInt(tzParts.month, 10) - 1,
+        parseInt(tzParts.day, 10),
+        parseInt(tzParts.hour, 10),
+        parseInt(tzParts.minute, 10),
+        parseInt(tzParts.second, 10)
+    );
+    const offsetMs = asUtcInTimezone - utcCandidate.getTime();
+
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0) - offsetMs);
+}
+
 async function getPublicClinic(clinicId) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
@@ -82,22 +119,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     let start;
     
     if (date && time) {
-        // Simplest correct approach: build an ISO string with the timezone offset
-        // For Europe/Athens (UTC+3 in summer, UTC+2 in winter), we need the actual offset
-        // We do this by creating a date in that timezone using a known trick:
-        // Parse "YYYY-MM-DDTHH:MM:00" as if it's in the target timezone
-        const localStr = `${date}T${time}:00`;
-        
-        // Get the UTC offset for this timezone on this specific date
-        // by comparing what a UTC timestamp looks like in the target timezone
-        const probe = new Date(`${localStr}Z`); // treat as UTC temporarily
-        const tzString = probe.toLocaleString('en-US', { timeZone: timezone, hour12: false });
-        // tzString is like "5/13/2026, 11:00:00 AM" but in 24h it's "5/13/2026, 11:00:00"
-        const probeInTz = new Date(tzString + ' UTC');
-        const offsetMs = probe.getTime() - probeInTz.getTime();
-        
-        // Now create the correct UTC time: local time minus the offset
-        start = new Date(probe.getTime() - offsetMs);
+        start = parseDateTimeInTimezone(date, time, timezone);
     } else {
         start = new Date(startTime);
     }
@@ -225,4 +247,4 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     return { success: true, data: { appointmentId: appointment.id } };
 }
 
-module.exports = { getPublicClinic, getAvailableSlots, bookAppointment };
+module.exports = { getPublicClinic, getAvailableSlots, bookAppointment, parseDateTimeInTimezone };

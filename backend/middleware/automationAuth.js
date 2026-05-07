@@ -51,6 +51,7 @@ module.exports = async function automationAuth(req, res, next) {
 
         const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
         if (!clinic) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Clinic not found' } });
+        if (!clinic.isActive) return res.status(403).json({ error: { code: 'CLINIC_INACTIVE', message: 'Clinic is not active' } });
         req.clinic = clinic;
         return next();
     }

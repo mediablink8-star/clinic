@@ -13,7 +13,7 @@ jest.mock('./webhookService', () => ({
 }));
 
 const prisma = require('./prisma');
-const { bookAppointment, getAvailableSlots } = require('./publicService');
+const { bookAppointment, getAvailableSlots, parseDateTimeInTimezone } = require('./publicService');
 
 const clinic = {
     id: 'clinic_1',
@@ -87,5 +87,17 @@ describe('publicService', () => {
                 email: '',
             },
         });
+    });
+
+    test('parses local clinic date/time consistently to UTC', () => {
+        const parsed = parseDateTimeInTimezone('2026-07-15', '10:00', 'Europe/Athens');
+        // July in Athens is UTC+3, so 10:00 local should be 07:00 UTC
+        expect(parsed.toISOString()).toBe('2026-07-15T07:00:00.000Z');
+    });
+
+    test('parses winter clinic date/time with UTC+2 offset', () => {
+        const parsed = parseDateTimeInTimezone('2026-01-15', '10:00', 'Europe/Athens');
+        // January in Athens is UTC+2, so 10:00 local should be 08:00 UTC
+        expect(parsed.toISOString()).toBe('2026-01-15T08:00:00.000Z');
     });
 });
