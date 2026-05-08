@@ -10,6 +10,7 @@ if (!validateEnv()) {
 const Sentry = require("@sentry/node");
 
 const prisma = require('./services/prisma');
+const AppError = require('./errors/AppError');
 
 if (process.env.SENTRY_BACKEND_DSN) {
     Sentry.init({
