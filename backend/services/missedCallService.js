@@ -215,7 +215,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     try {
         await assertWithinSmsLimit(clinicId);
     } catch (limitErr) {
-    } catch (limitErr) {
         await prisma.missedCall.update({
             where: { id: missedCall.id },
             data: { smsStatus: 'failed', smsError: limitErr.code || 'Usage limit reached' }
