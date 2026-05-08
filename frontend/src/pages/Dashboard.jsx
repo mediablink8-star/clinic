@@ -107,16 +107,6 @@ const Dashboard = ({
         }
     };
 
-    const handleToggleSafeMode = async () => {
-        const nextState = !clinic?.safeMode;
-        if (onUpdate) onUpdate({ safeMode: nextState });
-        try {
-            await api.post('/clinic/toggle-safe-mode', { safeMode: nextState });
-        } catch (err) {
-            if (onUpdate) onUpdate({ safeMode: !nextState });
-        }
-    };
-
     const recovered = recoveryStats.recovered || 0;
     const revenue = recoveryStats.revenue || 0;
     const potentialRevenue = recoveryStats.potentialRevenue || 0;
@@ -167,32 +157,6 @@ const Dashboard = ({
                     <button onClick={handleToggleActive} style={{ background: clinic?.isActive ? 'linear-gradient(135deg,rgba(255,255,255,0.46) 0%,rgba(16,185,129,0.14) 100%)' : 'linear-gradient(135deg,rgba(254,242,242,0.9) 0%,rgba(239,68,68,0.12) 100%)', color: clinic?.isActive ? '#10b981' : '#dc2626', border: `1px solid ${clinic?.isActive ? 'rgba(255,255,255,0.32)' : 'rgba(239,68,68,0.35)'}`, padding: '6px 14px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', outline: 'none', backdropFilter: 'blur(18px) saturate(180%)', whiteSpace: 'nowrap', boxShadow: 'var(--shadow-sm)' }}>
                         <div className={clinic?.isActive ? 'status-pulse' : ''} style={{ margin: 0, width: '6px', height: '6px', borderRadius: '50%', background: clinic?.isActive ? '#10b981' : '#dc2626' }} />
                         {clinic?.isActive ? 'ΕΝΕΡΓΟ' : '⚠️ ΣΕ ΠΑΥΣΗ'}
-                    </button>
-                    {/* Safe Mode toggle */}
-                    <button
-                        onClick={handleToggleSafeMode}
-                        title={clinic?.safeMode ? 'Safe Mode ενεργό — κανένα SMS/κλήση δεν στέλνεται' : 'Ενεργοποίηση Safe Mode'}
-                        style={{
-                            background: clinic?.safeMode
-                                ? 'linear-gradient(135deg,rgba(245,158,11,0.2) 0%,rgba(245,158,11,0.1) 100%)'
-                                : 'linear-gradient(135deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.1) 100%)',
-                            color: clinic?.safeMode ? '#d97706' : 'var(--text-light)',
-                            border: `1px solid ${clinic?.safeMode ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.22)'}`,
-                            padding: '6px 14px',
-                            borderRadius: '99px',
-                            fontSize: '0.75rem',
-                            fontWeight: '800',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            backdropFilter: 'blur(18px) saturate(180%)',
-                            whiteSpace: 'nowrap',
-                            boxShadow: 'var(--shadow-sm)'
-                        }}
-                    >
-                        🛡️ {clinic?.safeMode ? 'SAFE MODE' : 'Safe Mode'}
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px', background: 'linear-gradient(180deg,rgba(255,255,255,0.34) 0%,rgba(255,255,255,0.14) 100%)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(20px) saturate(180%)', boxShadow: 'var(--shadow-sm)' }}>
                         <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '4px 9px', fontSize: '0.75rem' }}><LineChart size={14} /> Αναφορές</button>
@@ -413,3 +377,4 @@ const Dashboard = ({
 };
 
 export default Dashboard;
+
