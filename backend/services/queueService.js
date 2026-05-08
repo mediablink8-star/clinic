@@ -16,11 +16,20 @@ if (REDIS_DISABLED) {
             maxRetriesPerRequest: null,
             enableReadyCheck: false,
             retryStrategy(times) {
-                console.warn(`[Redis] Retrying connection (attempt ${times})...`);
-                return Math.min(times * 1000, 5000);
+                if (times > 10) {
+                    console.error('[Redis] Max retries reached — disabling Redis for this session.');
+                    return null; // stop retrying
+                }
+                const delay = Math.min(times * 5000, 60000); // 5s, 10s, ... up to 60s
+                console.warn(`[Redis] Retrying connection (attempt ${times}) in ${delay}ms...`);
+                return delay;
             },
             reconnectOnError(err) {
-                console.error('[Redis] Reconnecting on error:', err.message);
+                // Only reconnect on network errors, not quota errors
+                if (err.message.includes('max requests limit exceeded')) {
+                    console.error('[Redis] Quota exceeded — not reconnecting.');
+                    return false;
+                }
                 return true;
             }
         });
