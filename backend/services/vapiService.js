@@ -78,16 +78,13 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
         assistantId: assistantId,
         phoneNumberId: phoneNumberId,
         customer: {
-            number: phone,
+            number: phone.startsWith('+') ? phone : `+${phone}`,
             name: patientName || undefined,
         },
         metadata: {
             missedCallId,
             clinicId: clinic.id,
             clinicName: clinic.name,
-        },
-        server: {
-            url: `${backendUrl}/vapi/webhook`,
         },
     };
 
