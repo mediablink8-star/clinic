@@ -24,7 +24,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] || '' }}",
               "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
+              "value2": "admin123"
             }
           ]
         }
@@ -130,7 +130,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/webhook/inbound-sms",
+        "url": "https://backend-l9el.onrender.com/api/webhook/inbound-sms",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -271,3 +271,5 @@
     "executionOrder": "v1"
   }
 }
+
+

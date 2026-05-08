@@ -24,7 +24,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
+              "value2": "admin123"
             }
           ]
         }
@@ -165,15 +165,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $env.VONAGE_API_KEY }}"
+              "value": "917c2dd5"
             },
             {
               "name": "api_secret",
-              "value": "={{ $env.VONAGE_API_SECRET }}"
+              "value": "bg8RJd$*mb6N%e!baF"
             },
             {
               "name": "from",
-              "value": "={{ $env.VONAGE_FROM_NAME || 'ClinicFlow' }}"
+              "value": "mediablink"
             },
             {
               "name": "to",
@@ -253,7 +253,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "url": "https://backend-l9el.onrender.com/api/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -400,3 +400,5 @@
     "executionOrder": "v1"
   }
 }
+
+
