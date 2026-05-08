@@ -21,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
+              "value2": "REPLACE_WITH_YOUR_WEBHOOK_SECRET"
             }
           ]
         }
@@ -91,7 +91,11 @@
             {"name": "phone", "value": "={{ $json.body.phone }}"},
             {"name": "clinicId", "value": "={{ $json.body.clinicId }}"},
             {"name": "missedCallId", "value": "={{ $json.body.missedCallId }}"},
-            {"name": "name", "value": "={{ $json.body.name || '' }}"}
+            {"name": "name", "value": "={{ $json.body.name || '' }}"},
+            {"name": "vonageApiKey", "value": "={{ $json.body.vonageApiKey || 'REPLACE_WITH_YOUR_VONAGE_API_KEY' }}"},
+            {"name": "vonageApiSecret", "value": "={{ $json.body.vonageApiSecret || 'REPLACE_WITH_YOUR_VONAGE_API_SECRET' }}"},
+            {"name": "vonageFromName", "value": "={{ $json.body.vonageFromName || 'REPLACE_WITH_YOUR_VONAGE_FROM_NAME' }}"},
+            {"name": "backendUrl", "value": "={{ $json.body.backendUrl || 'https://backend-l9el.onrender.com/api' }}"}
           ]
         }
       },
@@ -122,9 +126,9 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "api_key", "value": "={{ $env.VONAGE_API_KEY }}"},
-            {"name": "api_secret", "value": "={{ $env.VONAGE_API_SECRET }}"},
-            {"name": "from", "value": "={{ $env.VONAGE_FROM_NAME || \"ClinicFlow\" }}"},
+            {"name": "api_key", "value": "={{ $node[\"Set Variables\"].json.vonageApiKey }}"},
+            {"name": "api_secret", "value": "={{ $node[\"Set Variables\"].json.vonageApiSecret }}"},
+            {"name": "from", "value": "={{ $node[\"Set Variables\"].json.vonageFromName }}"},
             {"name": "to", "value": "={{ $node[\"Set Variables\"].json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},
             {"name": "type", "value": "unicode"}
@@ -185,7 +189,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/mark-recovered",
+        "url": "={{ $node[\"Set Variables\"].json.backendUrl }}/automation/mark-recovered",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -209,7 +213,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "url": "={{ $node[\"Set Variables\"].json.backendUrl }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
