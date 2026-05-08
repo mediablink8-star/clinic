@@ -87,7 +87,10 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
             aiConfig: true,
             webhookUrl: true,
             webhookSecret: true,
-            webhookAppointment: true
+            webhookAppointment: true,
+            vonageApiKey: true,
+            vonageApiSecret: true,
+            vonageFromName: true,
         }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
@@ -153,6 +156,10 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         if (clinic) {
             const patient = await prisma.patient.findUnique({ where: { id: patientId } });
             const startDate = new Date(startTime);
+            const { decrypt } = require('./encryptionService');
+            const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : null;
+            const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : null;
+
             triggerWebhook(
                 'appointment.created',
                 {
@@ -162,6 +169,9 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                     date: startDate.toLocaleDateString('el-GR'),
                     time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                     reason: reason || '',
+                    ...(vonageApiKey && { vonageApiKey }),
+                    ...(vonageApiSecret && { vonageApiSecret }),
+                    ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
                 },
                 null,
                 clinic.webhookSecret,

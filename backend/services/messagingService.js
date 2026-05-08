@@ -70,7 +70,17 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         clinicId,
         clinic,
         eventType: 'message.direct_send',
-        payload: { patientId, patientName: patient.name, phone: patient.phone, message, type },
+        payload: { 
+            patientId, 
+            patientName: patient.name, 
+            phone: patient.phone, 
+            message, 
+            type,
+            // Include per-clinic Vonage credentials for multi-tenant SMS
+            ...(clinic.vonageApiKey && { vonageApiKey: require('./encryptionService').decrypt(clinic.vonageApiKey) }),
+            ...(clinic.vonageApiSecret && { vonageApiSecret: require('./encryptionService').decrypt(clinic.vonageApiSecret) }),
+            ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
+        },
         logType: type,
         treatMissingWebhookAsSimulated: true,
     });
