@@ -471,17 +471,9 @@ router.post('/google', asyncHandler(async (req, res) => {
     }
 }));
 
-// --- MFA ENDPOINTS ---
+const { requireAuth } = require('../middleware/auth');
 
-const requireAuth = asyncHandler(async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-    if (!decoded) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    req.user = decoded;
-    next();
-});
+// --- MFA ENDPOINTS ---
 
 router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     try {

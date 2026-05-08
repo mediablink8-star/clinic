@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { Menu, Building2 } from 'lucide-react';
-import api, { setAuthToken, clearAuthToken } from './lib/api';
+import api, { setAccessToken, clearAccessToken, refreshAccessToken, API_BASE } from './lib/api';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -29,9 +29,6 @@ import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingWizard from './components/OnboardingWizard';
-import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 const App = () => {
   const queryClient = useQueryClient();
@@ -131,7 +128,6 @@ const App = () => {
     refreshAccessToken()
       .then(async refreshedToken => {
         setToken(refreshedToken);
-        setAuthToken(refreshedToken);
         // Load from localStorage immediately so UI isn't blank
         let localClinic = null;
         try { localClinic = JSON.parse(savedClinic); }
@@ -152,7 +148,6 @@ const App = () => {
       .catch(() => {
         // Refresh failed — clear stale clinic data
         clearAccessToken();
-        clearAuthToken();
         localStorage.removeItem('clinic_data');
       })
       .finally(() => {
@@ -187,6 +182,7 @@ const App = () => {
     queryFn: () => api.get('/notifications').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 30000,
     retry: 1,
   });
 
@@ -195,7 +191,7 @@ const App = () => {
     queryFn: () => api.get('/recovery/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
-    staleTime: 0,
+    staleTime: 30000,
     retry: 1,
   });
 
@@ -204,7 +200,7 @@ const App = () => {
     queryFn: () => api.get('/recovery/log?limit=200').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
-    staleTime: 0,
+    staleTime: 15000,
     retry: 1,
   });
 
@@ -213,6 +209,7 @@ const App = () => {
     queryFn: () => api.get('/recovery/insights').then(res => res.data),
     enabled: !!token,
     refetchInterval: 30000,
+    staleTime: 15000,
     retry: 1,
   });
 
@@ -221,6 +218,7 @@ const App = () => {
     queryFn: () => api.get('/clinic/usage').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 60000,
     retry: 1,
   });
 
@@ -229,6 +227,7 @@ const App = () => {
     queryFn: () => api.get('/clinic/spending').then(res => res.data),
     enabled: !!token,
     refetchInterval: 120000,
+    staleTime: 60000,
     retry: 1,
   });
 
@@ -237,6 +236,7 @@ const App = () => {
     queryFn: () => api.get('/system/status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 60000,
     retry: 1,
   });
 
@@ -245,6 +245,7 @@ const App = () => {
     queryFn: () => api.get('/system/stats').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 60000,
     retry: 1,
   });
 
@@ -253,6 +254,7 @@ const App = () => {
     queryFn: () => api.get('/system/config-status').then(res => res.data),
     enabled: !!token,
     refetchInterval: 60000,
+    staleTime: 300000, // 5 minutes
     retry: 1,
   });
 
@@ -362,7 +364,6 @@ const App = () => {
     const { token, clinic } = loginData;
     setAccessToken(token);
     setToken(token);
-    setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     queryClient.invalidateQueries();
@@ -372,7 +373,6 @@ const App = () => {
     const { token, clinic } = registerData;
     setAccessToken(token);
     setToken(token);
-    setAuthToken(token);
     setClinic(clinic);
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     setShowOnboarding(true); // show wizard for new registrations
@@ -383,7 +383,6 @@ const App = () => {
     api.post('/auth/logout').catch(() => {});
     clearAccessToken();
     setToken(null);
-    clearAuthToken();
     setClinic(null);
     localStorage.removeItem('clinic_data');
     queryClient.clear();

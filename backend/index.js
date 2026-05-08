@@ -99,48 +99,9 @@ app.set('trust proxy', 1);
 
 
 
-const { verifyToken } = require('./services/authService');
 const asyncHandler = require('./middleware/asyncHandler');
-
-// --- SAAS MIDDLEWARE ---
-
-const requireAuth = asyncHandler(async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new AppError('UNAUTHORIZED', 'Missing or malformed Authorization header', 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-
-    if (!decoded || !decoded.userId) {
-        throw new AppError('UNAUTHORIZED', 'Invalid or expired token', 401);
-    }
-
-    req.user = decoded; // { userId, clinicId, role }
-    req.clinicId = decoded.clinicId;
-
-    // Check clinic is active
-    const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
-    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
-    if (!clinic.isActive) throw new AppError('FORBIDDEN', 'Clinic account is deactivated', 403);
-    req.clinic = clinic;
-
-    next();
-});
-
-const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'ADMIN', 'OWNER'];
-
-const requireRole = (role) => {
-    return (req, res, next) => {
-        const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
-        const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
-        if (userRoleIndex < requiredRoleIndex) {
-            throw new AppError('FORBIDDEN', 'Forbidden: Insufficient permissions', 403);
-        }
-        next();
-    };
-};
+const AppError = require('./errors/AppError');
+const { requireAuth, requireRole } = require('./middleware/auth');
 
 // Admin middleware for global control
 const requireAdmin = [requireAuth, requireRole('ADMIN')];
@@ -256,36 +217,35 @@ if (process.env.SENTRY_BACKEND_DSN) {
 // Global error handler — catches anything forwarded via next(err) or asyncHandler
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     console.error(`[ERROR] ${req.method} ${req.url} —`, err.message || err);
-    const status = err.status || err.statusCode || 500;
-    if (err.code === 'USAGE_LIMIT_REACHED') {
-        return res.status(429).json({
-            error: 'USAGE_LIMIT_REACHED',
-            type: err.details?.type || 'sms'
-        });
+
+    // Default values
+    let status = err.status || err.statusCode || 500;
+    let code = err.code || 'INTERNAL_ERROR';
+    let message = err.message || 'Internal server error';
+    let details = err.details || null;
+
+    // Specific error type handling
+    if (err instanceof AppError) {
+        status = err.status;
+        code = err.code;
+    } else if (err.code === 'USAGE_LIMIT_REACHED') {
+        status = 429;
+        code = 'USAGE_LIMIT_REACHED';
+    } else if (err.code === 'SMS_SEND_FAILED') {
+        status = 502;
+        code = 'SMS_SEND_FAILED';
+    } else if (err.code === 'RATE_LIMITED') {
+        status = 429;
+        code = 'RATE_LIMITED';
+    } else if (err.code === 'AI_PROVIDER_ERROR') {
+        status = 502;
+        code = 'AI_PROVIDER_ERROR';
     }
-    if (err.code === 'SMS_SEND_FAILED') {
-        return res.status(502).json({
-            error: 'SMS_SEND_FAILED',
-            type: 'sms',
-            message: err.details?.reason || 'SMS provider failed'
-        });
-    }
-    if (err.code === 'RATE_LIMITED') {
-        return res.status(429).json({
-            error: 'RATE_LIMITED',
-            type: err.details?.type || 'sms'
-        });
-    }
-    if (err.code === 'AI_PROVIDER_ERROR') {
-        return res.status(502).json({
-            error: 'AI_PROVIDER_ERROR',
-            type: 'ai',
-            message: err.message
-        });
-    }
+
     res.status(status).json({
-        error: err.message || 'Internal server error',
-        code: err.code || 'INTERNAL_ERROR'
+        error: message,
+        code: code,
+        ...(details && { details })
     });
 });
 

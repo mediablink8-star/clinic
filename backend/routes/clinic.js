@@ -5,6 +5,7 @@ const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAi
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 const prisma = require('../services/prisma');
+const AppError = require('../errors/AppError');
 const { encrypt, decrypt } = require('../services/encryptionService');
 
 const requireOwner = (req, res, next) => {
