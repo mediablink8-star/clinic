@@ -38,6 +38,7 @@ async function processFollowUps() {
             lastSmsSentAt: { lte: followUp1Threshold },
             followUp1SentAt: null,
             status: { in: ['DETECTED', 'RECOVERING'] },
+            totalContactAttempts: { lt: 5 }, // max 5 total contacts
         },
         include: { clinic: true },
         take: 50,
@@ -48,7 +49,7 @@ async function processFollowUps() {
         const msg = `Μόλις ελέγχαμε — χρειάζεστε βοήθεια με ραντεβού ή έχετε ερώτηση; 😊\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση`;
         try {
             await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
-            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp1SentAt: now } });
+            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp1SentAt: now, totalContactAttempts: { increment: 1 } } });
             console.info(`[FollowUp1] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
         } catch (err) {
             console.warn(`[FollowUp1] Failed for case ${mc.id}: ${err.message}`);
@@ -64,6 +65,7 @@ async function processFollowUps() {
             followUp1SentAt: { not: null },
             followUp2SentAt: null,
             status: { in: ['DETECTED', 'RECOVERING'] },
+            totalContactAttempts: { lt: 5 }, // max 5 total contacts
         },
         include: { clinic: true },
         take: 50,
@@ -74,7 +76,7 @@ async function processFollowUps() {
         const msg = `Έχουμε περιορισμένη διαθεσιμότητα σήμερα — θέλετε να κλείσουμε κάτι για εσάς; 📅`;
         try {
             await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
-            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp2SentAt: now } });
+            await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp2SentAt: now, totalContactAttempts: { increment: 1 } } });
             console.info(`[FollowUp2] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
         } catch (err) {
             console.warn(`[FollowUp2] Failed for case ${mc.id}: ${err.message}`);

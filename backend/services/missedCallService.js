@@ -75,6 +75,13 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         return { success: false, error: 'Clinic inactive' };
     }
 
+    // ── Opt-out check — never contact opted-out patients ─────────────────
+    if (patient?.optedOut) {
+        console.info(`[MissedCall] Skipping opted-out patient ***${normalizedPhone.slice(-4)}`);
+        return { success: true, data: { skipped: true, reason: 'opted_out' } };
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     // Warn early if no recovery channel is configured
     const hasVoice = clinic.voiceEnabled && (clinic.vapiAssistantId || clinic.vapiPhoneNumberId) && (clinic.vapiApiKey || process.env.VAPI_API_KEY);
     const hasSms = !!(process.env.N8N_WEBHOOK_URL || clinic.webhookUrl || clinic.webhookMissedCall || clinic.vonageApiKey || process.env.VONAGE_API_KEY);
@@ -85,8 +92,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     // ── SMS Cooldown check ────────────────────────────────────────────────────
     // Skip SMS if same phone has an ACTIVE/RECOVERING case with SMS sent < 6h ago
     // AND no inbound reply since last SMS (patient hasn't engaged)
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    const recentActive = await prisma.missedCall.findFirst({
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);    const recentActive = await prisma.missedCall.findFirst({
         where: {
             clinicId,
             fromNumber: normalizedPhone,
@@ -200,7 +206,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 data: {
                     smsStatus: 'pending',
                     callSid: callResult.callId,
-                    aiConversation: JSON.stringify([{ role: 'system', content: `vapi_call_id:${callResult.callId}` }])
+                    aiConversation: JSON.stringify([{ role: 'system', content: `vapi_call_id:${callResult.callId}` }]),
+                    totalContactAttempts: { increment: 1 }
                 }
             });
             return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice', provider: 'vapi' } };
@@ -268,7 +275,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     if (n8nUrl) {
         await prisma.missedCall.update({
             where: { id: missedCall.id },
-            data: { smsStatus: 'sent', lastSmsSentAt: new Date() }
+            data: { smsStatus: 'sent', lastSmsSentAt: new Date(), totalContactAttempts: { increment: 1 } }
         });
         await recordOutboundMessageForMissedCall({
             missedCallId: missedCall.id,

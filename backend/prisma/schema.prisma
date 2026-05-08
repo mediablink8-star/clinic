@@ -126,6 +126,8 @@ model Patient {
   appointments Appointment[]
   missedCalls  MissedCall[]
   recoveryCases RecoveryCase[]
+  optedOut     Boolean  @default(false)   // Phone-level opt-out
+  optedOutAt   DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -254,6 +256,8 @@ model MissedCall {
   bookingName       String?          // patient name captured during booking
   followUp1SentAt   DateTime?
   followUp2SentAt   DateTime?
+  optedOut          Boolean          @default(false)   // Patient replied STOP
+  totalContactAttempts Int           @default(0)       // Total voice + SMS attempts
   recoveryCase      RecoveryCase?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt

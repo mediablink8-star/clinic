@@ -201,6 +201,25 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     const intent = detectIntent(text);
     console.info(`[Conversation] intent=${intent} for ***${normalizedFromPhone.slice(-4)} (case=${mc.id})`);
 
+    // ── Opt-out detection ─────────────────────────────────────────────────
+    const lowerText = text.toLowerCase().trim();
+    const optOutKeywords = ['stop', 'αποχωρηση', 'αποχώρηση', 'διαγραφη', 'διαγραφή', 'σταματα', 'σταμάτα', 'οχι αλλο', 'όχι άλλο', 'unsubscribe'];
+    if (optOutKeywords.some(kw => lowerText.includes(kw))) {
+        if (mc.patientId) {
+            await prisma.patient.update({
+                where: { id: mc.patientId },
+                data: { optedOut: true, optedOutAt: new Date() }
+            }).catch(() => {});
+        }
+        await prisma.missedCall.update({
+            where: { id: mc.id },
+            data: { conversationState: 'COMPLETED', status: 'LOST' }
+        });
+        sendReply(clinic, normalizedFromPhone, 'Εντάξει, δεν θα σας ξαναστείλουμε μήνυμα. Αν χρειαστείτε κάτι, καλέστε μας απευθείας. 😊');
+        return;
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     if (intent === 'BOOKING') {
         await prisma.missedCall.update({
             where: { id: mc.id },
