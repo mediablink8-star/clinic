@@ -86,17 +86,18 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
             clinicId: clinic.id,
             clinicName: clinic.name,
         },
+        // Pass available slots and patient info as assistant overrides
+        // so the assistant has context without replacing the full assistant config
+        assistantOverrides: {
+            variableValues: {
+                clinicName: clinic.name || 'το ιατρείο',
+                patientName: patientName || '',
+                availableSlots: availableSlots.length > 0
+                    ? availableSlots.map(d => `${d.day}: ${d.slots.join(', ')}`).join(' | ')
+                    : 'Επικοινωνήστε μαζί μας για διαθεσιμότητα',
+            }
+        },
     };
-
-    if (systemPrompt) {
-        payload.assistant = {
-            model: {
-                provider: 'openai',
-                model: 'gpt-4o',
-                systemPrompt: systemPrompt,
-            },
-        };
-    }
 
     try {
         const result = await vapiRequest('POST', '/call', payload, apiKey);
