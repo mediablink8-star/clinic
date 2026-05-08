@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { processCommand } = require('../services/aiCommandService');
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 
 /**
  * POST /api/ai/command
@@ -12,17 +13,11 @@ router.post('/command', asyncHandler(async (req, res) => {
     const { command } = req.body;
     
     if (!command || typeof command !== 'string' || command.trim().length === 0) {
-        return res.status(400).json({
-            success: false,
-            error: 'Command is required'
-        });
+        throw new AppError('VALIDATION_ERROR', 'Command is required', 400);
     }
     
     if (command.length > 500) {
-        return res.status(400).json({
-            success: false,
-            error: 'Command too long (max 500 characters)'
-        });
+        throw new AppError('VALIDATION_ERROR', 'Command too long (max 500 characters)', 400);
     }
     
     const result = await processCommand(

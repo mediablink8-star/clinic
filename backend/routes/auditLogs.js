@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const prisma = require('../services/prisma');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
+        throw new AppError('FORBIDDEN', 'Απαιτείται ρόλος Ιδιοκτήτη.', 403);
     }
     next();
 };

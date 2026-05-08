@@ -9,14 +9,14 @@ const { encrypt, decrypt } = require('../services/encryptionService');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Απαιτείται ρόλος Ιδιοκτήτη.' });
+        throw new AppError('FORBIDDEN', 'Απαιτείται ρόλος Ιδιοκτήτη.', 403);
     }
     next();
 };
 
 const requireAdmin = (req, res, next) => {
     if (!req.user || !['ADMIN', 'OWNER'].includes(req.user.role)) {
-        return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+        throw new AppError('FORBIDDEN', 'Forbidden: Insufficient permissions', 403);
     }
     next();
 };
@@ -122,7 +122,7 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
     const urlFields = { webhookUrl, webhookMissedCall, webhookAppointment, webhookReminders, webhookDirectSms, webhookInboundSms };
     for (const [field, val] of Object.entries(urlFields)) {
         if (val && !isValidUrl(val)) {
-            return res.status(400).json({ error: `Invalid URL for ${field}` });
+            throw new AppError('VALIDATION_ERROR', `Invalid URL for ${field}`, 400);
         }
     }
 
@@ -225,7 +225,7 @@ router.put('/gemini', requireOwner, asyncHandler(async (req, res) => {
     const { geminiApiKey } = req.body;
 
     if (!geminiApiKey || !geminiApiKey.trim()) {
-        return res.status(400).json({ success: false, error: 'Gemini API Key is required' });
+        throw new AppError('VALIDATION_ERROR', 'Gemini API Key is required', 400);
     }
 
     await prisma.clinic.update({

@@ -104,17 +104,17 @@ const asyncHandler = require('./middleware/asyncHandler');
 
 // --- SAAS MIDDLEWARE ---
 
-const requireAuth = async (req, res, next) => {
+const requireAuth = asyncHandler(async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Missing or malformed Authorization header' });
+        throw new AppError('UNAUTHORIZED', 'Missing or malformed Authorization header', 401);
     }
 
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
     if (!decoded || !decoded.userId) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
+        throw new AppError('UNAUTHORIZED', 'Invalid or expired token', 401);
     }
 
     req.user = decoded; // { userId, clinicId, role }
@@ -122,12 +122,12 @@ const requireAuth = async (req, res, next) => {
 
     // Check clinic is active
     const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
-    if (!clinic) return res.status(404).json({ error: 'Clinic not found' });
-    if (!clinic.isActive) return res.status(403).json({ error: 'Clinic account is deactivated' });
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+    if (!clinic.isActive) throw new AppError('FORBIDDEN', 'Clinic account is deactivated', 403);
     req.clinic = clinic;
 
     next();
-};
+});
 
 const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'ADMIN', 'OWNER'];
 
@@ -136,7 +136,7 @@ const requireRole = (role) => {
         const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
         const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
         if (userRoleIndex < requiredRoleIndex) {
-            return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
+            throw new AppError('FORBIDDEN', 'Forbidden: Insufficient permissions', 403);
         }
         next();
     };
@@ -290,30 +290,30 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 app.listen(port, () => {
-    console.log(`SaaS Backend running on port ${port}`);
+    console.info(`SaaS Backend running on port ${port}`);
 
     // System check — logs all critical config at startup
-    console.log('\n=== System Check ===');
-    console.log(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
-    console.log(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
-    console.log(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing GEMINI_API_KEY'}`);
-    console.log(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
-    console.log(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
-    console.log(`  Worker:         ${process.env.DISABLE_WORKER === 'true'                             ? '⚠  Disabled (DISABLE_WORKER=true)' : '✅ Running (embedded)'}`);
-    console.log(`  Port:           ${port}`);
-    console.log(`  Node:           ${process.version}`);
-    console.log(`  Env:            ${process.env.NODE_ENV || 'development'}`);
+    console.info('\n=== System Check ===');
+    console.info(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
+    console.info(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
+    console.info(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing GEMINI_API_KEY'}`);
+    console.info(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
+    console.info(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);
+    console.info(`  Worker:         ${process.env.DISABLE_WORKER === 'true'                             ? '⚠  Disabled (DISABLE_WORKER=true)' : '✅ Running (embedded)'}`);
+    console.info(`  Port:           ${port}`);
+    console.info(`  Node:           ${process.version}`);
+    console.info(`  Env:            ${process.env.NODE_ENV || 'development'}`);
 
     // DB connectivity check
     prisma.$queryRaw`SELECT 1`
-        .then(() => console.log(`  DB Connection:  ✅ Connected`))
+        .then(() => console.info(`  DB Connection:  ✅ Connected`))
         .catch(e => console.error(`  DB Connection:  ❌ FAILED — ${e.message}`));
-    console.log('====================\n');
+    console.info('====================\n');
 });
 
 // Start background worker by default (disable with DISABLE_WORKER=true)
 if (process.env.DISABLE_WORKER !== 'true') {
-    console.log('[WORKER] Starting background worker for reminders and follow-ups...');
+    console.info('[WORKER] Starting background worker for reminders and follow-ups...');
     require('./worker');
 } else {
     console.warn('[WORKER] Background worker is DISABLED. No automated reminders will be sent.');

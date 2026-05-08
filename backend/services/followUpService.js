@@ -49,7 +49,7 @@ async function processFollowUps() {
         try {
             await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
             await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp1SentAt: now } });
-            console.log(`[FollowUp1] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
+            console.info(`[FollowUp1] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
         } catch (err) {
             console.warn(`[FollowUp1] Failed for case ${mc.id}: ${err.message}`);
         }
@@ -75,7 +75,7 @@ async function processFollowUps() {
         try {
             await sendFollowUp(mc.clinic, mc.fromNumber, msg, mc.id);
             await prisma.missedCall.update({ where: { id: mc.id }, data: { followUp2SentAt: now } });
-            console.log(`[FollowUp2] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
+            console.info(`[FollowUp2] Sent to ***${mc.fromNumber.slice(-4)} for case ${mc.id}`);
         } catch (err) {
             console.warn(`[FollowUp2] Failed for case ${mc.id}: ${err.message}`);
         }

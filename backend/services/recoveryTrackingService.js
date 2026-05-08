@@ -581,7 +581,8 @@ async function backfillRecoveryCases({ days = 30 } = {}) {
             ]
         },
         orderBy: { createdAt: 'desc' },
-        select: { id: true }
+        select: { id: true },
+        take: 500
     });
 
     let processed = 0;

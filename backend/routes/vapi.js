@@ -10,6 +10,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
@@ -22,14 +23,14 @@ function vapiAuth(req, res, next) {
     const vapiSecret = process.env.VAPI_WEBHOOK_SECRET || process.env.VAPI_API_KEY;
     if (!vapiSecret) {
         if (process.env.NODE_ENV === 'production') {
-            return res.status(500).json({ error: 'Vapi webhook authentication not configured' });
+            throw new AppError('CONFIGURATION_ERROR', 'Vapi webhook authentication not configured', 500);
         }
         console.warn('[Vapi] WARNING: No VAPI_WEBHOOK_SECRET set — running unauthenticated in dev');
         return next();
     }
     const provided = req.headers['x-vapi-secret'] || req.headers['authorization']?.replace('Bearer ', '');
     if (!provided || provided !== vapiSecret) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
     }
     next();
 }
@@ -43,7 +44,7 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     const callId = event.id;
     const status = event.status;
 
-    console.log(`[Vapi] Webhook: status=${status} callId=${callId}`);
+    console.info(`[Vapi] Webhook: status=${status} callId=${callId}`);
 
     res.json({ success: true });
 
@@ -67,9 +68,9 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         }
     }
     if (!input || typeof input !== 'object') {
-        return res.status(400).json({ success: false, message: 'Missing tool arguments' });
+        throw new AppError('VALIDATION_ERROR', 'Missing tool arguments', 400);
     }
-    console.log(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
+    console.info(`[Vapi] Tool call: ${fn} callId=${call_id}`, input);
 
     const mc = await prisma.missedCall.findFirst({
         where: { callSid: call_id },
@@ -96,7 +97,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
 
 async function handleVapiEvent(event) {
     const { id: call_id, status, metadata, summary } = event;
-    console.log(`[Vapi] Processing: status=${status} callId=${call_id}`);
+    console.info(`[Vapi] Processing: status=${status} callId=${call_id}`);
 
     const missedCallId = metadata?.missedCallId;
     const mc = missedCallId
@@ -112,7 +113,7 @@ async function handleVapiEvent(event) {
     if (status === 'ended' || status === 'completed') {
         const wasBooked = mc.status === 'RECOVERED';
 
-        console.log(`[Vapi] Call ended: callId=${call_id} booked=${wasBooked}`);
+        console.info(`[Vapi] Call ended: callId=${call_id} booked=${wasBooked}`);
 
         await prisma.missedCall.update({
             where: { id: mc.id },
@@ -128,7 +129,7 @@ async function handleVapiEvent(event) {
             if (clinic) {
                 const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}&missedCallId=${mc.id}`;
                 const smsBody = `Σας καλέσαμε από το ${clinic.name || 'το ιατρείο'} αλλά δεν απαντήσατε.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;
-                console.log(`[Vapi] SMS fallback → ${mc.fromNumber}`);
+                console.info(`[Vapi] SMS fallback → ${mc.fromNumber}`);
                 await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id);
             }
         }
@@ -137,7 +138,7 @@ async function handleVapiEvent(event) {
 
 async function handleVoiceBooking(mc, input) {
     const { patient_name, preferred_day, preferred_time } = input;
-    console.log(`[Vapi] Booking via voice: ${patient_name} — ${preferred_day} ${preferred_time}`);
+    console.info(`[Vapi] Booking via voice: ${patient_name} — ${preferred_day} ${preferred_time}`);
 
     const clinic = mc.clinic;
 
@@ -188,7 +189,7 @@ async function handleVoiceBooking(mc, input) {
                 },
                 { userId: null, ip: null }
             );
-            console.log(`[Vapi] Appointment created via appointmentService`);
+            console.info(`[Vapi] Appointment created via appointmentService`);
             booked = true;
         } catch (err) {
             console.warn('[Vapi] Appointment create failed:', err.message);
@@ -221,7 +222,7 @@ async function handleVoiceBooking(mc, input) {
             console.warn('[Vapi] markRecoveryCaseRecovered failed:', err.message);
         }
 
-        console.log(`[Vapi] Case RECOVERED: ${mc.id}`);
+        console.info(`[Vapi] Case RECOVERED: ${mc.id}`);
         return;
     }
 
@@ -233,11 +234,11 @@ async function handleVoiceBooking(mc, input) {
             patientId: patient?.id || mc.patientId || null,
         }
     });
-    console.log(`[Vapi] Booking not completed, case remains RECOVERING: ${mc.id}`);
+    console.info(`[Vapi] Booking not completed, case remains RECOVERING: ${mc.id}`);
 }
 
 async function handleVoiceCallback(mc) {
-    console.log(`[Vapi] Callback requested`);
+    console.info(`[Vapi] Callback requested`);
     await prisma.missedCall.update({
         where: { id: mc.id },
         data: { conversationState: 'CALLBACK', status: 'RECOVERING' }

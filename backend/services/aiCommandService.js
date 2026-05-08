@@ -103,29 +103,47 @@ async function parseCommand(command, context = {}) {
  * Find patient by name (fuzzy match)
  */
 async function findPatientByName(clinicId, name) {
-    const patients = await prisma.patient.findMany({
-        where: { clinicId },
+    const nameLower = name.toLowerCase().trim();
+    
+    // Try exact match first
+    let match = await prisma.patient.findFirst({
+        where: {
+            clinicId,
+            name: {
+                equals: name,
+                mode: 'insensitive'
+            }
+        },
+        select: { id: true, name: true, phone: true }
+    });
+    if (match) return match;
+    
+    // Try startsWith match
+    match = await prisma.patient.findFirst({
+        where: {
+            clinicId,
+            name: {
+                startsWith: name,
+                mode: 'insensitive'
+            }
+        },
+        select: { id: true, name: true, phone: true }
+    });
+    if (match) return match;
+
+    // Try contains match
+    match = await prisma.patient.findFirst({
+        where: {
+            clinicId,
+            name: {
+                contains: name,
+                mode: 'insensitive'
+            }
+        },
         select: { id: true, name: true, phone: true }
     });
     
-    const nameLower = name.toLowerCase().trim();
-    
-    // Exact match
-    let match = patients.find(p => p.name.toLowerCase() === nameLower);
-    if (match) return match;
-    
-    // Partial match (first name or last name)
-    match = patients.find(p => {
-        const parts = p.name.toLowerCase().split(' ');
-        return parts.some(part => part === nameLower || part.startsWith(nameLower));
-    });
-    if (match) return match;
-    
-    // Contains match
-    match = patients.find(p => p.name.toLowerCase().includes(nameLower));
-    if (match) return match;
-    
-    return null;
+    return match;
 }
 
 /**

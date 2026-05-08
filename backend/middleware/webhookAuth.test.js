@@ -20,7 +20,7 @@ describe('webhookAuth', () => {
         jest.clearAllMocks();
     });
 
-    test('returns 401 on malformed signature length mismatch', () => {
+    test('returns 401 on malformed signature length mismatch', async () => {
         const req = {
             headers: { 'x-webhook-signature': 'abc' },
             body: { foo: 'bar' },
@@ -29,14 +29,15 @@ describe('webhookAuth', () => {
         const res = createRes();
         const next = jest.fn();
 
-        webhookAuth(req, res, next);
+        await webhookAuth(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(401);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Invalid webhook signature' });
-        expect(next).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledWith(expect.any(Error));
+        const error = next.mock.calls[0][0];
+        expect(error.status).toBe(401);
+        expect(error.code).toBe('UNAUTHORIZED');
     });
 
-    test('accepts valid signature', () => {
+    test('accepts valid signature', async () => {
         const rawBody = '{"foo":"bar"}';
         const signature = crypto
             .createHmac('sha256', process.env.WEBHOOK_SECRET)
@@ -51,9 +52,9 @@ describe('webhookAuth', () => {
         const res = createRes();
         const next = jest.fn();
 
-        webhookAuth(req, res, next);
+        await webhookAuth(req, res, next);
 
-        expect(next).toHaveBeenCalled();
+        expect(next).toHaveBeenCalledWith();
         expect(res.status).not.toHaveBeenCalled();
     });
 });

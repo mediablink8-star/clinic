@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const { verifyToken } = require('../services/authService');
 const prisma = require('../services/prisma');
+const AppError = require('../errors/AppError');
+const asyncHandler = require('./asyncHandler');
 
 /**
  * Automation auth middleware.
@@ -10,20 +12,20 @@ const prisma = require('../services/prisma');
  *
  * If neither is present or valid, returns 401.
  */
-module.exports = async function automationAuth(req, res, next) {
+module.exports = asyncHandler(async function automationAuth(req, res, next) {
     // Mode 1: API key (workflow tools)
     const apiKey = req.headers['x-api-key'];
     if (apiKey) {
         const envKey = process.env.AUTOMATION_API_KEY;
         if (!envKey) {
-            return res.status(401).json({ error: { code: 'NO_API_KEY_CONFIGURED', message: 'AUTOMATION_API_KEY is not set on this server' } });
+            throw new AppError('NO_API_KEY_CONFIGURED', 'AUTOMATION_API_KEY is not set on this server', 401);
         }
         // Timing-safe comparison to prevent timing attacks
         try {
             const match = crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(envKey));
-            if (!match) return res.status(401).json({ error: { code: 'INVALID_API_KEY', message: 'Invalid API key' } });
+            if (!match) throw new AppError('INVALID_API_KEY', 'Invalid API key', 401);
         } catch {
-            return res.status(401).json({ error: { code: 'INVALID_API_KEY', message: 'Invalid API key' } });
+            throw new AppError('INVALID_API_KEY', 'Invalid API key', 401);
         }
         // API key auth doesn't have a user context — set a sentinel so downstream services know
         req.user = { userId: 'automation', role: 'AUTOMATION' };
@@ -31,8 +33,8 @@ module.exports = async function automationAuth(req, res, next) {
         // Verify clinic exists and is active when clinicId is provided
         if (req.clinicId) {
             const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
-            if (!clinic) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Clinic not found' } });
-            if (!clinic.isActive) return res.status(403).json({ error: { code: 'CLINIC_INACTIVE', message: 'Clinic is not active' } });
+            if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+            if (!clinic.isActive) throw new AppError('CLINIC_INACTIVE', 'Clinic is not active', 403);
             req.clinic = clinic;
         }
         return next();
@@ -44,17 +46,17 @@ module.exports = async function automationAuth(req, res, next) {
         const token = authHeader.split(' ')[1];
         const decoded = verifyToken(token);
         if (!decoded || !decoded.userId) {
-            return res.status(401).json({ error: { code: 'INVALID_TOKEN', message: 'Invalid or expired token' } });
+            throw new AppError('INVALID_TOKEN', 'Invalid or expired token', 401);
         }
         req.user = decoded;
         req.clinicId = decoded.clinicId;
 
         const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
-        if (!clinic) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Clinic not found' } });
-        if (!clinic.isActive) return res.status(403).json({ error: { code: 'CLINIC_INACTIVE', message: 'Clinic is not active' } });
+        if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+        if (!clinic.isActive) throw new AppError('CLINIC_INACTIVE', 'Clinic is not active', 403);
         req.clinic = clinic;
         return next();
     }
 
-    return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Missing authentication' } });
-};
+    throw new AppError('UNAUTHORIZED', 'Missing authentication', 401);
+});

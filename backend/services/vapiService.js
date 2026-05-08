@@ -104,7 +104,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     try {
         const result = await vapiRequest('POST', '/call', payload, apiKey);
         if (result.status === 200 && result.data?.id) {
-            console.log(`[Vapi] Outbound call triggered: ${result.data.id} → ***${phone.slice(-4)}`);
+            console.info(`[Vapi] Outbound call triggered: ${result.data.id} → ***${phone.slice(-4)}`);
             return { success: true, callId: result.data.id };
         }
         console.warn('[Vapi] Outbound call failed:', JSON.stringify(result.data));
@@ -170,7 +170,7 @@ async function importVonageNumber({ clinic, vonageNumber, credentialId }) {
     try {
         const result = await vapiRequest('POST', '/phone-number', payload, apiKey);
         if (result.status === 200 && result.data?.id) {
-            console.log(`[Vapi] Imported Vonage number: ${vonageNumber}`);
+            console.info(`[Vapi] Imported Vonage number: ${vonageNumber}`);
             return { success: true, phoneNumberId: result.data.id };
         }
         return { success: false, reason: JSON.stringify(result.data) };

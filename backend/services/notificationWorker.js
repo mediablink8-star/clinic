@@ -58,14 +58,14 @@ function startNotificationWorker() {
     });
 
     reminderWorker.on('completed', (job) => {
-        console.log(`[Reminder Worker] Notification ${job.data.notificationId} sent successfully`);
+        console.info(`[Reminder Worker] Notification ${job.data.notificationId} sent successfully`);
     });
 
     reminderWorker.on('failed', (job, err) => {
         console.error(`[Reminder Worker] Notification ${job?.data?.notificationId} failed: ${err.message}`);
     });
 
-    console.log('✅ BullMQ reminder worker started (processes notification sending)');
+    console.info('✅ BullMQ reminder worker started (processes notification sending)');
 
     // Register repeatable jobs — BullMQ ensures only one fires per interval cluster-wide
     schedulerQueue.add('process-notifications', {}, {
@@ -95,20 +95,20 @@ function startNotificationWorker() {
                 await markNotificationEnqueued(item.id);
                 enqueued++;
             }
-            if (enqueued > 0) console.log(`[Scheduler] Enqueued ${enqueued} notification jobs`);
+            if (enqueued > 0) console.info(`[Scheduler] Enqueued ${enqueued} notification jobs`);
             return { enqueued };
         }
 
         if (job.name === 'process-scheduled-sms') {
             const count = await processScheduledMissedCalls();
-            if (count > 0) console.log(`[Scheduler] Processed ${count} scheduled SMS(es)`);
+            if (count > 0) console.info(`[Scheduler] Processed ${count} scheduled SMS(es)`);
             return { processed: count };
         }
 
         if (job.name === 'process-followups') {
             const result = await processFollowUps();
             if (result.followUp1 + result.followUp2 > 0) {
-                console.log(`[Scheduler] Follow-ups sent: F1=${result.followUp1} F2=${result.followUp2}`);
+                console.info(`[Scheduler] Follow-ups sent: F1=${result.followUp1} F2=${result.followUp2}`);
             }
             return result;
         }
@@ -123,7 +123,7 @@ function startNotificationWorker() {
         console.error(`[Scheduler] Job ${job?.name} failed: ${err.message}`);
     });
 
-    console.log('✅ BullMQ scheduler worker started (cluster-safe repeatable jobs)');
+    console.info('✅ BullMQ scheduler worker started (cluster-safe repeatable jobs)');
 }
 
 // Legacy exports kept for backward compatibility

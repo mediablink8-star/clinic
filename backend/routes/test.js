@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../services/prisma');
 const { triggerWebhook } = require('../services/webhookService');
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 
 router.post('/simulate-booking', asyncHandler(async (req, res) => {
     const clinic = req.clinic;
@@ -95,7 +96,8 @@ router.post('/simulate-booking', asyncHandler(async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        if (error instanceof AppError) throw error;
+        throw new AppError('INTERNAL_ERROR', error.message, 500);
     }
 }));
 
@@ -107,7 +109,7 @@ router.post('/ping-make', asyncHandler(async (req, res) => {
     const clinic = req.clinic;
 
     if (!clinic || !clinic.webhookUrl) {
-        return res.status(400).json({ error: 'No webhook URL configured for this clinic.' });
+        throw new AppError('VALIDATION_ERROR', 'No webhook URL configured for this clinic.', 400);
     }
 
     const { success, duration, message, error } = await triggerWebhook('system.ping', {
@@ -119,7 +121,7 @@ router.post('/ping-make', asyncHandler(async (req, res) => {
     if (success) {
         res.json({ success: true, message: `Ping sent to ${clinic.webhookUrl}`, responseTime: duration });
     } else {
-        res.status(500).json({ error: error || message || 'Failed to send ping.', responseTime: duration });
+        throw new AppError('EXTERNAL_SERVICE_ERROR', error || message || 'Failed to send ping.', 500, { duration });
     }
 }));
 

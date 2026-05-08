@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const AppError = require('../errors/AppError');
 
 const KNOWN_CLINIC_IDS = process.env.KNOWN_CLINIC_IDS 
     ? process.env.KNOWN_CLINIC_IDS.split(',').map(id => id.trim())
@@ -12,12 +13,14 @@ const KNOWN_CLINIC_IDS = process.env.KNOWN_CLINIC_IDS
  *
  * If WEBHOOK_SECRET is not set, the request is allowed through with a warning log.
  */
-module.exports = function webhookAuth(req, res, next) {
+const asyncHandler = require('./asyncHandler');
+
+module.exports = asyncHandler(async function webhookAuth(req, res, next) {
     const envSecret = process.env.WEBHOOK_SECRET;
 
     if (!envSecret) {
         if (process.env.NODE_ENV === 'production') {
-            return res.status(500).json({ error: 'Webhook authentication not configured' });
+            throw new AppError('CONFIGURATION_ERROR', 'Webhook authentication not configured', 500);
         }
         console.warn('[WEBHOOK] WARNING: WEBHOOK_SECRET not set. Webhooks running in insecure mode.');
         return next();
@@ -34,12 +37,12 @@ module.exports = function webhookAuth(req, res, next) {
             // Check clinicId allowlist if provided
             if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
                 if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
-                    return res.status(403).json({ error: 'Clinic not allowed' });
+                    throw new AppError('FORBIDDEN', 'Clinic not allowed', 403);
                 }
             }
             return next();
         }
-        return res.status(401).json({ error: 'Invalid webhook secret' });
+        throw new AppError('UNAUTHORIZED', 'Invalid webhook secret', 401);
     }
 
     // Mode 2: HMAC-SHA256 signature header (sent by our own triggerWebhook)
@@ -54,19 +57,19 @@ module.exports = function webhookAuth(req, res, next) {
         const signatureBuffer = Buffer.from(signature);
         const expectedBuffer = Buffer.from(expected);
         if (signatureBuffer.length !== expectedBuffer.length) {
-            return res.status(401).json({ error: 'Invalid webhook signature' });
+            throw new AppError('UNAUTHORIZED', 'Invalid webhook signature', 401);
         }
         if (crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
             // Check clinicId allowlist if provided
             if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
                 if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
-                    return res.status(403).json({ error: 'Clinic not allowed' });
+                    throw new AppError('FORBIDDEN', 'Clinic not allowed', 403);
                 }
             }
             return next();
         }
-        return res.status(401).json({ error: 'Invalid webhook signature' });
+        throw new AppError('UNAUTHORIZED', 'Invalid webhook signature', 401);
     }
 
-    return res.status(401).json({ error: 'Missing webhook authentication' });
-};
+    throw new AppError('UNAUTHORIZED', 'Missing webhook authentication', 401);
+});

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
+const AppError = require('../errors/AppError');
 const { getUsage, getLogs, addCredits } = require('../services/adminService');
 const { PLANS, getPlanLimits } = require('../services/planService');
 const prisma = require('../services/prisma');
@@ -33,7 +34,7 @@ router.post('/clinics/:clinicId/plan', asyncHandler(async (req, res) => {
     const { plan } = req.body;
 
     if (!PLANS[plan]) {
-        return res.status(400).json({ error: `Invalid plan. Valid plans: ${Object.keys(PLANS).join(', ')}` });
+        throw new AppError('VALIDATION_ERROR', `Invalid plan. Valid plans: ${Object.keys(PLANS).join(', ')}`, 400);
     }
 
     const limits = getPlanLimits(plan);

@@ -35,7 +35,7 @@ if (REDIS_DISABLED) {
             }
         });
         connection.on('connect', () => {
-            console.log('[Redis] Connected successfully.');
+            console.info('[Redis] Connected successfully.');
         });
         connection.on('close', () => {
             console.warn('[Redis] Connection closed. Using DB fallback.');
@@ -65,7 +65,7 @@ const safeAddReminder = async (data) => {
         try {
             if (connection.status === 'ready') {
                 const job = await reminderQueue.add('reminder-job', data);
-                console.log(`[Queue] Job ${data.notificationId} added to Redis`);
+                console.info(`[Queue] Job ${data.notificationId} added to Redis`);
                 return job;
             }
         } catch (err) {
@@ -79,7 +79,7 @@ const safeAddReminder = async (data) => {
             where: { id: data.notificationId },
             data: { status: 'SCHEDULED' }
         });
-        console.log(`[Queue] DB Fallback: Notification ${data.notificationId} marked as SCHEDULED`);
+        console.info(`[Queue] DB Fallback: Notification ${data.notificationId} marked as SCHEDULED`);
         return { fallback: true, notificationId: data.notificationId };
     } catch (err) {
         console.error(`[Queue] DB fallback failed for ${data.notificationId}:`, err.message);
