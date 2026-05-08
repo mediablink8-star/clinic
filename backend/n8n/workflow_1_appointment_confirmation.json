@@ -18,7 +18,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "REPLACE_WITH_YOUR_WEBHOOK_SECRET"}
+            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "admin123"}
           ]
         }
       },
@@ -106,9 +106,9 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "api_key", "value": "={{ $json.body?.vonageApiKey || 'REPLACE_WITH_YOUR_VONAGE_API_KEY' }}"},
-            {"name": "api_secret", "value": "={{ $json.body?.vonageApiSecret || 'REPLACE_WITH_YOUR_VONAGE_API_SECRET' }}"},
-            {"name": "from", "value": "={{ $json.body?.vonageFromName || 'REPLACE_WITH_YOUR_VONAGE_FROM_NAME' }}"},
+            {"name": "api_key", "value": "={{ $json.body?.vonageApiKey || '917c2dd5' }}"},
+            {"name": "api_secret", "value": "={{ $json.body?.vonageApiSecret || 'bg8RJd$*mb6N%e!baF' }}"},
+            {"name": "from", "value": "={{ $json.body?.vonageFromName || 'mediablink' }}"},
             {"name": "to", "value": "={{ $json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},
             {"name": "type", "value": "unicode"}
@@ -192,3 +192,4 @@
   },
   "settings": {"executionOrder": "v1"}
 }
+
