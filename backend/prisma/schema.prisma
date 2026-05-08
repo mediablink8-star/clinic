@@ -16,6 +16,7 @@ model Clinic {
   phone        String
   email        String
   isActive     Boolean       @default(true) // Master switch for clinic workflows
+  safeMode     Boolean       @default(false) // Safe mode: simulate all outbound actions
   workingHours String // Stored as JSON string
   services     String // Stored as JSON string
   policies     String // Stored as JSON string

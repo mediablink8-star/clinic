@@ -99,6 +99,25 @@ router.post('/toggle-status', requireOwner, asyncHandler(async (req, res) => {
     res.json({ success: true, isActive: data.isActive });
 }));
 
+// POST /api/clinic/toggle-safe-mode
+router.post('/toggle-safe-mode', requireOwner, asyncHandler(async (req, res) => {
+    const { safeMode } = req.body;
+    const updated = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: { safeMode: Boolean(safeMode) },
+        select: { safeMode: true }
+    });
+    await require('../services/auditService').logAction({
+        clinicId: req.clinicId,
+        userId: req.user.userId,
+        action: safeMode ? 'SAFE_MODE_ENABLED' : 'SAFE_MODE_DISABLED',
+        entity: 'CLINIC',
+        entityId: req.clinicId,
+        ipAddress: req.ip
+    });
+    res.json({ success: true, safeMode: updated.safeMode });
+}));
+
 
 
 function isValidUrl(str) {

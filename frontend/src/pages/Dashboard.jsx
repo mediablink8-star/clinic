@@ -107,6 +107,16 @@ const Dashboard = ({
         }
     };
 
+    const handleToggleSafeMode = async () => {
+        const nextState = !clinic?.safeMode;
+        if (onUpdate) onUpdate({ safeMode: nextState });
+        try {
+            await api.post('/clinic/toggle-safe-mode', { safeMode: nextState });
+        } catch (err) {
+            if (onUpdate) onUpdate({ safeMode: !nextState });
+        }
+    };
+
     const recovered = recoveryStats.recovered || 0;
     const revenue = recoveryStats.revenue || 0;
     const potentialRevenue = recoveryStats.potentialRevenue || 0;
@@ -158,6 +168,32 @@ const Dashboard = ({
                         <div className={clinic?.isActive ? 'status-pulse' : ''} style={{ margin: 0, width: '6px', height: '6px', borderRadius: '50%', background: clinic?.isActive ? '#10b981' : '#dc2626' }} />
                         {clinic?.isActive ? 'ΕΝΕΡΓΟ' : '⚠️ ΣΕ ΠΑΥΣΗ'}
                     </button>
+                    {/* Safe Mode toggle */}
+                    <button
+                        onClick={handleToggleSafeMode}
+                        title={clinic?.safeMode ? 'Safe Mode ενεργό — κανένα SMS/κλήση δεν στέλνεται' : 'Ενεργοποίηση Safe Mode'}
+                        style={{
+                            background: clinic?.safeMode
+                                ? 'linear-gradient(135deg,rgba(245,158,11,0.2) 0%,rgba(245,158,11,0.1) 100%)'
+                                : 'linear-gradient(135deg,rgba(255,255,255,0.3) 0%,rgba(255,255,255,0.1) 100%)',
+                            color: clinic?.safeMode ? '#d97706' : 'var(--text-light)',
+                            border: `1px solid ${clinic?.safeMode ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.22)'}`,
+                            padding: '6px 14px',
+                            borderRadius: '99px',
+                            fontSize: '0.75rem',
+                            fontWeight: '800',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            backdropFilter: 'blur(18px) saturate(180%)',
+                            whiteSpace: 'nowrap',
+                            boxShadow: 'var(--shadow-sm)'
+                        }}
+                    >
+                        🛡️ {clinic?.safeMode ? 'SAFE MODE' : 'Safe Mode'}
+                    </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px', background: 'linear-gradient(180deg,rgba(255,255,255,0.34) 0%,rgba(255,255,255,0.14) 100%)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(20px) saturate(180%)', boxShadow: 'var(--shadow-sm)' }}>
                         <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '4px 9px', fontSize: '0.75rem' }}><LineChart size={14} /> Αναφορές</button>
                         <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '5px 11px', borderRadius: '8px', fontSize: '0.75rem' }}><Plus size={14} strokeWidth={3} /> Νέο Ραντεβού</button>
@@ -171,6 +207,47 @@ const Dashboard = ({
             <div style={{ flexShrink: 0 }}>
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
+
+            {/* ── SAFE MODE BANNER ── */}
+            {clinic?.safeMode && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.9) 0%, rgba(217,119,6,0.8) 100%)',
+                    border: '2px solid rgba(245,158,11,0.6)',
+                    borderRadius: '16px',
+                    padding: '0.85rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 8px 24px rgba(245,158,11,0.3)',
+                    flexShrink: 0
+                }}>
+                    <div style={{ fontSize: '1.5rem' }}>🛡️</div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ color: 'white', fontWeight: '800', fontSize: '0.9rem', marginBottom: '2px' }}>
+                            Safe Mode Ενεργό
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>
+                            Κανένα SMS ή κλήση δεν στέλνεται. Όλες οι ενέργειες προσομοιώνονται.
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleToggleSafeMode}
+                        style={{
+                            background: 'white',
+                            color: '#d97706',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '10px',
+                            fontSize: '0.8rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        Απενεργοποίηση
+                    </button>
+                </div>
+            )}
 
             {/* ── INACTIVE WARNING ── */}
             {!clinic?.isActive && (

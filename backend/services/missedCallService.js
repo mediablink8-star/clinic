@@ -75,6 +75,29 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         return { success: false, error: 'Clinic inactive' };
     }
 
+    // ── Safe Mode — simulate all outbound actions ─────────────────────────
+    if (clinic.safeMode) {
+        console.info(`[SafeMode] Clinic ${clinicId} is in safe mode — simulating recovery for ***${normalizedPhone.slice(-4)}`);
+        const missedCall = await prisma.missedCall.create({
+            data: {
+                clinicId,
+                fromNumber: normalizedPhone,
+                callSid: callSid || null,
+                status: 'RECOVERING',
+                smsStatus: 'simulated',
+                estimatedRevenue: (() => {
+                    try {
+                        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+                        return parseFloat(ai.avgAppointmentValue) || 80;
+                    } catch { return 80; }
+                })(),
+            }
+        });
+        await ensureRecoveryCaseForMissedCall(missedCall.id);
+        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'simulated', safeMode: true } };
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     // ── Opt-out check — never contact opted-out patients ─────────────────
     if (patient?.optedOut) {
         console.info(`[MissedCall] Skipping opted-out patient ***${normalizedPhone.slice(-4)}`);
