@@ -217,10 +217,20 @@ const { handleCallback: gcalHandleCallback } = require('./services/googleCalenda
 app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
     const { code, state: clinicId, error } = req.query;
     const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
-    if (error) return res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(error)}`);
-    if (!code || !clinicId) return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
+    
+    console.log('[GoogleCalendar] Callback received:', { hasError: !!error, hasCode: !!code, hasState: !!clinicId });
+    
+    if (error) {
+        console.error('[GoogleCalendar] OAuth error:', error);
+        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(error)}`);
+    }
+    if (!code || !clinicId) {
+        console.error('[GoogleCalendar] Missing code or state');
+        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
+    }
     try {
         await gcalHandleCallback(code, clinicId);
+        console.log('[GoogleCalendar] Successfully connected for clinic:', clinicId);
         res.redirect(`${frontendUrl}/settings?gcal=connected`);
     } catch (err) {
         console.error('[GoogleCalendar] Callback error:', err.message);

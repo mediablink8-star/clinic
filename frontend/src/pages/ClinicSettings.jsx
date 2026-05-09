@@ -462,7 +462,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             setGcalStatus({ connected: true });
             window.history.replaceState({}, '', window.location.pathname);
         } else if (gcal === 'error') {
-            showToast('Σφάλμα σύνδεσης Google Calendar.', 'error');
+            const reason = new URLSearchParams(window.location.search).get('reason');
+            showToast(`Σφάλμα σύνδεσης: ${reason || 'Άγνωστο σφάλμα'}`, 'error');
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, [token]);
