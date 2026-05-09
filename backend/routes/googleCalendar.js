@@ -42,40 +42,4 @@ router.get('/auth', requireOwner, asyncHandler(async (req, res) => {
     res.json({ url });
 }));
 
-/**
- * GET /api/clinic/google-calendar/callback
- * OAuth2 callback — exchanges code for tokens and saves them.
- * Redirects to frontend settings page when done.
- */
-router.get('/callback', asyncHandler(async (req, res) => {
-    const { code, state: clinicId, error } = req.query;
-
-    const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
-
-    if (error) {
-        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(error)}`);
-    }
-
-    if (!code || !clinicId) {
-        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
-    }
-
-    try {
-        await handleCallback(code, clinicId);
-        res.redirect(`${frontendUrl}/settings?gcal=connected`);
-    } catch (err) {
-        console.error('[GoogleCalendar] Callback error:', err.message);
-        res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(err.message)}`);
-    }
-}));
-
-/**
- * DELETE /api/clinic/google-calendar/disconnect
- * Removes Google Calendar connection for this clinic.
- */
-router.delete('/disconnect', requireOwner, asyncHandler(async (req, res) => {
-    await disconnect(req.clinicId);
-    res.json({ success: true });
-}));
-
 module.exports = router;

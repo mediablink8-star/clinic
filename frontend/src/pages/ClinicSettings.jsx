@@ -465,7 +465,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             showToast('Σφάλμα σύνδεσης Google Calendar.', 'error');
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, []);
+    }, [token]);
 
     const handleConnectGoogleCalendar = async () => {
         setGcalLoading(true);
