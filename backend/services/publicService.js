@@ -110,7 +110,11 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, webhookUrl: true, webhookSecret: true, workingHours: true, aiConfig: true, timezone: true, isActive: true },
+        select: { 
+            id: true, webhookUrl: true, webhookSecret: true, workingHours: true, aiConfig: true, 
+            timezone: true, isActive: true,
+            googleCalendarRefreshToken: true, googleCalendarEnabled: true, googleCalendarId: true
+        },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     if (!clinic.isActive) throw new AppError('CLINIC_INACTIVE', 'This clinic is not currently accepting bookings', 403);
@@ -234,6 +238,19 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const { scheduleAppointmentReminder } = require('./appointmentService');
     scheduleAppointmentReminder({ appointment, patient, clinic })
         .catch(err => console.warn('[Reminder] Failed to schedule from public booking:', err.message));
+
+    // Push to Google Calendar if connected
+    const { createCalendarEvent } = require('./googleCalendarService');
+    createCalendarEvent({ clinic, appointment, patient })
+        .then(eventId => {
+            if (eventId) {
+                return prisma.appointment.update({
+                    where: { id: appointment.id },
+                    data: { googleCalendarEventId: eventId }
+                });
+            }
+        })
+        .catch(err => console.warn('[GoogleCalendar] Push failed from public booking:', err.message));
 
     return { success: true, data: { appointmentId: appointment.id } };
 }
