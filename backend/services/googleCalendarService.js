@@ -35,22 +35,30 @@ function getAuthUrl(clinicId) {
  */
 async function handleCallback(code, clinicId) {
     const oauth2Client = getOAuth2Client();
-    const { tokens } = await oauth2Client.getToken(code);
+    console.log('[GoogleCalendar] Using redirect URI:', oauth2Client._redirectUri);
+    console.log('[GoogleCalendar] Client ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING');
+    try {
+        const { tokens } = await oauth2Client.getToken(code);
+        console.log('[GoogleCalendar] Token exchange successful, has refresh:', !!tokens.refresh_token);
 
-    if (!tokens.refresh_token) {
-        throw new Error('No refresh token received. User may need to revoke access and reconnect.');
-    }
-
-    await prisma.clinic.update({
-        where: { id: clinicId },
-        data: {
-            googleCalendarRefreshToken: encrypt(tokens.refresh_token),
-            googleCalendarEnabled: true,
-            googleCalendarId: 'primary', // default to primary calendar
+        if (!tokens.refresh_token) {
+            throw new Error('No refresh token received. User may need to revoke access and reconnect.');
         }
-    });
 
-    return { success: true };
+        await prisma.clinic.update({
+            where: { id: clinicId },
+            data: {
+                googleCalendarRefreshToken: encrypt(tokens.refresh_token),
+                googleCalendarEnabled: true,
+                googleCalendarId: 'primary',
+            }
+        });
+
+        return { success: true };
+    } catch (err) {
+        console.error('[GoogleCalendar] Token exchange error details:', err.response?.data || err.message);
+        throw err;
+    }
 }
 
 /**
