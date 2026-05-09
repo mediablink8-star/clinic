@@ -9,7 +9,7 @@ const { encrypt, decrypt } = require('../services/encryptionService');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {
-        throw new AppError('FORBIDDEN', 'Απαιτείται ρόλος Ιδιοκτήτη.', 403);
+        throw new AppError('FORBIDDEN', 'Owner role required.', 403);
     }
     next();
 };

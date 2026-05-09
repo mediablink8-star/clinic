@@ -10,13 +10,18 @@ const { createAppointment } = require('./appointmentService');
 const { normalizePhone } = require('../utils/phone');
 
 // Restore getTemplate which was removed in the normalizePhone cleanup
-function getTemplate(clinic, key, fallback) {
+function getAiConfig(clinic) {
     try {
-        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        return (ai[key] && ai[key].trim()) ? ai[key] : fallback;
-    } catch {
-        return fallback;
+        return typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
+    } catch (err) {
+        console.warn(`[Conversation] Failed to parse aiConfig for clinic ${clinic.id}: ${err.message}`);
+        return {};
     }
+}
+
+function getTemplate(clinic, key, fallback) {
+    const ai = getAiConfig(clinic);
+    return (ai[key] && ai[key].trim()) ? ai[key] : fallback;
 }
 
 const SYSTEM_ACTOR = { userId: 'system-conversation', ip: 'auto' };
@@ -105,39 +110,27 @@ async function sendReply(clinic, phone, message) {
 }
 
 function shouldReplyNow(clinic) {
-    try {
-        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const { withinHours } = checkWorkingHours(new Date(), ai.workingHours || null);
-        return withinHours;
-    } catch {
-        return true;
-    }
+    const ai = getAiConfig(clinic);
+    const { withinHours } = checkWorkingHours(new Date(), ai.workingHours || null);
+    return withinHours;
 }
 
 function outsideHoursMessage(clinic) {
-    try {
-        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const { scheduledAt } = checkWorkingHours(new Date(), ai.workingHours || null);
-        const timeStr = scheduledAt
-            ? scheduledAt.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
-            : '09:00';
-        return `Ευχαριστούμε για το μήνυμά σας! Θα σας απαντήσουμε αύριο στις ${timeStr} 😊`;
-    } catch {
-        return 'Ευχαριστούμε! Θα σας απαντήσουμε κατά τις ώρες λειτουργίας 😊';
-    }
+    const ai = getAiConfig(clinic);
+    const { scheduledAt } = checkWorkingHours(new Date(), ai.workingHours || null);
+    const timeStr = scheduledAt
+        ? scheduledAt.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })
+        : '09:00';
+    return `Ευχαριστούμε για το μήνυμά σας! Θα σας απαντήσουμε αύριο στις ${timeStr} 😊`;
 }
 
 function buildClinicInfo(clinic) {
-    try {
-        const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
-        const parts = [];
-        if (ai.services) parts.push(`Υπηρεσίες: ${ai.services}`);
-        if (ai.workingHours) parts.push(`Ώρες: ${typeof ai.workingHours === 'string' ? ai.workingHours : JSON.stringify(ai.workingHours)}`);
-        if (clinic.location) parts.push(`Διεύθυνση: ${clinic.location}`);
-        return parts.length > 0 ? parts.join('\n') : null;
-    } catch {
-        return null;
-    }
+    const ai = getAiConfig(clinic);
+    const parts = [];
+    if (ai.services) parts.push(`Υπηρεσίες: ${ai.services}`);
+    if (ai.workingHours) parts.push(`Ώρες: ${typeof ai.workingHours === 'string' ? ai.workingHours : JSON.stringify(ai.workingHours)}`);
+    if (clinic.location) parts.push(`Διεύθυνση: ${clinic.location}`);
+    return parts.length > 0 ? parts.join('\n') : null;
 }
 
 async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCallId }) {
@@ -157,12 +150,12 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
     console.info(`[Conversation] case=${mc.id} state=${state} from=***${normalizedFromPhone.slice(-4)} msg="${text.slice(0, 20)}..."`);
 
     if (!shouldReplyNow(clinic)) {
-        sendReply(clinic, normalizedFromPhone, outsideHoursMessage(clinic));
+        await sendReply(clinic, normalizedFromPhone, outsideHoursMessage(clinic));
         return;
     }
 
     if (state === 'BOOKING') {
-        return handleBookingStep(mc, clinic, text, normalizedFromPhone);
+        return await handleBookingStep(mc, clinic, text, normalizedFromPhone);
     }
 
     if (state === 'QUESTION') {
@@ -172,7 +165,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
                 where: { id: mc.id },
                 data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
             });
-            sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
+            await sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
             return;
         }
         if (lowerText === '2' || lowerText.includes('οχι') || lowerText.includes('no')) {
@@ -180,12 +173,12 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
                 where: { id: mc.id },
                 data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
             });
-            sendReply(clinic, normalizedFromPhone, 'Εντάξει! Αν χρειαστείτε κάτι, είμαστε εδώ 😊');
+            await sendReply(clinic, normalizedFromPhone, 'Εντάξει! Αν χρειαστείτε κάτι, είμαστε εδώ 😊');
             return;
         }
         const clinicInfo = buildClinicInfo(clinic);
         const infoText = clinicInfo ? `${clinicInfo}\n\n` : 'Θα επικοινωνήσει μαζί σας το ιατρείο για να απαντήσει στην ερώτησή σας 👍\n\n';
-        sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
+        await sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
         return;
     }
 
@@ -194,7 +187,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'COMPLETED', status: 'RECOVERING' }
         });
-        sendReply(clinic, normalizedFromPhone, 'Το ιατρείο θα σας καλέσει σύντομα 📞');
+        await sendReply(clinic, normalizedFromPhone, 'Το ιατρείο θα σας καλέσει σύντομα 📞');
         return;
     }
 
@@ -215,7 +208,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'COMPLETED', status: 'LOST' }
         });
-        sendReply(clinic, normalizedFromPhone, 'Εντάξει, δεν θα σας ξαναστείλουμε μήνυμα. Αν χρειαστείτε κάτι, καλέστε μας απευθείας. 😊');
+        await sendReply(clinic, normalizedFromPhone, 'Εντάξει, δεν θα σας ξαναστείλουμε μήνυμα. Αν χρειαστείτε κάτι, καλέστε μας απευθείας. 😊');
         return;
     }
     // ─────────────────────────────────────────────────────────────────────
@@ -225,7 +218,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'BOOKING', bookingStep: 'ASKED_NAME', status: 'RECOVERING' }
         });
-        sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
+        await sendReply(clinic, normalizedFromPhone, 'Τέλεια! 😊 Πώς σας λένε;');
         return;
     }
 
@@ -236,7 +229,7 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
         });
         const clinicInfo = buildClinicInfo(clinic);
         const infoText = clinicInfo ? `${clinicInfo}\n\n` : 'Θα επικοινωνήσει μαζί σας το ιατρείο 👍\n\n';
-        sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
+        await sendReply(clinic, normalizedFromPhone, `${infoText}Θέλετε να σας κλείσω και ένα ραντεβού;\n1️⃣ Ναι  2️⃣ Όχι`);
         return;
     }
 
@@ -245,11 +238,11 @@ async function handleInboundReply({ clinicId, fromPhone, messageBody, missedCall
             where: { id: mc.id },
             data: { conversationState: 'CALLBACK', status: 'RECOVERING' }
         });
-        sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsCallbackConfirm', 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'));
+        await sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsCallbackConfirm', 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!'));
         return;
     }
 
-    sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsUnknown', 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'));
+    await sendReply(clinic, normalizedFromPhone, getTemplate(clinic, 'smsUnknown', 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'));
 }
 
 async function handleBookingStep(mc, clinic, text, fromPhone) {
@@ -261,7 +254,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             where: { id: mc.id },
             data: { bookingName: text, bookingStep: 'ASKED_DAY' }
         });
-        sendReply(clinic, fromPhone, `Χαρά μου, ${text}! 📅 Ποια μέρα σας βολεύει;`);
+        await sendReply(clinic, fromPhone, `Χαρά μου, ${text}! 📅 Ποια μέρα σας βολεύει;`);
         return;
     }
 
@@ -270,12 +263,12 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             where: { id: mc.id },
             data: { bookingDay: text, bookingStep: 'ASKED_TIME' }
         });
-        sendReply(clinic, fromPhone, 'Ωραία! ⏰ Τι ώρα σας βολεύει;');
+        await sendReply(clinic, fromPhone, 'Ωραία! ⏰ Τι ώρα σας βολεύει;');
         return;
     }
 
     if (step !== 'ASKED_TIME') {
-        sendReply(clinic, fromPhone, 'Το ραντεβού σας έχει καταχωρηθεί. Θα επικοινωνήσουμε σύντομα 😊');
+        await sendReply(clinic, fromPhone, 'Το ραντεβού σας έχει καταχωρηθεί. Θα επικοινωνήσουμε σύντομα 😊');
         return;
     }
 
@@ -287,13 +280,13 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             where: { id: mc.id },
             data: { bookingStep: 'ASKED_DAY' }
         });
-        sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ημέρα. Στείλτε π.χ. σήμερα, αύριο, Δευτέρα ή Παρασκευή.');
+        await sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ημέρα. Στείλτε π.χ. σήμερα, αύριο, Δευτέρα ή Παρασκευή.');
         return;
     }
 
     const parsedTime = parseAppointmentTime(time);
     if (!parsedTime) {
-        sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ώρα. Στείλτε π.χ. 10:00 ή 17:30.');
+        await sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ώρα. Στείλτε π.χ. 10:00 ή 17:30.');
         return;
     }
     startTime.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
@@ -310,7 +303,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
     } catch (err) {
         console.warn(`[Conversation] patient upsert failed: ${err.message}`);
         await prisma.missedCall.update({ where: { id: mc.id }, data: { bookingStep: 'ASKED_NAME' } });
-        sendReply(clinic, fromPhone, 'Δεν μπόρεσα να αποθηκεύσω τα στοιχεία σας. Μπορείτε να μου στείλετε ξανά το όνομά σας;');
+        await sendReply(clinic, fromPhone, 'Δεν μπόρεσα να αποθηκεύσω τα στοιχεία σας. Μπορείτε να μου στείλετε ξανά το όνομά σας;');
         return;
     }
 
@@ -328,14 +321,14 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
             where: { id: mc.id },
             data: { bookingStep: 'ASKED_DAY', status: 'RECOVERING' }
         });
-        sendReply(clinic, fromPhone, 'Δεν μπόρεσα να κλείσω αυτό το ραντεβού. Η ώρα ίσως δεν είναι διαθέσιμη. Στείλτε άλλη ημέρα ή ώρα.');
+        await sendReply(clinic, fromPhone, 'Δεν μπόρεσα να κλείσω αυτό το ραντεβού. Η ώρα ίσως δεν είναι διαθέσιμη. Στείλτε άλλη ημέρα ή ώρα.');
         return;
     }
 
     const bookingMsg = getTemplate(clinic, 'smsBookingConfirm', 'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊')
         .replace('{day}', day)
         .replace('{time}', time);
-    sendReply(clinic, fromPhone, bookingMsg);
+    await sendReply(clinic, fromPhone, bookingMsg);
 
     await prisma.missedCall.update({
         where: { id: mc.id },

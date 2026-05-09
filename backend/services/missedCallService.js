@@ -92,7 +92,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     // ── SMS Cooldown check ────────────────────────────────────────────────────
     // Skip SMS if same phone has an ACTIVE/RECOVERING case with SMS sent < 6h ago
     // AND no inbound reply since last SMS (patient hasn't engaged)
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);    const recentActive = await prisma.missedCall.findFirst({
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const recentActive = await prisma.missedCall.findFirst({
         where: {
             clinicId,
             fromNumber: normalizedPhone,
@@ -175,7 +176,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     // ── Voice call (Vapi) — if enabled, call patient first ───────────────
     // Voice calls trigger regardless of working hours — AI handles closed hours messaging
     if (clinic.voiceEnabled) {
-        console.log(`[Voice] voiceEnabled=true for clinic ${clinicId}, attempting call to ${normalizedPhone}`);
+        console.info(`[Voice] voiceEnabled=true for clinic ${clinicId}, attempting call to ${normalizedPhone}`);
         // Look up patient by phone number for personalised greeting
         let patientName = null;
         try {
@@ -216,7 +217,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    console.log(`[Voice] Debug: clinic.voiceEnabled=${clinic.voiceEnabled}, vapiAssistantId=${clinic.vapiAssistantId ? 'set' : 'null'}, vapiPhoneNumberId=${clinic.vapiPhoneNumberId ? 'set' : 'null'}, vapiApiKey=${clinic.vapiApiKey ? 'set' : 'null'}`);
+    console.info(`[Voice] Debug: clinic.voiceEnabled=${clinic.voiceEnabled}, vapiAssistantId=${clinic.vapiAssistantId ? 'set' : 'null'}, vapiPhoneNumberId=${clinic.vapiPhoneNumberId ? 'set' : 'null'}`);
 
     // Enforce SMS limits before triggering n8n
     try {

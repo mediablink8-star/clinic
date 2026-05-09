@@ -272,6 +272,7 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
     try {
         emailSent = await sendPasswordResetEmail(user.email, resetLink);
     } catch (err) {
+        console.warn(`[Auth] Direct password reset email failed for ${user.email}: ${err.message}`);
     }
 
     // Fallback: Send via Webhook (to n8n) if direct email setup fails but webhooks are active
@@ -286,10 +287,11 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
             },
             user.clinic.webhookUrl,
             user.clinic.webhookSecret
-        ).catch(() => {});
+        ).catch((err) => console.error(`[Auth] Password reset webhook fallback failed: ${err.message}`));
     }
 
     if (!emailSent && !user.clinic.webhookUrl) {
+        console.warn(`[Auth] Password reset failed for ${user.email} — no email provider OR webhook configured.`);
     }
 
     res.json({ success: true, message: 'Instructions sent if email exists' });

@@ -97,7 +97,8 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
-    if (!isWithinWorkingHours({ clinic, start, end, timezone: clinic.timezone || 'Europe/Athens' })) {
+    const timezone = clinic.timezone || process.env.DEFAULT_TIMEZONE || 'Europe/Athens';
+    if (!isWithinWorkingHours({ clinic, start, end, timezone })) {
         throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic working hours', 400);
     }
 
@@ -158,7 +159,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     if (appointment) {
         if (clinic) {
             const patient = await prisma.patient.findUnique({ where: { id: patientId } });
-            const startDate = new Date(startTime);
+            const startDate = new Date(appointment.startTime);
             const { decrypt } = require('./encryptionService');
             const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : null;
             const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : null;
@@ -280,7 +281,7 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
  */
 async function getAvailableSlots(clinicId, date) {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { timezone: true } });
-    const timezone = clinic?.timezone || 'Europe/Athens';
+    const timezone = clinic?.timezone || process.env.DEFAULT_TIMEZONE || 'Europe/Athens';
     return _getAvailableSlots(clinicId, date, timezone);
 }
 

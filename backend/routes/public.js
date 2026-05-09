@@ -50,7 +50,7 @@ router.use(publicLimiter);
 
 router.get('/clinic/:id', clinicEnumerationLimiter, asyncHandler(async (req, res) => {
     const { data } = await getPublicClinic(req.params.id);
-    res.json(data);
+    res.json({ success: true, data });
 }));
 
 router.get('/clinic/:id/slots', clinicEnumerationLimiter, asyncHandler(async (req, res) => {
@@ -67,8 +67,8 @@ router.post('/book', validate(publicBookingSchema), asyncHandler(async (req, res
             getBookingLimiter(clinicId)(req, res, (err) => err ? reject(err) : resolve());
         });
     }
-    const { data } = await bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId });
-    res.json({ success: true, ...data });
+    const result = await bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId });
+    res.json(result);
 }));
 
 module.exports = router;
