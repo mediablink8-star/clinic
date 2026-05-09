@@ -15,10 +15,12 @@ let _token = null;
 
 export function setAuthToken(token) {
     _token = token;
+    setAccessToken(token); // Sync with authSession
 }
 
 export function clearAuthToken() {
     _token = null;
+    clearAccessToken();
 }
 
 // Inject Bearer token on every request
