@@ -211,14 +211,7 @@ const automationAuth = require('./middleware/automationAuth');
 const automationRouter = require('./routes/automation');
 app.use('/api/automation', automationAuth, automationRouter);
 
-// Standard Clinic API
-const appointmentsRouter = require('./routes/appointments');
-app.use('/api', requireAuth, appointmentsRouter);
-
-const clinicRouter = require('./routes/clinic');
-// POST /api/clinic is admin-only; settings/ai-config require owner — enforced per-route in clinic.js
-
-// Google Calendar callback MUST be registered BEFORE /api/clinic requireAuth
+// Google Calendar callback MUST be registered BEFORE /api routes with requireAuth
 // because Google redirects here without a JWT token
 const { handleCallback: gcalHandleCallback } = require('./services/googleCalendarService');
 app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
@@ -235,6 +228,12 @@ app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) =>
     }
 }));
 
+// Standard Clinic API
+const appointmentsRouter = require('./routes/appointments');
+app.use('/api', requireAuth, appointmentsRouter);
+
+const clinicRouter = require('./routes/clinic');
+// POST /api/clinic is admin-only; settings/ai-config require owner — enforced per-route in clinic.js
 app.use('/api/clinic', requireAuth, clinicRouter);
 
 // Google Calendar routes (except callback which is above)
