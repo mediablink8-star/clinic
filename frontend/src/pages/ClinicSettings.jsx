@@ -3,7 +3,7 @@ import api from '../lib/api';
 import {
     Globe, BarChart2, Activity, Zap, Phone, Sparkles,
     Shield, Loader, Check,
-    Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink
+    Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink, Calendar
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -113,7 +113,8 @@ const SECTIONS = [
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
     { id: 's-voice', number: '5', label: 'Voice AI', icon: <Phone size={14} color="#7c3aed" />, iconBg: 'rgba(124,58,237,0.1)', title: 'Voice AI', subtitle: 'AI φωνητική ανάκτηση κλήσεων' },
     { id: 's7', number: '6', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
-    { id: 's8', number: '7', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's-gcal', number: '7', label: 'Google Cal', icon: <Calendar size={14} color="#10b981" />, iconBg: '#ecfdf5', title: 'Google Calendar', subtitle: 'Συγχρονισμός ραντεβού με Google Calendar' },
+    { id: 's8', number: '8', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
@@ -442,6 +443,49 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const vapiConfigured = !!(vapiData.vapiAssistantId && vapiData.vapiPhoneNumberId);
 
+    // Google Calendar state
+    const [gcalStatus, setGcalStatus] = React.useState(null); // null | { connected, calendarId }
+    const [gcalLoading, setGcalLoading] = React.useState(false);
+
+    React.useEffect(() => {
+        api.get('/clinic/google-calendar/status')
+            .then(r => setGcalStatus(r.data))
+            .catch(() => setGcalStatus({ connected: false }));
+
+        // Handle OAuth callback result from URL params
+        const params = new URLSearchParams(window.location.search);
+        const gcal = params.get('gcal');
+        if (gcal === 'connected') {
+            showToast('Google Calendar συνδέθηκε επιτυχώς!', 'success');
+            setGcalStatus({ connected: true });
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (gcal === 'error') {
+            showToast('Σφάλμα σύνδεσης Google Calendar.', 'error');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
+
+    const handleConnectGoogleCalendar = async () => {
+        setGcalLoading(true);
+        try {
+            const res = await api.get('/clinic/google-calendar/auth');
+            window.location.href = res.data.url;
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα σύνδεσης.', 'error');
+            setGcalLoading(false);
+        }
+    };
+
+    const handleDisconnectGoogleCalendar = async () => {
+        if (!window.confirm('Αποσύνδεση Google Calendar;')) return;
+        try {
+            await api.delete('/clinic/google-calendar/disconnect');
+            setGcalStatus({ connected: false });
+            showToast('Google Calendar αποσυνδέθηκε.', 'success');
+        } catch (err) {
+            showToast('Σφάλμα αποσύνδεσης.', 'error');
+        }
+    };
     const handleSaveGemini = async () => {
         if (!geminiData.geminiApiKey?.trim()) {
             showToast('Το Gemini API Key είναι υποχρεωτικό', 'error');
@@ -1103,8 +1147,60 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
-            {/* 6 · Audit */}
-            <SectionCard id="s8" number="7" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
+            {/* 7 · Google Calendar */}
+            <SectionCard id="s-gcal" number="7" icon={<Calendar size={15} color="#10b981" />} iconBg="#ecfdf5"
+                title="Google Calendar" subtitle="Αυτόματος συγχρονισμός ραντεβού με Google Calendar">
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '1.25rem' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#065f46', fontWeight: '600', margin: 0 }}>
+                        Κάθε νέο ραντεβού εμφανίζεται αυτόματα στο Google Calendar σας. Ακυρώσεις αφαιρούνται αυτόματα.
+                    </p>
+                </div>
+
+                {gcalStatus === null ? (
+                    <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-light)' }}>Φόρτωση...</div>
+                ) : gcalStatus.connected ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', borderRadius: '12px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px rgba(16,185,129,0.6)' }} />
+                            <div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#065f46' }}>Συνδεδεμένο</div>
+                                <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>Τα ραντεβού συγχρονίζονται αυτόματα</div>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleDisconnectGoogleCalendar}
+                            style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.06)', color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                        >
+                            Αποσύνδεση
+                        </button>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '1rem', borderRadius: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#94a3b8' }} />
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontWeight: '600' }}>Μη συνδεδεμένο</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleConnectGoogleCalendar}
+                            disabled={gcalLoading}
+                            className="btn btn-primary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                        >
+                            <Calendar size={16} />
+                            {gcalLoading ? 'Ανακατεύθυνση...' : 'Σύνδεση με Google Calendar'}
+                        </button>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: 0 }}>
+                            Θα ανακατευθυνθείτε στο Google για να δώσετε άδεια πρόσβασης στο ημερολόγιό σας.
+                        </p>
+                    </div>
+                )}
+            </SectionCard>
+
+            {/* 8 · Audit */}
+            <SectionCard id="s8" number="8" icon={<Activity size={15} color="#64748b" />} iconBg="#f1f5f9"
                 title="Αρχείο Ενεργειών" subtitle="Ιστορικό διοικητικών ενεργειών">
                 {logs.length === 0 ? <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>Δεν βρέθηκε δραστηριότητα.</p> : (
                     <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border)' }}>

@@ -40,6 +40,11 @@ model Clinic {
   // Gemini AI (for AI assistant commands)
   geminiApiKey      String? // Encrypted per-clinic Gemini API key
   
+  // Google Calendar integration
+  googleCalendarRefreshToken String? // Encrypted OAuth refresh token
+  googleCalendarId           String? // Calendar ID to push events to (default: 'primary')
+  googleCalendarEnabled      Boolean @default(false)
+  
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
   messageCredits    Int           @default(100)
@@ -163,6 +168,7 @@ model Appointment {
   feedbacks       Feedback[]
   notifications   Notification[]
   missedCalls     MissedCall[]      // Reverse relation for recovered missed calls
+  googleCalendarEventId String?     // Google Calendar event ID for sync
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }

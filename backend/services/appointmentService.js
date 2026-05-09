@@ -181,6 +181,19 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
             // Schedule 24h reminder if appointment is more than 25h away
             scheduleAppointmentReminder({ appointment, patient, clinic })
                 .catch(err => console.warn('[Reminder] Failed to schedule:', err.message));
+
+            // Push to Google Calendar if connected
+            const { createCalendarEvent } = require('./googleCalendarService');
+            createCalendarEvent({ clinic, appointment, patient })
+                .then(eventId => {
+                    if (eventId) {
+                        return prisma.appointment.update({
+                            where: { id: appointment.id },
+                            data: { googleCalendarEventId: eventId }
+                        });
+                    }
+                })
+                .catch(err => console.warn('[GoogleCalendar] Push failed:', err.message));
         }
     }
 
@@ -214,6 +227,19 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
         return updated;
     });
 
+    // Update Google Calendar event status if synced
+    if (existing.googleCalendarEventId) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const { updateCalendarEvent } = require('./googleCalendarService');
+        updateCalendarEvent({
+            clinic,
+            googleCalendarEventId: existing.googleCalendarEventId,
+            appointment: { ...existing, status },
+            patient
+        }).catch(err => console.warn('[GoogleCalendar] Update failed:', err.message));
+    }
+
     return { success: true, data: appointment };
 }
 
@@ -232,6 +258,14 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
             ipAddress: actor.ip
         });
     });
+
+    // Remove from Google Calendar if synced
+    if (existing.googleCalendarEventId) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        const { deleteCalendarEvent } = require('./googleCalendarService');
+        deleteCalendarEvent({ clinic, googleCalendarEventId: existing.googleCalendarEventId })
+            .catch(err => console.warn('[GoogleCalendar] Delete failed:', err.message));
+    }
 
     return { success: true };
 }

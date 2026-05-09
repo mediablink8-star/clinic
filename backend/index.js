@@ -219,6 +219,10 @@ const clinicRouter = require('./routes/clinic');
 // POST /api/clinic is admin-only; settings/ai-config require owner — enforced per-route in clinic.js
 app.use('/api/clinic', requireAuth, clinicRouter);
 
+// Google Calendar integration
+const googleCalendarRouter = require('./routes/googleCalendar');
+app.use('/api/clinic/google-calendar', requireAuth, googleCalendarRouter);
+
 const systemRouter = require('./routes/system');
 app.use('/api/system', requireAuth, systemRouter);
 
