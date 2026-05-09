@@ -222,7 +222,6 @@ app.use('/api/clinic', requireAuth, clinicRouter);
 // Google Calendar integration
 const googleCalendarRouter = require('./routes/googleCalendar');
 const { handleCallback: gcalHandleCallback } = require('./services/googleCalendarService');
-const asyncHandler = require('./middleware/asyncHandler');
 
 // Callback MUST be public — Google redirects here without JWT
 app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
