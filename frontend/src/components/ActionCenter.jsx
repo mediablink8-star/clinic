@@ -144,17 +144,17 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
 
             {/* Urgent banner when there are actions needed */}
             {urgentCount > 0 && (
-                <div style={{
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(220,38,38,0.05) 100%)',
-                    border: '1.5px solid rgba(239,68,68,0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    marginBottom: '0.3rem',
-                    boxShadow: '0 0 20px rgba(239,68,68,0.1)',
-                }}>
+<div style={{
+            padding: '1rem 0.9rem 0.8rem',
+            background: 'var(--card-bg)',
+            borderRadius: '20px',
+            border: '1px solid var(--border)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            marginBottom: '0.8rem',
+            overflow: 'hidden'
+        }}>
                     <div style={{
                         width: '10px',
                         height: '10px',
@@ -172,7 +172,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
 
             {/* Urgent actions */}
             {urgentCount > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '2px' }}>
                     <SectionLabel>Χρειάζεται Δράση</SectionLabel>
                     {staleCount > 0 && (
                         <ActionRow
@@ -351,6 +351,10 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
             )}
 
             <style>{`
+                .action-center-scroll::-webkit-scrollbar { width: 4px; }
+                .action-center-scroll::-webkit-scrollbar-track { background: transparent; }
+                .action-center-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 4px; }
+                .action-center-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
                 @keyframes pulse-warning {
                     0%, 100% { 
                         box-shadow: 0 0 16px rgba(239,68,68,0.2), 0 2px 8px rgba(239,68,68,0.15);
