@@ -221,6 +221,9 @@ app.use('/api/clinic', requireAuth, clinicRouter);
 
 // Google Calendar integration
 const googleCalendarRouter = require('./routes/googleCalendar');
+// Callback is public (browser redirect from Google OAuth, no JWT)
+app.get('/api/clinic/google-calendar/callback', googleCalendarRouter);
+// All other Google Calendar routes require auth
 app.use('/api/clinic/google-calendar', requireAuth, googleCalendarRouter);
 
 const systemRouter = require('./routes/system');
