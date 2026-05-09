@@ -44,6 +44,7 @@ model Clinic {
   googleCalendarRefreshToken String? // Encrypted OAuth refresh token
   googleCalendarId           String? // Calendar ID to push events to (default: 'primary')
   googleCalendarEnabled      Boolean @default(false)
+  googleOAuthState           String?
   
   googleId      String?      @unique
   avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")

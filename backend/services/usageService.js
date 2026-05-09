@@ -192,20 +192,15 @@ async function assertWithinSmsLimit(clinicId) {
     await assertRateLimits(clinicId, 'sms');
     const limit = clinic.smsMonthlyLimit || DEFAULT_SMS_LIMIT;
     const dailyLimit = Math.min(clinic.dailyMessageCap || DAILY_SMS_LIMIT, DAILY_SMS_LIMIT);
+    
     if (clinic.smsCount >= limit) {
         throw usageError('sms');
     }
     if ((clinic.dailyUsedCount || 0) >= dailyLimit) {
         throw usageError('sms');
     }
-    const usagePct = (clinic.smsCount / Math.max(1, limit)) * 100;
-    if (usagePct >= 80) {
-        console.warn(`[USAGE_WARNING] clinic=${clinicId} type=sms pct=${Math.round(usagePct)}`);
-    }
-    if (clinic.smsCount >= SPIKE_SMS_THRESHOLD || (clinic.dailyUsedCount || 0) >= Math.floor(dailyLimit * 0.9)) {
-        console.warn(`[USAGE_SPIKE] clinic=${clinicId} smsCount=${clinic.smsCount} limit=${limit}`);
-    }
-    return clinic;
+    
+    return { clinic, limit, dailyLimit };
 }
 
 async function assertWithinAiLimit(clinicId) {
@@ -213,32 +208,55 @@ async function assertWithinAiLimit(clinicId) {
     await assertNotTemporarilyBlocked(clinicId, 'ai');
     await assertRateLimits(clinicId, 'ai');
     const limit = clinic.aiMonthlyLimit || DEFAULT_AI_LIMIT;
+    
     if (clinic.aiRequestCount >= limit) {
         throw usageError('ai');
     }
-    const usagePct = (clinic.aiRequestCount / Math.max(1, limit)) * 100;
-    if (usagePct >= 80) {
-        console.warn(`[USAGE_WARNING] clinic=${clinicId} type=ai pct=${Math.round(usagePct)}`);
-    }
-    if (clinic.aiRequestCount >= SPIKE_AI_THRESHOLD) {
-        console.warn(`[USAGE_SPIKE] clinic=${clinicId} aiRequestCount=${clinic.aiRequestCount} limit=${limit}`);
-    }
-    return clinic;
+    
+    return { clinic, limit };
 }
 
-async function incrementSmsUsage(clinicId, tx = null) {
-    const client = tx || prisma;
-    return client.clinic.update({
-        where: { id: clinicId },
-        data: { smsCount: { increment: 1 } },
-    });
+async function incrementSmsUsage(clinicId) {
+    const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId);
+    
+    try {
+        return await prisma.clinic.update({
+            where: { 
+                id: clinicId,
+                smsCount: { lt: limit },
+                dailyUsedCount: { lt: dailyLimit }
+            },
+            data: { 
+                smsCount: { increment: 1 },
+                dailyUsedCount: { increment: 1 }
+            },
+        });
+    } catch (err) {
+        // If the update fails because the 'where' condition isn't met, throw usage error
+        if (err.code === 'P2025') {
+            throw usageError('sms');
+        }
+        throw err;
+    }
 }
 
 async function incrementAiUsage(clinicId) {
-    return prisma.clinic.update({
-        where: { id: clinicId },
-        data: { aiRequestCount: { increment: 1 } },
-    });
+    const { limit } = await assertWithinAiLimit(clinicId);
+    
+    try {
+        return await prisma.clinic.update({
+            where: { 
+                id: clinicId,
+                aiRequestCount: { lt: limit }
+            },
+            data: { aiRequestCount: { increment: 1 } },
+        });
+    } catch (err) {
+        if (err.code === 'P2025') {
+            throw usageError('ai');
+        }
+        throw err;
+    }
 }
 
 module.exports = {

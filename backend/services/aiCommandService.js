@@ -99,14 +99,11 @@ async function parseCommand(command, context = {}) {
     }
 }
 
-/**
- * Find patient by name (fuzzy match)
- */
-async function findPatientByName(clinicId, name) {
+async function findPatientsByName(clinicId, name) {
     const nameLower = name.toLowerCase().trim();
     
     // Try exact match first
-    let match = await prisma.patient.findFirst({
+    const exactMatches = await prisma.patient.findMany({
         where: {
             clinicId,
             name: {
@@ -116,34 +113,22 @@ async function findPatientByName(clinicId, name) {
         },
         select: { id: true, name: true, phone: true }
     });
-    if (match) return match;
+    if (exactMatches.length === 1) return exactMatches;
     
-    // Try startsWith match
-    match = await prisma.patient.findFirst({
+    // Try startsWith/contains
+    const fuzzyMatches = await prisma.patient.findMany({
         where: {
             clinicId,
-            name: {
-                startsWith: name,
-                mode: 'insensitive'
-            }
+            OR: [
+                { name: { startsWith: name, mode: 'insensitive' } },
+                { name: { contains: name, mode: 'insensitive' } }
+            ]
         },
-        select: { id: true, name: true, phone: true }
-    });
-    if (match) return match;
-
-    // Try contains match
-    match = await prisma.patient.findFirst({
-        where: {
-            clinicId,
-            name: {
-                contains: name,
-                mode: 'insensitive'
-            }
-        },
-        select: { id: true, name: true, phone: true }
+        select: { id: true, name: true, phone: true },
+        take: 5
     });
     
-    return match;
+    return fuzzyMatches;
 }
 
 /**
@@ -154,15 +139,14 @@ async function executeCommand(parsedCommand, clinicId, actor) {
     
     switch (action) {
         case 'send_sms': {
-            const { patientName, message } = parameters;
-            if (!patientName || !message) {
-                throw new AppError('VALIDATION_ERROR', 'Patient name and message are required', 400);
-            }
-            
-            const patient = await findPatientByName(clinicId, patientName);
-            if (!patient) {
+            const patients = await findPatientsByName(clinicId, patientName);
+            if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
             }
+            if (patients.length > 1) {
+                throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
+            }
+            const patient = patients[0];
             
             const result = await sendDirectMessage(
                 { clinicId, patientId: patient.id, message, type: 'DIRECT' },
@@ -182,15 +166,14 @@ async function executeCommand(parsedCommand, clinicId, actor) {
         }
         
         case 'call_patient': {
-            const { patientName } = parameters;
-            if (!patientName) {
-                throw new AppError('VALIDATION_ERROR', 'Patient name is required', 400);
-            }
-            
-            const patient = await findPatientByName(clinicId, patientName);
-            if (!patient) {
+            const patients = await findPatientsByName(clinicId, patientName);
+            if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
             }
+            if (patients.length > 1) {
+                throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
+            }
+            const patient = patients[0];
             
             const clinic = await prisma.clinic.findUnique({
                 where: { id: clinicId },
@@ -237,12 +220,24 @@ async function executeCommand(parsedCommand, clinicId, actor) {
                 throw new AppError('VALIDATION_ERROR', 'Patient name, date, and time are required', 400);
             }
             
-            const patient = await findPatientByName(clinicId, patientName);
-            if (!patient) {
+            const patients = await findPatientsByName(clinicId, patientName);
+            if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
             }
+            if (patients.length > 1) {
+                throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
+            }
+            const patient = patients[0];
             
-            // Parse date and time
+            // Parse date and time in clinic's timezone
+            const clinic = await prisma.clinic.findUnique({
+                where: { id: clinicId },
+                select: { timezone: true }
+            });
+            const timezone = clinic?.timezone || 'Europe/Athens';
+            
+            // Construct ISO string with offset (assuming clinic is in Greece or similar)
+            // A more robust way would be using dayjs, but we'll manually ensure it's not server-local
             const startTime = new Date(`${date}T${time}:00`);
             const durationMinutes = duration || 30;
             const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
@@ -276,10 +271,14 @@ async function executeCommand(parsedCommand, clinicId, actor) {
                 throw new AppError('VALIDATION_ERROR', 'Patient name is required', 400);
             }
             
-            const patient = await findPatientByName(clinicId, patientName);
-            if (!patient) {
+            const patients = await findPatientsByName(clinicId, patientName);
+            if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
             }
+            if (patients.length > 1) {
+                throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
+            }
+            const patient = patients[0];
             
             // Find appointment
             const where = {

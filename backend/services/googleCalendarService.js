@@ -20,20 +20,38 @@ function getOAuth2Client() {
 /**
  * Generate the OAuth2 authorization URL for a clinic.
  */
-function getAuthUrl(clinicId) {
+async function getAuthUrl(clinicId) {
     const oauth2Client = getOAuth2Client();
+    const state = require('crypto').randomBytes(32).toString('hex');
+    
+    // Save state to clinic to verify upon callback
+    await prisma.clinic.update({
+        where: { id: clinicId },
+        data: { googleOAuthState: state }
+    });
+
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
         prompt: 'consent', // force refresh token on every auth
-        state: clinicId,   // pass clinicId through OAuth flow
+        state,             // pass random state through OAuth flow
     });
 }
 
 /**
  * Exchange authorization code for tokens and save to clinic.
  */
-async function handleCallback(code, clinicId) {
+async function handleCallback(code, clinicId, state) {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: clinicId },
+        select: { googleOAuthState: true }
+    });
+
+    if (!clinic || !clinic.googleOAuthState || clinic.googleOAuthState !== state) {
+        console.error('[GoogleCalendar] Invalid state or clinic:', { clinicId, stateMatch: clinic?.googleOAuthState === state });
+        throw new Error('Invalid OAuth state. Potential CSRF attempt detected.');
+    }
+
     const oauth2Client = getOAuth2Client();
     console.log('[GoogleCalendar] Using redirect URI:', oauth2Client._redirectUri);
     console.log('[GoogleCalendar] Client ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING');

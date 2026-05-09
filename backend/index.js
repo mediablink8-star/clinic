@@ -83,8 +83,12 @@ const corsOptions = {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        if (allowedOrigins.indexOf(origin) !== -1 || (process.env.NODE_ENV === 'development' && !origin)) {
             callback(null, true);
+        } else if (process.env.NODE_ENV === 'development') {
+            const isLocal = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+            if (isLocal) return callback(null, true);
+            callback(new Error('Origin not allowed in development'));
         } else {
             callback(new Error('Not allowed by CORS'));
         }
@@ -229,7 +233,7 @@ app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) =>
         return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
     }
     try {
-        await gcalHandleCallback(code, clinicId);
+        await gcalHandleCallback(code, clinicId, state);
         console.log('[GoogleCalendar] Successfully connected for clinic:', clinicId);
         res.redirect(`${frontendUrl}/settings?gcal=connected`);
     } catch (err) {
