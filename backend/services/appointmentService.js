@@ -91,6 +91,9 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
             vonageApiKey: true,
             vonageApiSecret: true,
             vonageFromName: true,
+            googleCalendarRefreshToken: true,
+            googleCalendarEnabled: true,
+            googleCalendarId: true,
         }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
