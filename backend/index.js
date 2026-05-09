@@ -217,13 +217,10 @@ app.use('/api', requireAuth, appointmentsRouter);
 
 const clinicRouter = require('./routes/clinic');
 // POST /api/clinic is admin-only; settings/ai-config require owner — enforced per-route in clinic.js
-app.use('/api/clinic', requireAuth, clinicRouter);
 
-// Google Calendar integration
-const googleCalendarRouter = require('./routes/googleCalendar');
+// Google Calendar callback MUST be registered BEFORE /api/clinic requireAuth
+// because Google redirects here without a JWT token
 const { handleCallback: gcalHandleCallback } = require('./services/googleCalendarService');
-
-// Callback MUST be public — Google redirects here without JWT
 app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
     const { code, state: clinicId, error } = req.query;
     const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
@@ -238,7 +235,10 @@ app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) =>
     }
 }));
 
-// All other Google Calendar routes require auth
+app.use('/api/clinic', requireAuth, clinicRouter);
+
+// Google Calendar routes (except callback which is above)
+const googleCalendarRouter = require('./routes/googleCalendar');
 app.use('/api/clinic/google-calendar', requireAuth, googleCalendarRouter);
 
 const systemRouter = require('./routes/system');
