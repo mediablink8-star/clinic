@@ -221,8 +221,24 @@ app.use('/api/clinic', requireAuth, clinicRouter);
 
 // Google Calendar integration
 const googleCalendarRouter = require('./routes/googleCalendar');
-// Callback is public (browser redirect from Google OAuth, no JWT)
-app.get('/api/clinic/google-calendar/callback', googleCalendarRouter);
+const { handleCallback: gcalHandleCallback } = require('./services/googleCalendarService');
+const asyncHandler = require('./middleware/asyncHandler');
+
+// Callback MUST be public — Google redirects here without JWT
+app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
+    const { code, state: clinicId, error } = req.query;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
+    if (error) return res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(error)}`);
+    if (!code || !clinicId) return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
+    try {
+        await gcalHandleCallback(code, clinicId);
+        res.redirect(`${frontendUrl}/settings?gcal=connected`);
+    } catch (err) {
+        console.error('[GoogleCalendar] Callback error:', err.message);
+        res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(err.message)}`);
+    }
+}));
+
 // All other Google Calendar routes require auth
 app.use('/api/clinic/google-calendar', requireAuth, googleCalendarRouter);
 
