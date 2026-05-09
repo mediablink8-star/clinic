@@ -82,7 +82,15 @@ async function getCalendarClient(clinic) {
  */
 async function createCalendarEvent({ clinic, appointment, patient }) {
     try {
+        console.log('[GoogleCalendar] createCalendarEvent called', { 
+            clinicId: clinic?.id, 
+            googleCalendarEnabled: clinic?.googleCalendarEnabled,
+            hasRefreshToken: !!clinic?.googleCalendarRefreshToken,
+            appointmentId: appointment?.id 
+        });
+        
         const calendar = await getCalendarClient(clinic);
+        console.log('[GoogleCalendar] calendar client:', calendar ? 'created' : 'null');
         if (!calendar) return null;
 
         const calendarId = clinic.googleCalendarId || 'primary';
@@ -114,6 +122,7 @@ async function createCalendarEvent({ clinic, appointment, patient }) {
             colorId: appointment.priority === 'URGENT' ? '11' : '1', // red for urgent, blue for normal
         };
 
+        console.log('[GoogleCalendar] Event payload:', JSON.stringify(event, null, 2));
         const response = await calendar.events.insert({
             calendarId,
             resource: event,
