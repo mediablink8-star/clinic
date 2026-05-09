@@ -448,6 +448,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [gcalLoading, setGcalLoading] = React.useState(false);
 
     React.useEffect(() => {
+        if (!token) return;
+
         api.get('/clinic/google-calendar/status')
             .then(r => setGcalStatus(r.data))
             .catch(() => setGcalStatus({ connected: false }));
