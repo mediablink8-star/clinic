@@ -1,5 +1,6 @@
-import React from 'react';
-import { X, AlertCircle, Calendar, Clock, User, FileText, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import api from '../lib/api';
+import { X, AlertCircle, Calendar, Clock, User, FileText, Sparkles, Stethoscope } from 'lucide-react';
 
 const NewAppointmentModal = ({
     onClose,
@@ -12,6 +13,12 @@ const NewAppointmentModal = ({
     onBook,
     booking = false,
 }) => {
+    const [doctors, setDoctors] = useState([]);
+
+    useEffect(() => {
+        api.get('/doctors').then(r => setDoctors(r.data.data || [])).catch(() => {});
+    }, []);
+
     const isValid = newAppt.patientId && newAppt.reason && newAppt.date && newAppt.time;
 
     return (
@@ -184,6 +191,28 @@ const NewAppointmentModal = ({
                             />
                         </div>
                     </div>
+
+                    {/* Doctor */}
+                    {doctors.length > 0 && (
+                        <div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                                <Stethoscope size={12} /> Γιατρός
+                            </label>
+                            <select
+                                style={{
+                                    width: '100%', padding: '11px 14px',
+                                    borderRadius: '12px', border: '1px solid var(--input-border)',
+                                    background: 'var(--input-bg)', fontSize: '0.9rem',
+                                    color: 'var(--text)', outline: 'none', fontWeight: '500'
+                                }}
+                                value={newAppt.doctorId || ''}
+                                onChange={e => setNewAppt({ ...newAppt, doctorId: e.target.value || null })}
+                            >
+                                <option value="">Οποιοσδήποτε διαθέσιμος</option>
+                                {doctors.map(d => <option key={d.id} value={d.id}>{d.name}{d.specialty ? ` — ${d.specialty}` : ''}</option>)}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}

@@ -49,6 +49,11 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                     <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', fontWeight: '600' }}>
                         {appointment.patient?.phone}
                     </p>
+                    {appointment.doctor && (
+                        <p style={{ color: 'var(--primary)', fontSize: '0.72rem', fontWeight: '700', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ opacity: 0.6 }}>&#x2695;</span> {appointment.doctor.name}
+                        </p>
+                    )}
                 </div>
 
                 {/* Reason + AI tag */}

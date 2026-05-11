@@ -424,7 +424,8 @@ const App = () => {
         patientId: newAppt.patientId,
         reason: newAppt.reason,
         startTime,
-        endTime
+        endTime,
+        ...(newAppt.doctorId ? { doctorId: newAppt.doctorId } : {})
       });
 
       // Show success toast first
@@ -443,7 +444,7 @@ const App = () => {
       // Small delay to let user see the success message, then close modal
       setTimeout(() => {
         setShowModal(false);
-        setNewAppt({ patientId: '', reason: '', date: '', time: '' });
+        setNewAppt({ patientId: '', reason: '', date: '', time: '', doctorId: '' });
         setAnalysis(null);
       }, 500);
       
