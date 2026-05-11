@@ -821,41 +821,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     ))}
                     {doctors.length === 0 && <p style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>Δεν βρέθηκαν ενεργοί γιατροί.</p>}
                 </div>
-
-                {showDoctorModal && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>{doctorForm.id ? 'Επεξεργασία Γιατρού' : 'Προσθήκη Γιατρού'}</h3>
-                            <form onSubmit={handleSaveDoctor}>
-                                <FormGroup label="Όνομα *">
-                                    <input style={inputStyle} value={doctorForm.name} onChange={e => setDoctorForm({...doctorForm, name: e.target.value})} required />
-                                </FormGroup>
-                                <FormGroup label="Ειδικότητα">
-                                    <input style={inputStyle} value={doctorForm.specialty || ''} onChange={e => setDoctorForm({...doctorForm, specialty: e.target.value})} />
-                                </FormGroup>
-                                <FormRow>
-                                    <FormGroup label="Τηλέφωνο">
-                                        <input style={inputStyle} value={doctorForm.phone || ''} onChange={e => setDoctorForm({...doctorForm, phone: e.target.value})} />
-                                    </FormGroup>
-                                    <FormGroup label="Email">
-                                        <input type="email" style={inputStyle} value={doctorForm.email || ''} onChange={e => setDoctorForm({...doctorForm, email: e.target.value})} />
-                                    </FormGroup>
-                                </FormRow>
-                                <FormGroup label="Avatar URL">
-                                    <input style={inputStyle} value={doctorForm.avatarUrl || ''} onChange={e => setDoctorForm({...doctorForm, avatarUrl: e.target.value})} placeholder="https://..." />
-                                </FormGroup>
-                                <FormGroup label="Ωράριο (JSON)">
-                                    <textarea style={{...inputStyle, minHeight: '120px', fontFamily: 'monospace', fontSize: '0.8rem'}} value={doctorForm.workingHours || '{}'} onChange={e => setDoctorForm({...doctorForm, workingHours: e.target.value})} />
-                                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>JSON μορφή (π.χ. {"{"} "weekdays": "09:00 - 17:00" {"}"})</p>
-                                </FormGroup>
-                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                                    <button type="button" onClick={() => setShowDoctorModal(false)} style={{ padding: '0.7rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontWeight: '600' }}>Ακύρωση</button>
-                                    <button type="submit" disabled={doctorSaving} className="btn btn-primary">{doctorSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
             </SectionCard>
 
             {/* 2 · Team Management */}
@@ -1408,6 +1373,41 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 }}>
                     {toast.type === 'success' ? <Check size={18} /> : <Activity size={18} />}
                     {toast.message}
+                </div>
+            )}
+
+            {showDoctorModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>{doctorForm.id ? 'Επεξεργασία Γιατρού' : 'Προσθήκη Γιατρού'}</h3>
+                        <form onSubmit={handleSaveDoctor}>
+                            <FormGroup label="Όνομα *">
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.name} onChange={e => setDoctorForm({...doctorForm, name: e.target.value})} required />
+                            </FormGroup>
+                            <FormGroup label="Ειδικότητα">
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.specialty || ''} onChange={e => setDoctorForm({...doctorForm, specialty: e.target.value})} />
+                            </FormGroup>
+                            <FormRow>
+                                <FormGroup label="Τηλέφωνο">
+                                    <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.phone || ''} onChange={e => setDoctorForm({...doctorForm, phone: e.target.value})} />
+                                </FormGroup>
+                                <FormGroup label="Email">
+                                    <input type="email" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.email || ''} onChange={e => setDoctorForm({...doctorForm, email: e.target.value})} />
+                                </FormGroup>
+                            </FormRow>
+                            <FormGroup label="Avatar URL">
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.avatarUrl || ''} onChange={e => setDoctorForm({...doctorForm, avatarUrl: e.target.value})} placeholder="https://..." />
+                            </FormGroup>
+                            <FormGroup label="Ωράριο (JSON)">
+                                <textarea style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '120px', fontFamily: 'monospace', fontSize: '0.8rem'}} value={doctorForm.workingHours || '{}'} onChange={e => setDoctorForm({...doctorForm, workingHours: e.target.value})} />
+                                <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>JSON μορφή (π.χ. {"{"} "weekdays": "09:00 - 17:00" {"}"})</p>
+                            </FormGroup>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                <button type="button" onClick={() => setShowDoctorModal(false)} style={{ padding: '0.7rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontWeight: '600' }}>Ακύρωση</button>
+                                <button type="submit" disabled={doctorSaving} className="btn btn-primary">{doctorSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>
