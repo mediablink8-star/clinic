@@ -5,7 +5,7 @@ function getModel(apiKey) {
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) throw new Error('No Gemini API key available');
     const genAI = new GoogleGenerativeAI(key);
-    return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    return genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 }
 /**
  * Analyzes Greek feedback text and returns POSITIVE, NEUTRAL, or NEGATIVE.
