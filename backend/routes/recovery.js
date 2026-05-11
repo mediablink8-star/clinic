@@ -377,6 +377,73 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
     res.json({ success: true, count: successCount, total: engaged.length, results });
 }));
 
+/**
+ * POST /api/recovery/:id/confirm
+ * Automatically converts an individual recovery case into a CONFIRMED appointment.
+ */
+router.post('/:id/confirm', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const clinicId = req.clinicId;
+    const actor = { userId: req.user.userId, ip: req.ip };
+
+    const mc = await prisma.missedCall.findFirst({
+        where: { id, clinicId },
+        include: { patient: true }
+    });
+
+    if (!mc) throw new AppError('NOT_FOUND', 'Missed call not found', 404);
+    if (!mc.bookingDay) throw new AppError('VALIDATION_ERROR', 'No booking info captured by AI yet', 400);
+
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    
+    // Smart parse the Greek/English day/time captured by AI
+    let dayText = mc.bookingDay;
+    dayText = dayText.replace(/αύριο/gi, 'tomorrow')
+                   .replace(/σήμερα/gi, 'today')
+                   .replace(/δευτέρα/gi, 'monday')
+                   .replace(/τρίτη/gi, 'tuesday')
+                   .replace(/τετάρτη/gi, 'wednesday')
+                   .replace(/πέμπτη/gi, 'thursday')
+                   .replace(/παρασκευή/gi, 'friday')
+                   .replace(/σάββατο/gi, 'saturday')
+                   .replace(/κυριακή/gi, 'sunday')
+                   .replace(/στις/gi, 'at');
+
+    const parsed = chrono.parseDate(dayText, new Date(), { forwardDate: true });
+    if (!parsed) {
+        throw new AppError('VALIDATION_ERROR', 'Could not parse date: ' + mc.bookingDay, 400);
+    }
+
+    const startTime = parsed;
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
+
+    // Create appointment
+    const apt = await createAppointment({
+        clinicId,
+        patientId: mc.patientId || (await ensurePatient(mc, clinicId)).id,
+        reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+        startTime,
+        endTime,
+        status: 'CONFIRMED'
+    }, actor);
+
+    // Update missed call record
+    await prisma.missedCall.update({
+        where: { id: mc.id },
+        data: {
+            status: 'RECOVERED',
+            recoveredAt: new Date(),
+            appointmentId: apt.data.id
+        }
+    });
+
+    // Mark tracking case recovered
+    const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+    await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date() });
+
+    res.json({ success: true, appointmentId: apt.data.id });
+}));
+
 async function ensurePatient(mc, clinicId) {
     if (mc.patientId) return { id: mc.patientId };
     const { createPatient } = require('../services/appointmentService');

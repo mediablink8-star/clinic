@@ -279,6 +279,46 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                                 <span>Νέο Ραντεβού</span>
                                 <ChevronRight size={13} />
                             </button>
+
+                            {/* Quick Confirm Button if AI captured booking info */}
+                            {log.bookingDay && log.status !== 'RECOVERED' && (
+                                <button 
+                                    className="quick-action-btn" 
+                                    style={{ background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.3)' }}
+                                    disabled={sending}
+                                    onClick={async () => {
+                                        setSending(true);
+                                        try {
+                                            const res = await fetch(`${API_BASE}/recovery/${log.id}/confirm`, {
+                                                method: 'POST',
+                                                headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            if (res.ok) {
+                                                toast.success('Το ραντεβού επιβεβαιώθηκε!');
+                                                onClose();
+                                                if (onNavigate) onNavigate('appointments');
+                                            } else {
+                                                const err = await res.json();
+                                                toast.error(err.error || 'Σφάλμα επιβεβαίωσης');
+                                            }
+                                        } catch {
+                                            toast.error('Σφάλμα σύνδεσης');
+                                        } finally {
+                                            setSending(false);
+                                        }
+                                    }}
+                                >
+                                    <div style={{ width: '15px', height: '15px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Calendar size={10} color="white" />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#065f46' }}>Επιβεβαίωση: {log.bookingDay}</div>
+                                        <div style={{ fontSize: '0.68rem', color: '#059669', opacity: 0.8 }}>Με βάση την απάντηση του ασθενή</div>
+                                    </div>
+                                    <ChevronRight size={13} style={{ color: '#10b981' }} />
+                                </button>
+                            )}
+
                             {isKnownPatient && (
                                 <button className="quick-action-btn" onClick={() => { onNavigate && onNavigate('patients'); onClose(); }}>
                                     <User size={15} />

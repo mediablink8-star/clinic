@@ -242,14 +242,14 @@ const CalendarView = ({ appointments = [], onAppointmentClick }) => {
                         color: 'var(--primary)',
                         marginBottom: '2px'
                     }}>
-                        Συγχρονισμός Google Calendar
+                        Συγχρονισμός Google Calendar Ενεργός
                     </p>
                     <p style={{ 
                         fontSize: '0.75rem', 
                         color: 'var(--text-light)',
                         fontWeight: '600'
                     }}>
-                        Η λειτουργία συγχρονισμού με Google Calendar θα είναι σύντομα διαθέσιμη
+                        Τα ραντεβού σας συγχρονίζονται αυτόματα. Διαχειριστείτε τη σύνδεση από τις Ρυθμίσεις.
                     </p>
                 </div>
             </div>
