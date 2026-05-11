@@ -5,6 +5,9 @@ const prisma = require('../services/prisma');
 const AppError = require('../errors/AppError');
 const asyncHandler = require('../middleware/asyncHandler');
 const { retrySms } = require('../services/missedCallService');
+const { createAppointment } = require('../services/appointmentService');
+const chrono = require('chrono-node');
+const { formatInTimeZone } = require('date-fns-tz');
 
 router.get('/stats', asyncHandler(async (req, res) => {
     const now = new Date();
@@ -286,5 +289,103 @@ router.post('/simulate-recovered', asyncHandler(async (req, res) => {
 
     res.json({ success: true, missedCallId: missedCall.id, appointmentId: appointment.id, revenue });
 }));
+
+/**
+ * POST /api/recovery/batch-confirm
+ * Automatically converts all "ENGAGED" missed calls with captured booking info into CONFIRMED appointments.
+ */
+router.post('/batch-confirm', asyncHandler(async (req, res) => {
+    const clinicId = req.clinicId;
+    const actor = { userId: req.user.userId, ip: req.ip };
+    
+    // Find MISSED calls where patient engaged and AI captured a day
+    const engaged = await prisma.missedCall.findMany({
+        where: {
+            clinicId,
+            status: 'RECOVERING',
+            bookingDay: { not: null },
+            recoveryCase: { state: 'ENGAGED' }
+        },
+        include: { patient: true }
+    });
+
+    if (engaged.length === 0) {
+        return res.json({ success: true, count: 0, message: 'No engaged patients with booking info found.' });
+    }
+
+    const results = [];
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    const timezone = clinic.timezone || 'Europe/Athens';
+
+    for (const mc of engaged) {
+        try {
+            // Smart parse the Greek/English day/time captured by AI
+            // Chrono-node is better at EN, but we'll try to help it
+            let dayText = mc.bookingDay;
+            // Basic Greek translation for Chrono
+            dayText = dayText.replace(/αύριο/gi, 'tomorrow')
+                           .replace(/σήμερα/gi, 'today')
+                           .replace(/δευτέρα/gi, 'monday')
+                           .replace(/τρίτη/gi, 'tuesday')
+                           .replace(/τετάρτη/gi, 'wednesday')
+                           .replace(/πέμπτη/gi, 'thursday')
+                           .replace(/παρασκευή/gi, 'friday')
+                           .replace(/σάββατο/gi, 'saturday')
+                           .replace(/κυριακή/gi, 'sunday')
+                           .replace(/στις/gi, 'at');
+
+            const parsed = chrono.parseDate(dayText, new Date(), { forwardDate: true });
+            if (!parsed) {
+                results.push({ id: mc.id, success: false, reason: 'Could not parse date: ' + mc.bookingDay });
+                continue;
+            }
+
+            const startTime = parsed;
+            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Default 1h
+
+            // Create appointment (this will also trigger the confirmation SMS we added earlier)
+            const apt = await createAppointment({
+                clinicId,
+                patientId: mc.patientId || (await ensurePatient(mc, clinicId)).id,
+                reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+                startTime,
+                endTime,
+                status: 'CONFIRMED'
+            }, actor);
+
+            // Update missed call record
+            await prisma.missedCall.update({
+                where: { id: mc.id },
+                data: {
+                    status: 'RECOVERED',
+                    recoveredAt: new Date(),
+                    appointmentId: apt.data.id
+                }
+            });
+
+            // Mark tracking case recovered
+            const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+            await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date() });
+
+            results.push({ id: mc.id, success: true, appointmentId: apt.data.id });
+        } catch (err) {
+            results.push({ id: mc.id, success: false, reason: err.message });
+        }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    res.json({ success: true, count: successCount, total: engaged.length, results });
+}));
+
+async function ensurePatient(mc, clinicId) {
+    if (mc.patientId) return { id: mc.patientId };
+    const { createPatient } = require('../services/appointmentService');
+    const res = await createPatient({
+        clinicId,
+        name: mc.bookingName || mc.fromNumber,
+        phone: mc.fromNumber
+    }, { userId: 'SYSTEM', ip: '127.0.0.1' });
+    return res.data;
+}
 
 module.exports = router;

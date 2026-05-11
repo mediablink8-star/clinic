@@ -118,6 +118,32 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
         else toast.error('Αποτυχία αποστολής follow-up');
     };
 
+    const handleBatchConfirm = async () => {
+        if (!patientEngaged.length) return;
+        setSending(s => ({ ...s, batchConfirm: true }));
+        try {
+            const resp = await api.post('/recovery/batch-confirm');
+            if (resp.data.success) {
+                if (resp.data.count > 0) {
+                    toast.success(`🎉 ${resp.data.count} ραντεβού κατοχυρώθηκαν και επιβεβαιώθηκαν αυτόματα!`, {
+                        duration: 5000,
+                        icon: '🔥'
+                    });
+                    if (onNavigate) onNavigate('appointments');
+                } else {
+                    // If none were ready, fall back to manual reply
+                    setShowReply(true);
+                    toast('Κανένα έτοιμο ραντεβού — απαντήστε χειροκίνητα.', { icon: '💬' });
+                }
+            }
+        } catch (err) {
+            toast.error('Σφάλμα κατά την αυτόματη κράτηση.');
+            setShowReply(true);
+        } finally {
+            setSending(s => ({ ...s, batchConfirm: false }));
+        }
+    };
+
     return (
         <div className="card-glass" style={{ padding: '1.1rem 1.25rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {/* Header */}
@@ -192,8 +218,9 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                             color="#3b82f6"
                             label={`📩 ${patientRepliedCount} απάντησαν — κλείστε τώρα!`}
                             sublabel="Μην χάσετε τα ραντεβού"
-                            cta="Απάντηση"
-                            onClick={() => setShowReply(true)}
+                            cta="Κλείσιμο"
+                            loading={sending.batchConfirm}
+                            onClick={handleBatchConfirm}
                             urgent
                         />
                     )}

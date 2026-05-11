@@ -4,6 +4,7 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours } = require('./slotUtils');
 const { normalizePhone } = require('../utils/phone');
+const { sendDirectMessage } = require('./messagingService');
 
 const MIN_APPOINTMENT_MINUTES = 15;
 const MAX_APPOINTMENT_MINUTES = 240;
@@ -202,6 +203,10 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                     }
                 })
                 .catch(err => console.warn('[GoogleCalendar] Push failed:', err.message));
+
+            // NEW: Send immediate confirmation SMS
+            sendConfirmationSms({ appointment, patient, clinic })
+                .catch(err => console.warn('[SMS] Confirmation send failed:', err.message));
         }
     }
 
@@ -246,6 +251,33 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
             appointment: { ...existing, status },
             patient
         }).catch(err => console.warn('[GoogleCalendar] Update failed:', err.message));
+    }
+
+    // NEW: Send confirmation SMS if status changed to CONFIRMED
+    if (status === 'CONFIRMED') {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        
+        // 1. Send SMS (this also triggers message.direct_send webhook to n8n)
+        sendConfirmationSms({ appointment, patient, clinic })
+            .catch(err => console.warn('[SMS] Confirmation send failed:', err.message));
+
+        // 2. Clear explicit event webhook to n8n (for custom workflows like medical forms)
+        const startDate = new Date(appointment.startTime);
+        triggerWebhook(
+            'appointment.confirmed',
+            {
+                appointmentId: appointment.id,
+                patientName: patient?.name || '',
+                phone: patient?.phone || '',
+                date: startDate.toLocaleDateString('el-GR'),
+                time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
+                status: 'CONFIRMED'
+            },
+            null,
+            clinic.webhookSecret,
+            { clinic }
+        ).catch(err => console.warn('[Webhook] appointment.confirmed failed:', err.message));
     }
 
     return { success: true, data: appointment };
@@ -354,5 +386,28 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
     });
 }
 
-module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments, scheduleAppointmentReminder };
+/**
+ * Send an immediate SMS confirmation to the patient.
+ */
+async function sendConfirmationSms({ appointment, patient, clinic }) {
+    if (!patient?.phone) return;
+
+    const appointmentStart = new Date(appointment.startTime);
+    const clinicName = clinic.name || 'το ιατρείο';
+    const dateStr = appointmentStart.toLocaleDateString('el-GR', {
+        weekday: 'long', day: 'numeric', month: 'long'
+    });
+    const timeStr = appointmentStart.toLocaleTimeString('el-GR', {
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;
+
+    return sendDirectMessage(
+        { clinicId: clinic.id, patientId: patient.id, message, type: 'SMS', clinic },
+        { userId: 'SYSTEM', ip: '127.0.0.1' }
+    );
+}
+
+module.exports = { listPatients, createPatient, listAppointments, createAppointment, updateAppointmentStatus, deleteAppointment, getAvailableSlots, getTodayAppointments, scheduleAppointmentReminder, sendConfirmationSms };
 
