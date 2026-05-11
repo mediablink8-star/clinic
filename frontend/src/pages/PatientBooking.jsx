@@ -7,9 +7,10 @@ const PatientBooking = () => {
     const missedCallId = new URLSearchParams(window.location.search).get('missedCallId'); // Track recovery source
     const [clinic, setClinic] = useState(null);
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({ name: '', phone: '', email: '', reason: '', date: '', time: '' });
+    const [formData, setFormData] = useState({ name: '', phone: '', email: '', reason: '', date: '', time: '', doctorId: '' });
     const [availableSlots, setAvailableSlots] = useState([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
+    const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -18,9 +19,11 @@ const PatientBooking = () => {
     useEffect(() => {
         const fetchSlots = async () => {
             if (!formData.date || !clinicId) return;
+            if (doctors.length > 0 && !formData.doctorId) return; // wait for doctor selection
             setSlotsLoading(true);
             try {
-                const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}`);
+                const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
+                const resp = await axios.get(url);
                 setAvailableSlots(resp.data.data);
             } catch (err) {
                 console.error("Failed to fetch slots:", err);
@@ -40,7 +43,20 @@ const PatientBooking = () => {
                 setError("Το ιατρείο δεν βρέθηκε.");
             }
         };
-        if (clinicId) fetchClinic();
+        const fetchDoctors = async () => {
+            try {
+                const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/doctors`);
+                setDoctors(resp.data.data || []);
+                if (resp.data.data?.length === 1) {
+                    setFormData(prev => ({ ...prev, doctorId: resp.data.data[0].id }));
+                }
+            } catch (err) { }
+        };
+        
+        if (clinicId) {
+            fetchClinic();
+            fetchDoctors();
+        }
         else setError("Δεν βρέθηκε αναγνωριστικό ιατρείου. Παρακαλώ χρησιμοποιήστε τον σύνδεσμο που σας δόθηκε.");
     }, [clinicId]);
 
@@ -65,6 +81,7 @@ const PatientBooking = () => {
                 reason: formData.reason || undefined,
                 date: formData.date,
                 time: formData.time,
+                doctorId: formData.doctorId || undefined,
                 missedCallId: missedCallId || undefined, // Link to missed call if this is a recovery booking
             });
             setStep(3);
@@ -73,7 +90,8 @@ const PatientBooking = () => {
                 setError("Η συγκεκριμένη ώρα μόλις κλείστηκε από άλλον ασθενή. Παρακαλώ επιλέξτε μια άλλη ώρα.");
                 // Refresh available slots to show updated availability
                 try {
-                    const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}`);
+                    const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
+                    const resp = await axios.get(url);
                     setAvailableSlots(resp.data.data);
                     setFormData({ ...formData, time: '' }); // Clear selected time
                 } catch (refreshErr) {
@@ -174,13 +192,35 @@ const PatientBooking = () => {
                     {step === 2 && (
                         <div className="animate-fade">
                             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Calendar size={20} color="var(--primary)" /> Επιλογή Ημερομηνίας & Ώρας
+                                <Calendar size={20} color="var(--primary)" /> {doctors.length > 0 ? 'Επιλογή Γιατρού & Ραντεβού' : 'Επιλογή Ημερομηνίας & Ώρας'}
                             </h2>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {doctors.length > 0 && (
+                                    <div className="form-group">
+                                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Γιατρός</label>
+                                        <select 
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white' }} 
+                                            value={formData.doctorId} 
+                                            onChange={e => setFormData({ ...formData, doctorId: e.target.value, date: '', time: '' })}
+                                        >
+                                            {doctors.length > 1 && <option value="">Επιλέξτε γιατρό...</option>}
+                                            {doctors.map(d => (
+                                                <option key={d.id} value={d.id}>{d.name} {d.specialty ? `(${d.specialty})` : ''}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div className="form-group">
                                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Ημερομηνία</label>
-                                        <input type="date" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} min={new Date().toISOString().split('T')[0]} />
+                                        <input 
+                                            type="date" 
+                                            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} 
+                                            value={formData.date} 
+                                            onChange={e => setFormData({ ...formData, date: e.target.value })} 
+                                            min={new Date().toISOString().split('T')[0]} 
+                                            disabled={doctors.length > 0 && !formData.doctorId}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Ώρα</label>

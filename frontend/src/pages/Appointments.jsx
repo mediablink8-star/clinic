@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../lib/api';
 import { Search, Filter, ChevronDown, Plus, Calendar, RefreshCw } from 'lucide-react';
 import AppointmentCard from '../components/AppointmentCard';
 import MessageModal from '../components/MessageModal';
@@ -52,7 +53,21 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Όλα');
+    const [doctorFilter, setDoctorFilter] = useState('');
     const [showFilter, setShowFilter] = useState(false);
+    const [doctors, setDoctors] = useState([]);
+
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            try {
+                const res = await api.get('/doctors');
+                setDoctors(res.data.data || []);
+            } catch (err) {
+                console.error("Failed to fetch doctors:", err);
+            }
+        };
+        if (token) fetchDoctors();
+    }, [token]);
 
     if (error) {
         return <ErrorState onRetry={onRetry} />;
@@ -71,7 +86,8 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
             a.reason?.toLowerCase().includes(search.toLowerCase())
         );
         const matchStatus = statusFilter === 'Όλα' || a.status === statusFilter;
-        return matchSearch && matchStatus;
+        const matchDoctor = !doctorFilter || a.doctorId === doctorFilter;
+        return matchSearch && matchStatus && matchDoctor;
     }).sort((a, b) => {
         // PENDING first, CONFIRMED last, then by createdAt desc within same status
         const statusDiff = (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99);
@@ -132,6 +148,26 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
                             }}
                         />
                     </div>
+                    {doctors.length > 0 && (
+                        <div style={{ position: 'relative' }}>
+                            <select
+                                value={doctorFilter}
+                                onChange={e => setDoctorFilter(e.target.value)}
+                                style={{
+                                    padding: '10px 30px 10px 14px', borderRadius: '12px',
+                                    border: '1px solid rgba(0,0,0,0.08)',
+                                    background: doctorFilter ? 'var(--primary)' : 'rgba(255,255,255,0.7)',
+                                    color: doctorFilter ? 'white' : '#64748b',
+                                    fontSize: '0.82rem', fontWeight: '600',
+                                    appearance: 'none', cursor: 'pointer'
+                                }}
+                            >
+                                <option value="">Όλοι οι Γιατροί</option>
+                                {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                            <ChevronDown size={13} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: doctorFilter ? 'white' : '#64748b' }} />
+                        </div>
+                    )}
                         <div style={{ position: 'relative' }}>
                             <button
                                 onClick={() => setShowFilter(f => !f)}

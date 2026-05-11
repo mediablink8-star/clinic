@@ -134,7 +134,7 @@ const requireAuth = asyncHandler(async (req, res, next) => {
     next();
 });
 
-const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'ADMIN', 'OWNER'];
+const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'DOCTOR', 'ADMIN', 'OWNER'];
 
 const requireRole = (role) => {
     return (req, res, next) => {
@@ -198,6 +198,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 const teamRouter = require('./routes/team');
 app.use('/api/team', requireAuth, teamRouter);
+
+const doctorsRouter = require('./routes/doctors');
+app.use('/api/doctors', requireAuth, doctorsRouter);
 
 // Unauthenticated Webhooks (Self-protected via HMAC inside)
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---

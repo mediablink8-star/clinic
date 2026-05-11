@@ -148,7 +148,20 @@ function getStartOfMonth(date, timezone = 'Europe/Athens') {
     return temp;
 }
 
-function parseWorkingHours(clinic) {
+function parseWorkingHours(clinic, doctor = null) {
+    if (doctor && doctor.workingHours) {
+        try {
+            let doctorHours = typeof doctor.workingHours === 'string'
+                ? JSON.parse(doctor.workingHours)
+                : doctor.workingHours;
+            if (Object.keys(doctorHours).length > 0) {
+                return doctorHours;
+            }
+        } catch {
+            // fallback to clinic
+        }
+    }
+
     let workingHours = {};
     try {
         workingHours = typeof clinic?.workingHours === 'string'
@@ -172,8 +185,8 @@ function parseWorkingHours(clinic) {
     return workingHours;
 }
 
-function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens' }) {
-    const workingHours = parseWorkingHours(clinic);
+function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens', doctor = null }) {
+    const workingHours = parseWorkingHours(clinic, doctor);
     const startParts = getLocalDateParts(start, timezone);
     const endParts = getLocalDateParts(end, timezone);
 
@@ -188,14 +201,14 @@ function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens' }
     return startParts.minutes >= openMinutes && endParts.minutes <= closeMinutes;
 }
 
-async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', stepMinutes = 60) {
+async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', stepMinutes = 60, doctor = null) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
         select: { workingHours: true, aiConfig: true },
     });
     if (!clinic) return [];
 
-    const workingHours = parseWorkingHours(clinic);
+    const workingHours = parseWorkingHours(clinic, doctor);
     const rangeStr = resolveRangeForDate(workingHours, date, timezone);
     const parsed = parseHoursRange(rangeStr);
     if (!parsed) return [];
@@ -205,12 +218,17 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', ste
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
+    const whereClause = {
+        clinicId,
+        startTime: { gte: dayStart, lte: dayEnd },
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] }
+    };
+    if (doctor) {
+        whereClause.doctorId = doctor.id;
+    }
+
     const existing = await prisma.appointment.findMany({
-        where: {
-            clinicId,
-            startTime: { gte: dayStart, lte: dayEnd },
-            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        },
+        where: whereClause,
         select: { startTime: true, endTime: true },
         take: 200
     });

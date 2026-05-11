@@ -79,7 +79,17 @@ async function getPublicClinic(clinicId) {
     };
 }
 
-async function getAvailableSlots(clinicId, dateStr) {
+async function listPublicDoctors(clinicId) {
+    const doctors = await prisma.doctor.findMany({
+        where: { clinicId, isActive: true },
+        select: { id: true, name: true, specialty: true, avatarUrl: true },
+        orderBy: { name: 'asc' },
+        take: 50
+    });
+    return { success: true, data: doctors };
+}
+
+async function getAvailableSlots(clinicId, dateStr, doctorId = null) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) {
         throw new AppError('VALIDATION_ERROR', 'date must be YYYY-MM-DD', 400);
     }
@@ -92,10 +102,15 @@ async function getAvailableSlots(clinicId, dateStr) {
 
     const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
     const date = new Date(year, month - 1, day);
-    return getSlotsForDate(clinicId, date, clinic.timezone || 'Europe/Athens');
+    let doctor = null;
+    if (doctorId) {
+        doctor = await prisma.doctor.findFirst({ where: { id: doctorId, clinicId, isActive: true } });
+        if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+    }
+    return getSlotsForDate(clinicId, date, clinic.timezone || 'Europe/Athens', 60, doctor);
 }
 
-async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId }) {
+async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId, doctorId }) {
     if (!clinicId || !name || !phone) {
         throw new AppError('VALIDATION_ERROR', 'clinicId, name, and phone are required', 400);
     }
@@ -137,7 +152,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const end = new Date(start.getTime() + 60 * 60 * 1000);
     const requested = getDateTimeParts(start, timezone);
-    const availableSlots = await getAvailableSlots(clinicId, requested.date);
+    const availableSlots = await getAvailableSlots(clinicId, requested.date, doctorId);
     // Only reject if slots are configured AND the requested time isn't in them
     if (availableSlots.length > 0 && !availableSlots.includes(requested.time)) {
         throw new AppError('SLOT_UNAVAILABLE', 'Selected time slot is not available', 400);
@@ -148,15 +163,32 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const { patient, appointment, missedCall } = await prisma.$transaction(async (tx) => {
         // Use FOR UPDATE to lock conflicting appointments during check
         // This prevents race conditions when multiple requests try to book the same slot
-        const conflict = await tx.$queryRaw`
-            SELECT id FROM "Appointment"
-            WHERE "clinicId" = ${clinicId}
-            AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-            AND "startTime" < ${end}
-            AND "endTime" > ${start}
-            FOR UPDATE
-            LIMIT 1
-        `;
+        let conflict;
+        if (doctorId) {
+            const doc = await tx.doctor.findFirst({ where: { id: doctorId, clinicId, isActive: true } });
+            if (!doc) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+
+            conflict = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${clinicId}
+                AND "doctorId" = ${doctorId}
+                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                AND "startTime" < ${end}
+                AND "endTime" > ${start}
+                FOR UPDATE
+                LIMIT 1
+            `;
+        } else {
+            conflict = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${clinicId}
+                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                AND "startTime" < ${end}
+                AND "endTime" > ${start}
+                FOR UPDATE
+                LIMIT 1
+            `;
+        }
         
         if (conflict && conflict.length > 0) {
             throw new AppError('CONFLICT', 'Time slot already booked', 409);
@@ -167,7 +199,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             pt = await tx.patient.create({ data: { clinicId, name, phone: normalizedPhone, email } });
         }
         const appt = await tx.appointment.create({
-            data: { clinicId, patientId: pt.id, startTime: start, endTime: end, reason, status: 'PENDING' },
+            data: { clinicId, patientId: pt.id, doctorId: doctorId || null, startTime: start, endTime: end, reason, status: 'PENDING' },
         });
         
         // If this booking is from a missed call recovery link, mark the missed call as RECOVERED
@@ -255,4 +287,4 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     return { success: true, data: { appointmentId: appointment.id } };
 }
 
-module.exports = { getPublicClinic, getAvailableSlots, bookAppointment, parseDateTimeInTimezone };
+module.exports = { getPublicClinic, listPublicDoctors, getAvailableSlots, bookAppointment, parseDateTimeInTimezone };

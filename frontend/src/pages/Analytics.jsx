@@ -61,7 +61,7 @@ const Sparkline = ({ logs }) => {
     );
 };
 
-const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, systemStats = {} }) => {
+const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, systemStats = {}, doctorAnalytics = [] }) => {
     const logs = Array.isArray(recoveryLog) ? recoveryLog : [];
     const totalMissed = logs.length;
     const smsSent = logs.filter(l => l.smsStatus === 'sent' || l.smsStatus === 'simulated').length;
@@ -141,6 +141,34 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                         <MetricRow icon={CalendarCheck} label="Κλεισμένα ραντεβού" value={booked} color="#10b981" />
                         <MetricRow icon={Euro} label="Μέση αξία ραντεβού" value={`€${avgRevenue}`} color="#6366f1" />
                     </SectionCard>
+                    
+                    {doctorAnalytics.length > 0 && (
+                        <SectionCard title="Απόδοση ανά Γιατρό (Τρέχων Μήνας)">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {doctorAnalytics.map(doc => (
+                                    <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(226,232,240,0.8)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            {doc.avatarUrl ? (
+                                                <img src={doc.avatarUrl} alt={doc.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#6366f120', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#6366f1' }}>{doc.name[0]}</span>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text)' }}>{doc.name}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>{doc.appointmentsThisMonth} ραντεβού</div>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#10b981' }}>€{doc.revenueThisMonth.toLocaleString()}</div>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', fontWeight: '600' }}>{doc.recoveredThisMonth} ανακτήσεις</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </SectionCard>
+                    )}
                 </div>
             </div>
         </section>

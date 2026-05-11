@@ -45,17 +45,21 @@ async function createPatient({ clinicId, name, phone, email }, actor) {
     return { success: true, data: patient };
 }
 
-async function listAppointments(clinicId) {
+async function listAppointments(clinicId, doctorId = null) {
+    const whereClause = { clinicId };
+    if (doctorId) {
+        whereClause.doctorId = doctorId;
+    }
     const data = await prisma.appointment.findMany({
-        where: { clinicId },
-        include: { patient: true, feedbacks: true },
+        where: whereClause,
+        include: { patient: true, feedbacks: true, doctor: true },
         orderBy: { createdAt: 'desc' },
         take: 200
     });
     return { success: true, data };
 }
 
-async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority }, actor) {
+async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId }, actor) {
     if (!patientId || !startTime || !endTime) {
         throw new AppError('VALIDATION_ERROR', 'patientId, startTime and endTime are required', 400);
     }
@@ -99,8 +103,13 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     const timezone = clinic.timezone || process.env.DEFAULT_TIMEZONE || 'Europe/Athens';
-    if (!isWithinWorkingHours({ clinic, start, end, timezone })) {
-        throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic working hours', 400);
+    let doctor = null;
+    if (doctorId) {
+        doctor = await prisma.doctor.findFirst({ where: { id: doctorId, clinicId, isActive: true } });
+        if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+    }
+    if (!isWithinWorkingHours({ clinic, start, end, timezone, doctor })) {
+        throw new AppError('VALIDATION_ERROR', 'Appointment must be inside clinic or doctor working hours', 400);
     }
 
     // Verify patient belongs to this clinic
@@ -112,15 +121,29 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         appointment = await prisma.$transaction(async (tx) => {
             // Use FOR UPDATE to lock conflicting appointments during check
             // This prevents race conditions when multiple requests try to book the same slot
-            const conflict = await tx.$queryRaw`
-                SELECT id FROM "Appointment"
-                WHERE "clinicId" = ${clinicId}
-                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                AND "startTime" < ${end}
-                AND "endTime" > ${start}
-                FOR UPDATE
-                LIMIT 1
-            `;
+            let conflict;
+            if (doctorId) {
+                conflict = await tx.$queryRaw`
+                    SELECT id FROM "Appointment"
+                    WHERE "clinicId" = ${clinicId}
+                    AND "doctorId" = ${doctorId}
+                    AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                    AND "startTime" < ${end}
+                    AND "endTime" > ${start}
+                    FOR UPDATE
+                    LIMIT 1
+                `;
+            } else {
+                conflict = await tx.$queryRaw`
+                    SELECT id FROM "Appointment"
+                    WHERE "clinicId" = ${clinicId}
+                    AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                    AND "startTime" < ${end}
+                    AND "endTime" > ${start}
+                    FOR UPDATE
+                    LIMIT 1
+                `;
+            }
             
             if (conflict && conflict.length > 0) {
                 throw new AppError('CONFLICT', 'Time slot already booked', 409);
@@ -130,6 +153,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                 data: {
                     clinicId,
                     patientId,
+                    doctorId: doctorId || null,
                     reason,
                     startTime: start,
                     endTime: end,
@@ -315,10 +339,15 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
  * Get available 1-hour appointment slots for a given date.
  * Returns array of time strings like ["09:00", "10:00", "11:00"]
  */
-async function getAvailableSlots(clinicId, date) {
+async function getAvailableSlots(clinicId, date, doctorId = null) {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { timezone: true } });
     const timezone = clinic?.timezone || process.env.DEFAULT_TIMEZONE || 'Europe/Athens';
-    return _getAvailableSlots(clinicId, date, timezone);
+    let doctor = null;
+    if (doctorId) {
+        doctor = await prisma.doctor.findFirst({ where: { id: doctorId, clinicId, isActive: true } });
+        if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+    }
+    return _getAvailableSlots(clinicId, date, timezone, 60, doctor);
 }
 
 /**

@@ -248,6 +248,14 @@ const App = () => {
     retry: 1,
   });
 
+  const { data: doctorAnalytics = [], isLoading: loadingDoctorAnalytics } = useQuery({
+    queryKey: ['doctor-analytics'],
+    queryFn: () => api.get('/doctors/analytics').then(res => res.data.data),
+    enabled: !!token,
+    refetchInterval: 60000,
+    retry: 1,
+  });
+
   const { data: systemConfigStatus = { warnings: [] }, isLoading: loadingConfig } = useQuery({
     queryKey: ['system-config'],
     queryFn: () => api.get('/system/config-status').then(res => res.data),
@@ -256,7 +264,7 @@ const App = () => {
     retry: 1,
   });
 
-  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage || loadingSystemStats || loadingConfig;
+  const loading = loadingApts || loadingPatients || loadingNotifs || loadingStats || loadingLog || loadingSystem || loadingUsage || loadingSystemStats || loadingDoctorAnalytics || loadingConfig;
 
   const safeTime = (dateStr) => {
     try {
@@ -634,7 +642,7 @@ const App = () => {
       case 'reports':
         return <Reports appointments={appointments} recoveryStats={recoveryStats} recoveryLog={recoveryLog} />;
       case 'analytics':
-        return <Analytics recoveryLog={recoveryLog} recoveryStats={recoveryStats} spending={spending} systemStats={systemStats} />;
+        return <Analytics recoveryLog={recoveryLog} recoveryStats={recoveryStats} spending={spending} systemStats={systemStats} doctorAnalytics={doctorAnalytics} />;
       case 'settings':
         return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };

@@ -108,6 +108,7 @@ const inputStyle = {
 
 const SECTIONS = [
     { id: 's1', number: '1', label: 'Γενικά', icon: <Globe size={14} color="var(--primary)" />, iconBg: 'var(--primary-light)', title: 'Γενικές Πληροφορίες Ιατρείου', subtitle: 'Όνομα, στοιχεία επικοινωνίας και τοποθεσία' },
+    { id: 's-doctors', number: '1.5', label: 'Γιατροί', icon: <UserPlus size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Διαχείριση Γιατρών', subtitle: 'Γιατροί, ειδικότητες και ωράρια' },
     { id: 's2', number: '2', label: 'Ομάδα', icon: <Users size={14} color="#0891b2" />, iconBg: '#ecfeff', title: 'Διαχείριση Ομάδας', subtitle: 'Χρήστες, ρόλοι και δικαιώματα' },
     { id: 's4', number: '3', label: 'Ασφάλεια', icon: <Shield size={14} color="#dc2626" />, iconBg: '#fff5f5', title: 'Ασφάλεια & Πρόσβαση', subtitle: 'Ταυτοποίηση δύο παραγόντων' },
     { id: 's6', number: '4', label: 'Χρήση', icon: <BarChart2 size={14} color="#6366f1" />, iconBg: '#e0e7ff', title: 'Χρήση & Όρια', subtitle: 'Χρήση σε πραγματικό χρόνο και όρια' },
@@ -170,6 +171,12 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [inviteLoading, setInviteLoading] = useState(false);
     const [inviteError, setInviteError] = useState('');
 
+    // Doctors state
+    const [doctors, setDoctors] = useState([]);
+    const [showDoctorModal, setShowDoctorModal] = useState(false);
+    const [doctorForm, setDoctorForm] = useState({ id: null, name: '', specialty: '', phone: '', email: '', avatarUrl: '', workingHours: '{}' });
+    const [doctorSaving, setDoctorSaving] = useState(false);
+
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
@@ -179,6 +186,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         fetchLogs();
         fetchUsage();
         fetchTeam();
+        fetchDoctors();
     }, []);
 
     useEffect(() => {
@@ -239,6 +247,54 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             const res = await api.get(`/team`);
             setTeamMembers(res.data);
         } catch { /* silently fail */ }
+    };
+
+    const fetchDoctors = async () => {
+        try {
+            const res = await api.get('/doctors');
+            setDoctors(res.data.data || []);
+        } catch { /* silently fail */ }
+    };
+
+    const handleSaveDoctor = async (e) => {
+        e.preventDefault();
+        if (!doctorForm.name) {
+            showToast('Το όνομα είναι υποχρεωτικό', 'error');
+            return;
+        }
+        try {
+            JSON.parse(doctorForm.workingHours || '{}');
+        } catch {
+            showToast('Το ωράριο πρέπει να είναι έγκυρο JSON', 'error');
+            return;
+        }
+        setDoctorSaving(true);
+        try {
+            if (doctorForm.id) {
+                await api.put(`/doctors/${doctorForm.id}`, doctorForm);
+                showToast('Ο γιατρός ενημερώθηκε επιτυχώς!');
+            } else {
+                await api.post('/doctors', doctorForm);
+                showToast('Ο γιατρός δημιουργήθηκε επιτυχώς!');
+            }
+            setShowDoctorModal(false);
+            fetchDoctors();
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα κατά την αποθήκευση.', 'error');
+        } finally {
+            setDoctorSaving(false);
+        }
+    };
+
+    const handleDeactivateDoctor = async (doctorId) => {
+        if (!window.confirm('Είστε σίγουροι ότι θέλετε να απενεργοποιήσετε αυτόν τον γιατρό;')) return;
+        try {
+            await api.delete(`/doctors/${doctorId}`);
+            showToast('Ο γιατρός απενεργοποιήθηκε.');
+            fetchDoctors();
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα κατά την απενεργοποίηση.', 'error');
+        }
     };
 
     const handleInvite = async (e) => {
@@ -711,6 +767,95 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         {infoSaved && <Check size={14} />}
                     </button>
                 </div>
+            </SectionCard>
+
+            {/* 1.5 · Doctors Management */}
+            <SectionCard id="s-doctors" number="1.5" icon={<UserPlus size={15} color="#f59e0b" />} iconBg="#fffbeb"
+                title="Διαχείριση Γιατρών" subtitle="Γιατροί, ειδικότητες και ωράρια">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                            setDoctorForm({ id: null, name: '', specialty: '', phone: '', email: '', avatarUrl: '', workingHours: '{}' });
+                            setShowDoctorModal(true);
+                        }}
+                    >
+                        <UserPlus size={14} /> Προσθήκη Γιατρού
+                    </button>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {doctors.map(doc => (
+                        <div key={doc.id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px 16px', borderRadius: '14px',
+                            background: 'rgba(248,250,252,0.8)', border: '1px solid var(--border)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {doc.avatarUrl ? (
+                                    <img src={doc.avatarUrl} alt={doc.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#f59e0b18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#f59e0b' }}>{doc.name[0].toUpperCase()}</span>
+                                    </div>
+                                )}
+                                <div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text)' }}>
+                                        {doc.name}
+                                        {!doc.isActive && <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: '#dc2626', fontWeight: '600', padding: '2px 6px', background: '#fef2f2', borderRadius: '4px' }}>Ανενεργός</span>}
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{doc.specialty || 'Χωρίς ειδικότητα'}</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => {
+                                    setDoctorForm({ ...doc, workingHours: typeof doc.workingHours === 'string' ? doc.workingHours : JSON.stringify(doc.workingHours, null, 2) });
+                                    setShowDoctorModal(true);
+                                }} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600' }}>Επεξεργασία</button>
+                                {doc.isActive && (
+                                    <button onClick={() => handleDeactivateDoctor(doc.id)} style={{ padding: '6px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={13} /></button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    {doctors.length === 0 && <p style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>Δεν βρέθηκαν ενεργοί γιατροί.</p>}
+                </div>
+
+                {showDoctorModal && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+                        <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>{doctorForm.id ? 'Επεξεργασία Γιατρού' : 'Προσθήκη Γιατρού'}</h3>
+                            <form onSubmit={handleSaveDoctor}>
+                                <FormGroup label="Όνομα *">
+                                    <input style={inputStyle} value={doctorForm.name} onChange={e => setDoctorForm({...doctorForm, name: e.target.value})} required />
+                                </FormGroup>
+                                <FormGroup label="Ειδικότητα">
+                                    <input style={inputStyle} value={doctorForm.specialty || ''} onChange={e => setDoctorForm({...doctorForm, specialty: e.target.value})} />
+                                </FormGroup>
+                                <FormRow>
+                                    <FormGroup label="Τηλέφωνο">
+                                        <input style={inputStyle} value={doctorForm.phone || ''} onChange={e => setDoctorForm({...doctorForm, phone: e.target.value})} />
+                                    </FormGroup>
+                                    <FormGroup label="Email">
+                                        <input type="email" style={inputStyle} value={doctorForm.email || ''} onChange={e => setDoctorForm({...doctorForm, email: e.target.value})} />
+                                    </FormGroup>
+                                </FormRow>
+                                <FormGroup label="Avatar URL">
+                                    <input style={inputStyle} value={doctorForm.avatarUrl || ''} onChange={e => setDoctorForm({...doctorForm, avatarUrl: e.target.value})} placeholder="https://..." />
+                                </FormGroup>
+                                <FormGroup label="Ωράριο (JSON)">
+                                    <textarea style={{...inputStyle, minHeight: '120px', fontFamily: 'monospace', fontSize: '0.8rem'}} value={doctorForm.workingHours || '{}'} onChange={e => setDoctorForm({...doctorForm, workingHours: e.target.value})} />
+                                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>JSON μορφή (π.χ. {"{"} "weekdays": "09:00 - 17:00" {"}"})</p>
+                                </FormGroup>
+                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                    <button type="button" onClick={() => setShowDoctorModal(false)} style={{ padding: '0.7rem 1rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontWeight: '600' }}>Ακύρωση</button>
+                                    <button type="submit" disabled={doctorSaving} className="btn btn-primary">{doctorSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </SectionCard>
 
             {/* 2 · Team Management */}

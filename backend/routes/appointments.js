@@ -24,14 +24,15 @@ router.post('/patients', validate(patientSchema), asyncHandler(async (req, res) 
 }));
 
 router.get('/appointments', asyncHandler(async (req, res) => {
-    const { data } = await listAppointments(req.clinicId);
+    const { doctorId } = req.query;
+    const { data } = await listAppointments(req.clinicId, doctorId);
     res.json(data);
 }));
 
 router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {
-    const { patientId, reason, startTime, endTime, priority } = req.body;
+    const { patientId, reason, startTime, endTime, priority, doctorId } = req.body;
     const { data } = await createAppointment(
-        { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority },
+        { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority, doctorId },
         { userId: req.user.userId, ip: req.ip }
     );
     res.json(data);
@@ -57,7 +58,7 @@ router.delete('/appointments/:id', asyncHandler(async (req, res) => {
 
 // GET /api/appointments/available?date=2026-04-22
 router.get('/appointments/available', asyncHandler(async (req, res) => {
-    const { date } = req.query;
+    const { date, doctorId } = req.query;
     const { getAvailableSlots } = require('../services/appointmentService');
     const targetDate = date ? new Date(date) : new Date();
 
@@ -65,7 +66,7 @@ router.get('/appointments/available', asyncHandler(async (req, res) => {
         throw new AppError('VALIDATION_ERROR', 'Invalid date provided', 400);
     }
 
-    const slots = await getAvailableSlots(req.clinicId, targetDate);
+    const slots = await getAvailableSlots(req.clinicId, targetDate, doctorId);
     res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
 }));
 

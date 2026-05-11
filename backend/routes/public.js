@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
 const AppError = require('../errors/AppError');
-const { getPublicClinic, getAvailableSlots, bookAppointment } = require('../services/publicService');
+const { getPublicClinic, listPublicDoctors, getAvailableSlots, bookAppointment } = require('../services/publicService');
 const { validate, publicBookingSchema } = require('../services/validationService');
 
 const rateLimit = require('express-rate-limit');
@@ -53,21 +53,26 @@ router.get('/clinic/:id', clinicEnumerationLimiter, asyncHandler(async (req, res
     res.json({ success: true, data });
 }));
 
+router.get('/clinic/:id/doctors', clinicEnumerationLimiter, asyncHandler(async (req, res) => {
+    const { data } = await listPublicDoctors(req.params.id);
+    res.json({ success: true, data });
+}));
+
 router.get('/clinic/:id/slots', clinicEnumerationLimiter, asyncHandler(async (req, res) => {
-    const { date } = req.query;
-    const slots = await getAvailableSlots(req.params.id, date);
+    const { date, doctorId } = req.query;
+    const slots = await getAvailableSlots(req.params.id, date, doctorId);
     res.json({ success: true, data: slots });
 }));
 
 router.post('/book', validate(publicBookingSchema), asyncHandler(async (req, res) => {
-    const { clinicId, name, phone, email, reason, startTime, date, time, missedCallId } = req.body;
+    const { clinicId, name, phone, email, reason, startTime, date, time, missedCallId, doctorId } = req.body;
     // Apply per-clinic rate limit dynamically
     if (clinicId) {
         await new Promise((resolve, reject) => {
             getBookingLimiter(clinicId)(req, res, (err) => err ? reject(err) : resolve());
         });
     }
-    const result = await bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId });
+    const result = await bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId, doctorId });
     res.json(result);
 }));
 
