@@ -135,7 +135,7 @@ async function findPatientsByName(clinicId, name) {
 /**
  * Execute parsed command
  */
-async function executeCommand(parsedCommand, clinicId, actor) {
+async function executeCommand(parsedCommand, clinicId, actor, clinic) {
     const { action, parameters } = parsedCommand;
     
     switch (action) {
@@ -151,7 +151,7 @@ async function executeCommand(parsedCommand, clinicId, actor) {
             const patient = patients[0];
             
             const result = await sendDirectMessage(
-                { clinicId, patientId: patient.id, message, type: 'DIRECT' },
+                { clinicId, patientId: patient.id, message, type: 'DIRECT', clinic },
                 actor
             );
             
@@ -177,19 +177,6 @@ async function executeCommand(parsedCommand, clinicId, actor) {
                 throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
             }
             const patient = patients[0];
-            
-            const clinic = await prisma.clinic.findUnique({
-                where: { id: clinicId },
-                select: { 
-                    id: true,
-                    name: true,
-                    vapiApiKey: true, 
-                    vapiAssistantId: true, 
-                    vapiPhoneNumberId: true,
-                    aiConfig: true,
-                    workingHours: true
-                }
-            });
             
             if (!clinic?.vapiApiKey && !process.env.VAPI_API_KEY) {
                 throw new AppError('CONFIGURATION_ERROR', 'Voice calling not configured for this clinic', 400);
@@ -233,10 +220,6 @@ async function executeCommand(parsedCommand, clinicId, actor) {
             const patient = patients[0];
             
             // Parse date and time in clinic's timezone
-            const clinic = await prisma.clinic.findUnique({
-                where: { id: clinicId },
-                select: { timezone: true }
-            });
             const timezone = clinic?.timezone || 'Europe/Athens';
             
             const { parseDateTimeInTimezone } = require('./publicService');
@@ -383,10 +366,9 @@ async function executeCommand(parsedCommand, clinicId, actor) {
  * Main entry point: parse and execute command
  */
 async function processCommand(command, clinicId, actor) {
-    // Get clinic's Gemini API key
+    // Get factory clinic object for all actions
     const clinic = await prisma.clinic.findUnique({
-        where: { id: clinicId },
-        select: { geminiApiKey: true }
+        where: { id: clinicId }
     });
     
     const { decrypt } = require('./encryptionService');
@@ -415,7 +397,7 @@ async function processCommand(command, clinicId, actor) {
     }
     
     // Execute command
-    const result = await executeCommand(parsed, clinicId, actor);
+    const result = await executeCommand(parsed, clinicId, actor, clinic);
     
     return {
         ...result,

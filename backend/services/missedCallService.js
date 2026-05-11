@@ -152,7 +152,11 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     } catch {
         aiConfig = {};
     }
-    const { withinHours, scheduledAt } = checkWorkingHours(new Date(), aiConfig.workingHours || null);
+    const { withinHours, scheduledAt } = checkWorkingHours(
+        new Date(),
+        aiConfig.workingHours || null,
+        clinic.timezone || 'Europe/Athens'
+    );
 
     const missedCall = await prisma.missedCall.create({
         data: {

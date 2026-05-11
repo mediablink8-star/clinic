@@ -14,6 +14,11 @@ const RATE_WINDOW_MS = 60000;
 const TEMP_BLOCK_MS = Number(process.env.TEMP_SPIKE_BLOCK_MS || 5 * 60 * 1000);
 
 const { connection, REDIS_DISABLED } = require('./queueService');
+const { getStartOfDay, getStartOfMonth } = require('./slotUtils');
+
+if (process.env.NODE_ENV === 'production' && REDIS_DISABLED) {
+    console.warn('[SECURITY_WARNING] Redis is DISABLED in production. Rate limiting and usage tracking will be inconsistent across serverless instances.');
+}
 
 const inMemoryRate = {
     sms: new Map(),
@@ -143,17 +148,17 @@ function startOfCurrentDay() {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function shouldResetUsage(lastResetDate) {
+function shouldResetUsage(lastResetDate, timezone = 'Europe/Athens') {
     if (!lastResetDate) return true;
     const resetDate = new Date(lastResetDate);
-    const monthStart = startOfCurrentMonth();
+    const monthStart = getStartOfMonth(new Date(), timezone);
     return resetDate < monthStart;
 }
 
-function shouldResetDailyUsage(lastDailyReset) {
+function shouldResetDailyUsage(lastDailyReset, timezone = 'Europe/Athens') {
     if (!lastDailyReset) return true;
     const resetDate = new Date(lastDailyReset);
-    const dayStart = startOfCurrentDay();
+    const dayStart = getStartOfDay(new Date(), timezone);
     return resetDate < dayStart;
 }
 
@@ -161,19 +166,20 @@ async function ensureMonthlyUsageWindow(clinicId, tx = prisma) {
     const clinic = await tx.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
+    const timezone = clinic.timezone || 'Europe/Athens';
     const updates = {};
 
     // Check monthly reset
-    if (shouldResetUsage(clinic.lastResetDate)) {
+    if (shouldResetUsage(clinic.lastResetDate, timezone)) {
         updates.smsCount = 0;
         updates.aiRequestCount = 0;
-        updates.lastResetDate = startOfCurrentMonth();
+        updates.lastResetDate = getStartOfMonth(new Date(), timezone);
     }
 
     // Check daily reset
-    if (shouldResetDailyUsage(clinic.lastResetDay)) {
+    if (shouldResetDailyUsage(clinic.lastResetDay, timezone)) {
         updates.dailyUsedCount = 0;
-        updates.lastResetDay = startOfCurrentDay();
+        updates.lastResetDay = getStartOfDay(new Date(), timezone);
     }
 
     if (Object.keys(updates).length > 0) {
@@ -220,16 +226,21 @@ async function incrementSmsUsage(clinicId, tx = prisma) {
     const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId, tx);
     
     try {
-        return await tx.clinic.update({
-            where: { 
-                id: clinicId,
-                smsCount: { lt: limit },
-                dailyUsedCount: { lt: dailyLimit }
-            },
-            data: { 
-                smsCount: { increment: 1 },
-                dailyUsedCount: { increment: 1 }
-            },
+        // We use a transaction to ensure reset + increment are atomic
+        return await tx.$transaction(async (innerTx) => {
+            const freshClinic = await ensureMonthlyUsageWindow(clinicId, innerTx);
+            
+            return await innerTx.clinic.update({
+                where: { 
+                    id: clinicId,
+                    smsCount: { lt: limit },
+                    dailyUsedCount: { lt: dailyLimit }
+                },
+                data: { 
+                    smsCount: { increment: 1 },
+                    dailyUsedCount: { increment: 1 }
+                },
+            });
         });
     } catch (err) {
         // If the update fails because the 'where' condition isn't met, throw usage error
@@ -244,12 +255,16 @@ async function incrementAiUsage(clinicId, tx = prisma) {
     const { limit } = await assertWithinAiLimit(clinicId, tx);
     
     try {
-        return await tx.clinic.update({
-            where: { 
-                id: clinicId,
-                aiRequestCount: { lt: limit }
-            },
-            data: { aiRequestCount: { increment: 1 } },
+        return await tx.$transaction(async (innerTx) => {
+            await ensureMonthlyUsageWindow(clinicId, innerTx);
+            
+            return await innerTx.clinic.update({
+                where: { 
+                    id: clinicId,
+                    aiRequestCount: { lt: limit }
+                },
+                data: { aiRequestCount: { increment: 1 } },
+            });
         });
     } catch (err) {
         if (err.code === 'P2025') {

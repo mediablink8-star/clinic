@@ -11,6 +11,7 @@
  */
 
 const GREEK_DAYS = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+const { getLocalDateParts, getStartOfDay } = require('./slotUtils');
 
 /**
  * Parse "HH:MM" into { h, m }
@@ -36,65 +37,68 @@ function parseRange(rangeStr) {
 
 /**
  * Check if `now` falls within the clinic's working hours.
- * 
- * @param {Date} now
- * @param {object} workingHours  e.g. { "Δευτέρα": "09:00-17:00", ... }
- * @returns {{ withinHours: boolean, scheduledAt: Date|null }}
- *   - withinHours: true if SMS should be sent immediately
- *   - scheduledAt: Date for next 09:00 if outside hours (null when withinHours=true)
  */
-function checkWorkingHours(now, workingHours) {
-    // Default: send immediately if no config
+function checkWorkingHours(now, workingHours, timezone = 'Europe/Athens') {
     if (!workingHours || typeof workingHours !== 'object') {
         return { withinHours: true, scheduledAt: null };
     }
 
-    const dayName = GREEK_DAYS[now.getDay()];
-    const rangeStr = workingHours[dayName];
+    const { weekday, minutes } = getLocalDateParts(now, timezone);
+    const rangeStr = workingHours[weekday];
     const range = parseRange(rangeStr);
-
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     if (range) {
         const openMinutes  = range.open.h  * 60 + range.open.m;
         const closeMinutes = range.close.h * 60 + range.close.m;
 
-        if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
+        if (minutes >= openMinutes && minutes < closeMinutes) {
             return { withinHours: true, scheduledAt: null };
         }
     }
 
     // Outside hours — find next 09:00 on a working day
-    const scheduled = getNextOpeningTime(now, workingHours);
+    const scheduled = getNextOpeningTime(now, workingHours, timezone);
     return { withinHours: false, scheduledAt: scheduled };
 }
 
 /**
  * Find the next 09:00 on a day that has working hours configured.
- * Looks up to 7 days ahead. Falls back to tomorrow 09:00 if nothing found.
  */
-function getNextOpeningTime(now, workingHours) {
+function getNextOpeningTime(now, workingHours, timezone = 'Europe/Athens') {
     for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
-        const candidate = new Date(now);
-        candidate.setDate(candidate.getDate() + daysAhead);
+        let candidate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+        candidate = getStartOfDay(candidate, timezone);
         candidate.setHours(9, 0, 0, 0);
 
-        const dayName = GREEK_DAYS[candidate.getDay()];
-        const rangeStr = workingHours[dayName];
+        const { weekday } = getLocalDateParts(candidate, timezone);
+        const rangeStr = workingHours[weekday];
         const range = parseRange(rangeStr);
 
         if (range) {
-            // Use the clinic's actual open time if configured, otherwise 09:00
-            candidate.setHours(range.open.h, range.open.m, 0, 0);
+            // Re-calculate exactly based on timezone
+            const iso = candidate.toISOString().split('T')[0];
+            const h = String(range.open.h).padStart(2, '0');
+            const m = String(range.open.m).padStart(2, '0');
+            
+            // This is still slightly tricky without Luxon, but let's use the same offset trick
+            const offsetParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                timeZoneName: 'longOffset'
+            }).formatToParts(candidate);
+            
+            const offsetMatch = offsetParts.find(p => p.type === 'timeZoneName').value.match(/GMT([-+]\d{1,2}):?(\d{2})?/);
+            if (offsetMatch) {
+                const sign = offsetMatch[1].startsWith('+') ? '-' : '+';
+                const offH = offsetMatch[1].replace(/[-+]/, '').padStart(2, '0');
+                const offM = (offsetMatch[2] || '00').padStart(2, '0');
+                return new Date(`${iso}T${h}:${m}:00${sign}${offH}:${offM}`);
+            }
             return candidate;
         }
     }
 
-    // Fallback: tomorrow 09:00
-    const fallback = new Date(now);
-    fallback.setDate(fallback.getDate() + 1);
-    fallback.setHours(9, 0, 0, 0);
-    return fallback;
+    const fallback = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    return getStartOfDay(fallback, timezone);
 }
 
 /**

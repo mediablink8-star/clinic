@@ -80,6 +80,74 @@ function getLocalDateParts(date, timezone = 'Europe/Athens') {
     };
 }
 
+/**
+ * Get the start of a day (00:00:00) in a specific timezone, returned as a UTC Date object.
+ */
+function getStartOfDay(date, timezone = 'Europe/Athens') {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    
+    // Create a date string that represents midnight in that timezone
+    const isoString = `${parts.year}-${parts.month}-${parts.day}T00:00:00`;
+    
+    // We need to parse this local string as being in the specific timezone.
+    // A reliable way without Luxon is to use the offset:
+    const temp = new Date(isoString);
+    const offsetParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        timeZoneName: 'longOffset'
+    }).formatToParts(temp);
+    
+    const offsetMatch = offsetParts.find(p => p.type === 'timeZoneName').value.match(/GMT([-+]\d{1,2}):?(\d{2})?/);
+    if (offsetMatch) {
+        const sign = offsetMatch[1].startsWith('+') ? '-' : '+'; // Reverse sign for ISO parsing
+        const hours = offsetMatch[1].replace(/[-+]/, '').padStart(2, '0');
+        const minutes = (offsetMatch[2] || '00').padStart(2, '0');
+        return new Date(`${isoString}${sign}${hours}:${minutes}`);
+    }
+    
+    return temp; // Fallback
+}
+
+/**
+ * Get the start of a month in a specific timezone.
+ */
+function getStartOfMonth(date, timezone = 'Europe/Athens') {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    
+    const isoString = `${parts.year}-${parts.month}-01T00:00:00`;
+    const temp = new Date(isoString);
+    
+    const offsetParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        timeZoneName: 'longOffset'
+    }).formatToParts(temp);
+    
+    const offsetMatch = offsetParts.find(p => p.type === 'timeZoneName').value.match(/GMT([-+]\d{1,2}):?(\d{2})?/);
+    if (offsetMatch) {
+        const sign = offsetMatch[1].startsWith('+') ? '-' : '+';
+        const hours = offsetMatch[1].replace(/[-+]/, '').padStart(2, '0');
+        const minutes = (offsetMatch[2] || '00').padStart(2, '0');
+        return new Date(`${isoString}${sign}${hours}:${minutes}`);
+    }
+    
+    return temp;
+}
+
 function parseWorkingHours(clinic) {
     let workingHours = {};
     try {
@@ -181,4 +249,6 @@ module.exports = {
     isWithinWorkingHours,
     getAvailableSlots,
     getLocalDateParts,
+    getStartOfDay,
+    getStartOfMonth,
 };

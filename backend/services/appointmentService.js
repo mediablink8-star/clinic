@@ -184,7 +184,11 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
 
             // Schedule 24h reminder if appointment is more than 25h away
             scheduleAppointmentReminder({ appointment, patient, clinic })
-                .catch(err => console.warn('[Reminder] Failed to schedule:', err.message));
+                .catch(err => {
+                    console.error('[REMINDER_FATAL] Failed to schedule reminder for appointment:', appointment.id, err.message);
+                    // In a real production system, you might want to push this to a dead-letter queue
+                    // or flag the appointment for manual review.
+                });
 
             // Push to Google Calendar if connected
             const { createCalendarEvent } = require('./googleCalendarService');
@@ -289,10 +293,12 @@ async function getAvailableSlots(clinicId, date) {
  * Get today's appointments for a clinic.
  */
 async function getTodayAppointments(clinicId) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { timezone: true } });
+    const timezone = clinic?.timezone || process.env.DEFAULT_TIMEZONE || 'Europe/Athens';
+    
+    const todayStart = getStartOfDay(new Date(), timezone);
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+    
     const data = await prisma.appointment.findMany({
         where: { clinicId, startTime: { gte: todayStart, lte: todayEnd } },
         include: { patient: true },
