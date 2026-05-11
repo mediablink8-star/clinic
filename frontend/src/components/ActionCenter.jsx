@@ -15,24 +15,28 @@ const ActionRow = ({ icon: Icon, color, label, sublabel, cta, onClick, loading, 
     <div
         onClick={!loading ? onClick : undefined}
         style={{
-            display: 'flex', alignItems: 'center', gap: '12px',
-            padding: '12px 14px', borderRadius: '14px',
-            background: urgent ? `${color}0d` : 'var(--bg-subtle)',
-            border: `1px solid ${urgent ? color + '28' : 'var(--border)'}`,
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '14px 16px', borderRadius: '16px',
+            background: urgent ? `${color}10` : 'var(--bg-subtle)',
+            border: `1.1px solid ${urgent ? color + '30' : 'var(--border)'}`,
             cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            transition: 'all 0.2s ease',
-            boxShadow: urgent ? `0 0 20px ${color}15` : 'none',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: urgent ? `0 4px 12px ${color}10` : 'none',
         }}
         onMouseEnter={e => { 
             if (!loading) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = urgent ? `0 0 24px ${color}25` : '0 4px 12px rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateX(4px)';
+                e.currentTarget.style.background = urgent ? `${color}15` : 'white';
+                e.currentTarget.style.boxShadow = urgent ? `0 8px 20px ${color}20` : 'var(--shadow-md)';
+                e.currentTarget.style.borderColor = color;
             }
         }}
         onMouseLeave={e => { 
-            e.currentTarget.style.transform = 'translateY(0)'; 
-            e.currentTarget.style.boxShadow = urgent ? `0 0 20px ${color}15` : 'none';
+            e.currentTarget.style.transform = 'translateX(0)'; 
+            e.currentTarget.style.background = urgent ? `${color}10` : 'var(--bg-subtle)';
+            e.currentTarget.style.boxShadow = urgent ? `0 4px 12px ${color}10` : 'none';
+            e.currentTarget.style.borderColor = urgent ? color + '30' : 'var(--border)';
         }}
     >
         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -145,7 +149,15 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
     };
 
     return (
-        <div className="card-glass" style={{ padding: '1.1rem 1.25rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <div className="glass-card animate-fade" style={{ 
+            padding: '1.2rem 1.4rem', 
+            borderRadius: '24px', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.8rem',
+            border: '1px solid var(--border)',
+            background: 'var(--card-bg)'
+        }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: urgentCount > 0 ? '0.3rem' : '0' }}>
                 <h3 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>

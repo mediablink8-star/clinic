@@ -31,10 +31,10 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
     return (
         <aside className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isOpen ? 'sidebar-open' : ''}`} style={{
             width: '260px',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.68) 0%, rgba(255,255,255,0.46) 100%)',
-            backdropFilter: 'blur(34px) saturate(190%)',
-            WebkitBackdropFilter: 'blur(34px) saturate(190%)',
-            borderRight: '1px solid rgba(255,255,255,0.42)',
+            background: 'var(--sidebar-bg)',
+            backdropFilter: 'var(--glass-strong)',
+            WebkitBackdropFilter: 'var(--glass-strong)',
+            borderRight: '1px solid var(--border)',
             boxShadow: 'var(--shadow-sm)'
         }}>
             {isMobile && (
@@ -50,14 +50,16 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
             </div>
 
             <div style={{ padding: '0 24px 40px 24px' }}>
-                <button className="btn btn-primary" style={{
+                <button className="btn-premium" style={{
                     width: '100%',
                     justifyContent: 'center',
                     padding: '14px',
                     borderRadius: '14px',
-                    background: 'linear-gradient(135deg, rgba(99,91,255,0.88) 0%, rgba(139,92,246,0.72) 100%)',
-                    border: '1px solid rgba(255,255,255,0.26)',
-                    boxShadow: '0 18px 28px -20px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.34)'
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer'
                 }} onClick={() => {
                     onNewAppointment();
                     if (isMobile && onClose) onClose();
