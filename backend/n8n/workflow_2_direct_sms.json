@@ -12,10 +12,7 @@
       "name": "Receive SMS Request",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        240,
-        300
-      ]
+      "position": [240, 300]
     },
     {
       "parameters": {
@@ -24,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
-              "value2": "admin123"
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
           ]
         }
@@ -33,10 +30,7 @@
       "name": "Auth Check",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        460,
-        300
-      ]
+      "position": [460, 300]
     },
     {
       "parameters": {
@@ -50,10 +44,7 @@
       "name": "Return 401",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        680,
-        460
-      ]
+      "position": [680, 460]
     },
     {
       "parameters": {
@@ -81,10 +72,7 @@
       "name": "Validate Payload",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        680,
-        300
-      ]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -98,10 +86,7 @@
       "name": "Return 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        900,
-        460
-      ]
+      "position": [900, 460]
     },
     {
       "parameters": {
@@ -115,10 +100,7 @@
       "name": "Respond 200 Immediately",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        900,
-        300
-      ]
+      "position": [900, 300]
     },
     {
       "parameters": {
@@ -151,10 +133,7 @@
       "name": "Set Execution ID",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        1120,
-        300
-      ]
+      "position": [1120, 300]
     },
     {
       "parameters": {
@@ -165,15 +144,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $json.body.vonageApiKey || '917c2dd5' }}"
+              "value": "={{ $env.VONAGE_API_KEY }}"
             },
             {
               "name": "api_secret",
-              "value": "={{ $json.body.vonageApiSecret || 'bg8RJd$*mb6N%e!baF' }}"
+              "value": "={{ $env.VONAGE_API_SECRET }}"
             },
             {
               "name": "from",
-              "value": "={{ $json.body.vonageFromName || 'mediablink' }}"
+              "value": "={{ $env.VONAGE_FROM_NAME }}"
             },
             {
               "name": "to",
@@ -182,6 +161,10 @@
             {
               "name": "text",
               "value": "={{ $node[\"Set Execution ID\"].json.message }}"
+            },
+            {
+              "name": "type",
+              "value": "unicode"
             }
           ]
         },
@@ -193,10 +176,7 @@
       "name": "Send SMS via Vonage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        1340,
-        300
-      ],
+      "position": [1340, 300],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000,
@@ -218,10 +198,7 @@
       "name": "SMS Sent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        1560,
-        300
-      ]
+      "position": [1560, 300]
     },
     {
       "parameters": {
@@ -246,14 +223,11 @@
       "name": "Log SMS Sent",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        1780,
-        200
-      ]
+      "position": [1780, 200]
     },
     {
       "parameters": {
-        "url": "https://backend-l9el.onrender.com/api/automation/send-notification",
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -290,115 +264,43 @@
       "name": "Log SMS Failure",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        1780,
-        400
-      ]
+      "position": [1780, 400]
     }
   ],
   "connections": {
     "Receive SMS Request": {
-      "main": [
-        [
-          {
-            "node": "Auth Check",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Auth Check", "type": "main", "index": 0}]]
     },
     "Auth Check": {
       "main": [
-        [
-          {
-            "node": "Validate Payload",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return 401",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Validate Payload", "type": "main", "index": 0}],
+        [{"node": "Return 401", "type": "main", "index": 0}]
       ]
     },
     "Validate Payload": {
       "main": [
-        [
-          {
-            "node": "Respond 200 Immediately",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return 400",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Respond 200 Immediately", "type": "main", "index": 0}],
+        [{"node": "Return 400", "type": "main", "index": 0}]
       ]
     },
     "Respond 200 Immediately": {
-      "main": [
-        [
-          {
-            "node": "Set Execution ID",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Set Execution ID", "type": "main", "index": 0}]]
     },
     "Set Execution ID": {
-      "main": [
-        [
-          {
-            "node": "Send SMS via Vonage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Send SMS via Vonage", "type": "main", "index": 0}]]
     },
     "Send SMS via Vonage": {
-      "main": [
-        [
-          {
-            "node": "SMS Sent?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "SMS Sent?", "type": "main", "index": 0}]]
     },
     "SMS Sent?": {
       "main": [
-        [
-          {
-            "node": "Log SMS Sent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log SMS Failure",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Log SMS Sent", "type": "main", "index": 0}],
+        [{"node": "Log SMS Failure", "type": "main", "index": 0}]
       ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "workflow_0_global_error_handler"
   }
 }
-
-

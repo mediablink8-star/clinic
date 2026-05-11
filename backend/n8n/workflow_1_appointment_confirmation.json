@@ -18,7 +18,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "admin123"}
+            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "={{ $env.WEBHOOK_SECRET }}"}
           ]
         }
       },
@@ -106,9 +106,9 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "api_key", "value": "={{ $json.body?.vonageApiKey || '917c2dd5' }}"},
-            {"name": "api_secret", "value": "={{ $json.body?.vonageApiSecret || 'bg8RJd$*mb6N%e!baF' }}"},
-            {"name": "from", "value": "={{ $json.body?.vonageFromName || 'mediablink' }}"},
+            {"name": "api_key", "value": "={{ $env.VONAGE_API_KEY }}"},
+            {"name": "api_secret", "value": "={{ $env.VONAGE_API_SECRET }}"},
+            {"name": "from", "value": "={{ $env.VONAGE_FROM_NAME }}"},
             {"name": "to", "value": "={{ $json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},
             {"name": "type", "value": "unicode"}
@@ -158,7 +158,7 @@
     },
     {
       "parameters": {
-        "url": "https://backend-l9el.onrender.com/api/automation/send-notification",
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -190,6 +190,8 @@
     "Send Confirmation SMS": {"main": [[{"node": "SMS Sent?", "type": "main", "index": 0}]]},
     "SMS Sent?": {"main": [[{"node": "Log SMS Sent", "type": "main", "index": 0}], [{"node": "Log SMS Failure", "type": "main", "index": 0}]]}
   },
-  "settings": {"executionOrder": "v1"}
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "workflow_0_global_error_handler"
+  }
 }
-

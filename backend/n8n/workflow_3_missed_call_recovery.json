@@ -21,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
-              "value2": "admin123"
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
           ]
         }
@@ -91,11 +91,7 @@
             {"name": "phone", "value": "={{ $json.body.phone }}"},
             {"name": "clinicId", "value": "={{ $json.body.clinicId }}"},
             {"name": "missedCallId", "value": "={{ $json.body.missedCallId }}"},
-            {"name": "name", "value": "={{ $json.body.name || '' }}"},
-            {"name": "vonageApiKey", "value": "={{ $json.body.vonageApiKey || '917c2dd5' }}"},
-            {"name": "vonageApiSecret", "value": "={{ $json.body.vonageApiSecret || 'bg8RJd$*mb6N%e!baF' }}"},
-            {"name": "vonageFromName", "value": "={{ $json.body.vonageFromName || 'mediablink' }}"},
-            {"name": "backendUrl", "value": "={{ $json.body.backendUrl || 'https://backend-l9el.onrender.com/api' }}"}
+            {"name": "name", "value": "={{ $json.body.name || '' }}"}
           ]
         }
       },
@@ -126,9 +122,9 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "api_key", "value": "={{ $node[\"Set Variables\"].json.vonageApiKey }}"},
-            {"name": "api_secret", "value": "={{ $node[\"Set Variables\"].json.vonageApiSecret }}"},
-            {"name": "from", "value": "={{ $node[\"Set Variables\"].json.vonageFromName }}"},
+            {"name": "api_key", "value": "={{ $env.VONAGE_API_KEY }}"},
+            {"name": "api_secret", "value": "={{ $env.VONAGE_API_SECRET }}"},
+            {"name": "from", "value": "={{ $env.VONAGE_FROM_NAME }}"},
             {"name": "to", "value": "={{ $node[\"Set Variables\"].json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},
             {"name": "type", "value": "unicode"}
@@ -189,7 +185,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Set Variables\"].json.backendUrl }}/automation/mark-recovered",
+        "url": "={{ $env.BACKEND_API_URL }}/automation/mark-recovered",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -213,7 +209,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Set Variables\"].json.backendUrl }}/automation/send-notification",
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -255,4 +251,3 @@
     "errorWorkflow": "workflow_0_global_error_handler"
   }
 }
-

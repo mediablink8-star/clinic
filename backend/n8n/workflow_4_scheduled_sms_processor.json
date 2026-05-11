@@ -46,7 +46,7 @@
       "parameters": {
         "conditions": {
           "number": [
-            {"value1": "={{ $json.data?.length }}", "operation": "larger", "value2": 0}
+            {"value1": "={{ $json.data?.length ?? 0 }}", "operation": "larger", "value2": 0}
           ]
         }
       },
@@ -65,7 +65,7 @@
       "name": "Split Notifications",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 1,
-      "position": [1120, 300]
+      "position": [1120, 200]
     },
     {
       "parameters": {
@@ -85,31 +85,26 @@
       "name": "Send Notification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [1340, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            {"value1": "={{ $json.length }}", "operation": "larger", "value2": 0}
-          ]
-        }
-      },
-      "id": "node_more_items",
-      "name": "More Items?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [1560, 300]
+      "position": [1340, 200]
     }
   ],
   "connections": {
     "Every 5 Minutes": {"main": [[{"node": "Process Scheduled Missed Calls", "type": "main", "index": 0}]]},
     "Process Scheduled Missed Calls": {"main": [[{"node": "Poll Pending Notifications", "type": "main", "index": 0}]]},
     "Poll Pending Notifications": {"main": [[{"node": "Has Notifications?", "type": "main", "index": 0}]]},
-    "Has Notifications?": {"main": [[{"node": "Split Notifications", "type": "main", "index": 0}], []]},
-    "Split Notifications": {"main": [[{"node": "Send Notification", "type": "main", "index": 0}]]},
-    "Send Notification": {"main": [[{"node": "More Items?", "type": "main", "index": 0}]]},
-    "More Items?": {"main": [[{"node": "Split Notifications", "type": "main", "index": 0}], []]}
+    "Has Notifications?": {
+      "main": [
+        [{"node": "Split Notifications", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Split Notifications": {
+      "main": [
+        [{"node": "Send Notification", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Send Notification": {"main": [[{"node": "Split Notifications", "type": "main", "index": 0}]]}
   },
   "settings": {
     "executionOrder": "v1",

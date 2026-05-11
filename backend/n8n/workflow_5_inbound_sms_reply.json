@@ -12,10 +12,7 @@
       "name": "Receive Inbound SMS",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [
-        240,
-        300
-      ]
+      "position": [240, 300]
     },
     {
       "parameters": {
@@ -24,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] || '' }}",
               "operation": "equal",
-              "value2": "admin123"
+              "value2": "={{ $env.WEBHOOK_SECRET }}"
             }
           ]
         }
@@ -33,10 +30,7 @@
       "name": "Has Webhook Key?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        460,
-        300
-      ]
+      "position": [460, 300]
     },
     {
       "parameters": {
@@ -50,10 +44,7 @@
       "name": "Return 403",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        680,
-        480
-      ]
+      "position": [680, 480]
     },
     {
       "parameters": {
@@ -67,10 +58,7 @@
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [
-        680,
-        300
-      ]
+      "position": [680, 300]
     },
     {
       "parameters": {
@@ -99,10 +87,7 @@
       "name": "Set Variables",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        900,
-        300
-      ]
+      "position": [900, 300]
     },
     {
       "parameters": {
@@ -123,14 +108,11 @@
       "name": "Has Required Fields?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [
-        1120,
-        300
-      ]
+      "position": [1120, 300]
     },
     {
       "parameters": {
-        "url": "https://backend-l9el.onrender.com/api/webhook/inbound-sms",
+        "url": "={{ $env.BACKEND_API_URL }}/webhook/inbound-sms",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -163,10 +145,7 @@
       "name": "Forward to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [
-        1340,
-        200
-      ],
+      "position": [1340, 200],
       "continueOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
@@ -190,86 +169,34 @@
       "name": "Skip",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [
-        1340,
-        420
-      ]
+      "position": [1340, 420]
     }
   ],
   "connections": {
     "Receive Inbound SMS": {
-      "main": [
-        [
-          {
-            "node": "Has Webhook Key?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Has Webhook Key?", "type": "main", "index": 0}]]
     },
     "Has Webhook Key?": {
       "main": [
-        [
-          {
-            "node": "Respond 200",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Return 403",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Respond 200", "type": "main", "index": 0}],
+        [{"node": "Return 403", "type": "main", "index": 0}]
       ]
     },
     "Respond 200": {
-      "main": [
-        [
-          {
-            "node": "Set Variables",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Set Variables", "type": "main", "index": 0}]]
     },
     "Set Variables": {
-      "main": [
-        [
-          {
-            "node": "Has Required Fields?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Has Required Fields?", "type": "main", "index": 0}]]
     },
     "Has Required Fields?": {
       "main": [
-        [
-          {
-            "node": "Forward to Backend",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Skip",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Forward to Backend", "type": "main", "index": 0}],
+        [{"node": "Skip", "type": "main", "index": 0}]
       ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "workflow_0_global_error_handler"
   }
 }
-
-
