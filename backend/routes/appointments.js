@@ -55,6 +55,29 @@ router.delete('/appointments/:id', asyncHandler(async (req, res) => {
     res.json({ success: true });
 }));
 
+// PATCH /api/appointments/:id/doctor — reassign or unassign doctor
+router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
+    const { doctorId } = req.body; // null to unassign
+    const existing = await require('../services/prisma').appointment.findFirst({
+        where: { id: req.params.id, clinicId: req.clinicId }
+    });
+    if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+
+    if (doctorId) {
+        const doctor = await require('../services/prisma').doctor.findFirst({
+            where: { id: doctorId, clinicId: req.clinicId, isActive: true }
+        });
+        if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+    }
+
+    const updated = await require('../services/prisma').appointment.update({
+        where: { id: req.params.id },
+        data: { doctorId: doctorId || null },
+        include: { doctor: true, patient: true }
+    });
+    res.json({ success: true, data: updated });
+}));
+
 
 // GET /api/appointments/available?date=2026-04-22
 router.get('/appointments/available', asyncHandler(async (req, res) => {

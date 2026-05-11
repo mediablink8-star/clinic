@@ -249,6 +249,7 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
                             onConfirm={onConfirm}
                             onCancel={onCancel}
                             onMessage={(p) => setSelectedPatient(p)}
+                            onReassignDoctor={onRetry}
                         />
                     ))
                 )}

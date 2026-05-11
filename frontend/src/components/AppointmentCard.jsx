@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../lib/api';
 import Badge from './Badge';
-import { CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, AlertCircle, MessageSquare, ChevronDown } from 'lucide-react';
 
-const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, onCancel, onMessage }) => {
+const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, onCancel, onMessage, onReassignDoctor }) => {
     const startTime = new Date(appointment.startTime);
     const isUrgent = appointment.priority === 'URGENT';
+    const [doctors, setDoctors] = useState([]);
+    const [showDoctorSelect, setShowDoctorSelect] = useState(false);
+    const [reassigning, setReassigning] = useState(false);
+
+    useEffect(() => {
+        if (showActions) {
+            api.get('/doctors').then(r => setDoctors(r.data.data || [])).catch(() => {});
+        }
+    }, [showActions]);
+
+    const handleReassign = async (doctorId) => {
+        setReassigning(true);
+        try {
+            await api.patch(`/appointments/${appointment.id}/doctor`, { doctorId: doctorId || null });
+            if (onReassignDoctor) onReassignDoctor();
+        } catch (e) {
+            console.error('Reassign failed', e);
+        } finally {
+            setReassigning(false);
+            setShowDoctorSelect(false);
+        }
+    };
 
     return (
         <div className={`appointment-card animate-fade${isUrgent ? ' urgent' : ''}`} style={{
@@ -49,10 +72,32 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
                     <p style={{ color: 'var(--text-light)', fontSize: '0.8rem', fontWeight: '600' }}>
                         {appointment.patient?.phone}
                     </p>
-                    {appointment.doctor && (
-                        <p style={{ color: 'var(--primary)', fontSize: '0.72rem', fontWeight: '700', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {appointment.doctor && !showDoctorSelect && (
+                        <p
+                            onClick={() => showActions && doctors.length > 0 && setShowDoctorSelect(true)}
+                            style={{ color: 'var(--primary)', fontSize: '0.72rem', fontWeight: '700', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', cursor: showActions && doctors.length > 0 ? 'pointer' : 'default' }}
+                        >
                             <span style={{ opacity: 0.6 }}>&#x2695;</span> {appointment.doctor.name}
+                            {showActions && doctors.length > 0 && <ChevronDown size={10} />}
                         </p>
+                    )}
+                    {!appointment.doctor && showActions && doctors.length > 0 && !showDoctorSelect && (
+                        <p onClick={() => setShowDoctorSelect(true)} style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '600', marginTop: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            + Ανάθεση γιατρού
+                        </p>
+                    )}
+                    {showDoctorSelect && (
+                        <select
+                            autoFocus
+                            disabled={reassigning}
+                            defaultValue={appointment.doctorId || ''}
+                            onChange={e => handleReassign(e.target.value)}
+                            onBlur={() => setShowDoctorSelect(false)}
+                            style={{ fontSize: '0.75rem', marginTop: '4px', borderRadius: '8px', border: '1px solid var(--primary)', padding: '3px 6px', color: 'var(--text)', background: 'white', maxWidth: '160px' }}
+                        >
+                            <option value="">Κανένας</option>
+                            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
                     )}
                 </div>
 

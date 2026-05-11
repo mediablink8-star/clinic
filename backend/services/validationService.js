@@ -16,7 +16,8 @@ const appointmentSchema = Joi.object({
     startTime: Joi.date().iso().required(),
     endTime: Joi.date().iso().required(),
     reason: Joi.string().max(500).allow(null, ''),
-    priority: Joi.string().valid('NORMAL', 'URGENT').default('NORMAL')
+    priority: Joi.string().valid('NORMAL', 'URGENT').default('NORMAL'),
+    doctorId: Joi.string().allow(null, '')
 });
 
 const clinicUpdateSchema = Joi.object({
@@ -92,7 +93,8 @@ const publicBookingSchema = Joi.object({
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
     // Optional: link to missed call for recovery tracking
-    missedCallId: Joi.string().allow(null, '')
+    missedCallId: Joi.string().allow(null, ''),
+    doctorId: Joi.string().allow(null, '')
 }).or('startTime', 'date');
 
 const missedCallSchema = Joi.object({
