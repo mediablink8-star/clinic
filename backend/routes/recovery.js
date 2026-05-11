@@ -320,21 +320,33 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
     for (const mc of engaged) {
         try {
             // Smart parse the Greek/English day/time captured by AI
-            // Chrono-node is better at EN, but we'll try to help it
             let dayText = mc.bookingDay;
-            // Basic Greek translation for Chrono
-            dayText = dayText.replace(/αύριο/gi, 'tomorrow')
-                           .replace(/σήμερα/gi, 'today')
-                           .replace(/δευτέρα/gi, 'monday')
-                           .replace(/τρίτη/gi, 'tuesday')
-                           .replace(/τετάρτη/gi, 'wednesday')
-                           .replace(/πέμπτη/gi, 'thursday')
-                           .replace(/παρασκευή/gi, 'friday')
-                           .replace(/σάββατο/gi, 'saturday')
-                           .replace(/κυριακή/gi, 'sunday')
-                           .replace(/στις/gi, 'at');
+            
+            // Expanded Greek translation for Chrono
+            const greekMap = {
+                'αύριο': 'tomorrow', 'αυριο': 'tomorrow',
+                'σήμερα': 'today', 'σημερα': 'today',
+                'δευτέρα': 'monday', 'δευτερα': 'monday',
+                'τρίτη': 'tuesday', 'τριτη': 'tuesday',
+                'τετάρτη': 'wednesday', 'τεταρτη': 'wednesday',
+                'πέμπτη': 'thursday', 'πεμπτη': 'thursday',
+                'παρασκευή': 'friday', 'παρασκευη': 'friday',
+                'σάββατο': 'saturday', 'σαββατο': 'saturday',
+                'κυριακή': 'sunday', 'κυριακη': 'sunday',
+                'στις': 'at', 'η ώρα': '',
+                'το μεσημέρι': 'pm', 'το πρωί': 'am',
+                'το απογευμα': 'pm', 'το βράδυ': 'pm'
+            };
 
-            const parsed = chrono.parseDate(dayText, new Date(), { forwardDate: true });
+            Object.entries(greekMap).forEach(([el, en]) => {
+                const regex = new RegExp(el, 'gi');
+                dayText = dayText.replace(regex, en);
+            });
+
+            const { getStartOfDay } = require('./slotUtils');
+            const anchorDate = getStartOfDay(new Date(), timezone);
+
+            const parsed = chrono.parseDate(dayText, anchorDate, { forwardDate: true });
             if (!parsed) {
                 results.push({ id: mc.id, success: false, reason: 'Could not parse date: ' + mc.bookingDay });
                 continue;
@@ -395,21 +407,50 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     if (!mc.bookingDay) throw new AppError('VALIDATION_ERROR', 'No booking info captured by AI yet', 400);
 
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    const timezone = clinic?.timezone || 'Europe/Athens';
     
+    // Use the clinic's local "now" as the anchor for chrono-node
+    const { getStartOfDay } = require('./slotUtils');
+    const localNow = new Date(); // Ideally, we'd use a more precise local now, but getStartOfDay helps anchor the date part
+    const anchorDate = getStartOfDay(localNow, timezone);
+
     // Smart parse the Greek/English day/time captured by AI
     let dayText = mc.bookingDay;
-    dayText = dayText.replace(/αύριο/gi, 'tomorrow')
-                   .replace(/σήμερα/gi, 'today')
-                   .replace(/δευτέρα/gi, 'monday')
-                   .replace(/τρίτη/gi, 'tuesday')
-                   .replace(/τετάρτη/gi, 'wednesday')
-                   .replace(/πέμπτη/gi, 'thursday')
-                   .replace(/παρασκευή/gi, 'friday')
-                   .replace(/σάββατο/gi, 'saturday')
-                   .replace(/κυριακή/gi, 'sunday')
-                   .replace(/στις/gi, 'at');
+    
+    // Expanded Greek translation for Chrono (handling accents and common variations)
+    const greekMap = {
+        'αύριο': 'tomorrow',
+        'αυριο': 'tomorrow',
+        'σήμερα': 'today',
+        'σημερα': 'today',
+        'δευτέρα': 'monday',
+        'δευτερα': 'monday',
+        'τρίτη': 'tuesday',
+        'τριτη': 'tuesday',
+        'τετάρτη': 'wednesday',
+        'τεταρτη': 'wednesday',
+        'πέμπτη': 'thursday',
+        'πεμπτη': 'thursday',
+        'παρασκευή': 'friday',
+        'παρασκευη': 'friday',
+        'σάββατο': 'saturday',
+        'σαββατο': 'saturday',
+        'κυριακή': 'sunday',
+        'κυριακη': 'sunday',
+        'στις': 'at',
+        'η ώρα': '',
+        'το μεσημέρι': 'pm',
+        'το πρωί': 'am',
+        'το απογευμα': 'pm',
+        'το βράδυ': 'pm'
+    };
 
-    const parsed = chrono.parseDate(dayText, new Date(), { forwardDate: true });
+    Object.entries(greekMap).forEach(([el, en]) => {
+        const regex = new RegExp(el, 'gi');
+        dayText = dayText.replace(regex, en);
+    });
+
+    const parsed = chrono.parseDate(dayText, anchorDate, { forwardDate: true });
     if (!parsed) {
         throw new AppError('VALIDATION_ERROR', 'Could not parse date: ' + mc.bookingDay, 400);
     }
