@@ -157,8 +157,8 @@ function shouldResetDailyUsage(lastDailyReset) {
     return resetDate < dayStart;
 }
 
-async function ensureMonthlyUsageWindow(clinicId) {
-    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+async function ensureMonthlyUsageWindow(clinicId, tx = prisma) {
+    const clinic = await tx.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
     const updates = {};
@@ -177,7 +177,7 @@ async function ensureMonthlyUsageWindow(clinicId) {
     }
 
     if (Object.keys(updates).length > 0) {
-        return prisma.clinic.update({
+        return tx.clinic.update({
             where: { id: clinicId },
             data: updates,
         });
@@ -186,8 +186,8 @@ async function ensureMonthlyUsageWindow(clinicId) {
     return clinic;
 }
 
-async function assertWithinSmsLimit(clinicId) {
-    const clinic = await ensureMonthlyUsageWindow(clinicId);
+async function assertWithinSmsLimit(clinicId, tx = prisma) {
+    const clinic = await ensureMonthlyUsageWindow(clinicId, tx);
     await assertNotTemporarilyBlocked(clinicId, 'sms');
     await assertRateLimits(clinicId, 'sms');
     const limit = clinic.smsMonthlyLimit || DEFAULT_SMS_LIMIT;
@@ -203,8 +203,8 @@ async function assertWithinSmsLimit(clinicId) {
     return { clinic, limit, dailyLimit };
 }
 
-async function assertWithinAiLimit(clinicId) {
-    const clinic = await ensureMonthlyUsageWindow(clinicId);
+async function assertWithinAiLimit(clinicId, tx = prisma) {
+    const clinic = await ensureMonthlyUsageWindow(clinicId, tx);
     await assertNotTemporarilyBlocked(clinicId, 'ai');
     await assertRateLimits(clinicId, 'ai');
     const limit = clinic.aiMonthlyLimit || DEFAULT_AI_LIMIT;
@@ -216,11 +216,11 @@ async function assertWithinAiLimit(clinicId) {
     return { clinic, limit };
 }
 
-async function incrementSmsUsage(clinicId) {
-    const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId);
+async function incrementSmsUsage(clinicId, tx = prisma) {
+    const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId, tx);
     
     try {
-        return await prisma.clinic.update({
+        return await tx.clinic.update({
             where: { 
                 id: clinicId,
                 smsCount: { lt: limit },
@@ -240,11 +240,11 @@ async function incrementSmsUsage(clinicId) {
     }
 }
 
-async function incrementAiUsage(clinicId) {
-    const { limit } = await assertWithinAiLimit(clinicId);
+async function incrementAiUsage(clinicId, tx = prisma) {
+    const { limit } = await assertWithinAiLimit(clinicId, tx);
     
     try {
-        return await prisma.clinic.update({
+        return await tx.clinic.update({
             where: { 
                 id: clinicId,
                 aiRequestCount: { lt: limit }

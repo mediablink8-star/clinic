@@ -111,7 +111,8 @@ async function findPatientsByName(clinicId, name) {
                 mode: 'insensitive'
             }
         },
-        select: { id: true, name: true, phone: true }
+        select: { id: true, name: true, phone: true },
+        take: 5
     });
     if (exactMatches.length === 1) return exactMatches;
     
@@ -139,6 +140,7 @@ async function executeCommand(parsedCommand, clinicId, actor) {
     
     switch (action) {
         case 'send_sms': {
+            const { patientName, message } = parameters;
             const patients = await findPatientsByName(clinicId, patientName);
             if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
@@ -166,6 +168,7 @@ async function executeCommand(parsedCommand, clinicId, actor) {
         }
         
         case 'call_patient': {
+            const { patientName } = parameters;
             const patients = await findPatientsByName(clinicId, patientName);
             if (patients.length === 0) {
                 throw new AppError('NOT_FOUND', `Patient "${patientName}" not found`, 404);
@@ -236,9 +239,14 @@ async function executeCommand(parsedCommand, clinicId, actor) {
             });
             const timezone = clinic?.timezone || 'Europe/Athens';
             
-            // Construct ISO string with offset (assuming clinic is in Greece or similar)
-            // A more robust way would be using dayjs, but we'll manually ensure it's not server-local
-            const startTime = new Date(`${date}T${time}:00`);
+            const { parseDateTimeInTimezone } = require('./publicService');
+            let startTime;
+            try {
+                startTime = parseDateTimeInTimezone(date, time, timezone);
+            } catch (err) {
+                // fallback if date format was somewhat bad
+                startTime = new Date(`${date}T${time}:00`);
+            }
             const durationMinutes = duration || 30;
             const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
             

@@ -22,33 +22,34 @@ function getOAuth2Client() {
  */
 async function getAuthUrl(clinicId) {
     const oauth2Client = getOAuth2Client();
-    const state = require('crypto').randomBytes(32).toString('hex');
+    const nonce = require('crypto').randomBytes(16).toString('hex');
+    const state = `${nonce}:${clinicId}`;
     
-    // Save state to clinic to verify upon callback
+    // Save nonce to clinic to verify upon callback
     await prisma.clinic.update({
         where: { id: clinicId },
-        data: { googleOAuthState: state }
+        data: { googleOAuthState: nonce }
     });
 
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
         prompt: 'consent', // force refresh token on every auth
-        state,             // pass random state through OAuth flow
+        state,             // pass combined state through OAuth flow
     });
 }
 
 /**
  * Exchange authorization code for tokens and save to clinic.
  */
-async function handleCallback(code, clinicId, state) {
+async function handleCallback(code, clinicId, nonce) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
         select: { googleOAuthState: true }
     });
 
-    if (!clinic || !clinic.googleOAuthState || clinic.googleOAuthState !== state) {
-        console.error('[GoogleCalendar] Invalid state or clinic:', { clinicId, stateMatch: clinic?.googleOAuthState === state });
+    if (!clinic || !clinic.googleOAuthState || clinic.googleOAuthState !== nonce) {
+        console.error('[GoogleCalendar] Invalid state or clinic:', { clinicId, nonce, match: clinic?.googleOAuthState === nonce });
         throw new Error('Invalid OAuth state. Potential CSRF attempt detected.');
     }
 

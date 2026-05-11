@@ -219,21 +219,28 @@ app.use('/api/automation', automationAuth, automationRouter);
 // because Google redirects here without a JWT token
 const { handleCallback: gcalHandleCallback } = require('./services/googleCalendarService');
 app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) => {
-    const { code, state: clinicId, error } = req.query;
+    const { code, state, error } = req.query;
     const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
     
-    console.log('[GoogleCalendar] Callback received:', { hasError: !!error, hasCode: !!code, hasState: !!clinicId });
+    console.log('[GoogleCalendar] Callback received:', { hasError: !!error, hasCode: !!code, hasState: !!state });
     
     if (error) {
         console.error('[GoogleCalendar] OAuth error:', error);
         return res.redirect(`${frontendUrl}/settings?gcal=error&reason=${encodeURIComponent(error)}`);
     }
-    if (!code || !clinicId) {
+    if (!code || !state) {
         console.error('[GoogleCalendar] Missing code or state');
         return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
     }
+
+    const [nonce, clinicId] = state.split(':');
+    if (!nonce || !clinicId) {
+        console.error('[GoogleCalendar] Invalid state format');
+        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=invalid_state`);
+    }
+
     try {
-        await gcalHandleCallback(code, clinicId, state);
+        await gcalHandleCallback(code, clinicId, nonce);
         console.log('[GoogleCalendar] Successfully connected for clinic:', clinicId);
         res.redirect(`${frontendUrl}/settings?gcal=connected`);
     } catch (err) {

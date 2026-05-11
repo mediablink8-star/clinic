@@ -1,3 +1,5 @@
+process.env.DB_ENCRYPTION_KEY = 'test_key_for_jest_tests_only';
+
 jest.mock('./prisma', () => ({
     clinic: {
         findUnique: jest.fn(),

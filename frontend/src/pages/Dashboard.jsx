@@ -172,47 +172,6 @@ const Dashboard = ({
                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
             </div>
 
-            {/* ── SAFE MODE BANNER ── */}
-            {clinic?.safeMode && (
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(245,158,11,0.9) 0%, rgba(217,119,6,0.8) 100%)',
-                    border: '2px solid rgba(245,158,11,0.6)',
-                    borderRadius: '16px',
-                    padding: '0.85rem 1.25rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    boxShadow: '0 8px 24px rgba(245,158,11,0.3)',
-                    flexShrink: 0
-                }}>
-                    <div style={{ fontSize: '1.5rem' }}>🛡️</div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ color: 'white', fontWeight: '800', fontSize: '0.9rem', marginBottom: '2px' }}>
-                            Safe Mode Ενεργό
-                        </div>
-                        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.8rem' }}>
-                            Κανένα SMS ή κλήση δεν στέλνεται. Όλες οι ενέργειες προσομοιώνονται.
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleToggleSafeMode}
-                        style={{
-                            background: 'white',
-                            color: '#d97706',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '10px',
-                            fontSize: '0.8rem',
-                            fontWeight: '800',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                        }}
-                    >
-                        Απενεργοποίηση
-                    </button>
-                </div>
-            )}
-
             {/* ── INACTIVE WARNING ── */}
             {!clinic?.isActive && (
                 <div style={{

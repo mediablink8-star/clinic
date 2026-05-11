@@ -38,7 +38,7 @@ router.get('/auth', requireOwner, asyncHandler(async (req, res) => {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
         return res.status(503).json({ error: 'Google Calendar integration not configured on this server.' });
     }
-    const url = getAuthUrl(req.clinicId);
+    const url = await getAuthUrl(req.clinicId);
     res.json({ url });
 }));
 

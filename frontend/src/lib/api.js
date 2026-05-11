@@ -4,7 +4,7 @@
  * Token refresh is delegated to authSession.js to avoid duplicate refresh calls.
  */
 import axios from 'axios';
-import { refreshAccessToken, setAccessToken } from './authSession';
+import { refreshAccessToken, setAccessToken, clearAccessToken } from './authSession';
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 

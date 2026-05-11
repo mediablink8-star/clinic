@@ -110,8 +110,7 @@ function isWithinWorkingHours({ clinic, start, end }) {
         return true;
     }
 
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayName = dayNames[start.getDay()];
+    const dayName = GREEK_DAYS[start.getDay()];
     const rangeStr = wh[dayName] || wh.weekdays || wh.default || null;
 
     if (!rangeStr || rangeStr.toLowerCase() === 'closed') return false;
@@ -119,10 +118,13 @@ function isWithinWorkingHours({ clinic, start, end }) {
     const parsed = parseRange(rangeStr);
     if (!parsed) return true;
 
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
+    const currentMinutesStart = start.getHours() * 60 + start.getMinutes();
+    const currentMinutesEnd = end.getHours() * 60 + end.getMinutes();
 
-    return startHour >= parsed.open.h && endHour <= parsed.close.h;
+    const openMinutes = parsed.open.h * 60 + parsed.open.m;
+    const closeMinutes = parsed.close.h * 60 + parsed.close.m;
+
+    return currentMinutesStart >= openMinutes && currentMinutesEnd <= closeMinutes;
 }
 
 module.exports = { checkWorkingHours, getNextOpeningTime, isWithinWorkingHours };

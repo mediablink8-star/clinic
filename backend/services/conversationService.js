@@ -289,8 +289,21 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
         await sendReply(clinic, fromPhone, 'Δεν κατάλαβα την ώρα. Στείλτε π.χ. 10:00 ή 17:30.');
         return;
     }
-    startTime.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+    
+    const { parseDateTimeInTimezone } = require('./publicService');
+    const dateStr = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(parsedTime.hour).padStart(2, '0')}:${String(parsedTime.minute).padStart(2, '0')}`;
+    
+    let finalStartTime;
+    try {
+        finalStartTime = parseDateTimeInTimezone(dateStr, timeStr, clinic.timezone || 'Europe/Athens');
+    } catch (err) {
+        console.warn(`[Conversation] timezone parse failed: ${err.message}`);
+        finalStartTime = startTime;
+        finalStartTime.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
+    }
+    
+    const endTime = new Date(finalStartTime.getTime() + 60 * 60 * 1000);
 
     const patientName = mc.bookingName || mc.patient?.name || fromPhone;
     let patient;
@@ -311,7 +324,7 @@ async function handleBookingStep(mc, clinic, text, fromPhone) {
         await createAppointment({
             clinicId: clinic.id,
             patientId: patient.id,
-            startTime: startTime.toISOString(),
+            startTime: finalStartTime.toISOString(),
             endTime: endTime.toISOString(),
             reason: 'Ραντεβού από SMS ανάκτησης'
         }, SYSTEM_ACTOR);
