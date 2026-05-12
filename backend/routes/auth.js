@@ -129,11 +129,11 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
             return user;
         });
 
-        const accessToken = generateAccessToken({ 
-            userId: result.id, 
-            clinicId: result.clinicId, 
+        const accessToken = generateAccessToken({
+            userId: result.id,
+            clinicId: result.clinicId,
             role: result.role,
-            isPlatformAdmin: result.isPlatformAdmin 
+            isPlatformAdmin: result.isPlatformAdmin
         });
         const refreshToken = generateRefreshToken({ userId: result.id });
 
@@ -158,7 +158,8 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                 userId: result.id,
                 userName: result.name,
                 isAdmin: result.role === 'ADMIN' || result.role === 'OWNER',
-                isPlatformAdmin: result.isPlatformAdmin
+                isPlatformAdmin: result.isPlatformAdmin,
+                onboardingCompleted: result.clinic.onboardingCompleted || false
             }
         });
     } catch (error) {
@@ -176,7 +177,7 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { clinic: { select: { id: true, name: true, isActive: true } } }
+            include: { clinic: { select: { id: true, name: true, isActive: true, onboardingCompleted: true } } }
         });
 
         if (!user) {
@@ -214,11 +215,11 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             return res.json({ mfaRequired: true, mfaToken, email: user.email });
         }
 
-        const accessToken = generateAccessToken({ 
-            userId: user.id, 
-            clinicId: user.clinicId, 
+        const accessToken = generateAccessToken({
+            userId: user.id,
+            clinicId: user.clinicId,
             role: user.role,
-            isPlatformAdmin: user.isPlatformAdmin 
+            isPlatformAdmin: user.isPlatformAdmin
         });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
@@ -234,16 +235,17 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
 
         res.json({
             token: accessToken,
-            clinic: { 
-                id: user.clinic?.id || null, 
-                name: user.clinic?.name || 'Platform Admin', 
-                email: user.email, 
-                avatarUrl: null, 
-                role: user.role, 
-                userId: user.id, 
-                userName: user.name || user.email, 
+            clinic: {
+                id: user.clinic?.id || null,
+                name: user.clinic?.name || 'Platform Admin',
+                email: user.email,
+                avatarUrl: null,
+                role: user.role,
+                userId: user.id,
+                userName: user.name || user.email,
                 isAdmin,
-                isPlatformAdmin: user.isPlatformAdmin
+                isPlatformAdmin: user.isPlatformAdmin,
+                onboardingCompleted: user.clinic?.onboardingCompleted || false
             }
         });
     } catch (error) {
@@ -254,8 +256,8 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
 
 router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, res) => {
     const { email } = req.body;
-    
-    const user = await prisma.user.findUnique({ 
+
+    const user = await prisma.user.findUnique({
         where: { email },
         include: {
             clinic: {
@@ -419,7 +421,8 @@ router.post('/google', asyncHandler(async (req, res) => {
         // concurrent first-time Google logins from the same account
         const { clinic, user, isAdmin } = await prisma.$transaction(async (tx) => {
             let c = await tx.clinic.findFirst({
-                where: { OR: [{ googleId }, { email }] }
+                where: { OR: [{ googleId }, { email }] },
+                select: { id: true, name: true, email: true, avatarUrl: true, googleId: true, onboardingCompleted: true }
             });
             let u;
             if (!c) {
@@ -470,11 +473,11 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
             return { clinic: c, user: u, isAdmin: u.role === 'ADMIN' || u.role === 'OWNER' };
         });
-        const accessToken = generateAccessToken({ 
-            userId: user.id, 
-            clinicId: user.clinicId, 
+        const accessToken = generateAccessToken({
+            userId: user.id,
+            clinicId: user.clinicId,
             role: user.role,
-            isPlatformAdmin: user.isPlatformAdmin 
+            isPlatformAdmin: user.isPlatformAdmin
         });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
@@ -500,7 +503,8 @@ router.post('/google', asyncHandler(async (req, res) => {
                 userName: user.name || user.email,
                 isAdmin,
                 isPlatformAdmin: user.isPlatformAdmin,
-                mfaEnabled: user.mfaEnabled
+                mfaEnabled: user.mfaEnabled,
+                onboardingCompleted: clinic.onboardingCompleted || false
             }
         });
     } catch (error) {
@@ -559,8 +563,8 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
         // Store encrypted secret permanently
         await prisma.user.update({
             where: { id: user.id },
-            data: { 
-                mfaEnabled: true, 
+            data: {
+                mfaEnabled: true,
                 mfaSecret: encrypt(pendingSecret),
                 mfaPendingSecret: null
             }
@@ -588,7 +592,8 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
                     select: {
                         id: true,
                         name: true,
-                        avatarUrl: true
+                        avatarUrl: true,
+                        onboardingCompleted: true
                     }
                 }
             }
@@ -600,11 +605,11 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
         const isValid = authenticator.check(code, secret);
         if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
-        const accessToken = generateAccessToken({ 
-            userId: user.id, 
-            clinicId: user.clinicId, 
+        const accessToken = generateAccessToken({
+            userId: user.id,
+            clinicId: user.clinicId,
             role: user.role,
-            isPlatformAdmin: user.isPlatformAdmin 
+            isPlatformAdmin: user.isPlatformAdmin
         });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
@@ -628,7 +633,8 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
                 role: user.role,
                 isAdmin: user.role === 'ADMIN' || user.role === 'OWNER',
                 isPlatformAdmin: user.isPlatformAdmin,
-                mfaEnabled: user.mfaEnabled
+                mfaEnabled: user.mfaEnabled,
+                onboardingCompleted: user.clinic?.onboardingCompleted || false
             }
         });
     } catch (error) {
