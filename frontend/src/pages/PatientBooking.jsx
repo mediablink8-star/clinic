@@ -19,7 +19,7 @@ const PatientBooking = () => {
     useEffect(() => {
         const fetchSlots = async () => {
             if (!formData.date || !clinicId) return;
-            if (doctors.length > 0 && !formData.doctorId) return; // wait for doctor selection
+            // No longer waiting for doctorId to be set, empty means "Anyone"
             setSlotsLoading(true);
             try {
                 const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
@@ -32,7 +32,7 @@ const PatientBooking = () => {
             }
         };
         fetchSlots();
-    }, [formData.date, clinicId]);
+    }, [formData.date, formData.doctorId, clinicId]); // Re-fetch when doctor selection changes
 
     useEffect(() => {
         const fetchClinic = async () => {
@@ -203,7 +203,7 @@ const PatientBooking = () => {
                                             value={formData.doctorId} 
                                             onChange={e => setFormData({ ...formData, doctorId: e.target.value, date: '', time: '' })}
                                         >
-                                            {doctors.length > 1 && <option value="">Επιλέξτε γιατρό...</option>}
+                                            {doctors.length > 0 && <option value="">Οποιοσδήποτε διαθέσιμος</option>}
                                             {doctors.map(d => (
                                                 <option key={d.id} value={d.id}>{d.name} {d.specialty ? `(${d.specialty})` : ''}</option>
                                             ))}
@@ -219,7 +219,6 @@ const PatientBooking = () => {
                                             value={formData.date} 
                                             onChange={e => setFormData({ ...formData, date: e.target.value })} 
                                             min={new Date().toISOString().split('T')[0]} 
-                                            disabled={doctors.length > 0 && !formData.doctorId}
                                         />
                                     </div>
                                     <div className="form-group">

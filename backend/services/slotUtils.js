@@ -204,10 +204,37 @@ function isWithinWorkingHours({ clinic, start, end, timezone = 'Europe/Athens', 
 async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', stepMinutes = 60, doctor = null) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { workingHours: true, aiConfig: true },
+        select: { workingHours: true, aiConfig: true, id: true },
     });
     if (!clinic) return [];
 
+    // If no doctor specified, get slots for ALL active doctors and union them
+    if (!doctor) {
+        const activeDoctors = await prisma.doctor.findMany({
+            where: { clinicId, isActive: true }
+        });
+
+        if (activeDoctors.length === 0) {
+            // Fallback to clinic-level slots if no doctors exist
+            return calculateSlots(clinic, null, date, timezone, stepMinutes, clinicId);
+        }
+
+        const allDoctorSlots = await Promise.all(
+            activeDoctors.map(doc => calculateSlots(clinic, doc, date, timezone, stepMinutes, clinicId))
+        );
+
+        // Union of all unique slots across all doctors, sorted
+        const uniqueSlots = [...new Set(allDoctorSlots.flat())].sort();
+        return uniqueSlots;
+    }
+
+    return calculateSlots(clinic, doctor, date, timezone, stepMinutes, clinicId);
+}
+
+/**
+ * Internal helper to calculate slots for a specific resource (Doctor or Clinic)
+ */
+async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clinicId) {
     const workingHours = parseWorkingHours(clinic, doctor);
     const rangeStr = resolveRangeForDate(workingHours, date, timezone);
     const parsed = parseHoursRange(rangeStr);
@@ -223,8 +250,13 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', ste
         startTime: { gte: dayStart, lte: dayEnd },
         status: { notIn: ['CANCELLED', 'NO_SHOW'] }
     };
+    
     if (doctor) {
         whereClause.doctorId = doctor.id;
+    } else {
+        // If we are calculating "clinic-wide" slots (legacy or no doctors),
+        // we check appointments where doctorId is null
+        whereClause.doctorId = null;
     }
 
     const existing = await prisma.appointment.findMany({
@@ -233,8 +265,6 @@ async function getAvailableSlots(clinicId, date, timezone = 'Europe/Athens', ste
         take: 200
     });
 
-    // Mark every slot occupied by each appointment (handles multi-hour appointments)
-    // Use timezone-aware hour/minute extraction to match how slots are built
     const step = Math.max(15, stepMinutes);
     const bookedMinutes = new Set();
     for (const appt of existing) {

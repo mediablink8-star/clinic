@@ -205,7 +205,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
         }
         
         case 'book_appointment': {
-            const { patientName, reason, date, time, duration } = parameters;
+            const { patientName, reason, date, time, duration, doctorName } = parameters;
             if (!patientName || !date || !time) {
                 throw new AppError('VALIDATION_ERROR', 'Patient name, date, and time are required', 400);
             }
@@ -218,6 +218,18 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
             }
             const patient = patients[0];
+
+            let doctorId = null;
+            if (doctorName) {
+                const doctor = await prisma.doctor.findFirst({
+                    where: {
+                        clinicId,
+                        isActive: true,
+                        name: { contains: doctorName, mode: 'insensitive' }
+                    }
+                });
+                if (doctor) doctorId = doctor.id;
+            }
             
             // Parse date and time in clinic's timezone
             const timezone = clinic?.timezone || 'Europe/Athens';
@@ -236,6 +248,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
             const result = await createAppointment({
                 clinicId,
                 patientId: patient.id,
+                doctorId,
                 reason: reason || 'Ραντεβού',
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
@@ -247,6 +260,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 action: 'book_appointment',
                 result: {
                     patient: patient.name,
+                    doctor: doctorName || 'Anyone',
                     appointmentId: result.data.id,
                     date,
                     time,

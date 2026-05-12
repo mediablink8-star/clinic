@@ -161,37 +161,77 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     const normalizedPhone = normalizePhone(phone);
 
     const { patient, appointment, missedCall } = await prisma.$transaction(async (tx) => {
-        // Use FOR UPDATE to lock conflicting appointments during check
-        // This prevents race conditions when multiple requests try to book the same slot
-        let conflict;
-        if (doctorId) {
-            const doc = await tx.doctor.findFirst({ where: { id: doctorId, clinicId, isActive: true } });
+        let assignedDoctorId = doctorId;
+
+        // Find an available doctor if none specified (Anyone Available)
+        if (!assignedDoctorId) {
+            const activeDoctors = await tx.doctor.findMany({
+                where: { clinicId, isActive: true }
+            });
+
+            if (activeDoctors.length > 0) {
+                for (const doc of activeDoctors) {
+                    // Check if this doctor is within working hours for this specific time
+                    const isWorking = require('./slotUtils').isWithinWorkingHours({
+                        clinic,
+                        doctor: doc,
+                        start,
+                        end,
+                        timezone
+                    });
+
+                    if (!isWorking) continue;
+
+                    // Check for conflicts for this specific doctor
+                    const conflict = await tx.$queryRaw`
+                        SELECT id FROM "Appointment"
+                        WHERE "clinicId" = ${clinicId}
+                        AND "doctorId" = ${doc.id}
+                        AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                        AND "startTime" < ${end}
+                        AND "endTime" > ${start}
+                        FOR UPDATE
+                        LIMIT 1
+                    `;
+
+                    if (!conflict || conflict.length === 0) {
+                        assignedDoctorId = doc.id;
+                        break;
+                    }
+                }
+
+                if (!assignedDoctorId) {
+                    throw new AppError('SLOT_UNAVAILABLE', 'No doctors are available at this time', 400);
+                }
+            }
+        } else {
+            // Specific doctor requested - check availability
+            const doc = await tx.doctor.findFirst({ where: { id: assignedDoctorId, clinicId, isActive: true } });
             if (!doc) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
 
-            conflict = await tx.$queryRaw`
+            const isWorking = require('./slotUtils').isWithinWorkingHours({
+                clinic,
+                doctor: doc,
+                start,
+                end,
+                timezone
+            });
+            if (!isWorking) throw new AppError('SLOT_UNAVAILABLE', 'Doctor is not working at this time', 400);
+
+            const conflict = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                AND "doctorId" = ${doctorId}
+                AND "doctorId" = ${assignedDoctorId}
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${end}
                 AND "endTime" > ${start}
                 FOR UPDATE
                 LIMIT 1
             `;
-        } else {
-            conflict = await tx.$queryRaw`
-                SELECT id FROM "Appointment"
-                WHERE "clinicId" = ${clinicId}
-                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                AND "startTime" < ${end}
-                AND "endTime" > ${start}
-                FOR UPDATE
-                LIMIT 1
-            `;
-        }
-        
-        if (conflict && conflict.length > 0) {
-            throw new AppError('CONFLICT', 'Time slot already booked', 409);
+
+            if (conflict && conflict.length > 0) {
+                throw new AppError('CONFLICT', 'The selected doctor is already booked at this time', 409);
+            }
         }
 
         let pt = await tx.patient.findFirst({ where: { clinicId, phone: normalizedPhone } });
@@ -199,7 +239,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             pt = await tx.patient.create({ data: { clinicId, name, phone: normalizedPhone, email } });
         }
         const appt = await tx.appointment.create({
-            data: { clinicId, patientId: pt.id, doctorId: doctorId || null, startTime: start, endTime: end, reason, status: 'PENDING' },
+            data: { clinicId, patientId: pt.id, doctorId: assignedDoctorId || null, startTime: start, endTime: end, reason, status: 'PENDING' },
         });
         
         // If this booking is from a missed call recovery link, mark the missed call as RECOVERED
@@ -260,6 +300,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 date: start.toISOString().split('T')[0],
                 time: start.toISOString().split('T')[1].slice(0, 5),
                 reason,
+                doctorName: (await prisma.doctor.findUnique({ where: { id: assignedDoctorId } }))?.name || null
             },
             clinic.webhookUrl,
             clinic.webhookSecret

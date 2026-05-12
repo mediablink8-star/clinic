@@ -59,6 +59,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     }
 
     let availableSlots = [];
+    let doctorsInfo = '';
     try {
         const today = new Date();
         const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
@@ -66,11 +67,17 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
         const tomorrowSlots = await getAvailableSlots(clinic.id, tomorrow);
         if (todaySlots.length > 0) availableSlots.push({ day: 'σήμερα', slots: todaySlots.slice(0, 4) });
         if (tomorrowSlots.length > 0) availableSlots.push({ day: 'αύριο', slots: tomorrowSlots.slice(0, 4) });
+
+        // Fetch doctors info for context
+        const doctors = await prisma.doctor.findMany({ where: { clinicId: clinic.id, isActive: true } });
+        if (doctors.length > 0) {
+            doctorsInfo = doctors.map(d => `${d.name}${d.specialty ? ` (${d.specialty})` : ''}`).join(', ');
+        }
     } catch (err) {
-        console.warn('[Vapi] Slot fetch failed:', err.message);
+        console.warn('[Vapi] Data fetch failed:', err.message);
     }
 
-    const systemPrompt = buildAgentPrompt(clinic, patientName, availableSlots);
+    const systemPrompt = buildAgentPrompt(clinic, patientName, availableSlots, doctorsInfo);
     const assistantId = clinic.vapiAssistantId || process.env.VAPI_ASSISTANT_ID;
     const phoneNumberId = clinic.vapiPhoneNumberId || process.env.VAPI_PHONE_NUMBER_ID;
 
@@ -113,7 +120,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     }
 }
 
-function buildAgentPrompt(clinic, patientName, availableSlots = []) {
+function buildAgentPrompt(clinic, patientName, availableSlots = [], doctorsInfo = '') {
     let aiCfg = {};
     try { aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {}); } catch {}
 
@@ -130,6 +137,10 @@ function buildAgentPrompt(clinic, patientName, availableSlots = []) {
     const nameInstruction = isKnownPatient
         ? `ΜΗΝ ρωτήσεις το όνομα — το ξέρεις ήδη: ${patientName}.`
         : `Ρώτα: "Πώς σας λένε;"`;
+    
+    const doctorsSection = doctorsInfo 
+        ? `ΓΙΑΤΡΟΙ ΙΑΤΡΕΙΟΥ: ${doctorsInfo}. Αν ο ασθενής ρωτήσει, πες του ποιοι γιατροί είναι διαθέσιμοι.` 
+        : '';
 
     return `Είσαι η Σοφία, η ζεστή και χαρούμενη βοηθός του ${clinicName}. Μιλάς Ελληνικά με ενθουσιασμό, ζεστασιά και φροντίδα — σαν να μιλάς σε έναν φίλο.
 
@@ -138,6 +149,7 @@ function buildAgentPrompt(clinic, patientName, availableSlots = []) {
 ${services}
 ${hours}
 ${policies}
+${doctorsSection}
 ${isKnownPatient ? `ΓΝΩΣΤΟΣ ΑΣΘΕΝΗΣ: ${patientName}` : ''}
 ${slotsText ? `ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ: ${slotsText}` : ''}
 
@@ -146,8 +158,9 @@ ${slotsText ? `ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ: ${slotsText}` : ''}
 2. ${nameInstruction}
 3. ${slotsText ? `Πες διαθέσιμες ώρες: ${slotsText}` : 'Ρώτα ποια μέρα και ώρα βολεύει;'}
 4. Αν θέλει ραντεβού, στείλε το request με τα στοιχεία στο server.
-5. Μίλα με ζεστασιά. Πες "Τέλεια!", "Υπέροχα!", "Χαρά μου!".
-6. Αν κλείσει ραντεβού: "Τέλεια! Ανυπομονούμε να σας δούμε! 😊"
+5. Αν ο ασθενής θέλει συγκεκριμένο γιατρό, σημείωσέ το αν μπορείς ή πες του ότι θα το δούμε στην επιβεβαίωση.
+6. Μίλα με ζεστασιά. Πες "Τέλεια!", "Υπέροχα!", "Χαρά μου!".
+7. Αν κλείσει ραντεβού: "Τέλεια! Ανυπομονούμε να σας δούμε! 😊"
 
 Σημαντικό: Πρέπει να στείλεις το request στο server για να καταχωρηθεί το ραντεβού.`;
 }

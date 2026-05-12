@@ -119,47 +119,76 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     let appointment;
     try {
         appointment = await prisma.$transaction(async (tx) => {
-            // Use FOR UPDATE to lock conflicting appointments during check
-            // This prevents race conditions when multiple requests try to book the same slot
-            let conflict;
-            if (doctorId) {
-                conflict = await tx.$queryRaw`
-                    SELECT id FROM "Appointment"
-                    WHERE "clinicId" = ${clinicId}
-                    AND "doctorId" = ${doctorId}
-                    AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                    AND "startTime" < ${end}
-                    AND "endTime" > ${start}
-                    FOR UPDATE
-                    LIMIT 1
-                `;
+            let assignedDoctorId = doctorId;
+
+            // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
+            if (!assignedDoctorId) {
+                const activeDoctors = await tx.doctor.findMany({
+                    where: { clinicId, isActive: true }
+                });
+
+                if (activeDoctors.length > 0) {
+                    for (const doc of activeDoctors) {
+                        const isWorking = isWithinWorkingHours({
+                            clinic,
+                            doctor: doc,
+                            start,
+                            end,
+                            timezone
+                        });
+                        if (!isWorking) continue;
+
+                        const conflict = await tx.$queryRaw`
+                            SELECT id FROM "Appointment"
+                            WHERE "clinicId" = ${clinicId}
+                            AND "doctorId" = ${doc.id}
+                            AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                            AND "startTime" < ${end}
+                            AND "endTime" > ${start}
+                            FOR UPDATE
+                            LIMIT 1
+                        `;
+
+                        if (!conflict || conflict.length === 0) {
+                            assignedDoctorId = doc.id;
+                            break;
+                        }
+                    }
+
+                    if (!assignedDoctorId) {
+                        throw new AppError('CONFLICT', 'No doctors are available at this time', 409);
+                    }
+                }
             } else {
-                conflict = await tx.$queryRaw`
+                // Specific doctor check
+                const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
+                    AND "doctorId" = ${assignedDoctorId}
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
                     FOR UPDATE
                     LIMIT 1
                 `;
-            }
-            
-            if (conflict && conflict.length > 0) {
-                throw new AppError('CONFLICT', 'Time slot already booked', 409);
+                
+                if (conflict && conflict.length > 0) {
+                    throw new AppError('CONFLICT', 'The selected doctor is already booked', 409);
+                }
             }
 
             const created = await tx.appointment.create({
                 data: {
                     clinicId,
                     patientId,
-                    doctorId: doctorId || null,
+                    doctorId: assignedDoctorId || null,
                     reason,
                     startTime: start,
                     endTime: end,
                     priority: priority || 'NORMAL',
                     status: 'CONFIRMED'
-                }
+                },
+                include: { doctor: true, patient: true }
             });
             await logAction({
                 clinicId,
@@ -167,7 +196,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                 action: 'CREATE_APPOINTMENT',
                 entity: 'APPOINTMENT',
                 entityId: created.id,
-                details: { reason, startTime },
+                details: { reason, startTime, doctorId: assignedDoctorId },
                 ipAddress: actor.ip
             });
             return created;
@@ -198,6 +227,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                     date: startDate.toLocaleDateString('el-GR'),
                     time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                     reason: reason || '',
+                    doctorName: appointment.doctor?.name || null,
                     ...(vonageApiKey && { vonageApiKey }),
                     ...(vonageApiSecret && { vonageApiSecret }),
                     ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
@@ -296,7 +326,8 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
                 phone: patient?.phone || '',
                 date: startDate.toLocaleDateString('el-GR'),
                 time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
-                status: 'CONFIRMED'
+                status: 'CONFIRMED',
+                doctorName: appointment.doctor?.name || null
             },
             null,
             clinic.webhookSecret,
@@ -391,7 +422,7 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
         hour: '2-digit', minute: '2-digit'
     });
 
-    const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}.\nΣας περιμένουμε! 😊`;
+    const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''}.\nΣας περιμένουμε! 😊`;
 
     // Avoid duplicate reminders for the same appointment
     const existing = await prisma.notification.findFirst({
@@ -430,7 +461,7 @@ async function sendConfirmationSms({ appointment, patient, clinic }) {
         hour: '2-digit', minute: '2-digit'
     });
 
-    const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;
+    const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''} για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;
 
     return sendDirectMessage(
         { clinicId: clinic.id, patientId: patient.id, message, type: 'SMS', clinic },

@@ -116,9 +116,10 @@ async function createCalendarEvent({ clinic, appointment, patient }) {
         const timezone = clinic.timezone || 'Europe/Athens';
 
         const event = {
-            summary: `Ραντεβού: ${patient?.name || 'Ασθενής'}`,
+            summary: `${appointment.doctor?.name ? `[${appointment.doctor.name}] ` : ''}Ραντεβού: ${patient?.name || 'Ασθενής'}`,
             description: [
                 appointment.reason ? `Αιτία: ${appointment.reason}` : null,
+                appointment.doctor?.name ? `Γιατρός: ${appointment.doctor.name}` : null,
                 patient?.phone ? `Τηλέφωνο: ${patient.phone}` : null,
                 `Κατάσταση: ${appointment.status}`,
                 `ClinicFlow ID: ${appointment.id}`,
@@ -199,9 +200,10 @@ async function updateCalendarEvent({ clinic, googleCalendarEventId, appointment,
             calendarId,
             eventId: googleCalendarEventId,
             resource: {
-                summary: `${statusLabel} — ${patient?.name || 'Ασθενής'}`,
+                summary: `${statusLabel} — ${appointment.doctor?.name ? `[${appointment.doctor.name}] ` : ''}${patient?.name || 'Ασθενής'}`,
                 description: [
                     appointment.reason ? `Αιτία: ${appointment.reason}` : null,
+                    appointment.doctor?.name ? `Γιατρός: ${appointment.doctor.name}` : null,
                     patient?.phone ? `Τηλέφωνο: ${patient.phone}` : null,
                     `Κατάσταση: ${appointment.status}`,
                     `ClinicFlow ID: ${appointment.id}`,

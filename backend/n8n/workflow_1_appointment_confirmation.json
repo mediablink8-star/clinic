@@ -89,7 +89,8 @@
             {"name": "entityType", "value": "appointment"},
             {"name": "phone", "value": "={{ $json.body.data.phone }}"},
             {"name": "clinicName", "value": "={{ $json.body.clinic?.name || 'Ιατρείο' }}"},
-            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.body.data.patientName }}, {{ $json.body.data.date }} {{ $json.body.data.time }} — {{ $json.body.clinic?.name || 'Ιατρείο' }}"}
+            {"name": "doctorName", "value": "={{ $json.body.data.doctorName ? ' με τον/την ' + $json.body.data.doctorName : '' }}"},
+            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.body.data.patientName }}, {{ $json.body.data.date }} {{ $json.body.data.time }}{{ $node[\"Format Confirmation Message\"].json.doctorName }} — {{ $json.body.clinic?.name || 'Ιατρείο' }}"}
           ]
         }
       },
