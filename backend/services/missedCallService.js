@@ -263,7 +263,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     triggerN8n('/missed-call', {
         clinicId,
         missedCallId: missedCall.id,
-        phone: normalizedPhone,
+        phone: require('../utils/phone').formatForVonage(normalizedPhone),
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || '',

@@ -265,7 +265,15 @@
             },
             {
               "name": "error",
-              "value": "={{ $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
+              "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
+            },
+            {
+              "name": "errorCode",
+              "value": "={{ $json.messages?.[0]?.status || 'error' }}"
+            },
+            {
+              "name": "fullResponse",
+              "value": "={{ JSON.stringify($json) }}"
             },
             {
               "name": "entityType",

@@ -207,7 +207,9 @@
         "values": {
           "string": [
             {"name": "result", "value": "failed"},
-            {"name": "error", "value": "={{ $json.errorMessage || 'SMS send failed' }}"}
+            {"name": "error", "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || 'SMS send failed' }}"},
+            {"name": "errorCode", "value": "={{ $json.messages?.[0]?.status || 'error' }}"},
+            {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"}
           ]
         }
       },

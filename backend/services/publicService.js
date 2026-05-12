@@ -296,7 +296,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             {
                 appointmentId: appointment.id,
                 patientName: name,
-                phone: patient.phone,
+                phone: require('../utils/phone').formatForVonage(patient.phone),
                 date: start.toISOString().split('T')[0],
                 time: start.toISOString().split('T')[1].slice(0, 5),
                 reason,

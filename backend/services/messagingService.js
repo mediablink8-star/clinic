@@ -73,7 +73,7 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         payload: { 
             patientId, 
             patientName: patient.name, 
-            phone: patient.phone, 
+            phone: require('../utils/phone').formatForVonage(patient.phone), 
             message, 
             type,
             // Include per-clinic Vonage credentials, fallback to process.env
