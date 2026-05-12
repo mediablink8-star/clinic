@@ -97,6 +97,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'X-Webhook-Key': secret || '',
+        'X-API-Key': process.env.AUTOMATION_API_KEY || '',
         'ngrok-skip-browser-warning': 'true'
     };
 

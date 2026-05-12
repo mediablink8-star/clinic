@@ -167,7 +167,7 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
     if (!mc) throw new AppError('NOT_FOUND', 'Not found', 404);
 
     // Check any webhook is configured (global or event-specific)
-    const hasWebhook = mc.clinic.webhookUrl || mc.clinic.webhookDirectSms || mc.clinic.webhookReminders;
+    const hasWebhook = process.env.N8N_WEBHOOK_URL || mc.clinic.webhookUrl || mc.clinic.webhookMissedCall || mc.clinic.webhookDirectSms || mc.clinic.webhookReminders;
     if (!hasWebhook) throw new AppError('VALIDATION_ERROR', 'No webhook configured for this clinic', 400);
 
     const { sendManagedSms } = require('../services/messagingService');
@@ -343,7 +343,7 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
                 dayText = dayText.replace(regex, en);
             });
 
-            const { getStartOfDay } = require('./slotUtils');
+            const { getStartOfDay } = require('../services/slotUtils');
             const anchorDate = getStartOfDay(new Date(), timezone);
 
             const parsed = chrono.parseDate(dayText, anchorDate, { forwardDate: true });
@@ -410,7 +410,7 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     const timezone = clinic?.timezone || 'Europe/Athens';
     
     // Use the clinic's local "now" as the anchor for chrono-node
-    const { getStartOfDay } = require('./slotUtils');
+    const { getStartOfDay } = require('../services/slotUtils');
     const localNow = new Date(); // Ideally, we'd use a more precise local now, but getStartOfDay helps anchor the date part
     const anchorDate = getStartOfDay(localNow, timezone);
 

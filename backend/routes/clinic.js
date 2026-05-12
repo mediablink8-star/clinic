@@ -6,6 +6,7 @@ const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 const prisma = require('../services/prisma');
 const { encrypt, decrypt } = require('../services/encryptionService');
+const AppError = require('../errors/AppError');
 
 const requireOwner = (req, res, next) => {
     if (!req.user || !['OWNER', 'ADMIN'].includes(req.user.role)) {

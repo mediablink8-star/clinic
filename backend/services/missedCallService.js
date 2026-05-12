@@ -272,15 +272,13 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         vonageFromName,
     });
 
-    // Increment SMS usage counter
-    incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
-
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
     }
 
     // If N8N_WEBHOOK_URL is set, n8n handles SMS delivery — mark as sent and return
     if (n8nUrl) {
+        incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
         await prisma.missedCall.update({
             where: { id: missedCall.id },
             data: { smsStatus: 'sent', lastSmsSentAt: new Date(), totalContactAttempts: { increment: 1 } }
@@ -381,7 +379,8 @@ async function processScheduledMissedCalls() {
             data: { smsStatus: 'processing' }
         });
 
-        if (!clinic.webhookUrl) {
+        const hasAnyWebhook = !!(process.env.N8N_WEBHOOK_URL || clinic.webhookUrl || clinic.webhookMissedCall);
+        if (!hasAnyWebhook) {
             await prisma.missedCall.update({
                 where: { id: mc.id },
                 data: { smsStatus: 'pending' }

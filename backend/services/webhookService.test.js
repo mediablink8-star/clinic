@@ -46,6 +46,7 @@ describe('webhookService', () => {
         const [options] = https.request.mock.calls[0];
         expect(options.headers['X-Webhook-Signature']).toMatch(/^[a-f0-9]{64}$/);
         expect(options.headers['X-Webhook-Key']).toBe('shared-secret');
+        expect(options.headers['X-API-Key']).toBe('');
         expect(options.rejectUnauthorized).toBeUndefined();
         const body = https.request.mock.results[0].value.write.mock.calls[0][0];
         expect(body).not.toContain('shared-secret');

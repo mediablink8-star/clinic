@@ -20,14 +20,14 @@ router.get('/config-status', asyncHandler(async (req, res) => {
     const warnings = [];
 
     if (!process.env.GEMINI_API_KEY) warnings.push({ key: 'AI', message: 'Το GEMINI_API_KEY λείπει από το backend περιβάλλον.' });
-    if (!process.env.SMS_WEBHOOK_URL && !process.env.WEBHOOK_URL) {
+    if (!process.env.N8N_WEBHOOK_URL && !process.env.SMS_WEBHOOK_URL && !process.env.WEBHOOK_URL) {
         warnings.push({ key: 'sms', message: 'SMS webhook URL is not configured.' });
     }
-    if (!process.env.WEBHOOK_SECRET) warnings.push({ key: 'security', message: 'Δεν έχει οριστεί WEBHOOK_SECRET. Το webhook endpoint είναι ανοιχτό.' });
+    if (!process.env.WEBHOOK_SECRET) warnings.push({ key: 'security', message: 'WEBHOOK_SECRET is not configured. Production webhooks will reject requests.' });
 
     res.json({
         AI: !!process.env.GEMINI_API_KEY,
-        SMS: !!(process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
+        SMS: !!(process.env.N8N_WEBHOOK_URL || process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL),
         recovery: !!(_schedulerWorker || _reminderWorker),
         webhook: !!process.env.WEBHOOK_SECRET,
         warnings
