@@ -93,7 +93,7 @@
             {"name": "phone", "value": "={{ $json.data?.phone || $json.body?.data?.phone }}"},
             {"name": "clinicName", "value": "={{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"},
             {"name": "doctorName", "value": "={{ ($json.data?.doctorName || $json.body?.data?.doctorName) ? ' με τον/την ' + ($json.data?.doctorName || $json.body?.data?.doctorName) : '' }}"},
-            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }}{{ $node[\"Format Confirmation Message\"].json.doctorName }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"}
+            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }}{{ ($json.data?.doctorName || $json.body?.data?.doctorName) ? ' με τον/την ' + ($json.data?.doctorName || $json.body?.data?.doctorName) : '' }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"}
           ]
         }
       },
@@ -157,7 +157,7 @@
       "parameters": {
         "values": {
           "string": [
-            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json.phone }} | messageId: {{ $json.messages[0]['message-id'] }}"},
+            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json[\"phone\"] }} | messageId: {{ $json.messages[0]['message-id'] }}"},
             {"name": "smsStatus", "value": "sent"},
             {"name": "messageId", "value": "={{ $json.messages[0]['message-id'] }}"}
           ]
@@ -189,12 +189,12 @@
         "bodyParameters": {
           "parameters": [
             {"name": "type", "value": "sms_failure"},
-            {"name": "executionId", "value": "={{ $node[\"Format Confirmation Message\"].json.executionId }}"},
+            {"name": "executionId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"executionId\"] }}"},
             {"name": "error", "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"},
             {"name": "errorCode", "value": "={{ $json.messages?.[0]?.status || 'error' }}"},
             {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"},
             {"name": "entityType", "value": "appointment"},
-            {"name": "entityId", "value": "={{ $node[\"Format Confirmation Message\"].json.entityId }}"}
+            {"name": "entityId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"entityId\"] }}"}
           ]
         },
         "options": {"timeout": 10000}
