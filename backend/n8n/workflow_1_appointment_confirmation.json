@@ -19,7 +19,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] || $json.body.webhookSecret }}",
+              "value1": "={{ $json.headers['x-webhook-key'] || $json.body?.webhookSecret || $json.webhookSecret }}",
               "operation": "isNotEmpty"
             }
           ]
@@ -87,13 +87,13 @@
       "parameters": {
         "values": {
           "string": [
-            {"name": "executionId", "value": "={{ $json.body.data.appointmentId || $execution.id }}"},
-            {"name": "entityId", "value": "={{ $json.body.data.appointmentId || '' }}"},
+            {"name": "executionId", "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || $execution.id }}"},
+            {"name": "entityId", "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || '' }}"},
             {"name": "entityType", "value": "appointment"},
-            {"name": "phone", "value": "={{ $json.body.data.phone }}"},
-            {"name": "clinicName", "value": "={{ $json.body.clinic?.name || 'Ιατρείο' }}"},
-            {"name": "doctorName", "value": "={{ $json.body.data.doctorName ? ' με τον/την ' + $json.body.data.doctorName : '' }}"},
-            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.body.data.patientName }}, {{ $json.body.data.date }} {{ $json.body.data.time }}{{ $node[\"Format Confirmation Message\"].json.doctorName }} — {{ $json.body.clinic?.name || 'Ιατρείο' }}"}
+            {"name": "phone", "value": "={{ $json.data?.phone || $json.body?.data?.phone }}"},
+            {"name": "clinicName", "value": "={{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"},
+            {"name": "doctorName", "value": "={{ ($json.data?.doctorName || $json.body?.data?.doctorName) ? ' με τον/την ' + ($json.data?.doctorName || $json.body?.data?.doctorName) : '' }}"},
+            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }}{{ $node[\"Format Confirmation Message\"].json.doctorName }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"}
           ]
         }
       },
@@ -171,18 +171,18 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Receive Appointment Event\"].json.body.backendUrl }}/automation/send-notification",
+        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/send-notification",
         "method": "POST",
         "sendBody": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $node[\"Receive Appointment Event\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             },
             {
               "name": "x-webhook-key",
-              "value": "={{ $node[\"Receive Appointment Event\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             }
           ]
         },

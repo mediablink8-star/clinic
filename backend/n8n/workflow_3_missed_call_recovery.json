@@ -19,7 +19,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] || $json.body.webhookSecret }}",
+              "value1": "={{ $json.headers['x-webhook-key'] || $json.body?.webhookSecret || $json.webhookSecret }}",
               "operation": "isNotEmpty"
             }
           ]
@@ -87,10 +87,13 @@
       "parameters": {
         "values": {
           "string": [
-            {"name": "phone", "value": "={{ $json.body.phone }}"},
-            {"name": "clinicId", "value": "={{ $json.body.clinicId }}"},
-            {"name": "missedCallId", "value": "={{ $json.body.missedCallId }}"},
-            {"name": "name", "value": "={{ $json.body.name || '' }}"}
+            {"name": "phone", "value": "={{ $json.phone || $json.body?.phone }}"},
+            {"name": "clinicId", "value": "={{ $json.clinicId || $json.body?.clinicId }}"},
+            {"name": "missedCallId", "value": "={{ $json.missedCallId || $json.body?.missedCallId }}"},
+            {"name": "name", "value": "={{ $json.name || $json.body?.name || '' }}"},
+            {"name": "vonageApiKey", "value": "={{ $json.vonageApiKey || $json.body?.vonageApiKey }}"},
+            {"name": "vonageApiSecret", "value": "={{ $json.vonageApiSecret || $json.body?.vonageApiSecret }}"},
+            {"name": "vonageFromName", "value": "={{ $json.vonageFromName || $json.body?.vonageFromName }}"}
           ]
         }
       },
@@ -104,7 +107,7 @@
       "parameters": {
         "values": {
           "string": [
-            {"name": "smsBody", "value": "={{ $json.body.smsBody || \"Γεια! Χάσαμε την κλήση σας. Κλείστε ραντεβού εδώ: [link]\" }}"}
+            {"name": "smsBody", "value": "={{ $json.smsBody || $json.body?.smsBody || \"Γεια! Χάσαμε την κλήση σας. Κλείστε ραντεβού εδώ: [link]\" }}"}
           ]
         }
       },
@@ -123,8 +126,31 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $json.body.vonageApiKey }}"
+              "value": "={{ $node[\"Set Variables\"].json.vonageApiKey }}"
             },
+            {
+              "name": "api_secret",
+              "value": "={{ $node[\"Set Variables\"].json.vonageApiSecret }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $node[\"Set Variables\"].json.vonageFromName }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $node[\"Set Variables\"].json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $node[\"Set SMS Body\"].json.smsBody }}"
+            },
+            {
+              "name": "type",
+              "value": "unicode"
+            }
+          ]
+        },
+
             {
               "name": "api_secret",
               "value": "={{ $json.body.vonageApiSecret }}"
@@ -193,18 +219,18 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Missed Call Webhook\"].json.body.backendUrl }}/automation/mark-recovered",
+        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/mark-recovered",
         "method": "POST",
         "sendBody": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $node[\"Missed Call Webhook\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             },
             {
               "name": "x-webhook-key",
-              "value": "={{ $node[\"Missed Call Webhook\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             }
           ]
         },

@@ -149,11 +149,16 @@ function performRequest(url, body, headers) {
                 'Content-Length': Buffer.byteLength(body)
             }
         }, (res) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-                resolve();
-            } else {
-                reject(new Error(`HTTP ${res.statusCode}`));
-            }
+            let resBody = '';
+            res.on('data', chunk => resBody += chunk);
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve();
+                } else {
+                    console.error(`[Webhook] Server returned ${res.statusCode}: ${resBody}`);
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                }
+            });
         });
 
         req.on('error', reject);

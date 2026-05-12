@@ -19,7 +19,7 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] || $json.body.webhookSecret }}",
+              "value1": "={{ $json.headers['x-webhook-key'] || $json.body?.webhookSecret || $json.webhookSecret }}",
               "operation": "isNotEmpty"
             }
           ]
@@ -107,11 +107,11 @@
           "string": [
             {
               "name": "executionId",
-              "value": "={{ $json.body.notificationId || $execution.id }}"
+              "value": "={{ $json.notificationId || $json.body?.notificationId || $execution.id }}"
             },
             {
               "name": "entityId",
-              "value": "={{ $json.body.notificationId || '' }}"
+              "value": "={{ $json.notificationId || $json.body?.notificationId || '' }}"
             },
             {
               "name": "entityType",
@@ -119,11 +119,23 @@
             },
             {
               "name": "phone",
-              "value": "={{ $json.body.phone }}"
+              "value": "={{ $json.phone || $json.body?.phone }}"
             },
             {
               "name": "message",
-              "value": "={{ $json.body.message }}"
+              "value": "={{ $json.message || $json.body?.message }}"
+            },
+            {
+              "name": "vonageApiKey",
+              "value": "={{ $json.vonageApiKey || $json.body?.vonageApiKey }}"
+            },
+            {
+              "name": "vonageApiSecret",
+              "value": "={{ $json.vonageApiSecret || $json.body?.vonageApiSecret }}"
+            },
+            {
+              "name": "vonageFromName",
+              "value": "={{ $json.vonageFromName || $json.body?.vonageFromName }}"
             }
           ]
         }
@@ -143,15 +155,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $json.body.vonageApiKey }}"
+              "value": "={{ $node[\"Set Execution ID\"].json.vonageApiKey }}"
             },
             {
               "name": "api_secret",
-              "value": "={{ $json.body.vonageApiSecret }}"
+              "value": "={{ $node[\"Set Execution ID\"].json.vonageApiSecret }}"
             },
             {
               "name": "from",
-              "value": "={{ $json.body.vonageFromName }}"
+              "value": "={{ $node[\"Set Execution ID\"].json.vonageFromName }}"
             },
             {
               "name": "to",
@@ -226,18 +238,18 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Receive SMS Request\"].json.body.backendUrl }}/automation/send-notification",
+        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/send-notification",
         "method": "POST",
         "sendBody": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $node[\"Receive SMS Request\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             },
             {
               "name": "x-webhook-key",
-              "value": "={{ $node[\"Receive SMS Request\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             }
           ]
         },
