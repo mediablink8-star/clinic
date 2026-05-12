@@ -14,7 +14,7 @@ const asyncHandler = require('./asyncHandler');
  */
 module.exports = asyncHandler(async function automationAuth(req, res, next) {
     // Mode 1: API key (workflow tools)
-    const apiKey = req.headers['x-api-key'];
+    const apiKey = req.headers['x-api-key'] || req.headers['x-webhook-key'];
     if (apiKey) {
         const envKey = process.env.AUTOMATION_API_KEY;
         if (!envKey) {

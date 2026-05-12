@@ -179,6 +179,10 @@
             {
               "name": "x-api-key",
               "value": "={{ $node[\"Receive Appointment Event\"].json.body.automationApiKey }}"
+            },
+            {
+              "name": "x-webhook-key",
+              "value": "={{ $node[\"Receive Appointment Event\"].json.body.automationApiKey }}"
             }
           ]
         },
