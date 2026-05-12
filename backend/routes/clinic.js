@@ -259,6 +259,35 @@ router.get('/gemini-config', asyncHandler(async (req, res) => {
     res.json({ configured });
 }));
 
+const { sendDirectMessage, sendManagedSms } = require('../services/messagingService');
+
+// POST /api/clinic/test-sms
+router.post('/test-sms', requireOwner, asyncHandler(async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) throw new AppError('VALIDATION_ERROR', 'Phone number is required', 400);
+
+    const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
+    
+    const result = await sendManagedSms({
+        clinicId: req.clinicId,
+        clinic,
+        eventType: 'message.test',
+        payload: {
+            phone: require('../utils/phone').formatForVonage(phone),
+            message: `Τεστ από το ClinicFlow για το ιατρείο: ${clinic.name}`,
+            clinicName: clinic.name,
+            // Include credentials for webhook use
+            vonageApiKey: clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY,
+            vonageApiSecret: clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET,
+            vonageFromName: clinic.vonageFromName || 'ClinicFlow'
+        },
+        logType: 'TEST_SMS',
+        treatMissingWebhookAsSimulated: false // Force failure if no webhook configured for test
+    });
+
+    res.json({ success: true, deliveryStatus: result.deliveryStatus });
+}));
+
 // POST /api/clinic/webhooks/test
 router.post('/webhooks/test', requireOwner, asyncHandler(async (req, res) => {
     const { url } = req.body;

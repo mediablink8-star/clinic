@@ -375,6 +375,62 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                 </div>
             </SectionCard>
 
+            {/* Section 2.5 — Gemini AI Assistant */}
+            <SectionCard id="s-gemini" number="2.5" icon={<Brain size={15} color="#6366f1" />} iconBg="rgba(99,102,241,0.1)"
+                title="AI Assistant (Σοφία)" subtitle="Gemini AI για φυσική γλώσσα εντολών">
+
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.78rem', color: '#4338ca', fontWeight: '600', margin: 0 }}>
+                        Η Σοφία είναι ο AI βοηθός που εμφανίζεται στο dashboard. Χρησιμοποιεί το Gemini για να καταλαβαίνει εντολές σε φυσική γλώσσα.
+                    </p>
+                </div>
+
+                {/* Status indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1rem', borderRadius: '12px', background: geminiStatus === 'configured' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${geminiStatus === 'configured' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: geminiStatus === 'configured' ? '#10b981' : '#f59e0b' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: geminiStatus === 'configured' ? '#065f46' : '#92400e' }}>
+                            {geminiStatus === 'configured' ? 'Ρυθμισμένο ✓' : 'Δεν έχει ρυθμιστεί'}
+                        </span>
+                    </div>
+                </div>
+
+                <FormGroup label="Gemini API Key *" flex="1 1 100%">
+                    <input 
+                        style={inputStyle} 
+                        type="password" 
+                        placeholder={geminiStatus === 'configured' ? '***configured***' : 'AIzaSy...'} 
+                        value={geminiData.geminiApiKey} 
+                        onChange={e => setGeminiData(d => ({ ...d, geminiApiKey: e.target.value }))} 
+                    />
+                    <div style={{ marginTop: '0.75rem', padding: '1rem', borderRadius: '12px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)' }}>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                            <strong>Πώς να πάρετε το κλειδί:</strong><br />
+                            1. Μεταβείτε στο <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>Google AI Studio</a>.<br />
+                            2. Πατήστε "Create API key".<br />
+                            3. Αντιγράψτε το κλειδί και επικολλήστε το εδώ.
+                        </p>
+                    </div>
+                </FormGroup>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button type="button" className="btn btn-outline" onClick={handleTestGemini} disabled={testingGemini || geminiStatus !== 'configured'}>
+                        {testingGemini ? 'Δοκιμή...' : 'Δοκιμή Σύνδεσης'}
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={handleSaveGemini} disabled={savingGemini}>
+                        {savingGemini ? 'Αποθήκευση...' : 'Αποθήκευση Gemini AI'}
+                    </button>
+                </div>
+                {geminiTestResult && (
+                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <StatusBadge 
+                            status={geminiTestResult.success ? 'connected' : 'failed'} 
+                            error={geminiTestResult.error} 
+                        />
+                    </div>
+                )}
+            </SectionCard>
+
             {/* Section 3 — System Status */}
             <SectionCard id="ai-s3" number="3" icon={<Activity size={15} color="#10b981" />} iconBg="#ecfdf5"
                 title="Κατάσταση Συστήματος" subtitle="Παρακολούθηση σύνδεσης σε πραγματικό χρόνο">

@@ -533,6 +533,26 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [gcalStatus, setGcalStatus] = React.useState(null); // null | { connected, calendarId }
     const [gcalLoading, setGcalLoading] = React.useState(false);
     const [resetting, setResetting] = React.useState(false);
+    const [sendingTestSms, setSendingTestSms] = React.useState(false);
+    const [testSmsPhone, setTestSmsPhone] = React.useState(clinic?.phone || '');
+
+    const handleSendTestSms = async () => {
+        if (!testSmsPhone) {
+            showToast('Εισάγετε αριθμό τηλεφώνου για το τεστ.', 'error');
+            return;
+        }
+        setSendingTestSms(true);
+        try {
+            const res = await api.post('/clinic/test-sms', { phone: testSmsPhone });
+            if (res.data.success) {
+                showToast('Το δοκιμαστικό SMS εστάλη!');
+            }
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Αποτυχία αποστολής δοκιμαστικού SMS.', 'error');
+        } finally {
+            setSendingTestSms(false);
+        }
+    };
 
     const handleResetDefaults = async () => {
         if (!window.confirm('ΠΡΟΣΟΧΗ: Αυτή η ενέργεια θα επαναφέρει όλες τις ρυθμίσεις AI, τις υπηρεσίες και το ωράριο στις αρχικές προεπιλογές. Θέλετε να συνεχίσετε;')) return;
@@ -1345,6 +1365,44 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         {savingWebhooks ? 'Αποθήκευση...' : 'Αποθήκευση Webhooks'}
                         {webhookSaved && <Check size={14} />}
                     </button>
+                </div>
+
+                <div style={{ 
+                    marginTop: '2rem', padding: '1.5rem', borderRadius: '16px', 
+                    background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)'
+                }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MessageSquare size={16} className="text-primary" /> Δοκιμή Αποστολής SMS
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
+                        Βεβαιωθείτε ότι τα webhooks και τα credentials του Vonage λειτουργούν σωστά στέλνοντας ένα δοκιμαστικό SMS.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                            style={{ ...inputStyle, flex: 1 }} 
+                            placeholder="Αριθμός τηλεφώνου (π.χ. 6912345678)"
+                            value={testSmsPhone}
+                            onChange={e => setTestSmsPhone(e.target.value)}
+                        />
+                        <button 
+                            type="button" 
+                            className="btn btn-outline" 
+                            disabled={sendingTestSms}
+                            onClick={handleSendTestSms}
+                            style={{ whiteSpace: 'nowrap' }}
+                        >
+                            {sendingTestSms ? <Loader size={14} className="animate-spin" /> : 'Αποστολή Τεστ'}
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <h5 style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Οδηγός Ρύθμισης</h5>
+                    <ul style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '1.2rem', margin: 0, lineHeight: 1.6 }}>
+                        <li>Δημιουργήστε λογαριασμό στο <a href="https://www.vonage.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>Vonage</a> για SMS/Voice.</li>
+                        <li>Ρυθμίστε τα workflows στο <a href="https://n8n.io/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>n8n</a> χρησιμοποιώντας τα templates μας.</li>
+                        <li>Αντιγράψτε τα Webhook URLs από το n8n στα αντίστοιχα πεδία παραπάνω.</li>
+                    </ul>
                 </div>
             </SectionCard>
 
