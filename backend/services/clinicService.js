@@ -9,12 +9,27 @@ function formatClinicResponse(clinic) {
         try { return JSON.parse(val); }
         catch (e) { console.warn('[ClinicService] JSON parse failed:', e.message); return fallback; }
     };
+    const {
+        webhookSecret,
+        vonageApiKey,
+        vonageApiSecret,
+        vapiApiKey,
+        geminiApiKey,
+        googleCalendarRefreshToken,
+        googleOAuthState,
+        ...safeClinic
+    } = clinic;
     return {
-        ...clinic,
+        ...safeClinic,
         workingHours: safeJsonParse(clinic.workingHours, {}),
         services: safeJsonParse(clinic.services, []),
         policies: safeJsonParse(clinic.policies, {}),
-        aiConfig: safeJsonParse(clinic.aiConfig, null)
+        aiConfig: safeJsonParse(clinic.aiConfig, null),
+        hasWebhookSecret: Boolean(webhookSecret),
+        hasVonageCredentials: Boolean(vonageApiKey && vonageApiSecret),
+        hasVapiApiKey: Boolean(vapiApiKey),
+        hasGeminiApiKey: Boolean(geminiApiKey),
+        googleCalendarConnected: Boolean(googleCalendarRefreshToken),
     };
 }
 
@@ -94,11 +109,7 @@ async function updateClinicAdmin({ clinicId, body, currentClinic: _currentClinic
     return {
         success: true,
         data: {
-            ...updated,
-            workingHours: JSON.parse(updated.workingHours),
-            services: JSON.parse(updated.services),
-            policies: JSON.parse(updated.policies),
-            aiConfig: updated.aiConfig ? JSON.parse(updated.aiConfig) : null
+            ...formatClinicResponse(updated)
         }
     };
 }
@@ -120,7 +131,7 @@ async function updateClinicInfo({ clinicId, name, phone, email, location, timezo
         });
         return result;
     });
-    return { success: true, data: updated };
+    return { success: true, data: formatClinicResponse(updated) };
 }
 
 async function updateAiConfig({ clinicId, aiConfig }, actor) {
@@ -160,7 +171,7 @@ async function updateClinicStatus({ clinicId, isActive }, actor) {
         });
         return result;
     });
-    return { success: true, data: updated };
+    return { success: true, data: formatClinicResponse(updated) };
 }
 
 module.exports = { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus };

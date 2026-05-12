@@ -139,7 +139,7 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
             ...(webhookInboundSms !== undefined && { webhookInboundSms: webhookInboundSms || null }),
         },
         select: {
-            webhookUrl: true, webhookSecret: true,
+            webhookUrl: true,
             webhookMissedCall: true, webhookAppointment: true,
             webhookReminders: true, webhookDirectSms: true, webhookInboundSms: true,
         }

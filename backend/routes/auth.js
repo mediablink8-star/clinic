@@ -420,7 +420,8 @@ router.post('/google', asyncHandler(async (req, res) => {
                         email,
                         passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
                         role: 'OWNER',
-                        clinicId: c.id
+                        clinicId: c.id,
+                        name: name || email
                     }
                 });
             } else {
@@ -431,7 +432,8 @@ router.post('/google', asyncHandler(async (req, res) => {
                             email,
                             passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
                             role: 'OWNER',
-                            clinicId: c.id
+                            clinicId: c.id,
+                            name: name || email
                         }
                     });
                 }
@@ -464,6 +466,9 @@ router.post('/google', asyncHandler(async (req, res) => {
                 name: clinic.name,
                 email: clinic.email,
                 avatarUrl: clinic.avatarUrl,
+                role: user.role,
+                userId: user.id,
+                userName: user.name || user.email,
                 isAdmin,
                 mfaEnabled: user.mfaEnabled
             }
