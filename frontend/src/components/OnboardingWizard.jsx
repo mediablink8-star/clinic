@@ -174,17 +174,41 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '1rem',
+            overflowY: 'auto'
         }}>
+            <style>{`
+                .wizard-container {
+                    width: 100%;
+                    max-width: 520px;
+                    position: relative;
+                    z-index: 1;
+                    background: rgba(255,255,255,0.05);
+                    backdrop-filter: blur(24px);
+                    -webkit-backdrop-filter: blur(24px);
+                    border-radius: 28px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 2.5rem;
+                    box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+                    margin: auto;
+                }
+                @media (max-width: 640px) {
+                    .wizard-container {
+                        padding: 1.5rem;
+                        border-radius: 20px;
+                    }
+                    .wizard-title {
+                        font-size: 1.4rem !important;
+                    }
+                    .wizard-step-content {
+                        gap: 0.75rem !important;
+                    }
+                }
+            `}</style>
             {/* Background glows */}
             <div style={{ position: 'absolute', top: '-150px', left: '-150px', width: '500px', height: '500px', background: 'rgba(99,102,241,0.12)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', bottom: '-150px', right: '-150px', width: '400px', height: '400px', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-            <div style={{
-                width: '100%', maxWidth: '520px', position: 'relative', zIndex: 1,
-                background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px)',
-                borderRadius: '28px', border: '1px solid rgba(255,255,255,0.1)',
-                padding: '2.5rem', boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
-            }}>
+            <div className="wizard-container">
                 {/* Progress dots */}
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '2rem', justifyContent: 'center' }}>
                     {STEPS.map((s, i) => (

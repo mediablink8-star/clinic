@@ -30,6 +30,7 @@ import Sidebar from './components/Sidebar';
 import NewAppointmentModal from './components/NewAppointmentModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import OnboardingWizard from './components/OnboardingWizard';
+import WelcomeModal from './components/WelcomeModal';
 import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/authSession';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
@@ -53,6 +54,7 @@ const App = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -372,20 +374,24 @@ const App = () => {
     return items;
   }, [recoveryInsights, recoveryLog, notifications]);
 
-  const handleLogin = (loginData) => {
-    const { token, clinic } = loginData;
-    setAccessToken(token);
-    setToken(token);
-    setAuthToken(token);
-    setClinic(clinic);
-    if (clinic?.isPlatformAdmin) {
-      setCurrentTab('admin');
-    } else if (!clinic?.onboardingCompleted) {
-      setShowOnboarding(true);
-    }
-    localStorage.setItem('clinic_data', JSON.stringify(clinic));
-    queryClient.invalidateQueries();
+const handleLogin = (loginData) => {
+     const { token, clinic } = loginData;
+     setAccessToken(token);
+     setToken(token);
+     setAuthToken(token);
+     setClinic(clinic);
+     if (clinic?.isPlatformAdmin) {
+       setCurrentTab('admin');
+     } else if (!clinic?.onboardingCompleted) {
+       setShowOnboarding(true);
+     }
+     localStorage.setItem('clinic_data', JSON.stringify(clinic));
+     queryClient.invalidateQueries();
   };
+
+   const handleWelcomeComplete = () => {
+     setShowWelcome(false);
+   };
 
   const handleRegister = (registerData) => {
     const { token, clinic } = registerData;
@@ -719,21 +725,24 @@ const App = () => {
 
   return (
     <div className="layout">
-      {showOnboarding && (
-        <OnboardingWizard
-          clinic={clinic}
-          token={token}
-          onComplete={() => {
-            setShowOnboarding(false);
-            setCurrentTab('dashboard');
-          }}
-          onUpdate={(updated) => {
-            const next = { ...clinic, ...updated };
-            setClinic(next);
-            localStorage.setItem('clinic_data', JSON.stringify(next));
-          }}
-        />
-      )}
+{showOnboarding && (
+         <ErrorBoundary>
+           <OnboardingWizard
+             clinic={clinic}
+             token={token}
+             onComplete={() => {
+               setShowOnboarding(false);
+               setShowWelcome(true);
+               setCurrentTab('dashboard');
+             }}
+             onUpdate={(updated) => {
+               const next = { ...clinic, ...updated };
+               setClinic(next);
+               localStorage.setItem('clinic_data', JSON.stringify(next));
+             }}
+           />
+         </ErrorBoundary>
+       )}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -762,13 +771,17 @@ const App = () => {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      {isMobile && isSidebarOpen && (
-        <button
-          className="sidebar-backdrop"
-          onClick={() => setIsSidebarOpen(false)}
-          aria-label="Close navigation menu"
-        />
-      )}
+{isMobile && isSidebarOpen && (
+         <button
+           className="sidebar-backdrop"
+           onClick={() => setIsSidebarOpen(false)}
+           aria-label="Close navigation menu"
+         />
+       )}
+
+       {showWelcome && (
+         <WelcomeModal clinic={clinic} onClose={handleWelcomeComplete} />
+       )}
 
       <main className="main-content">
         {isMobile && (

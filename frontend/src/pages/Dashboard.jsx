@@ -167,10 +167,12 @@ const Dashboard = ({
                 </div>
             </div>
 
-            {/* ── ONBOARDING ── */}
-            <div style={{ flexShrink: 0 }}>
-                <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
-            </div>
+{/* ── ONBOARDING CHECKLIST (only before onboarding is complete) ── */}
+             {!clinic?.onboardingCompleted && (
+               <div style={{ flexShrink: 0 }}>
+                 <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={recoveryLog} />
+               </div>
+             )}
 
             {/* ── INACTIVE WARNING ── */}
             {!clinic?.isActive && (
