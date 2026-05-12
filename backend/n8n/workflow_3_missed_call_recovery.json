@@ -150,20 +150,6 @@
             }
           ]
         },
-
-            {
-              "name": "api_secret",
-              "value": "={{ $json.body.vonageApiSecret }}"
-            },
-            {
-              "name": "from",
-              "value": "={{ $json.body.vonageFromName }}"
-            },
-            {"name": "to", "value": "={{ $node[\"Set Variables\"].json.phone }}"},
-            {"name": "text", "value": "={{ $json.smsBody }}"},
-            {"name": "type", "value": "unicode"}
-          ]
-        },
         "options": {"timeout": 10000}
       },
       "id": "node_send_sms",
@@ -255,18 +241,18 @@
     },
     {
       "parameters": {
-        "url": "={{ $node[\"Missed Call Webhook\"].json.body.backendUrl }}/automation/send-notification",
+        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/send-notification",
         "method": "POST",
         "sendBody": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $node[\"Missed Call Webhook\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             },
             {
               "name": "x-webhook-key",
-              "value": "={{ $node[\"Missed Call Webhook\"].json.body.automationApiKey }}"
+              "value": "={{ $json.automationApiKey || $json.body?.automationApiKey }}"
             }
           ]
         },
