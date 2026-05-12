@@ -144,7 +144,7 @@ const AdminDashboard = () => {
   if (error) return <ErrorState onRetry={refetch} />;
 
   return (
-    <div style={containerStyle}>
+    <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
