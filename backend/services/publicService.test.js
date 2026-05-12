@@ -4,6 +4,10 @@ jest.mock('./prisma', () => ({
     clinic: {
         findUnique: jest.fn(),
     },
+    doctor: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+    },
     appointment: {
         findMany: jest.fn(),
     },
@@ -31,6 +35,8 @@ describe('publicService', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         prisma.clinic.findUnique.mockResolvedValue(clinic);
+        prisma.doctor.findMany.mockResolvedValue([]);
+        prisma.doctor.findUnique.mockResolvedValue(null);
         prisma.appointment.findMany.mockResolvedValue([]);
     });
 
@@ -62,9 +68,23 @@ describe('publicService', () => {
                 findFirst: jest.fn().mockResolvedValue(null),
                 create: jest.fn().mockResolvedValue({ id: 'appt_1' }),
             },
+            doctor: {
+                findMany: jest.fn().mockResolvedValue([]),
+                findFirst: jest.fn().mockResolvedValue(null),
+            },
             patient: {
                 findFirst: jest.fn().mockResolvedValue(null),
                 create: jest.fn().mockImplementation(async ({ data }) => ({ id: 'patient_1', ...data })),
+            },
+            missedCall: {
+                findFirst: jest.fn(),
+                update: jest.fn(),
+            },
+            recoveryCase: {
+                updateMany: jest.fn(),
+            },
+            clinic: {
+                findUnique: jest.fn(),
             },
         };
         prisma.$transaction.mockImplementation(async (callback) => callback(tx));

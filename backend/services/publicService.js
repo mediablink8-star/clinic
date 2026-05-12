@@ -128,7 +128,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         select: { 
             id: true, webhookUrl: true, webhookSecret: true, workingHours: true, aiConfig: true, 
             timezone: true, isActive: true,
-            googleCalendarRefreshToken: true, googleCalendarEnabled: true, googleCalendarId: true
+            googleCalendarRefreshToken: true, googleCalendarEnabled: true, googleCalendarId: true,
+            vonageApiKey: true, vonageApiSecret: true, vonageFromName: true
         },
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
@@ -160,7 +161,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     const normalizedPhone = normalizePhone(phone);
 
-    const { patient, appointment, missedCall } = await prisma.$transaction(async (tx) => {
+    const { patient, appointment, missedCall, assignedDoctorId } = await prisma.$transaction(async (tx) => {
         let assignedDoctorId = doctorId;
 
         // Find an available doctor if none specified (Anyone Available)
@@ -287,7 +288,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
             }
         }
-        return { patient: pt, appointment: appt, missedCall: mc };
+        return { patient: pt, appointment: appt, missedCall: mc, assignedDoctorId };
     });
 
     if (clinic.webhookUrl) {
@@ -300,7 +301,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 date: start.toISOString().split('T')[0],
                 time: start.toISOString().split('T')[1].slice(0, 5),
                 reason,
-                doctorName: (await prisma.doctor.findUnique({ where: { id: assignedDoctorId } }))?.name || null,
+                doctorName: assignedDoctorId ? (await prisma.doctor.findUnique({ where: { id: assignedDoctorId } }))?.name || null : null,
                 vonageApiKey: clinic.vonageApiKey ? require('./encryptionService').decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY,
                 vonageApiSecret: clinic.vonageApiSecret ? require('./encryptionService').decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET,
                 vonageFromName: clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow'

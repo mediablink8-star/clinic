@@ -90,8 +90,6 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         timestamp: new Date().toISOString(),
         data: payload,
         backendUrl: process.env.BACKEND_API_URL || '',
-        automationApiKey: process.env.AUTOMATION_API_KEY || '',
-        webhookSecret: secret || '',
         ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
     });
 
@@ -114,7 +112,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             // Using a more robust request helper to handle potential Node version issues
-            const result = await performRequest(targetUrl, body, headers);
+            await performRequest(targetUrl, body, headers);
             console.info(`[Webhook] ${eventType} success (Attempt ${attempt})`);
             return { success: true, duration: Date.now() - startTime, attempts: attempt };
         } catch (err) {
@@ -143,7 +141,6 @@ function performRequest(url, body, headers) {
             port: parsedUrl.port,
             path: parsedUrl.pathname + parsedUrl.search,
             method: 'POST',
-            rejectUnauthorized: false, // Allow self-signed certificates for n8n/webhooks
             headers: {
                 ...headers,
                 'Content-Length': Buffer.byteLength(body)
@@ -191,4 +188,4 @@ async function forwardInboundMessage({ from, body, provider, clinic, raw }) {
     );
 }
 
-module.exports = { triggerWebhook, forwardInboundMessage, buildClinicContext };
+module.exports = { triggerWebhook, forwardInboundMessage, buildClinicContext, performRequest };

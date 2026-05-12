@@ -34,11 +34,11 @@ function triggerN8n(path, payload) {
             port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
             path: parsedUrl.pathname + parsedUrl.search,
             method: 'POST',
-            rejectUnauthorized: false, // Allow self-signed certificates
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(body),
                 'x-webhook-key': secret,
+                'x-api-key': process.env.AUTOMATION_API_KEY || '',
             },
         }, (res) => {
 
@@ -267,8 +267,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || '',
-        automationApiKey: process.env.AUTOMATION_API_KEY || '',
-        webhookSecret: process.env.WEBHOOK_SECRET || '',
         vonageApiKey,
         vonageApiSecret,
         vonageFromName,

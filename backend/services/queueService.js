@@ -4,7 +4,7 @@ const prisma = require('./prisma');
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 // Only disable Redis if explicitly told to. In production without REDIS_URL, warn loudly.
-const REDIS_DISABLED = process.env.DISABLE_REDIS === 'true';
+const REDIS_DISABLED = process.env.DISABLE_REDIS === 'true' || process.env.NODE_ENV === 'test';
 
 let connection = null;
 
