@@ -3,7 +3,8 @@ import api from '../lib/api';
 import {
     Globe, BarChart2, Activity, Zap, Phone, Sparkles,
     Shield, Loader, Check,
-    Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink, Calendar
+    Users, UserPlus, Trash2, ChevronDown, Copy, ExternalLink, Calendar,
+    MessageSquare
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
