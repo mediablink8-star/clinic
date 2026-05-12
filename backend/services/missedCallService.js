@@ -30,16 +30,18 @@ function triggerN8n(path, payload) {
         const parsed = new URL(url);
         const lib = parsed.protocol === 'https:' ? https : http;
         const req = lib.request({
-            hostname: parsed.hostname,
-            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-            path: parsed.pathname + parsed.search,
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+            path: parsedUrl.pathname + parsedUrl.search,
             method: 'POST',
+            rejectUnauthorized: false, // Allow self-signed certificates
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(body),
                 'x-webhook-key': secret,
             },
         }, (res) => {
+
             res.resume(); // drain response
             if (res.statusCode >= 400) {
                 console.warn(`[N8N] ${path} responded ${res.statusCode}`);

@@ -142,6 +142,7 @@ function performRequest(url, body, headers) {
             port: parsedUrl.port,
             path: parsedUrl.pathname + parsedUrl.search,
             method: 'POST',
+            rejectUnauthorized: false, // Allow self-signed certificates for n8n/webhooks
             headers: {
                 ...headers,
                 'Content-Length': Buffer.byteLength(body)
