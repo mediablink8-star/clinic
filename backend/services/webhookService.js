@@ -72,23 +72,13 @@ function resolveWebhookUrl(eventType, clinic) {
 
 /**
  * Triggers an external webhook with automatic retry (exponential backoff).
- * @param {string} eventType
- * @param {object} payload
- * @param {string} webhookUrl - If null, will attempt to resolve from clinic context
- * @param {string} [webhookSecret]
- * @param {object} [options]
- * @param {number} [options.maxRetries=3]
- * @param {number} [options.baseDelay=500]  ms
- * @param {object} [options.clinic]         Full clinic object — included as `clinic` in payload
  */
 async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
     const { clinic } = options;
-    
-    // If webhookUrl is not explicitly provided, or if it's the global one, 
-    // try to resolve a more specific one from the clinic config.
     const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
 
     if (!targetUrl) {
+        console.warn(`[Webhook] Skipped ${eventType}: No target URL found.`);
         return { success: false, reason: 'No URL' };
     }
 
@@ -104,37 +94,71 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
     });
 
-    const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
+    const headers = { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Webhook-Key': secret || '',
+        'ngrok-skip-browser-warning': 'true'
+    };
+
     if (secret) {
-        headers['X-Webhook-Signature'] = crypto
-            .createHmac('sha256', secret)
-            .update(body)
-            .digest('hex');
-        // Existing n8n workflows validate this shared-key header. Keep the
-        // HMAC signature above for consumers that support body signing.
-        headers['X-Webhook-Key'] = secret;
+        headers['X-Webhook-Signature'] = crypto.createHmac('sha256', secret).update(body).digest('hex');
     }
+
+    console.info(`[Webhook] Sending ${eventType} to: ${targetUrl}`);
 
     const startTime = Date.now();
     let lastError;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            await sendOnce(targetUrl, body, headers);
-            const duration = Date.now() - startTime;
-            return { success: true, duration, attempts: attempt };
+            // Using a more robust request helper to handle potential Node version issues
+            const result = await performRequest(targetUrl, body, headers);
+            console.info(`[Webhook] ${eventType} success (Attempt ${attempt})`);
+            return { success: true, duration: Date.now() - startTime, attempts: attempt };
         } catch (err) {
             lastError = err;
+            console.warn(`[Webhook] Attempt ${attempt} failed for ${eventType}: ${err.message}`);
             if (attempt < maxRetries) {
-                const delay = baseDelay * Math.pow(2, attempt - 1);
-                await sleep(delay);
+                await sleep(baseDelay * Math.pow(2, attempt - 1));
             }
         }
     }
 
-    const duration = Date.now() - startTime;
-    console.error(`[Webhook] ${eventType} failed after ${maxRetries} attempts: ${lastError.message}`);
-    return { success: false, error: lastError.message, duration, attempts: maxRetries };
+    console.error(`[Webhook] ${eventType} failed after ${maxRetries} attempts. Last error: ${lastError.message}`);
+    return { success: false, error: lastError.message, duration: Date.now() - startTime, attempts: maxRetries };
+}
+
+/**
+ * Robust request helper using standard Node modules
+ */
+function performRequest(url, body, headers) {
+    return new Promise((resolve, reject) => {
+        const parsedUrl = new URL(url);
+        const protocol = parsedUrl.protocol === 'https:' ? require('https') : require('http');
+        
+        const req = protocol.request({
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Length': Buffer.byteLength(body)
+            }
+        }, (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                resolve();
+            } else {
+                reject(new Error(`HTTP ${res.statusCode}`));
+            }
+        });
+
+        req.on('error', reject);
+        req.setTimeout(10000, () => { req.destroy(); reject(new Error('Timeout')); });
+        req.write(body);
+        req.end();
+    });
 }
 
 
