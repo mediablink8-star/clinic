@@ -492,7 +492,7 @@ async function markRecovered({ clinicId, missedCallId }) {
 
     const recoveredAt = new Date();
     const updated = await prisma.missedCall.update({
-        where: { id: missedCallId },
+        where: { id: missedCallId, clinicId },
         data: { status: 'RECOVERED', recoveredAt }
     });
 

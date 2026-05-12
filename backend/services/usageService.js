@@ -13,6 +13,11 @@ const BURST_WINDOW_MS = 10000;
 const RATE_WINDOW_MS = 60000;
 const TEMP_BLOCK_MS = Number(process.env.TEMP_SPIKE_BLOCK_MS || 5 * 60 * 1000);
 
+// Platform-wide abuse prevention limits
+const GLOBAL_SMS_PER_HOUR_LIMIT = Number(process.env.GLOBAL_SMS_PER_HOUR_LIMIT || 2000);
+const NEW_CLINIC_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const NEW_CLINIC_SMS_PER_HOUR_LIMIT = 50; 
+
 const { connection, REDIS_DISABLED } = require('./queueService');
 const { getStartOfDay, getStartOfMonth } = require('./slotUtils');
 
@@ -105,6 +110,41 @@ async function triggerTemporaryBlock(clinicId, type, reason) {
     console.warn(`[SPIKE_BLOCK] clinic=${clinicId} type=${type} until=${new Date(until).toISOString()} reason=${reason}`);
 }
 
+async function checkPlatformAbuse(clinicId) {
+    if (REDIS_DISABLED || !connection || connection.status !== 'ready') return;
+
+    const hourAgo = nowMs() - 3600000;
+    const globalKey = 'platform:sms:hour';
+    
+    // 1. Global Platform Limit
+    const globalCount = await connection.zcount(globalKey, hourAgo, '+inf');
+    if (globalCount > GLOBAL_SMS_PER_HOUR_LIMIT) {
+        console.error(`[CRITICAL] Platform-wide SMS limit reached: ${globalCount}/${GLOBAL_SMS_PER_HOUR_LIMIT}`);
+        throw new AppError('PLATFORM_LIMIT_REACHED', 'Platform is temporarily saturated. Please try again in a few minutes.', 429);
+    }
+
+    // 2. New Clinic Abuse Prevention
+    const clinic = await prisma.clinic.findUnique({ 
+        where: { id: clinicId },
+        select: { createdAt: true }
+    });
+
+    const isNew = clinic && (nowMs() - new Date(clinic.createdAt).getTime() < NEW_CLINIC_AGE_MS);
+    if (isNew) {
+        const clinicKey = `rate:sms:${clinicId}`;
+        const clinicHourCount = await connection.zcount(clinicKey, hourAgo, '+inf');
+        if (clinicHourCount > NEW_CLINIC_SMS_PER_HOUR_LIMIT) {
+            await triggerTemporaryBlock(clinicId, 'sms', 'new_clinic_hourly_exceeded');
+            throw new AppError('NEW_ACCOUNT_RESTRICTION', 'New accounts are limited to 50 SMS per hour during the first 24h.', 429);
+        }
+    }
+
+    // Record this attempt in the global counter
+    await connection.zadd(globalKey, nowMs(), `${nowMs()}-${Math.random()}`);
+    await connection.zremrangebyscore(globalKey, 0, hourAgo);
+    await connection.expire(globalKey, 3600 + 60);
+}
+
 async function assertRateLimits(clinicId, type) {
     const bucket = inMemoryRate[type];
     const samples = await pushAndTrim(bucket, clinicId, RATE_WINDOW_MS, type);
@@ -113,7 +153,11 @@ async function assertRateLimits(clinicId, type) {
         await triggerTemporaryBlock(clinicId, type, 'minute_rate_exceeded');
         throw rateError(type);
     }
+    
+    // Platform-wide abuse check for SMS
     if (type === 'sms') {
+        await checkPlatformAbuse(clinicId);
+
         // For burst we check the same Redis key but with a smaller window
         let burstCount = 0;
         if (!REDIS_DISABLED && connection && connection.status === 'ready') {

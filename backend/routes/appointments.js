@@ -71,7 +71,7 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
     }
 
     const updated = await require('../services/prisma').appointment.update({
-        where: { id: req.params.id },
+        where: { id: req.params.id, clinicId: req.clinicId },
         data: { doctorId: doctorId || null },
         include: { doctor: true, patient: true }
     });

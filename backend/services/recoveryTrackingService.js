@@ -227,11 +227,11 @@ async function recordOutboundMessageForMissedCall({
 
     await prisma.$transaction([
         prisma.conversation.update({
-            where: { id: recoveryCase.conversation.id },
+            where: { id: recoveryCase.conversation.id, clinicId: recoveryCase.clinicId },
             data: { lastMessageAt: occurredAt }
         }),
         prisma.recoveryCase.update({
-            where: { id: recoveryCase.id },
+            where: { id: recoveryCase.id, clinicId: recoveryCase.clinicId },
             data: { lastActivityAt: occurredAt }
         }),
     ]);
@@ -357,11 +357,11 @@ async function recordInboundMessage({
 
     await prisma.$transaction([
         prisma.conversation.update({
-            where: { id: conversation.id },
+            where: { id: conversation.id, clinicId },
             data: { lastMessageAt: occurredAt }
         }),
         prisma.recoveryCase.update({
-            where: { id: recoveryCase.id },
+            where: { id: recoveryCase.id, clinicId },
             data: {
                 lastActivityAt: occurredAt,
                 state: recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state,
@@ -498,11 +498,11 @@ async function handleProviderStatusCallback({
 
     await prisma.$transaction([
         prisma.conversation.update({
-            where: { id: conversation.id },
+            where: { id: conversation.id, clinicId: recoveryCase.clinicId },
             data: { lastMessageAt: occurredAt }
         }),
         prisma.recoveryCase.update({
-            where: { id: recoveryCase.id },
+            where: { id: recoveryCase.id, clinicId: recoveryCase.clinicId },
             data: { lastActivityAt: occurredAt }
         }),
     ]);
@@ -551,7 +551,7 @@ async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = 
     }
 
     const updated = await prisma.recoveryCase.update({
-        where: { id: recoveryCase.id },
+        where: { id: recoveryCase.id, clinicId },
         data: {
             state: 'RECOVERED',
             recoveredAt: occurredAt,
