@@ -18,7 +18,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "={{ $env.WEBHOOK_SECRET }}"}
+            {"value1": "={{ $json.headers['x-webhook-key'] }}", "operation": "equal", "value2": "={{ $json.body.webhookSecret }}"}
           ]
         }
       },
@@ -168,7 +168,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "url": "={{ $node[\"Receive Appointment Event\"].json.body.backendUrl }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",

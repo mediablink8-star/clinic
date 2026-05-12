@@ -21,7 +21,7 @@
             {
               "value1": "={{ $json.headers['x-webhook-key'] }}",
               "operation": "equal",
-              "value2": "={{ $env.WEBHOOK_SECRET }}"
+              "value2": "={{ $json.body.webhookSecret }}"
             }
           ]
         }
@@ -194,7 +194,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/mark-recovered",
+        "url": "={{ $node[\"Missed Call Webhook\"].json.body.backendUrl }}/automation/mark-recovered",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",
@@ -218,7 +218,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "url": "={{ $node[\"Missed Call Webhook\"].json.body.backendUrl }}/automation/send-notification",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "method": "POST",

@@ -88,6 +88,8 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
         event: eventType,
         timestamp: new Date().toISOString(),
         data: payload,
+        backendUrl: process.env.BACKEND_API_URL || '',
+        webhookSecret: secret || '',
         ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
     });
 
