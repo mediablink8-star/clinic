@@ -61,6 +61,11 @@ const inputStyle = {
 
 const AISettings = ({ clinic, token, onUpdate }) => {
     const isOwner = ['OWNER', 'ADMIN'].includes(clinic?.role);
+    const [geminiData, setGeminiData] = useState({ geminiApiKey: '' });
+    const [savingGemini, setSavingGemini] = useState(false);
+    const [testingGemini, setTestingGemini] = useState(false);
+    const [geminiTestResult, setGeminiTestResult] = useState(null);
+    const [geminiStatus, setGeminiStatus] = useState(null);
     const [formData, setFormData] = useState({
         ...clinic,
         aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
@@ -69,6 +74,38 @@ const AISettings = ({ clinic, token, onUpdate }) => {
     const [systemStatus, setSystemStatus] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
+    const handleSaveGemini = async () => {
+        if (!geminiData.geminiApiKey?.trim()) {
+            showToast('Το Gemini API Key είναι υποχρεωτικό', 'error');
+            return;
+        }
+        setSavingGemini(true);
+        try {
+            await api.put('/clinic/gemini', geminiData);
+            setGeminiStatus('configured');
+            setGeminiData({ geminiApiKey: '' }); // Clear after save
+            showToast('Gemini API Key αποθηκεύτηκε!', 'success');
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
+        } finally { setSavingGemini(false); }
+    };
+
+    const handleTestGemini = async () => {
+        setTestingGemini(true);
+        setGeminiTestResult(null);
+        try {
+            const res = await api.post('/clinic/gemini/test');
+            setGeminiTestResult(res.data);
+            if (res.data.success) showToast(`Gemini Connected! Response: ${res.data.response}`);
+            else showToast(`Gemini Error: ${res.data.error}`, 'error');
+        } catch (err) {
+            showToast('Failed to test Gemini', 'error');
+        } finally {
+            setTestingGemini(true);
+            setTimeout(() => setTestingGemini(false), 1000);
+        }
+    };
+
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
@@ -76,7 +113,35 @@ const AISettings = ({ clinic, token, onUpdate }) => {
 
     useEffect(() => {
         api.get('/system/status').then(r => setSystemStatus(r.data)).catch(() => {});
+        api.get('/clinic/gemini-config')
+            .then(r => setGeminiStatus(r.data.configured ? 'configured' : 'not_configured'))
+            .catch(() => setGeminiStatus('not_configured'));
     }, []);
+
+    const StatusBadge = ({ status, error }) => {
+        let config = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
+        if (status === 'connected') config = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
+        if (status === 'failed') config = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε', dot: '#ef4444' };
+        if (status === 'loading') config = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
+
+        return (
+            <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '99px',
+                background: config.bg,
+                color: config.color,
+                fontSize: '0.75rem',
+                fontWeight: '700'
+            }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: config.dot }} />
+                {config.text}
+                {error && <span title={error} style={{ cursor: 'help', marginLeft: '4px' }}>ⓘ</span>}
+            </div>
+        );
+    };
 
     const set    = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
@@ -217,11 +282,22 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                         ))}
                     </div>
                 </FormGroup>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button type="button" className="btn btn-outline" onClick={handleTestGemini} disabled={testingGemini || geminiStatus !== 'configured'}>
+                        {testingGemini ? 'Δοκιμή...' : 'Δοκιμή Σύνδεσης'}
+                    </button>
                     <button type="button" className="btn btn-primary" onClick={handleSaveAiConfig} disabled={aiConfigSaving || !isOwner}>
                         {aiConfigSaving ? 'Αποθήκευση...' : 'Αποθήκευση Ρυθμίσεων AI'}
                     </button>
                 </div>
+                {geminiTestResult && (
+                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <StatusBadge 
+                            status={geminiTestResult.success ? 'connected' : 'failed'} 
+                            error={geminiTestResult.error} 
+                        />
+                    </div>
+                )}
 
                 {/* How it works strip */}
                 <div style={{

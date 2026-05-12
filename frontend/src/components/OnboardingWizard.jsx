@@ -152,9 +152,18 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
         setStep(s => s + 1);
     };
 
-    const handleFinish = () => {
-        localStorage.setItem('onboarding_complete', 'true');
-        onComplete();
+    const handleFinish = async () => {
+        setSaving(true);
+        try {
+            await api.post('/clinic/onboarding-complete');
+            localStorage.setItem('onboarding_complete', 'true');
+            if (onUpdate) onUpdate({ onboardingCompleted: true });
+            onComplete();
+        } catch (err) {
+            setError(err.response?.data?.error || 'Σφάλμα ολοκλήρωσης onboarding.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const skippable = ['ai', 'voice', 'webhooks'].includes(current.key);

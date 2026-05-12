@@ -251,6 +251,74 @@ router.get('/gemini-config', asyncHandler(async (req, res) => {
     res.json({ configured });
 }));
 
+// POST /api/clinic/webhooks/test
+router.post('/webhooks/test', requireOwner, asyncHandler(async (req, res) => {
+    const { url } = req.body;
+    if (!url || !isValidUrl(url)) throw new AppError('VALIDATION_ERROR', 'Invalid URL', 400);
+
+    const axios = require('axios');
+    const start = Date.now();
+    try {
+        await axios.post(url, { test: true, clinicId: req.clinicId }, { timeout: 5000 });
+        res.json({ success: true, latency: Date.now() - start });
+    } catch (err) {
+        res.json({ success: false, error: err.message, latency: Date.now() - start });
+    }
+}));
+
+// POST /api/clinic/vonage/test
+router.post('/vonage/test', requireOwner, asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { vonageApiKey: true, vonageApiSecret: true }
+    });
+
+    const apiKey = clinic?.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY;
+    const apiSecret = clinic?.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET;
+
+    if (!apiKey || !apiSecret) throw new AppError('CONFIGURATION_ERROR', 'Vonage credentials not found', 400);
+
+    const axios = require('axios');
+    try {
+        const resp = await axios.get(`https://rest.nexmo.com/account/get-balance?api_key=${apiKey}&api_secret=${apiSecret}`);
+        res.json({ success: true, balance: resp.data.value });
+    } catch (err) {
+        res.json({ success: false, error: err.response?.data?.['error-code-label'] || err.message });
+    }
+}));
+
+// POST /api/clinic/gemini/test
+router.post('/gemini/test', requireOwner, asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { geminiApiKey: true }
+    });
+
+    const apiKey = clinic?.geminiApiKey ? decrypt(clinic.geminiApiKey) : process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new AppError('CONFIGURATION_ERROR', 'Gemini API Key not found', 400);
+
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent('Say "Ready"');
+        const text = result.response.text();
+        res.json({ success: true, response: text.trim() });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+}));
+
+// POST /api/clinic/onboarding-complete
+router.post('/onboarding-complete', requireOwner, asyncHandler(async (req, res) => {
+    const data = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: { onboardingCompleted: true },
+        select: { id: true, onboardingCompleted: true }
+    });
+    res.json({ success: true, data });
+}));
+
 module.exports = router;
 
 

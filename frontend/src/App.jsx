@@ -147,6 +147,11 @@ const App = () => {
             const freshClinic = await res.json();
             setClinic(freshClinic);
             localStorage.setItem('clinic_data', JSON.stringify(freshClinic));
+            
+            // Show onboarding if not completed and not a platform admin
+            if (!freshClinic.onboardingCompleted && !freshClinic.isPlatformAdmin) {
+              setShowOnboarding(true);
+            }
           }
         } catch { /* keep localStorage version */ }
       })
@@ -375,6 +380,8 @@ const App = () => {
     setClinic(clinic);
     if (clinic?.isPlatformAdmin) {
       setCurrentTab('admin');
+    } else if (!clinic?.onboardingCompleted) {
+      setShowOnboarding(true);
     }
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     queryClient.invalidateQueries();

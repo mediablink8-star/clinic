@@ -430,6 +430,18 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     });
     const [savingWebhooks, setSavingWebhooks] = React.useState(false);
     const [webhookSaved, setWebhookSaved] = React.useState(false);
+    const [testingWebhooks, setTestingWebhooks] = React.useState({});
+
+    const handleTestWebhook = async (field, url) => {
+        if (!url) return;
+        setTestingWebhooks(prev => ({ ...prev, [field]: 'loading' }));
+        try {
+            const res = await api.post('/clinic/webhooks/test', { url });
+            setTestingWebhooks(prev => ({ ...prev, [field]: res.data.success ? 'connected' : 'failed', [`${field}_latency`]: res.data.latency, [`${field}_error`]: res.data.error }));
+        } catch {
+            setTestingWebhooks(prev => ({ ...prev, [field]: 'failed' }));
+        }
+    };
 
     const handleSaveWebhooks = async () => {
         setSavingWebhooks(true);
@@ -450,6 +462,23 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [vonageData, setVonageData] = React.useState({ vonageApiKey: '', vonageApiSecret: '', vonageFromName: clinic?.vonageFromName || '' });
     const [vonageStatus, setVonageStatus] = React.useState(null); // null | 'configured' | 'not_configured'
     const [savingVonage, setSavingVonage] = React.useState(false);
+    const [testingVonage, setTestingVonage] = React.useState(false);
+    const [vonageTestResult, setVonageTestResult] = React.useState(null);
+
+    const handleTestVonage = async () => {
+        setTestingVonage(true);
+        setVonageTestResult(null);
+        try {
+            const res = await api.post('/clinic/vonage/test');
+            setVonageTestResult(res.data);
+            if (res.data.success) showToast(`Vonage connected! Balance: ${res.data.balance}`);
+            else showToast(`Vonage error: ${res.data.error}`, 'error');
+        } catch (err) {
+            showToast('Failed to test Vonage', 'error');
+        } finally {
+            setTestingVonage(false);
+        }
+    };
 
     React.useEffect(() => {
         api.get('/clinic/vonage')
@@ -1228,9 +1257,23 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     <FormGroup label="Sender Name / Number" flex="1 1 100%">
                         <input style={inputStyle} type="text" placeholder="ClinicFlow" value={vonageData.vonageFromName} onChange={e => setVonageData(d => ({ ...d, vonageFromName: e.target.value }))} />
                     </FormGroup>
-                    <button type="button" className="btn btn-primary" onClick={handleSaveVonage} disabled={savingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-                        {savingVonage ? 'Αποθήκευση...' : 'Αποθήκευση Vonage Credentials'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button type="button" className="btn btn-primary" onClick={handleSaveVonage} disabled={savingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
+                            {savingVonage ? 'Αποθήκευση...' : 'Αποθήκευση Vonage Credentials'}
+                        </button>
+                        <button type="button" className="btn btn-outline" onClick={handleTestVonage} disabled={testingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
+                            {testingVonage ? <Loader size={14} className="animate-spin" /> : 'Δοκιμή Σύνδεσης'}
+                        </button>
+                    </div>
+                    {vonageTestResult && (
+                        <div style={{ marginTop: '8px' }}>
+                            <StatusBadge 
+                                status={vonageTestResult.success ? 'connected' : 'failed'} 
+                                error={vonageTestResult.error} 
+                            />
+                            {vonageTestResult.success && <span style={{ fontSize: '0.72rem', marginLeft: '8px', color: '#166534', fontWeight: '700' }}>Balance: {vonageTestResult.balance} EUR</span>}
+                        </div>
+                    )}
                 </div>
 
                 {[
@@ -1242,13 +1285,33 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     { key: 'webhookUrl',          label: 'Global Fallback Webhook URL',                hint: 'Χρησιμοποιείται αν δεν οριστεί ειδικό webhook' },
                 ].map(({ key, label, hint }) => (
                     <FormGroup key={key} label={label} flex="1 1 100%">
-                        <input
-                            style={inputStyle}
-                            type="url"
-                            value={webhookData[key] || ''}
-                            onChange={e => setWebhookData(d => ({ ...d, [key]: e.target.value }))}
-                            placeholder={hint}
-                        />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input
+                                style={inputStyle}
+                                type="url"
+                                value={webhookData[key] || ''}
+                                onChange={e => setWebhookData(d => ({ ...d, [key]: e.target.value }))}
+                                placeholder={hint}
+                            />
+                            <button 
+                                type="button" 
+                                className="btn btn-outline" 
+                                style={{ flexShrink: 0, padding: '0 12px' }}
+                                disabled={!webhookData[key] || testingWebhooks[key] === 'loading'}
+                                onClick={() => handleTestWebhook(key, webhookData[key])}
+                            >
+                                {testingWebhooks[key] === 'loading' ? <Loader size={14} className="animate-spin" /> : 'Test'}
+                            </button>
+                        </div>
+                        {testingWebhooks[key] && testingWebhooks[key] !== 'loading' && (
+                            <div style={{ marginTop: '4px' }}>
+                                <StatusBadge 
+                                    status={testingWebhooks[key]} 
+                                    latency={testingWebhooks[`${key}_latency`]} 
+                                    error={testingWebhooks[`${key}_error`]} 
+                                />
+                            </div>
+                        )}
                     </FormGroup>
                 ))}
 
