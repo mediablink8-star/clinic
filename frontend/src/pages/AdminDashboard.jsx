@@ -146,23 +146,29 @@ const AdminDashboard = () => {
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '-0.03em' }}>
-            <ShieldAlert size={22} style={{ color: 'var(--primary)' }} />
-            Πίνακας Ελέγχου Διαχειριστή
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '4px' }}>
-            Πλατφόρμα διαχείρισης ιατρείων · {metrics.total} εγγραφές
-          </p>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+         <div>
+           <h1 style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '-0.03em' }}>
+             <ShieldAlert size={22} style={{ color: 'var(--primary)' }} />
+             Πίνακας Ελέγχου Διαχειριστή
+           </h1>
+           <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '4px' }}>
+             Πλατφόρμα διαχείρισης ιατρείων · {metrics.total} εγγραφές
+           </p>
+         </div>
+         <button
+           onClick={() => setShowCreateModal(true)}
+           style={{
+             display: 'flex', alignItems: 'center', gap: '8px',
+             padding: '10px 18px', borderRadius: '12px', border: 'none',
+             background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
+             color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+             boxShadow: '0 8px 20px -4px rgba(99,91,255,0.4)', transition: 'all 0.2s'
+           }}
+         >
+           <Plus size={16} /> Νέο Ιατρείο
+</button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={primaryBtnStyle}
-        >
-          <Plus size={16} /> Νέο Ιατρείο
-        </button>
-      </div>
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -409,6 +415,27 @@ const Input = ({ label, type = 'text', value, onChange, required }) => (
     }} />
   </div>
 );
+
+const kpiCardStyle = (bg) => ({
+  background: 'var(--glass-surface)',
+  backdropFilter: 'var(--glass-strong)',
+  WebkitBackdropFilter: 'var(--glass-strong)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  borderRadius: '14px',
+  padding: '1.25rem',
+  boxShadow: 'var(--shadow-md)',
+  position: 'relative',
+  overflow: 'hidden'
+});
+
+const kpiIconStyle = (color) => ({
+  width: '42px', height: '42px', borderRadius: '12px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 8px 20px -8px rgba(0,0,0,0.3)',
+  background,
+  color: 'white',
+  marginBottom: '8px'
+});
 
 const thStyle = {
   padding: '10px 14px',
