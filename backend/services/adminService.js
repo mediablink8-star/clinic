@@ -1,6 +1,72 @@
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
 const { hashPassword } = require('./authService');
+const { logAction } = require('./auditService');
+const { applyClinicDefaults } = require('./clinicService');
+
+// Admin-scoped: create a new clinic with owner user and defaults
+async function createClinic({ name, ownerEmail, ownerPassword, ownerName }) {
+    const existingUser = await prisma.user.findUnique({ where: { email: ownerEmail } });
+    if (existingUser) {
+        throw new AppError('CONFLICT', 'A user with this email already exists', 409);
+    }
+
+    return await prisma.$transaction(async (tx) => {
+        const clinic = await tx.clinic.create({
+            data: {
+                name,
+                email: ownerEmail,
+                phone: '',
+                location: '',
+                services: JSON.stringify([]),
+                policies: JSON.stringify({}),
+                workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
+                messageCredits: 500,
+                dailyMessageCap: 300,
+                monthlyCreditLimit: 500
+            }
+        });
+
+        await applyClinicDefaults(clinic.id, tx);
+
+        const passwordHash = await hashPassword(ownerPassword);
+        const user = await tx.user.create({
+            data: {
+                email: ownerEmail,
+                passwordHash,
+                name: ownerName || name,
+                role: 'OWNER',
+                clinicId: clinic.id
+            }
+        });
+
+        await logAction({
+            clinicId: clinic.id,
+            userId: user.id,
+            action: 'CLINIC_CREATED',
+            entity: 'CLINIC',
+            entityId: clinic.id,
+            ipAddress: 'system'
+        });
+
+        return { success: true, data: { clinic, user } };
+    });
+}
+
+// Admin-scoped: add credits to a clinic
+async function addCredits({ clinicId, amount }) {
+    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    const updated = await prisma.clinic.update({
+        where: { id: clinicId },
+        data: {
+            messageCredits: { increment: amount }
+        }
+    });
+
+    return { success: true, data: { messageCredits: updated.messageCredits } };
+}
 
 // Admin-scoped: intentionally no clinicId filter — returns all clinics
 async function getUsage() {
@@ -163,45 +229,45 @@ async function getAuditLogs({ limit = 100, action, entity, startDate, endDate } 
 
 // Admin-scoped: get platform-wide stats
 async function getPlatformStats() {
-const [
-         totalClinics,
-         activeClinics,
-         inactiveClinics,
-         totalUsers,
-         activeUsers,
-         totalAppointments,
-         totalMessages,
-         totalPatients,
-         totalAudits,
-         allClinics,
-         recentLogins,
-         lowCreditClinics
-     ] = await Promise.all([
-         prisma.clinic.count(),
-         prisma.clinic.count({ where: { isActive: true } }),
-         prisma.clinic.count({ where: { isActive: false } }),
-         prisma.user.count(),
-         prisma.user.count({ where: { isActive: true } }),
-         prisma.appointment.count(),
-         prisma.messageLog.count(),
-         prisma.patient.count(),
-         prisma.auditLog.count(),
-         prisma.clinic.findMany({
-             select: { monthlyCreditLimit: true, dailyUsedCount: true }
-         }),
-         prisma.user.findMany({
-             select: { id: true, email: true, name: true, lastLoginAt: true, clinicId: true },
-             orderBy: { lastLoginAt: 'desc' },
-             take: 10
-         }),
-         prisma.clinic.findMany({
-             where: { messageCredits: { lte: 50 }, isActive: true },
-             select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, email: true }
-         })
-     ]);
+    const [
+        totalClinics,
+        activeClinics,
+        inactiveClinics,
+        totalUsers,
+        activeUsers,
+        totalAppointments,
+        totalMessages,
+        totalPatients,
+        totalAudits,
+        allClinics,
+        recentLogins,
+        lowCreditClinics
+    ] = await Promise.all([
+        prisma.clinic.count(),
+        prisma.clinic.count({ where: { isActive: true } }),
+        prisma.clinic.count({ where: { isActive: false } }),
+        prisma.user.count(),
+        prisma.user.count({ where: { isActive: true } }),
+        prisma.appointment.count(),
+        prisma.messageLog.count(),
+        prisma.patient.count(),
+        prisma.auditLog.count(),
+        prisma.clinic.findMany({
+            select: { monthlyCreditLimit: true, dailyUsedCount: true }
+        }),
+        prisma.user.findMany({
+            select: { id: true, email: true, name: true, lastLoginAt: true, clinicId: true },
+            orderBy: { lastLoginAt: 'desc' },
+            take: 10
+        }),
+        prisma.clinic.findMany({
+            where: { messageCredits: { lte: 50 }, isActive: true },
+            select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, email: true }
+        })
+    ]);
 
-     const totalCredits = allClinics.reduce((s, c) => s + (c.monthlyCreditLimit || 0), 0);
-     const usedCredits = allClinics.reduce((s, c) => s + (c.dailyUsedCount || 0), 0);
+    const totalCredits = allClinics.reduce((s, c) => s + (c.monthlyCreditLimit || 0), 0);
+    const usedCredits = allClinics.reduce((s, c) => s + (c.dailyUsedCount || 0), 0);
 
     const peakHourData = await prisma.appointment.groupBy({
         by: ['startTime'],
