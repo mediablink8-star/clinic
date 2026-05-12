@@ -107,9 +107,18 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {"name": "api_key", "value": "={{ $env.VONAGE_API_KEY }}"},
-            {"name": "api_secret", "value": "={{ $env.VONAGE_API_SECRET }}"},
-            {"name": "from", "value": "={{ $env.VONAGE_FROM_NAME }}"},
+            {
+              "name": "api_key",
+              "value": "={{ $json.body.data.vonageApiKey || $env.VONAGE_API_KEY }}"
+            },
+            {
+              "name": "api_secret",
+              "value": "={{ $json.body.data.vonageApiSecret || $env.VONAGE_API_SECRET }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $json.body.data.vonageFromName || $env.VONAGE_FROM_NAME }}"
+            },
             {"name": "to", "value": "={{ $json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},
             {"name": "type", "value": "unicode"}

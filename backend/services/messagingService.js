@@ -77,9 +77,9 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
             message, 
             type,
             // Include per-clinic Vonage credentials for multi-tenant SMS
-            ...(clinic.vonageApiKey && { vonageApiKey: require('./encryptionService').decrypt(clinic.vonageApiKey) }),
-            ...(clinic.vonageApiSecret && { vonageApiSecret: require('./encryptionService').decrypt(clinic.vonageApiSecret) }),
-            ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
+            vonageApiKey: clinic.vonageApiKey ? require('./encryptionService').decrypt(clinic.vonageApiKey) : null,
+            vonageApiSecret: clinic.vonageApiSecret ? require('./encryptionService').decrypt(clinic.vonageApiSecret) : null,
+            vonageFromName: clinic.vonageFromName || null,
         },
         logType: type,
         treatMissingWebhookAsSimulated: true,

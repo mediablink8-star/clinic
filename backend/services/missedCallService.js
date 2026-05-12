@@ -264,9 +264,9 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || '',
-        ...(vonageApiKey && { vonageApiKey }),
-        ...(vonageApiSecret && { vonageApiSecret }),
-        ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
+        vonageApiKey,
+        vonageApiSecret,
+        vonageFromName: clinic.vonageFromName || null,
     });
 
     // Increment SMS usage counter
