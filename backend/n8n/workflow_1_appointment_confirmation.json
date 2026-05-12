@@ -172,10 +172,16 @@
     {
       "parameters": {
         "url": "={{ $node[\"Receive Appointment Event\"].json.body.backendUrl }}/automation/send-notification",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "method": "POST",
         "sendBody": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $node[\"Receive Appointment Event\"].json.body.automationApiKey }}"
+            }
+          ]
+        },
         "bodyParameters": {
           "parameters": [
             {"name": "type", "value": "sms_failure"},

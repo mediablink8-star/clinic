@@ -227,10 +227,16 @@
     {
       "parameters": {
         "url": "={{ $node[\"Receive SMS Request\"].json.body.backendUrl }}/automation/send-notification",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "method": "POST",
         "sendBody": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $node[\"Receive SMS Request\"].json.body.automationApiKey }}"
+            }
+          ]
+        },
         "bodyParameters": {
           "parameters": [
             {

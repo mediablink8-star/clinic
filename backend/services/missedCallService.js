@@ -267,6 +267,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         name: null,
         smsBody: smartSmsBody,
         backendUrl: process.env.BACKEND_API_URL || '',
+        automationApiKey: process.env.AUTOMATION_API_KEY || '',
         webhookSecret: process.env.WEBHOOK_SECRET || '',
         vonageApiKey,
         vonageApiSecret,
