@@ -144,15 +144,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $json.body.vonageApiKey || $env.VONAGE_API_KEY }}"
+              "value": "={{ $json.body.vonageApiKey }}"
             },
             {
               "name": "api_secret",
-              "value": "={{ $json.body.vonageApiSecret || $env.VONAGE_API_SECRET }}"
+              "value": "={{ $json.body.vonageApiSecret }}"
             },
             {
               "name": "from",
-              "value": "={{ $json.body.vonageFromName || $env.VONAGE_FROM_NAME }}"
+              "value": "={{ $json.body.vonageFromName }}"
             },
             {
               "name": "to",

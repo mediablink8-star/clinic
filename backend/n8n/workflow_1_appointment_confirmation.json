@@ -109,15 +109,15 @@
           "parameters": [
             {
               "name": "api_key",
-              "value": "={{ $json.body.data.vonageApiKey || $env.VONAGE_API_KEY }}"
+              "value": "={{ $json.body.data.vonageApiKey }}"
             },
             {
               "name": "api_secret",
-              "value": "={{ $json.body.data.vonageApiSecret || $env.VONAGE_API_SECRET }}"
+              "value": "={{ $json.body.data.vonageApiSecret }}"
             },
             {
               "name": "from",
-              "value": "={{ $json.body.data.vonageFromName || $env.VONAGE_FROM_NAME }}"
+              "value": "={{ $json.body.data.vonageFromName }}"
             },
             {"name": "to", "value": "={{ $json.phone }}"},
             {"name": "text", "value": "={{ $json.smsBody }}"},

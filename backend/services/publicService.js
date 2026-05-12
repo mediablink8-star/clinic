@@ -300,7 +300,10 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 date: start.toISOString().split('T')[0],
                 time: start.toISOString().split('T')[1].slice(0, 5),
                 reason,
-                doctorName: (await prisma.doctor.findUnique({ where: { id: assignedDoctorId } }))?.name || null
+                doctorName: (await prisma.doctor.findUnique({ where: { id: assignedDoctorId } }))?.name || null,
+                vonageApiKey: clinic.vonageApiKey ? require('./encryptionService').decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY,
+                vonageApiSecret: clinic.vonageApiSecret ? require('./encryptionService').decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET,
+                vonageFromName: clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow'
             },
             clinic.webhookUrl,
             clinic.webhookSecret

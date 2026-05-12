@@ -215,8 +215,9 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
             const patient = await prisma.patient.findUnique({ where: { id: patientId } });
             const startDate = new Date(appointment.startTime);
             const { decrypt } = require('./encryptionService');
-            const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : null;
-            const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : null;
+            const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY;
+            const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET;
+            const vonageFromName = clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow';
 
             triggerWebhook(
                 'appointment.created',
@@ -228,9 +229,9 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
                     time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                     reason: reason || '',
                     doctorName: appointment.doctor?.name || null,
-                    ...(vonageApiKey && { vonageApiKey }),
-                    ...(vonageApiSecret && { vonageApiSecret }),
-                    ...(clinic.vonageFromName && { vonageFromName: clinic.vonageFromName }),
+                    vonageApiKey,
+                    vonageApiSecret,
+                    vonageFromName,
                 },
                 null,
                 clinic.webhookSecret,

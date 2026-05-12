@@ -253,9 +253,10 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     } catch { /* use default */ }
 
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
-    // Resolve per-clinic Vonage credentials (decrypt if stored)
-    const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : null;
-    const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : null;
+    // Resolve per-clinic Vonage credentials (decrypt if stored), fallback to process.env
+    const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY;
+    const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET;
+    const vonageFromName = clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow';
 
     triggerN8n('/missed-call', {
         clinicId,
@@ -266,7 +267,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         backendUrl: process.env.BACKEND_API_URL || '',
         vonageApiKey,
         vonageApiSecret,
-        vonageFromName: clinic.vonageFromName || null,
+        vonageFromName,
     });
 
     // Increment SMS usage counter
