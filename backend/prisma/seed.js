@@ -31,34 +31,23 @@ async function main() {
     ];
 
     for (const p of patients) {
-        await prisma.patient.upsert({
-            where: { clinicId_phone: { clinicId: clinicA.id, phone: p.phone } },
-            update: {},
-            create: {
-                ...p,
-                clinicId: clinicA.id,
-                appointments: {
-                    create: {
-                        clinicId: clinicA.id,
-                        startTime: new Date(),
-                        endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
-                        reason: p.name === 'Γιώργος Παπαδόπουλος' ? 'Πονάει το δόντι μου' : 'Καθαρισμός',
-                        status: 'PENDING',
-                        priority: p.name === 'Γιώργος Παπαδόπουλος' ? 'URGENT' : 'NORMAL',
-                        aiClassification: p.name === 'Γιώργος Παπαδόπουλος' ? 'Έκτακτος πόνος' : 'Προγραμματισμένος έλεγχος',
-                        notifications: {
-                            create: {
-                                clinicId: clinicA.id,
-                                type: 'REMINDER',
-                                message: `Ραντεβού για ${p.name}`,
-                                scheduledFor: new Date()
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // ... (existing code)
     }
+
+    // 3. Create Platform Admin
+    const bcrypt = require('bcryptjs');
+    const adminPasswordHash = await bcrypt.hash('admin123!', 10);
+    await prisma.user.upsert({
+        where: { email: 'admin@clinicflow.gr' },
+        update: {},
+        create: {
+            email: 'admin@clinicflow.gr',
+            passwordHash: adminPasswordHash,
+            role: 'ADMIN',
+            isPlatformAdmin: true,
+            name: 'System Admin'
+        }
+    });
 
     console.log('✅ Seeding finished successfully!');
 }

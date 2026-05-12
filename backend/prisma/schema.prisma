@@ -84,9 +84,10 @@ model User {
   email        String   @unique
   passwordHash String
   role         Role     @default(RECEPTIONIST)
+  isPlatformAdmin Boolean @default(false)
   name         String   @default("")
-  clinicId     String
-  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  clinicId     String?
+  clinic       Clinic?  @relation(fields: [clinicId], references: [id])
   refreshTokens RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   mfaEnabled   Boolean  @default(false)

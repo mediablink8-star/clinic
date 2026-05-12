@@ -23,6 +23,7 @@ import NotFound from './pages/NotFound';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import DataProcessingAgreement from './pages/DataProcessingAgreement';
 import ServerError from './pages/ServerError';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -372,6 +373,9 @@ const App = () => {
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
+    if (clinic?.isPlatformAdmin) {
+      setCurrentTab('admin');
+    }
     localStorage.setItem('clinic_data', JSON.stringify(clinic));
     queryClient.invalidateQueries();
   };
@@ -650,6 +654,8 @@ const App = () => {
           setClinic(next);
           localStorage.setItem('clinic_data', JSON.stringify(next));
         }} />;
+      case 'admin':
+        return <AdminDashboard />;
       case 'ai':
         if (clinic?.role === 'ASSISTANT') return <Dashboard
           clinic={clinic}

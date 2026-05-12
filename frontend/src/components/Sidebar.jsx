@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, TrendingUp, Settings, Brain, Plus, LogOut, Sun, Moon, X, BarChart2, CalendarCheck, ShieldAlert } from 'lucide-react';
 
 const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment, darkMode, setDarkMode, isMobile = false, isOpen = false, onClose }) => {
     const navSections = [
@@ -26,6 +26,12 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                 { id: 'settings', label: 'Ρυθμίσεις Ιατρείου', icon: Settings },
             ]
         },
+        ...(clinic?.isPlatformAdmin ? [{
+            label: 'Platform Admin',
+            items: [
+                { id: 'admin', label: 'Admin Dashboard', icon: ShieldAlert },
+            ]
+        }] : []),
     ];
 
     return (

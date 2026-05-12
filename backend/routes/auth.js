@@ -126,7 +126,12 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
             return user;
         });
 
-        const accessToken = generateAccessToken({ userId: result.id, clinicId: result.clinicId, role: result.role });
+        const accessToken = generateAccessToken({ 
+            userId: result.id, 
+            clinicId: result.clinicId, 
+            role: result.role,
+            isPlatformAdmin: result.isPlatformAdmin 
+        });
         const refreshToken = generateRefreshToken({ userId: result.id });
 
         // Store Refresh Token in DB
@@ -149,7 +154,8 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                 role: result.role,
                 userId: result.id,
                 userName: result.name,
-                isAdmin: result.role === 'ADMIN' || result.role === 'OWNER'
+                isAdmin: result.role === 'ADMIN' || result.role === 'OWNER',
+                isPlatformAdmin: result.isPlatformAdmin
             }
         });
     } catch (error) {
@@ -205,7 +211,12 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             return res.json({ mfaRequired: true, mfaToken, email: user.email });
         }
 
-        const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
+        const accessToken = generateAccessToken({ 
+            userId: user.id, 
+            clinicId: user.clinicId, 
+            role: user.role,
+            isPlatformAdmin: user.isPlatformAdmin 
+        });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
         await prisma.refreshToken.create({
@@ -214,13 +225,23 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
-        if (!user.clinic) {
+        if (!user.clinic && !user.isPlatformAdmin) {
             throw new AppError('CONFIGURATION_ERROR', 'Account configuration error — clinic not found', 500);
         }
 
         res.json({
             token: accessToken,
-            clinic: { id: user.clinic.id, name: user.clinic.name, email: user.email, avatarUrl: null, role: user.role, userId: user.id, userName: user.name || user.email, isAdmin }
+            clinic: { 
+                id: user.clinic?.id || null, 
+                name: user.clinic?.name || 'Platform Admin', 
+                email: user.email, 
+                avatarUrl: null, 
+                role: user.role, 
+                userId: user.id, 
+                userName: user.name || user.email, 
+                isAdmin,
+                isPlatformAdmin: user.isPlatformAdmin
+            }
         });
     } catch (error) {
         if (error instanceof AppError) throw error;
@@ -276,7 +297,7 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
     }
 
     // Fallback: Send via Webhook (to n8n) if direct email setup fails but webhooks are active
-    if (!emailSent && user.clinic.webhookUrl) {
+    if (!emailSent && user.clinic?.webhookUrl) {
         triggerWebhook(
             'auth.password_reset',
             {
@@ -288,10 +309,6 @@ router.post('/forgot-password', passwordResetLimiter, asyncHandler(async (req, r
             user.clinic.webhookUrl,
             user.clinic.webhookSecret
         ).catch((err) => console.error(`[Auth] Password reset webhook fallback failed: ${err.message}`));
-    }
-
-    if (!emailSent && !user.clinic.webhookUrl) {
-        console.warn(`[Auth] Password reset failed for ${user.email} — no email provider OR webhook configured.`);
     }
 
     res.json({ success: true, message: 'Instructions sent if email exists' });
@@ -363,7 +380,8 @@ router.post('/refresh', csrfOriginGuard, asyncHandler(async (req, res) => {
         const accessToken = generateAccessToken({
             userId: storedToken.user.id,
             clinicId: storedToken.user.clinicId,
-            role: storedToken.user.role
+            role: storedToken.user.role,
+            isPlatformAdmin: storedToken.user.isPlatformAdmin
         });
 
         res.cookie('refreshToken', newRefreshToken, getRefreshCookieOptions());
@@ -446,7 +464,12 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
             return { clinic: c, user: u, isAdmin: u.role === 'ADMIN' || u.role === 'OWNER' };
         });
-        const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
+        const accessToken = generateAccessToken({ 
+            userId: user.id, 
+            clinicId: user.clinicId, 
+            role: user.role,
+            isPlatformAdmin: user.isPlatformAdmin 
+        });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
         await prisma.refreshToken.create({
@@ -470,6 +493,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                 userId: user.id,
                 userName: user.name || user.email,
                 isAdmin,
+                isPlatformAdmin: user.isPlatformAdmin,
                 mfaEnabled: user.mfaEnabled
             }
         });
@@ -570,7 +594,12 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
         const isValid = authenticator.check(code, secret);
         if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
-        const accessToken = generateAccessToken({ userId: user.id, clinicId: user.clinicId, role: user.role });
+        const accessToken = generateAccessToken({ 
+            userId: user.id, 
+            clinicId: user.clinicId, 
+            role: user.role,
+            isPlatformAdmin: user.isPlatformAdmin 
+        });
         const refreshToken = generateRefreshToken({ userId: user.id });
 
         await prisma.refreshToken.create({
@@ -586,12 +615,13 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
         res.json({
             token: accessToken,
             clinic: {
-                id: user.clinic.id,
-                name: user.clinic.name,
+                id: user.clinic?.id || null,
+                name: user.clinic?.name || 'Platform Admin',
                 email: user.email,
-                avatarUrl: user.clinic.avatarUrl,
+                avatarUrl: user.clinic?.avatarUrl || null,
                 role: user.role,
                 isAdmin: user.role === 'ADMIN' || user.role === 'OWNER',
+                isPlatformAdmin: user.isPlatformAdmin,
                 mfaEnabled: user.mfaEnabled
             }
         });
