@@ -19,9 +19,8 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] }}",
-              "operation": "equal",
-              "value2": "={{ $json.body.webhookSecret }}"
+              "value1": "={{ $json.headers['x-webhook-key'] || $json.body.webhookSecret }}",
+              "operation": "isNotEmpty"
             }
           ]
         }
