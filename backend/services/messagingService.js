@@ -12,8 +12,8 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
     await assertWithinSmsLimit(clinicId);
 
     let webhookResult = { success: true };
-    const hasAnyWebhook = clinic.webhookUrl || clinic.webhookMissedCall || clinic.webhookAppointment ||
-        clinic.webhookReminders || clinic.webhookDirectSms || clinic.webhookInboundSms;
+    const hasAnyWebhook = !!(clinic.webhookUrl || clinic.webhookMissedCall || clinic.webhookAppointment ||
+        clinic.webhookReminders || clinic.webhookDirectSms || clinic.webhookInboundSms || process.env.N8N_WEBHOOK_URL);
 
     if (hasAnyWebhook) {
         try {

@@ -44,20 +44,30 @@ function buildClinicContext(clinic) {
 }
 
 /**
- * Resolves the target webhook URL for a given event based on clinic overrides.
+ * Resolves the target webhook URL for a given event based on clinic overrides or global N8N fallback.
  */
 function resolveWebhookUrl(eventType, clinic) {
-    if (!clinic) return null;
+    let url = null;
+    if (clinic) {
+        // Event specific overrides from Database
+        if (eventType.startsWith('missed_call') && clinic.webhookMissedCall) url = clinic.webhookMissedCall;
+        else if (eventType.startsWith('appointment') && clinic.webhookAppointment) url = clinic.webhookAppointment;
+        else if (eventType.startsWith('notification') && clinic.webhookReminders) url = clinic.webhookReminders;
+        else if (eventType === 'message.direct_send') url = clinic.webhookDirectSms || clinic.webhookUrl;
+        else if (eventType === 'message.inbound') url = clinic.webhookInboundSms || clinic.webhookUrl;
+        else url = clinic.webhookUrl;
+    }
     
-    // Event specific overrides
-    if (eventType.startsWith('missed_call') && clinic.webhookMissedCall) return clinic.webhookMissedCall;
-    if (eventType.startsWith('appointment') && clinic.webhookAppointment) return clinic.webhookAppointment;
-    if (eventType.startsWith('notification') && clinic.webhookReminders) return clinic.webhookReminders;
-    if (eventType === 'message.direct_send' && clinic.webhookDirectSms) return clinic.webhookDirectSms;
-    if (eventType === 'message.inbound' && clinic.webhookInboundSms) return clinic.webhookInboundSms;
-    
-    // Default global URL
-    return clinic.webhookUrl;
+    // Global N8N Fallback if no URL set in Database
+    if (!url && process.env.N8N_WEBHOOK_URL) {
+        const base = process.env.N8N_WEBHOOK_URL.replace(/\/$/, '');
+        if (eventType.startsWith('appointment')) return `${base}/appointment-created`;
+        if (eventType === 'message.direct_send') return `${base}/send-sms`;
+        if (eventType.startsWith('missed_call')) return `${base}/missed-call`;
+        return base;
+    }
+
+    return url;
 }
 
 /**
