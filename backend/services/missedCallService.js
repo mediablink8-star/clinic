@@ -27,8 +27,8 @@ function triggerN8n(path, payload) {
     const secret = process.env.WEBHOOK_SECRET || '';
 
     try {
-        const parsed = new URL(url);
-        const lib = parsed.protocol === 'https:' ? https : http;
+        const parsedUrl = new URL(url);
+        const lib = parsedUrl.protocol === 'https:' ? https : http;
         const req = lib.request({
             hostname: parsedUrl.hostname,
             port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
