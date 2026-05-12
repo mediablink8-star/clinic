@@ -93,6 +93,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     }
 
     const { maxRetries = 3, baseDelay = 500 } = options;
+    const secret = webhookSecret || clinic?.webhookSecret;
 
     const body = JSON.stringify({
         event: eventType,
@@ -104,7 +105,6 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
     });
 
     const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
-    const secret = webhookSecret || clinic?.webhookSecret;
     if (secret) {
         headers['X-Webhook-Signature'] = crypto
             .createHmac('sha256', secret)
