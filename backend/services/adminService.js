@@ -5,16 +5,21 @@ const { hashPassword } = require('./authService');
 // Admin-scoped: intentionally no clinicId filter — returns all clinics
 async function getUsage() {
     const data = await prisma.clinic.findMany({
-        select: { 
-            id: true, 
-            name: true, 
-            messageCredits: true, 
-            monthlyCreditLimit: true, 
-            dailyUsedCount: true, 
-            dailyMessageCap: true, 
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            location: true,
+            messageCredits: true,
+            monthlyCreditLimit: true,
+            dailyUsedCount: true,
+            dailyMessageCap: true,
             creditResetDate: true,
             isActive: true,
+            onboardingCompleted: true,
             createdAt: true,
+            updatedAt: true,
             _count: {
                 select: { users: true, patients: true, appointments: true }
             }
@@ -25,7 +30,7 @@ async function getUsage() {
     return { success: true, data };
 }
 
-// Admin-scoped: intentionally no clinicId filter — returns all logs
+// Admin-scoped: returns all message logs
 async function getLogs() {
     const data = await prisma.messageLog.findMany({
         take: 100,
@@ -35,80 +40,277 @@ async function getLogs() {
     return { success: true, data };
 }
 
-async function addCredits({ clinicId, amount }) {
-    if (!clinicId) throw new AppError('VALIDATION_ERROR', 'clinicId is required', 400);
-
-    const parsed = parseInt(amount);
-    if (isNaN(parsed) || parsed <= 0) {
-        throw new AppError('VALIDATION_ERROR', 'amount must be a positive integer', 400);
-    }
-
-    const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
-    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
-
-    const updated = await prisma.clinic.update({
-        where: { id: clinicId },
-        data: { messageCredits: { increment: parsed } }
+// Admin-scoped: returns all users with their clinics
+async function getUsers() {
+    const data = await prisma.user.findMany({
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            isPlatformAdmin: true,
+            isActive: true,
+            lockedUntil: true,
+            failedAttempts: true,
+            mfaEnabled: true,
+            createdAt: true,
+            updatedAt: true,
+            clinicId: true,
+            clinic: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    isActive: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200
     });
-
-    return { success: true, data: { newBalance: updated.messageCredits } };
+    return { success: true, data };
 }
 
-async function createClinic({ name, ownerEmail, ownerPassword, ownerName }) {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email: ownerEmail } });
-    if (existingUser) {
-        throw new AppError('CONFLICT', 'User with this email already exists', 409);
+// Admin-scoped: update a user's role, lock status, or password
+async function updateUser(userId, updates) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
+
+    const data = {};
+
+    if (updates.role !== undefined) {
+        if (!['ADMIN', 'OWNER', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT'].includes(updates.role)) {
+            throw new AppError('VALIDATION_ERROR', 'Invalid role', 400);
+        }
+        data.role = updates.role;
     }
 
-    const passwordHash = await hashPassword(ownerPassword);
+    if (updates.isActive !== undefined) {
+        data.isActive = updates.isActive;
+    }
 
-    const result = await prisma.$transaction(async (tx) => {
-        // 1. Create Clinic
-        const clinic = await tx.clinic.create({
-            data: {
-                name,
-                email: ownerEmail,
-                phone: '',
-                location: '',
-                services: JSON.stringify([
-                    { id: '1', name: 'General Consultation', duration: 30, price: 50 },
-                    { id: '2', name: 'Follow-up Visit', duration: 15, price: 30 }
-                ]),
-                policies: JSON.stringify({
-                    cancellationNotice: 24,
-                    reminderHours: 24
-                }),
-                workingHours: JSON.stringify({
-                    weekdays: { start: "09:00", end: "18:00", active: true },
-                    saturday: { start: "10:00", end: "14:00", active: true },
-                    sunday: { active: false }
-                }),
-                messageCredits: 100,
-                dailyMessageCap: 50,
-                aiConfig: JSON.stringify({
-                    tone: 'professional',
-                    language: 'el',
-                    autoReplyEnabled: true
-                })
-            }
-        });
+    if (updates.lockedUntil !== undefined) {
+        data.lockedUntil = updates.lockedUntil;
+        data.failedAttempts = 0;
+    }
 
-        // 2. Create Owner User
-        const user = await tx.user.create({
-            data: {
-                email: ownerEmail,
-                passwordHash,
-                role: 'OWNER',
-                clinicId: clinic.id,
-                name: ownerName || name
-            }
-        });
+    if (updates.password) {
+        data.passwordHash = await hashPassword(updates.password);
+    }
 
-        return { clinic, user };
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data,
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            isPlatformAdmin: true,
+            isActive: true,
+            lockedUntil: true,
+            failedAttempts: true,
+            clinicId: true
+        }
     });
 
-    return { success: true, data: result };
+    return { success: true, data: updated };
 }
 
-module.exports = { getUsage, getLogs, addCredits, createClinic };
+// Admin-scoped: delete a user
+async function deleteUser(userId) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
+
+    // Don't allow deleting the last platform admin
+    if (user.isPlatformAdmin) {
+        const adminCount = await prisma.user.count({ where: { isPlatformAdmin: true } });
+        if (adminCount <= 1) {
+            throw new AppError('VALIDATION_ERROR', 'Cannot delete the last platform admin', 400);
+        }
+    }
+
+    await prisma.user.delete({ where: { id: userId } });
+    return { success: true };
+}
+
+// Admin-scoped: get audit logs
+async function getAuditLogs({ limit = 100, action, entity, startDate, endDate } = {}) {
+    const where = {};
+
+    if (action) where.action = action;
+    if (entity) where.entity = entity;
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate);
+        if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const data = await prisma.auditLog.findMany({
+        where,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+            clinic: { select: { name: true } },
+            user: { select: { name: true, email: true } }
+        }
+    });
+
+    const total = await prisma.auditLog.count({ where });
+
+    return { success: true, data, total };
+}
+
+// Admin-scoped: get platform-wide stats
+async function getPlatformStats() {
+const [
+         totalClinics,
+         activeClinics,
+         inactiveClinics,
+         totalUsers,
+         activeUsers,
+         totalAppointments,
+         totalMessages,
+         totalPatients,
+         totalAudits,
+         allClinics,
+         recentLogins,
+         lowCreditClinics
+     ] = await Promise.all([
+         prisma.clinic.count(),
+         prisma.clinic.count({ where: { isActive: true } }),
+         prisma.clinic.count({ where: { isActive: false } }),
+         prisma.user.count(),
+         prisma.user.count({ where: { isActive: true } }),
+         prisma.appointment.count(),
+         prisma.messageLog.count(),
+         prisma.patient.count(),
+         prisma.auditLog.count(),
+         prisma.clinic.findMany({
+             select: { monthlyCreditLimit: true, dailyUsedCount: true }
+         }),
+         prisma.user.findMany({
+             select: { id: true, email: true, name: true, lastLoginAt: true, clinicId: true },
+             orderBy: { lastLoginAt: 'desc' },
+             take: 10
+         }),
+         prisma.clinic.findMany({
+             where: { messageCredits: { lte: 50 }, isActive: true },
+             select: { id: true, name: true, messageCredits: true, monthlyCreditLimit: true, email: true }
+         })
+     ]);
+
+     const totalCredits = allClinics.reduce((s, c) => s + (c.monthlyCreditLimit || 0), 0);
+     const usedCredits = allClinics.reduce((s, c) => s + (c.dailyUsedCount || 0), 0);
+
+    const peakHourData = await prisma.appointment.groupBy({
+        by: ['startTime'],
+        _count: { _all: true },
+        orderBy: { _count: { _all: 'desc' } },
+        take: 5
+    });
+
+    const recoveryStats = await prisma.missedCall.aggregate({
+        _count: { _all: true },
+        _sum: { estimatedRevenue: true },
+        _avg: { estimatedRevenue: true }
+    });
+
+    return {
+        success: true,
+        data: {
+            summary: {
+                totalClinics, activeClinics, inactiveClinics,
+                totalUsers, activeUsers,
+                totalAppointments, totalMessages, totalPatients, totalAudits,
+                totalRevenue: recoveryStats._sum.estimatedRevenue || 0,
+                avgRecoveryValue: Math.round(recoveryStats._avg.estimatedRevenue || 0),
+                totalCredits,
+                usedCredits
+            },
+            recentLogins,
+            lowCreditClinics,
+            peakHours: peakHourData.map(p => ({
+                hour: new Date(p.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
+                count: p._count._all
+            }))
+        }
+    };
+}
+
+// Admin-scoped: get onboarding progress
+async function getOnboardingProgress() {
+    const clinics = await prisma.clinic.findMany({
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            onboardingCompleted: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: { select: { users: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 100
+    });
+
+    const completed = clinics.filter(c => c.onboardingCompleted).length;
+    const pending = clinics.filter(c => !c.onboardingCompleted).length;
+
+    return {
+        success: true,
+        data: {
+            total: clinics.length,
+            completed,
+            pending,
+            completionRate: clinics.length > 0 ? Math.round((completed / clinics.length) * 100) : 0,
+            clinics
+        }
+    };
+}
+
+// Admin-scoped: bulk action on clinics
+async function bulkUpdateClinics(clinicIds, action, value) {
+    if (!clinicIds || clinicIds.length === 0) {
+        throw new AppError('VALIDATION_ERROR', 'No clinics selected', 400);
+    }
+
+    let data = {};
+    switch (action) {
+        case 'activate':
+            data = { isActive: true };
+            break;
+        case 'deactivate':
+            data = { isActive: false };
+            break;
+        case 'reset_credits':
+            data = { messageCredits: Number(value) || 100 };
+            break;
+        case 'reset_daily_cap':
+            data = { dailyUsedCount: 0 };
+            break;
+        default:
+            throw new AppError('VALIDATION_ERROR', `Unknown action: ${action}`, 400);
+    }
+
+    await prisma.clinic.updateMany({
+        where: { id: { in: clinicIds } },
+        data
+    });
+
+    return { success: true, updated: clinicIds.length };
+}
+
+module.exports = {
+    getUsage,
+    getLogs,
+    addCredits,
+    createClinic,
+    getUsers,
+    updateUser,
+    deleteUser,
+    getAuditLogs,
+    getPlatformStats,
+    getOnboardingProgress,
+    bulkUpdateClinics
+};
