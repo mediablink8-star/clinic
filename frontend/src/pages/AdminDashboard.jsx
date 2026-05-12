@@ -432,7 +432,7 @@ const kpiIconStyle = (color) => ({
   width: '42px', height: '42px', borderRadius: '12px',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   boxShadow: '0 8px 20px -8px rgba(0,0,0,0.3)',
-  background,
+  background: color,
   color: 'white',
   marginBottom: '8px'
 });
