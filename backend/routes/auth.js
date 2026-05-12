@@ -6,6 +6,7 @@ const { hashPassword, comparePassword, generateAccessToken, generateRefreshToken
 const { encrypt, decrypt } = require('../services/encryptionService');
 const { loginSchema, resetPasswordSchema, registerSchema, validate } = require('../services/validationService');
 const { triggerWebhook } = require('../services/webhookService');
+const { applyClinicDefaults } = require('../services/clinicService');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { authenticator } = require('otplib');
@@ -111,6 +112,8 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                     dailyMessageCap: 300
                 }
             });
+
+            await applyClinicDefaults(clinic.id, tx);
 
             const user = await tx.user.create({
                 data: {
@@ -433,6 +436,9 @@ router.post('/google', asyncHandler(async (req, res) => {
                         policies: '{}'
                     }
                 });
+
+                await applyClinicDefaults(c.id, tx);
+
                 u = await tx.user.create({
                     data: {
                         email,

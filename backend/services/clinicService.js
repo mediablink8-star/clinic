@@ -2,6 +2,48 @@ const prisma = require('./prisma');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const { ensureMonthlyUsageWindow, DEFAULT_SMS_LIMIT, DEFAULT_AI_LIMIT } = require('./usageService');
+const { 
+    DEFAULT_WORKING_HOURS, 
+    DEFAULT_SERVICES, 
+    DEFAULT_POLICIES, 
+    DEFAULT_AI_CONFIG,
+    INITIAL_CREDITS,
+    INITIAL_MONTHLY_LIMIT,
+    INITIAL_DAILY_CAP
+} = require('../utils/defaults');
+
+async function applyClinicDefaults(clinicId, tx = prisma) {
+    return await tx.clinic.update({
+        where: { id: clinicId },
+        data: {
+            workingHours: JSON.stringify(DEFAULT_WORKING_HOURS),
+            services: JSON.stringify(DEFAULT_SERVICES),
+            policies: JSON.stringify(DEFAULT_POLICIES),
+            aiConfig: JSON.stringify(DEFAULT_AI_CONFIG),
+            messageCredits: INITIAL_CREDITS,
+            monthlyCreditLimit: INITIAL_MONTHLY_LIMIT,
+            dailyMessageCap: INITIAL_DAILY_CAP,
+            smsMonthlyLimit: 500,
+            aiMonthlyLimit: 1000
+        }
+    });
+}
+
+async function resetClinicToDefaults(clinicId, actor) {
+    const updated = await prisma.$transaction(async (tx) => {
+        const result = await applyClinicDefaults(clinicId, tx);
+        await logAction({
+            clinicId,
+            userId: actor.userId,
+            action: 'RESET_CLINIC_DEFAULTS',
+            entity: 'CLINIC',
+            entityId: clinicId,
+            ipAddress: actor.ip
+        });
+        return result;
+    });
+    return { success: true, data: formatClinicResponse(updated) };
+}
 
 function formatClinicResponse(clinic) {
     const safeJsonParse = (val, fallback) => {
@@ -174,4 +216,13 @@ async function updateClinicStatus({ clinicId, isActive }, actor) {
     return { success: true, data: formatClinicResponse(updated) };
 }
 
-module.exports = { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus };
+module.exports = { 
+    getClinic, 
+    getClinicUsage, 
+    updateClinicAdmin, 
+    updateClinicInfo, 
+    updateAiConfig, 
+    updateClinicStatus,
+    applyClinicDefaults,
+    resetClinicToDefaults
+};

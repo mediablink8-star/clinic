@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { getClinic, getClinicUsage, updateClinicAdmin, updateClinicInfo, updateAiConfig, updateClinicStatus } = require('../services/clinicService');
+const { 
+    getClinic, 
+    getClinicUsage, 
+    updateClinicAdmin, 
+    updateClinicInfo, 
+    updateAiConfig, 
+    updateClinicStatus,
+    resetClinicToDefaults
+} = require('../services/clinicService');
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 const prisma = require('../services/prisma');
@@ -317,6 +325,12 @@ router.post('/onboarding-complete', requireOwner, asyncHandler(async (req, res) 
         select: { id: true, onboardingCompleted: true }
     });
     res.json({ success: true, data });
+}));
+
+// POST /api/clinic/reset-defaults
+router.post('/reset-defaults', requireOwner, asyncHandler(async (req, res) => {
+    const { data } = await resetClinicToDefaults(req.clinicId, { userId: req.user.userId, ip: req.ip });
+    res.json({ success: true, clinic: data });
 }));
 
 module.exports = router;

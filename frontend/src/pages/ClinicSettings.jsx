@@ -116,6 +116,7 @@ const SECTIONS = [
     { id: 's7', number: '6', label: 'Webhooks', icon: <Zap size={14} color="#f59e0b" />, iconBg: '#fffbeb', title: 'Webhooks & Αυτοματισμοί', subtitle: 'Σύνδεση με n8n workflows' },
     { id: 's-gcal', number: '7', label: 'Google Cal', icon: <Calendar size={14} color="#10b981" />, iconBg: '#ecfdf5', title: 'Google Calendar', subtitle: 'Συγχρονισμός ραντεβού με Google Calendar' },
     { id: 's8', number: '8', label: 'Αρχείο', icon: <Activity size={14} color="#64748b" />, iconBg: '#f1f5f9', title: 'Αρχείο Ενεργειών', subtitle: 'Καταγραφή διοικητικών ενεργειών' },
+    { id: 's-danger', number: '9', label: 'Επαναφορά', icon: <Trash2 size={14} color="#dc2626" />, iconBg: '#fef2f2', title: 'Επικίνδυνη Ζώνη', subtitle: 'Επαναφορά και διαγραφή' },
 ];
 
 const ClinicSettings = ({ clinic, token, onUpdate }) => {
@@ -531,6 +532,30 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     // Google Calendar state
     const [gcalStatus, setGcalStatus] = React.useState(null); // null | { connected, calendarId }
     const [gcalLoading, setGcalLoading] = React.useState(false);
+    const [resetting, setResetting] = React.useState(false);
+
+    const handleResetDefaults = async () => {
+        if (!window.confirm('ΠΡΟΣΟΧΗ: Αυτή η ενέργεια θα επαναφέρει όλες τις ρυθμίσεις AI, τις υπηρεσίες και το ωράριο στις αρχικές προεπιλογές. Θέλετε να συνεχίσετε;')) return;
+        
+        setResetting(true);
+        try {
+            const res = await api.post('/clinic/reset-defaults');
+            if (res.data.success) {
+                showToast('Οι ρυθμίσεις επαναφέρθηκαν επιτυχώς!');
+                if (onUpdate) onUpdate(res.data.clinic);
+                // Force reload local form data
+                setFormData(prev => ({
+                    ...prev,
+                    ...res.data.clinic,
+                    aiConfig: typeof res.data.clinic.aiConfig === 'string' ? JSON.parse(res.data.clinic.aiConfig || '{}') : (res.data.clinic.aiConfig || {})
+                }));
+            }
+        } catch (err) {
+            showToast('Σφάλμα κατά την επαναφορά.', 'error');
+        } finally {
+            setResetting(false);
+        }
+    };
 
     React.useEffect(() => {
         if (!token) return;
@@ -1400,6 +1425,32 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         </table>
                     </div>
                 )}
+            </SectionCard>
+            
+            {/* 9 · Danger Zone */}
+            <SectionCard id="s-danger" number="9" icon={<Trash2 size={15} color="#dc2626" />} iconBg="#fef2f2"
+                title="Επικίνδυνη Ζώνη" subtitle="Επαναφορά και διαγραφή">
+                <div style={{
+                    padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.02)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1 }}>
+                            <span style={{ fontWeight: '800', fontSize: '0.9rem', color: '#b91c1c' }}>Επαναφορά στις Προεπιλογές</span>
+                            <p style={{ fontSize: '0.8rem', color: '#7f1d1d', margin: '4px 0 0', opacity: 0.8 }}>
+                                Επαναφέρετε όλες τις ρυθμίσεις AI, τις υπηρεσίες και το ωράριο στις αρχικές εργοστασιακές ρυθμίσεις.
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            className="btn btn-outline" 
+                            disabled={resetting}
+                            onClick={handleResetDefaults}
+                            style={{ borderColor: '#fca5a5', color: '#dc2626', background: 'white' }}
+                        >
+                            {resetting ? <Loader size={14} className="animate-spin" /> : 'Επαναφορά Όλων'}
+                        </button>
+                    </div>
+                </div>
             </SectionCard>
 
             {/* MFA Modal */}
