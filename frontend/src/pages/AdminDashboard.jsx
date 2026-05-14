@@ -273,7 +273,7 @@ const UserManagement = () => {
       result = result.filter(u =>
         (u.name || '').toLowerCase().includes(q) ||
         (u.email || '').toLowerCase().includes(q) ||
-        (u.id || '').toLowerCase().includes(q)
+        (u.id || '').toString().toLowerCase().includes(q)
       );
     }
     if (roleFilter !== 'all') result = result.filter(u => u.role === roleFilter);
@@ -859,6 +859,7 @@ const ClinicsTab = () => {
   const [newClinic, setNewClinic] = useState({ name: '', ownerEmail: '', ownerPassword: '', ownerName: '' });
   const [isCreating, setIsCreating] = useState(false);
   const [selectedClinics, setSelectedClinics] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
 
   const { data: clinics = [], isLoading, error, refetch } = useQuery({
     queryKey: ['admin-clinics'],
@@ -893,7 +894,7 @@ const ClinicsTab = () => {
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       result = result.filter(c =>
-        c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.id?.toLowerCase().includes(q)
+        c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || String(c.id)?.toLowerCase().includes(q)
       );
     }
     result.sort((a, b) => {
@@ -934,69 +935,77 @@ const ClinicsTab = () => {
   };
 
 const handleDeleteClinic = async (clinicId, name) => {
-     const confirmed = await new Promise(resolve => {
-       toast(
-         t => (
-           <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
-             Διαγραφή "{name}"; Αυτή η ενέργεια είναι μη αναστρέψιμη.
-             <button
-               onClick={() => { toast.dismiss(t.id); resolve(true); }}
-               style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
-             >
-               Ναι
-             </button>
-             <button
-               onClick={() => { toast.dismiss(t.id); resolve(false); }}
-               style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
-             >
-               Όχι
-             </button>
-           </span>
-         ),
-         { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
-       );
-     });
-     if (!confirmed) return;
-     try {
-       await api.delete(`/admin/clinics/${clinicId}`);
-       toast.success('Το ιατρείο διαγράφηκε');
-       refetch();
-     } catch (err) {
-       toast.error('Αποτυχία διαγραφής');
-     }
-   };
+    const confirmed = await new Promise(resolve => {
+      toast(
+        t => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
+            Διαγραφή "{name}"; Αυτή η ενέργεια είναι μη αναστρέψιμη.
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(true); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
+            >
+              Ναι
+            </button>
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(false); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+            >
+              Όχι
+            </button>
+          </span>
+        ),
+        { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
+      );
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/admin/clinics/${clinicId}`);
+      toast.success('Το ιατρείο διαγράφηκε');
+      refetch();
+    } catch (err) {
+      toast.error('Αποτυχία διαγραφής');
+    }
+  };
 
-   const handleBulkAction = async () => {
-     if (selectedClinics.length === 0) { toast.warning('Επιλέξτε ιατρεία'); return; }
-     const confirmed = await new Promise(resolve => {
-       toast(
-         t => (
-           <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
-             Εκτέλεση bulk action σε {selectedClinics.length} ιατρεία;
-             <button
-               onClick={() => { toast.dismiss(t.id); resolve(true); }}
-               style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
-             >
-               Εντάξει
-             </button>
-             <button
-               onClick={() => { toast.dismiss(t.id); resolve(false); }}
-               style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
-             >
-               Ακύρωση
-             </button>
-           </span>
-         ),
-         { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
-       );
-     });
-     if (!confirmed) return;
+const handleBulkAction = async (action) => {
+    if (selectedClinics.length === 0) { toast.warning('Επιλέξτε ιατρεία'); return; }
+    if (!action) { toast.warning('Επιλέξτε ενέργεια'); return; }
     let value;
-    if (action === 'reset_credits') value = prompt('Νέος αριθμός credits:', '100');
+    if (action === 'reset_credits') {
+      const raw = prompt('Νέος αριθμός credits:', '100');
+      if (!raw) return;
+      const parsed = Number(raw);
+      if (isNaN(parsed) || parsed < 0) return;
+      value = parsed;
+    }
+    const confirmed = await new Promise(resolve => {
+      toast(
+        t => (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
+            Εκτέλεση bulk action σε {selectedClinics.length} ιατρεία;
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(true); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
+            >
+              Εντάξει
+            </button>
+            <button
+              onClick={() => { toast.dismiss(t.id); resolve(false); }}
+              style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+            >
+              Ακύρωση
+            </button>
+          </span>
+        ),
+        { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
+      );
+    });
+    if (!confirmed) return;
     try {
       await api.post('/admin/bulk-action', { clinicIds: selectedClinics, action, value });
       toast.success(`Επιδράθηκαν ${selectedClinics.length} ιατρεία`);
       setSelectedClinics([]);
+      setBulkAction('');
       refetch();
     } catch (err) {
       toast.error('Αποτυχία bulk ενέργειας');
@@ -1019,7 +1028,10 @@ const handleDeleteClinic = async (clinicId, name) => {
       'Δημιουργία': new Date(c.createdAt).toLocaleDateString('el-GR')
     }));
     const headers = Object.keys(rows[0] || {});
-    const csv = [headers.join(';'), ...rows.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(';'))].join('\n');
+    const csv = [headers.join(';'), ...rows.map(r => headers.map(h => {
+         const v = r[h];
+         return `"${(v !== undefined && v !== null ? v : '').toString().replace(/"/g, '""')}"`;
+       }).join(';'))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1128,8 +1140,19 @@ const handleDeleteClinic = async (clinicId, name) => {
             <CheckCircle2 size={16} style={{ display: 'inline-block', marginRight: '6px' }} />
             Επιλέχθηκαν {selectedClinics.length} ιατρεία
           </span>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => { handleBulkAction(); }} style={{
+<div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+             <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} style={{
+               padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)',
+               background: 'var(--glass-control)', color: 'var(--text)',
+               fontSize: '0.78rem', fontWeight: '600', outline: 'none', fontFamily: 'inherit',
+               appearance: 'none', cursor: 'pointer'
+             }}>
+               <option value="">Επιλέξτε ενέργεια…</option>
+               <option value="activate">Ενεργοποίηση</option>
+               <option value="deactivate">Απενεργοποίηση</option>
+               <option value="reset_credits">Επαναφορά Credits</option>
+             </select>
+             <button onClick={() => { handleBulkAction(bulkAction); }} style={{
               padding: '6px 14px', borderRadius: '8px', border: 'none',
               background: 'linear-gradient(135deg, #635bff, #8b5cf6)', color: 'white',
               fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer'
