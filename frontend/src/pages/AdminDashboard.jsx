@@ -933,21 +933,64 @@ const ClinicsTab = () => {
     }
   };
 
-  const handleDeleteClinic = async (clinicId, name) => {
-    if (!window.confirm(`Διαγραφή "${name}"; Αυτή η ενέργεια είναι μη αναστρέψιμη.`)) return;
-    try {
-      await api.delete(`/admin/clinics/${clinicId}`);
-      toast.success('Το ιατρείο διαγράφηκε');
-      refetch();
-    } catch (err) {
-      toast.error('Αποτυχία διαγραφής');
-    }
-  };
+const handleDeleteClinic = async (clinicId, name) => {
+     const confirmed = await new Promise(resolve => {
+       toast(
+         t => (
+           <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
+             Διαγραφή "{name}"; Αυτή η ενέργεια είναι μη αναστρέψιμη.
+             <button
+               onClick={() => { toast.dismiss(t.id); resolve(true); }}
+               style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
+             >
+               Ναι
+             </button>
+             <button
+               onClick={() => { toast.dismiss(t.id); resolve(false); }}
+               style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+             >
+               Όχι
+             </button>
+           </span>
+         ),
+         { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
+       );
+     });
+     if (!confirmed) return;
+     try {
+       await api.delete(`/admin/clinics/${clinicId}`);
+       toast.success('Το ιατρείο διαγράφηκε');
+       refetch();
+     } catch (err) {
+       toast.error('Αποτυχία διαγραφής');
+     }
+   };
 
-  const handleBulkAction = async () => {
-    if (selectedClinics.length === 0) { toast.warning('Επιλέξτε ιατρεία'); return; }
-    const action = prompt('Ενέργεια (activate / deactivate / reset_credits / reset_daily_cap):');
-    if (!action) return;
+   const handleBulkAction = async () => {
+     if (selectedClinics.length === 0) { toast.warning('Επιλέξτε ιατρεία'); return; }
+     const confirmed = await new Promise(resolve => {
+       toast(
+         t => (
+           <span style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem', fontWeight: 600 }}>
+             Εκτέλεση bulk action σε {selectedClinics.length} ιατρεία;
+             <button
+               onClick={() => { toast.dismiss(t.id); resolve(true); }}
+               style={{ padding: '4px 10px', borderRadius: '6px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem' }}
+             >
+               Εντάξει
+             </button>
+             <button
+               onClick={() => { toast.dismiss(t.id); resolve(false); }}
+               style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent', cursor: 'pointer', fontWeight: 600, fontSize: '0.78rem' }}
+             >
+               Ακύρωση
+             </button>
+           </span>
+         ),
+         { duration: 6000, style: { maxWidth: 360, fontSize: '0.82rem' } }
+       );
+     });
+     if (!confirmed) return;
     let value;
     if (action === 'reset_credits') value = prompt('Νέος αριθμός credits:', '100');
     try {

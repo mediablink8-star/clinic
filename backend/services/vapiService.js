@@ -4,7 +4,7 @@
 const https = require('https');
 const { decrypt } = require('./encryptionService');
 const prisma = require('./prisma');
-const { getAvailableSlots } = require('./appointmentService');
+const { getAvailableSlots: _getSlots } = require('./slotUtils');
 
 const VAPI_BASE = 'https://api.vapi.ai';
 
@@ -63,8 +63,8 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
     try {
         const today = new Date();
         const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
-        const todaySlots = await getAvailableSlots(clinic.id, today);
-        const tomorrowSlots = await getAvailableSlots(clinic.id, tomorrow);
+        const todaySlots = await _getSlots(clinic.id, today, 'Europe/Athens', 60, null);
+        const tomorrowSlots = await _getSlots(clinic.id, tomorrow, 'Europe/Athens', 60, null);
         if (todaySlots.length > 0) availableSlots.push({ day: 'σήμερα', slots: todaySlots.slice(0, 4) });
         if (tomorrowSlots.length > 0) availableSlots.push({ day: 'αύριο', slots: tomorrowSlots.slice(0, 4) });
 

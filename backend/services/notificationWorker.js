@@ -61,9 +61,14 @@ function startNotificationWorker() {
         console.info(`[Reminder Worker] Notification ${job.data.notificationId} sent successfully`);
     });
 
-    reminderWorker.on('failed', (job, err) => {
-        console.error(`[Reminder Worker] Notification ${job?.data?.notificationId} failed: ${err.message}`);
-    });
+reminderWorker.on('failed', (job, err) => {
+         console.error(`[Reminder Worker] Notification ${job?.data?.notificationId} failed: ${err.message}`);
+         // Don't re-throw — BullMQ handles retries automatically
+       });
+
+       reminderWorker.on('error', (err) => {
+         console.error(`[Reminder Worker] Unexpected error: ${err.message}`);
+       });
 
     console.info('✅ BullMQ reminder worker started (processes notification sending)');
 

@@ -69,20 +69,22 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
     const isLast = step === STEPS.length - 1;
     const current = STEPS[step];
 
-    const saveInfo = async () => {
-        if (!info.name?.trim() || !info.phone?.trim() || !info.email?.trim()) {
-            setError('Όνομα, email και τηλέφωνο είναι υποχρεωτικά.');
-            return false;
-        }
-        try {
-            await api.put('/clinic/settings', info);
-            if (onUpdate) onUpdate(info);
-            return true;
-        } catch (err) {
-            setError(err.response?.data?.error || 'Σφάλμα αποθήκευσης.');
-            return false;
-        }
-    };
+const saveInfo = async () => {
+         if (!info.name?.trim() || !info.phone?.trim() || !info.email?.trim()) {
+             setError('Όνομα, email και τηλέφωνο είναι υποχρεωτικά.');
+             return false;
+         }
+         try {
+             await api.put('/clinic/settings', info);
+             if (onUpdate) onUpdate(info);
+             toast.success('Οι πληροφορίες αποθηκεύτηκαν');
+             return true;
+         } catch (err) {
+             const msg = err.response?.data?.error || err.response?.data?.message || 'Σφάλμα αποθήκευσης.';
+             setError(msg);
+             return false;
+         }
+     };
 
     const saveAiConfig = async () => {
         try {

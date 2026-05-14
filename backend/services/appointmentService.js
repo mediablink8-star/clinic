@@ -6,6 +6,8 @@ const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours } = require(
 const { normalizePhone } = require('../utils/phone');
 const { sendDirectMessage } = require('./messagingService');
 
+const logPrefix = '[AppointmentService]';
+
 const MIN_APPOINTMENT_MINUTES = 15;
 const MAX_APPOINTMENT_MINUTES = 240;
 
@@ -117,49 +119,50 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
 
     let appointment;
-    try {
-        appointment = await prisma.$transaction(async (tx) => {
-            let assignedDoctorId = doctorId;
+try {
+         appointment = await prisma.$transaction(async (tx) => {
+             let assignedDoctorId = doctorId;
 
-            // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
-            if (!assignedDoctorId) {
-                const activeDoctors = await tx.doctor.findMany({
-                    where: { clinicId, isActive: true }
-                });
+             // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
+             if (!assignedDoctorId) {
+                 const activeDoctors = await tx.doctor.findMany({
+                     where: { clinicId, isActive: true }
+                 });
 
-                if (activeDoctors.length > 0) {
-                    for (const doc of activeDoctors) {
-                        const isWorking = isWithinWorkingHours({
-                            clinic,
-                            doctor: doc,
-                            start,
-                            end,
-                            timezone
-                        });
-                        if (!isWorking) continue;
+                 if (activeDoctors.length > 0) {
+                     for (const doc of activeDoctors) {
+                         const isWorking = isWithinWorkingHours({
+                             clinic,
+                             doctor: doc,
+                             start,
+                             end,
+                             timezone
+                         });
+                         if (!isWorking) continue;
 
-                        const conflict = await tx.$queryRaw`
-                            SELECT id FROM "Appointment"
-                            WHERE "clinicId" = ${clinicId}
-                            AND "doctorId" = ${doc.id}
-                            AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                            AND "startTime" < ${end}
-                            AND "endTime" > ${start}
-                            FOR UPDATE
-                            LIMIT 1
-                        `;
+                         const conflict = await tx.$queryRaw`
+                             SELECT id FROM "Appointment"
+                             WHERE "clinicId" = ${clinicId}
+                             AND "doctorId" = ${doc.id}
+                             AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                             AND "startTime" < ${end}
+                             AND "endTime" > ${start}
+                             FOR UPDATE
+                             LIMIT 1
+                         `;
 
-                        if (!conflict || conflict.length === 0) {
-                            assignedDoctorId = doc.id;
-                            break;
-                        }
-                    }
+                         if (!conflict || conflict.length === 0) {
+                             assignedDoctorId = doc.id;
+                             break;
+                         }
+                     }
 
-                    if (!assignedDoctorId) {
-                        throw new AppError('CONFLICT', 'No doctors are available at this time', 409);
-                    }
-                }
-            } else {
+                     if (!assignedDoctorId) {
+                         console.warn(`${logPrefix} No available doctors for slot ${start.toISOString()}`);
+                         throw new AppError('CONFLICT', 'No doctors are available at this time', 409);
+                     }
+                 }
+             } else {
                 // Specific doctor check
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"

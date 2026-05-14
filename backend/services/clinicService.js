@@ -13,21 +13,22 @@ const {
 } = require('../utils/defaults');
 
 async function applyClinicDefaults(clinicId, tx = prisma) {
-    return await tx.clinic.update({
-        where: { id: clinicId },
-        data: {
-            workingHours: JSON.stringify(DEFAULT_WORKING_HOURS),
-            services: JSON.stringify(DEFAULT_SERVICES),
-            policies: JSON.stringify(DEFAULT_POLICIES),
-            aiConfig: JSON.stringify(DEFAULT_AI_CONFIG),
-            messageCredits: INITIAL_CREDITS,
-            monthlyCreditLimit: INITIAL_MONTHLY_LIMIT,
-            dailyMessageCap: INITIAL_DAILY_CAP,
-            smsMonthlyLimit: 500,
-            aiMonthlyLimit: 1000
-        }
-    });
-}
+     return await tx.clinic.update({
+         where: { id: clinicId },
+         data: {
+             workingHours: JSON.stringify(DEFAULT_WORKING_HOURS),
+             services: JSON.stringify(DEFAULT_SERVICES),
+             policies: JSON.stringify(DEFAULT_POLICIES),
+             aiConfig: JSON.stringify(DEFAULT_AI_CONFIG),
+             messageCredits: INITIAL_CREDITS,
+             monthlyCreditLimit: INITIAL_MONTHLY_LIMIT,
+             dailyMessageCap: INITIAL_DAILY_CAP,
+             smsMonthlyLimit: DEFAULT_SMS_LIMIT,
+             aiMonthlyLimit: DEFAULT_AI_LIMIT,
+             onboardingCompleted: false,
+         }
+     });
+ }
 
 async function resetClinicToDefaults(clinicId, actor) {
     const updated = await prisma.$transaction(async (tx) => {

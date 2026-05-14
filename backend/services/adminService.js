@@ -202,30 +202,31 @@ async function deleteUser(userId) {
 
 // Admin-scoped: get audit logs
 async function getAuditLogs({ limit = 100, action, entity, startDate, endDate } = {}) {
-    const where = {};
+     const where = {};
 
-    if (action) where.action = action;
-    if (entity) where.entity = entity;
-    if (startDate || endDate) {
-        where.createdAt = {};
-        if (startDate) where.createdAt.gte = new Date(startDate);
-        if (endDate) where.createdAt.lte = new Date(endDate);
-    }
+     if (action) where.action = action;
+     if (entity) where.entity = entity;
+     if (startDate || endDate) {
+       where.createdAt = {};
+       if (startDate) where.createdAt.gte = new Date(startDate);
+       if (endDate) where.createdAt.lte = new Date(endDate);
+     }
 
-    const data = await prisma.auditLog.findMany({
-        where,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-            clinic: { select: { name: true } },
-            user: { select: { name: true, email: true } }
-        }
-    });
+     const [data, total] = await prisma.$transaction([
+       prisma.auditLog.findMany({
+         where,
+         take: Math.min(limit, 500),
+         orderBy: { createdAt: 'desc' },
+         include: {
+           clinic: { select: { name: true } },
+           user: { select: { name: true, email: true } }
+         }
+       }),
+       prisma.auditLog.count({ where }),
+     ]);
 
-    const total = await prisma.auditLog.count({ where });
-
-    return { success: true, data, total };
-}
+     return { success: true, data, total };
+   }
 
 // Admin-scoped: get platform-wide stats
 async function getPlatformStats() {

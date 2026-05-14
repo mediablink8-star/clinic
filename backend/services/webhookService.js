@@ -74,13 +74,25 @@ function resolveWebhookUrl(eventType, clinic) {
  * Triggers an external webhook with automatic retry (exponential backoff).
  */
 async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
-    const { clinic } = options;
-    const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
+     const { clinic } = options;
+     const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
 
-    if (!targetUrl) {
-        console.warn(`[Webhook] Skipped ${eventType}: No target URL found.`);
-        return { success: false, reason: 'No URL' };
-    }
+     if (!targetUrl) {
+         console.warn(`[Webhook] Skipped ${eventType}: No target URL found.`);
+         return { success: false, reason: 'No URL' };
+     }
+
+     // Validate URL to prevent SSRF
+     try {
+         const parsed = new URL(targetUrl);
+         if (!['http:', 'https:'].includes(parsed.protocol)) {
+             console.warn(`[Webhook] Skipped ${eventType}: Invalid protocol`);
+             return { success: false, reason: 'Invalid URL protocol' };
+         }
+     } catch {
+         console.warn(`[Webhook] Skipped ${eventType}: Malformed URL`);
+         return { success: false, reason: 'Malformed URL' };
+     }
 
     const { maxRetries = 3, baseDelay = 500 } = options;
     const secret = webhookSecret || clinic?.webhookSecret;

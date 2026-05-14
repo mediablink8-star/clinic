@@ -29,7 +29,7 @@ const DEFAULT_AI_CONFIG = {
     avgAppointmentValue: 80,
     services: 'Γενική Εξέταση, Καθαρισμός, Εμφυτεύματα, Λεύκανση',
     workingHours: DEFAULT_WORKING_HOURS,
-    smsInitial: 'Γεια 👋 χάσαμε την κλήση σας στο {clinic_name}.\nΠώς μπορούμε να βοηθήσουμε;\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση',
+    smsInitial: 'Γεια 👋 χάσαμε την κλήση σας στο {clinic_name}.\nΚλείστε ραντεβού εδώ: {booking_link}',
     smsBookingConfirm: 'Τέλεια 👍 Σας κλείσαμε για {day} στις {time}.\nΑν χρειαστείτε κάτι άλλο, απαντήστε εδώ 😊',
     smsCallbackConfirm: 'Εντάξει! Θα σας καλέσουμε σύντομα 📞 Ευχαριστούμε!',
     smsUnknown: 'Απαντήστε 1, 2 ή 3 για να σας βοηθήσω 👍\n1️⃣ Ραντεβού  2️⃣ Ερώτηση  3️⃣ Επανάκληση'

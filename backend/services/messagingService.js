@@ -85,15 +85,19 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         treatMissingWebhookAsSimulated: true,
     });
 
-    await logAction({
-        clinicId,
-        userId: actor.userId,
-        action: 'SEND_DIRECT_MESSAGE',
-        entity: 'PATIENT',
-        entityId: patientId,
-        details: { message, status: result.deliveryStatus },
-        ipAddress: actor.ip
-    });
+try {
+          await logAction({
+            clinicId,
+            userId: actor?.userId,
+            action: 'SEND_DIRECT_MESSAGE',
+            entity: 'PATIENT',
+            entityId: patientId,
+            details: { message, status: result.deliveryStatus },
+            ipAddress: actor?.ip
+          });
+        } catch (logErr) {
+          console.warn('[Messaging] Audit log failed:', logErr.message);
+        }
 
     return { success: true, data: { logId: result.logId, deliveryStatus: result.deliveryStatus } };
 }
