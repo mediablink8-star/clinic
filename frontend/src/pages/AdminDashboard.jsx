@@ -120,7 +120,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid">
         {cards.map((card, i) => (
           <div key={i} style={{
             background: 'var(--glass-surface)',
@@ -360,14 +360,14 @@ const UserManagement = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text" placeholder="Αναζήτηση χρηστών..."
-              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', width: '220px', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
-            />
+<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} className="toolbar-group">
+             <div style={{ position: 'relative' }}>
+               <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+               <input
+                 type="text" placeholder="Αναζήτηση χρηστών..."
+                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                 style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+               />
           </div>
           <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={{
             padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
@@ -399,18 +399,18 @@ const UserManagement = () => {
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>{filtered.length} χρήστες</span>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
-              {handleSortTh('name', 'Όνομα')}
-              {handleSortTh('email', 'Email')}
-              {handleSortTh('role', 'Ρόλος')}
-              {handleSortTh('isActive', 'Κατάσταση')}
-              {handleSortTh('createdAt', 'Δημιουργία')}
-              <th style={thBase}>Ενέργειες</th>
-            </tr>
-          </thead>
+<div style={{ overflowX: 'auto' }} className="mobile-table-min">
+         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+           <thead>
+             <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+               {handleSortTh('name', 'Όνομα')}
+               {handleSortTh('email', 'Email')}
+               {handleSortTh('role', 'Ρόλος')}
+               {handleSortTh('isActive', 'Κατάσταση')}
+               {handleSortTh('createdAt', 'Δημιουργία')}
+               <th style={thBase}>Ενέργειες</th>
+             </tr>
+           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Δεν βρέθηκαν χρήστες</td></tr>
@@ -646,8 +646,8 @@ const AuditLogs = () => {
             Σύνολο: {data?.total || 0} καταχωρήσεις · Εμφανίζονται {data?.data?.length || 0}
           </span>
         </div>
-        <div style={{ overflowX: 'auto', maxHeight: '500px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+<div style={{ overflowX: 'auto', maxHeight: '500px' }} className="mobile-table-min">
+           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                 <th style={thBase}>Ώρα</th>
@@ -726,10 +726,35 @@ const AdminDashboard = () => {
   const handleTabChange = (tab) => setActiveTab(tab);
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+<div className="admin-dashboard-container" style={{ padding: '1.25rem', maxWidth: '1400px', margin: '0 auto' }}>
 
-      {/* ── PAGE HEADER ── */}
-      <div style={{
+       {/* ── MOBILE STYLES ── */}
+       <style>{`
+         @media (min-width: 768px) {
+           .admin-dashboard-container { padding: 2rem !important; }
+           .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
+           .kpi-grid-2 { grid-template-columns: repeat(4, 1fr) !important; }
+           .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
+           .toolbar-group { flex-direction: row !important; }
+           .toolbar-search { width: 220px !important; }
+           .bulk-bar { flex-direction: row !important; }
+         }
+         @media (max-width: 767px) {
+           .admin-dashboard-container { padding: 0.75rem !important; }
+           .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
+           .kpi-grid-2 { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; font-size: 0.85rem !important; }
+           .stats-grid { grid-template-columns: 1fr !important; }
+           .toolbar-group { flex-direction: column !important; }
+           .toolbar-search { width: 100% !important; }
+           .bulk-bar { flex-direction: column !important; align-items: stretch !important; }
+           .mobile-table-min { min-width: 800px !important; }
+           .modal-responsive { max-width: 95vw !important; }
+           .filter-row { flex-direction: column !important; }
+         }
+       `}</style>
+
+       {/* ── PAGE HEADER ── */}
+       <div className="admin-dashboard-container" style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem'
       }}>
@@ -1058,13 +1083,13 @@ const handleBulkAction = async (action) => {
   return (
     <div>
       {/* KPI ROWS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        {[
-          { label: 'Συνολικά Ιατρεία', value: metrics.total, icon: <Building2 size={20} />, accent: '#635bff', bg: 'rgba(99,91,255,0.08)' },
-          { label: 'Ενεργά', value: metrics.active, icon: <CheckCircle2 size={20} />, accent: '#10b981', bg: 'rgba(16,185,129,0.08)' },
-          { label: 'Ανενεργά', value: metrics.inactive, icon: <XCircle size={20} />, accent: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
-          { label: 'Σύνολο Χρήστες', value: metrics.totalUsers, icon: <Users size={20} />, accent: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
-        ].map((card, i) => (
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="kpi-grid">
+         {[
+           { label: 'Συνολικά Ιατρεία', value: metrics.total, icon: <Building2 size={20} />, accent: '#635bff', bg: 'rgba(99,91,255,0.08)' },
+           { label: 'Ενεργά', value: metrics.active, icon: <CheckCircle2 size={20} />, accent: '#10b981', bg: 'rgba(16,185,129,0.08)' },
+           { label: 'Ανενεργά', value: metrics.inactive, icon: <XCircle size={20} />, accent: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
+           { label: 'Σύνολο Χρήστες', value: metrics.totalUsers, icon: <Users size={20} />, accent: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+         ].map((card, i) => (
           <div key={i} style={{
             background: 'var(--glass-surface)',
             backdropFilter: 'var(--glass-strong)',
@@ -1092,7 +1117,7 @@ const handleBulkAction = async (action) => {
       </div>
 
       {/* KPI ROW 2: Messages & Activity */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="kpi-grid-2">
         {[
           { label: 'Ραντεβού', value: metrics.totalApps, icon: <Calendar size={18} />, accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
           { label: 'Μηνύματα / Ημέρα', value: `${metrics.totalUsedMsgs} / ${metrics.totalMsgs}`, icon: <MessageSquare size={18} />, accent: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', sub: `${Math.round((metrics.totalUsedMsgs / (metrics.totalMsgs || 1)) * 100)}% χρησιμοποίηση` },
@@ -1140,7 +1165,7 @@ const handleBulkAction = async (action) => {
             <CheckCircle2 size={16} style={{ display: 'inline-block', marginRight: '6px' }} />
             Επιλέχθηκαν {selectedClinics.length} ιατρεία
           </span>
-<div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+<div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} className="bulk-bar">
              <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} style={{
                padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)',
                background: 'var(--glass-control)', color: 'var(--text)',
@@ -1219,25 +1244,25 @@ const handleBulkAction = async (action) => {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
-                <th style={{ ...thBase, width: '36px' }}>
-                  <input type="checkbox" onChange={(e) => {
-                    if (e.target.checked) setSelectedClinics(filteredClinics.map(c => c.id));
-                    else setSelectedClinics([]);
-                  }} checked={selectedClinics.length === filteredClinics.length && filteredClinics.length > 0} style={{ accentColor: 'var(--primary)' }} />
-                </th>
-                <SortThClinic field="name" label="Ιατρείο" />
-                <SortThClinic field="email" label="Email" />
-                <th style={thBase}>Credits</th>
-                <SortThClinic field="_count.users" label="Χρήστες" />
-                <th style={thBase}>Status</th>
-                <SortThClinic field="createdAt" label="Δημιουργία" />
-                <th style={thBase}>Ενέργειες</th>
-              </tr>
-            </thead>
+<div style={{ overflowX: 'auto' }} className="mobile-table-min">
+         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+           <thead>
+             <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+               <th style={{ ...thBase, width: '36px' }}>
+                 <input type="checkbox" onChange={(e) => {
+                   if (e.target.checked) setSelectedClinics(filteredClinics.map(c => c.id));
+                   else setSelectedClinics([]);
+                 }} checked={selectedClinics.length === filteredClinics.length && filteredClinics.length > 0} style={{ accentColor: 'var(--primary)' }} />
+               </th>
+               <SortThClinic field="name" label="Ιατρείο" />
+               <SortThClinic field="email" label="Email" />
+               <th style={thBase}>Credits</th>
+               <SortThClinic field="_count.users" label="Χρήστες" />
+               <th style={thBase}>Status</th>
+               <SortThClinic field="createdAt" label="Δημιουργία" />
+               <th style={thBase}>Ενέργειες</th>
+             </tr>
+           </thead>
             <tbody>
               {filteredClinics.length === 0 ? (
                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Δεν βρέθηκαν ιατρεία</td></tr>
@@ -1404,22 +1429,22 @@ const handleBulkAction = async (action) => {
 
       {/* CREATE CLINIC MODAL */}
       {showCreateModal && (
-        <div onClick={() => setShowCreateModal(false)} style={{
-          position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(5,11,27,0.65)',
-          backdropFilter: 'blur(16px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: '100%', maxWidth: '480px',
-            background: 'var(--glass-surface-strong)',
-            backdropFilter: 'blur(32px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
-            boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)',
-            overflow: 'hidden', position: 'relative'
-          }}>
+<div onClick={() => setShowCreateModal(false)} style={{
+           position: 'fixed', inset: 0, zIndex: 100,
+           background: 'rgba(5,11,27,0.65)',
+           backdropFilter: 'blur(16px) saturate(160%)',
+           WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+         }}>
+           <div onClick={e => e.stopPropagation()} style={{
+             width: '100%', maxWidth: '480px',
+             background: 'var(--glass-surface-strong)',
+             backdropFilter: 'blur(32px) saturate(200%)',
+             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+             borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
+             boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)',
+             overflow: 'hidden', position: 'relative'
+           }} className="modal-responsive">
             <div style={{ position: 'absolute', inset: 0, background: 'var(--glass-sheen)', pointerEvents: 'none', opacity: 0.4 }} />
             <div style={{
               padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -1485,21 +1510,21 @@ const handleBulkAction = async (action) => {
 
       {/* CLINIC DETAIL MODAL */}
       {detailClinic && (
-        <div onClick={() => setDetailClinic(null)} style={{
-          position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(5,11,27,0.65)',
-          backdropFilter: 'blur(16px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
-            background: 'var(--glass-surface-strong)',
-            backdropFilter: 'blur(32px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-            borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
-            boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)', overflow: 'hidden', position: 'relative'
-          }}>
+<div onClick={() => setDetailClinic(null)} style={{
+           position: 'fixed', inset: 0, zIndex: 100,
+           background: 'rgba(5,11,27,0.65)',
+           backdropFilter: 'blur(16px) saturate(160%)',
+           WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+         }}>
+           <div onClick={e => e.stopPropagation()} style={{
+             width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
+             background: 'var(--glass-surface-strong)',
+             backdropFilter: 'blur(32px) saturate(200%)',
+             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+             borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
+             boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)', overflow: 'hidden', position: 'relative'
+           }} className="modal-responsive">
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--glass-control-soft)', position: 'relative' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--text)', margin: 0 }}>{detailClinic.name}</h3>
               <button onClick={() => setDetailClinic(null)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cancel-color)', backdropFilter: 'blur(12px)' }}><X size={14} /></button>
