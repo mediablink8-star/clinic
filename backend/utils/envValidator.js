@@ -6,17 +6,17 @@ function validateEnv() {
     const required = [
         'DATABASE_URL',
         'JWT_SECRET',
-        'DB_ENCRYPTION_KEY'
+        'REFRESH_TOKEN_SECRET',
+        'DB_ENCRYPTION_KEY',
+        'FRONTEND_URL'
     ];
 
     const recommended = [
-        'REFRESH_TOKEN_SECRET',
         'WEBHOOK_SECRET',
         'AUTOMATION_API_KEY',
         'GEMINI_API_KEY',
         'N8N_WEBHOOK_URL',
         'BACKEND_API_URL',
-        'FRONTEND_URL',
         'SMTP_HOST',
         'REDIS_URL',
         'SENTRY_BACKEND_DSN',

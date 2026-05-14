@@ -174,6 +174,47 @@ const Dashboard = ({
                </div>
              )}
 
+            {/* ── CONFIG WARNINGS (post-onboarding, before inactive check) ── */}
+            {clinic?.onboardingCompleted && Array.isArray(warnings) && warnings.length > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(217,119,6,0.08) 100%)',
+                    border: '1.5px solid rgba(245,158,11,0.3)',
+                    borderRadius: '16px',
+                    padding: '0.85rem 1.1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    flexShrink: 0,
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: '800', color: '#92400e' }}>
+                        <span>⚠️</span> Χρειάζονται ρυθμίσεις για πλήρη λειτουργία
+                    </div>
+                    {warnings.map((w, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#78350f', fontWeight: '600' }}>
+                            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#d97706', flexShrink: 0 }} />
+                            {w.message || w}
+                        </div>
+                    ))}
+                    <div style={{ marginTop: '4px' }}>
+                        <button
+                            onClick={() => setCurrentTab('settings')}
+                            style={{
+                                background: 'rgba(217,119,6,0.15)',
+                                border: '1px solid rgba(217,119,6,0.3)',
+                                borderRadius: '8px',
+                                padding: '6px 14px',
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                color: '#92400e',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Μετάβαση στις Ρυθμίσεις
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── INACTIVE WARNING ── */}
             {!clinic?.isActive && (
                 <div style={{

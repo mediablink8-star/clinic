@@ -1,3 +1,4 @@
+const { Prisma } = require('@prisma/client');
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
 
@@ -111,19 +112,36 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     throw new AppError('VALIDATION_ERROR', 'Phone number is required', 400);
   }
 
-  // Create appointment
-  const appointment = await prisma.appointment.create({
-    data: {
-      clinicId,
-      patientId: patient.id,
-      reason: reason || null,
-      startTime: startDateTime,
-      endTime,
-      status: 'CONFIRMED',
-      priority: 'NORMAL',
-      doctorId: doctorId || null,
-    },
-    include: { patient: true, doctor: true },
+  // Create appointment with double-booking prevention
+  const appointment = await prisma.$transaction(async (tx) => {
+    const conflict = await tx.$queryRaw`
+      SELECT id FROM "Appointment"
+      WHERE "clinicId" = ${clinicId}
+      ${doctorId ? Prisma.sql`AND "doctorId" = ${doctorId}` : Prisma.empty}
+      AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+      AND "startTime" < ${endTime}
+      AND "endTime" > ${startDateTime}
+      FOR UPDATE
+      LIMIT 1
+    `;
+
+    if (conflict && conflict.length > 0) {
+      throw new AppError('CONFLICT', 'This time slot has already been booked. Please choose a different time.', 409);
+    }
+
+    return tx.appointment.create({
+      data: {
+        clinicId,
+        patientId: patient.id,
+        reason: reason || null,
+        startTime: startDateTime,
+        endTime,
+        status: 'CONFIRMED',
+        priority: 'NORMAL',
+        doctorId: doctorId || null,
+      },
+      include: { patient: true, doctor: true },
+    });
   });
 
   return {
@@ -137,9 +155,29 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
   };
 }
 
+function parseDateTimeInTimezone(dateStr, timeStr, timezone) {
+  const date = new Date(`${dateStr}T12:00:00Z`);
+  const tzParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    timeZoneName: 'longOffset',
+  }).formatToParts(date);
+  const tzName = tzParts.find((p) => p.type === 'timeZoneName')?.value || '';
+  const match = tzName.match(/GMT([-+])(\d{1,2}):?(\d{2})?/);
+
+  if (match) {
+    const sign = match[1];
+    const h = match[2].padStart(2, '0');
+    const m = (match[3] || '00').padStart(2, '0');
+    return new Date(`${dateStr}T${timeStr}:00${sign}${h}:${m}`);
+  }
+
+  return new Date(`${dateStr}T${timeStr}:00Z`);
+}
+
 module.exports = {
   getPublicClinic,
   listPublicDoctors,
   getAvailableSlots,
   bookAppointment,
+  parseDateTimeInTimezone,
 };

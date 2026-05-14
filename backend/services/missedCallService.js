@@ -238,8 +238,13 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // Non-blocking trigger to n8n missed call recovery workflow
     const clinicName = clinic.name || 'το ιατρείο';
-    const frontendUrl = process.env.FRONTEND_URL || 'https://clinicflows.vercel.app';
-    const bookingLink = `${frontendUrl}/book?clinicId=${clinicId}&missedCallId=${missedCall.id}`;
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+        console.error(`[MissedCall] CRITICAL: FRONTEND_URL not set! Booking links will be broken. Set FRONTEND_URL env var.`);
+    }
+    const bookingLink = frontendUrl
+        ? `${frontendUrl}/book?clinicId=${clinicId}&missedCallId=${missedCall.id}`
+        : `/book?clinicId=${clinicId}&missedCallId=${missedCall.id}`;
     
     // Default SMS with booking link
     const defaultSms = `Γεια 👋 χάσαμε την κλήση σας στο ${clinicName}.\nΚλείστε ραντεβού εδώ: ${bookingLink}`;

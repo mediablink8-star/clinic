@@ -341,7 +341,9 @@ app.listen(port, () => {
     // System check — logs all critical config at startup
     console.info('\n=== System Check ===');
     console.info(`  DB:             ${process.env.DATABASE_URL                                          ? '✅ OK' : '❌ Missing DATABASE_URL'}`);
-    console.info(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '⚠  Using insecure default'}`);
+    console.info(`  JWT Secret:     ${process.env.JWT_SECRET                                            ? '✅ OK' : '❌ Missing JWT_SECRET'}`);
+    console.info(`  Refresh Secret: ${process.env.REFRESH_TOKEN_SECRET                                  ? '✅ OK' : '❌ Missing REFRESH_TOKEN_SECRET'}`);
+    console.info(`  Frontend URL:   ${process.env.FRONTEND_URL                                          ? '✅ OK' : '❌ Missing FRONTEND_URL'}`);
     console.info(`  Gemini AI:      ${process.env.GEMINI_API_KEY                                        ? '✅ OK' : '⚠  Missing GEMINI_API_KEY'}`);
     console.info(`  Webhook Secret: ${process.env.WEBHOOK_SECRET                                        ? '✅ OK' : '⚠  Not set — webhook endpoint unprotected'}`);
     console.info(`  Redis:          ${process.env.DISABLE_REDIS === 'true'                              ? '⚠  Disabled (DISABLE_REDIS=true)' : (process.env.REDIS_URL ? '✅ OK' : '⚠  Missing REDIS_URL')}`);

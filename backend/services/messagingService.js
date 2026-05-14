@@ -4,7 +4,7 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 
-async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = true }) {
+async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = false }) {
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     if (clinic.messageCredits <= 0) {
         throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
@@ -82,7 +82,7 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
             vonageFromName: clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow',
         },
         logType: type,
-        treatMissingWebhookAsSimulated: true,
+        treatMissingWebhookAsSimulated: false,
     });
 
 try {
