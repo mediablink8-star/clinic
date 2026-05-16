@@ -228,7 +228,7 @@ router.post('/test-trigger', asyncHandler(async (req, res) => {
 /**
  * POST /api/recovery/simulate-recovered
  * Creates a fake RECOVERED missed call for demo/testing purposes.
- * No SMS sent, no Vonage needed. ADMIN/OWNER only.
+ * No SMS sent. ADMIN/OWNER only.
  */
 router.post('/simulate-recovered', asyncHandler(async (req, res) => {
     if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {

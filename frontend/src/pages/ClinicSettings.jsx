@@ -461,8 +461,8 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
-    const [vonageData, setVonageData] = React.useState({ vonageApiKey: '', vonageApiSecret: '', vonageFromName: clinic?.vonageFromName || '' });
-    const [vonageStatus, setVonageStatus] = React.useState(null); // null | 'configured' | 'not_configured'
+    const [vonageData, setVonageData] = React.useState({ vonageApiKey: '', vonageApiSecret: '', vonageFromName: '' });
+    const [vonageStatus, setVonageStatus] = React.useState(null);
     const [savingVonage, setSavingVonage] = React.useState(false);
     const [testingVonage, setTestingVonage] = React.useState(false);
     const [vonageTestResult, setVonageTestResult] = React.useState(null);
@@ -1285,41 +1285,18 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 </div>
 
 
-                <div style={{ padding: '1rem', borderRadius: '14px', background: vonageStatus === 'configured' ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)', border: `1px solid ${vonageStatus === 'configured' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`, marginBottom: '1rem' }}>
+                <div style={{ padding: '1rem', borderRadius: '14px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: vonageStatus === 'configured' ? '#10b981' : '#f59e0b' }} />
-                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: vonageStatus === 'configured' ? '#065f46' : '#92400e' }}>
-                            {vonageStatus === 'configured' ? 'Vonage credentials ρυθμισμένα ✓' : 'Vonage credentials δεν έχουν οριστεί'}
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10b981' }} />
+                        <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#065f46' }}>
+                            Twilio SMS — Αυτόματη αποστολή
                         </span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <FormGroup label="Vonage API Key" flex="1 1 100%">
-                            <input style={inputStyle} type="password" placeholder={vonageStatus === 'configured' ? '***configured***' : 'API Key'} value={vonageData.vonageApiKey} onChange={e => setVonageData(d => ({ ...d, vonageApiKey: e.target.value }))} />
-                        </FormGroup>
-                        <FormGroup label="Vonage API Secret" flex="1 1 100%">
-                            <input style={inputStyle} type="password" placeholder={vonageStatus === 'configured' ? '***configured***' : 'API Secret'} value={vonageData.vonageApiSecret} onChange={e => setVonageData(d => ({ ...d, vonageApiSecret: e.target.value }))} />
-                        </FormGroup>
-                    </div>
-                    <FormGroup label="Sender Name / Number" flex="1 1 100%">
-                        <input style={inputStyle} type="text" placeholder="ClinicFlow" value={vonageData.vonageFromName} onChange={e => setVonageData(d => ({ ...d, vonageFromName: e.target.value }))} />
-                    </FormGroup>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button type="button" className="btn btn-primary" onClick={handleSaveVonage} disabled={savingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-                            {savingVonage ? 'Αποθήκευση...' : 'Αποθήκευση Vonage Credentials'}
-                        </button>
-                        <button type="button" className="btn btn-outline" onClick={handleTestVonage} disabled={testingVonage} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-                            {testingVonage ? <Loader size={14} className="animate-spin" /> : 'Δοκιμή Σύνδεσης'}
-                        </button>
-                    </div>
-                    {vonageTestResult && (
-                        <div style={{ marginTop: '8px' }}>
-                            <StatusBadge 
-                                status={vonageTestResult.success ? 'connected' : 'failed'} 
-                                error={vonageTestResult.error} 
-                            />
-                            {vonageTestResult.success && <span style={{ fontSize: '0.72rem', marginLeft: '8px', color: '#166534', fontWeight: '700' }}>Balance: {vonageTestResult.balance} EUR</span>}
-                        </div>
-                    )}
+                    <p style={{ fontSize: '0.78rem', color: '#065f46', margin: 0, lineHeight: 1.5 }}>
+                        Τα SMS αποστέλλονται αυτόματα μέσω Twilio μετά από αναπάντητες κλήσεις. 
+                        Η ρύθμιση γίνεται κεντρικά μέσω των μεταβλητών περιβάλλοντος 
+                        (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER).
+                    </p>
                 </div>
 
                 {[

@@ -69,7 +69,6 @@ function formatClinicResponse(clinic) {
         policies: safeJsonParse(clinic.policies, {}),
         aiConfig: safeJsonParse(clinic.aiConfig, null),
         hasWebhookSecret: Boolean(webhookSecret),
-        hasVonageCredentials: Boolean(vonageApiKey && vonageApiSecret),
         hasVapiApiKey: Boolean(vapiApiKey),
         hasGeminiApiKey: Boolean(geminiApiKey),
         googleCalendarConnected: Boolean(googleCalendarRefreshToken),

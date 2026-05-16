@@ -273,7 +273,7 @@ router.post('/test-sms', requireOwner, asyncHandler(async (req, res) => {
         clinic,
         eventType: 'message.test',
         payload: {
-            phone: require('../utils/phone').formatForVonage(phone),
+            phone: require('../utils/phone').digitsOnly(phone),
             message: `Τεστ από το ClinicFlow για το ιατρείο: ${clinic.name}`,
             clinicName: clinic.name,
             // Include credentials for webhook use

@@ -227,7 +227,7 @@ try {
                 {
                     appointmentId: appointment.id,
                     patientName: patient?.name || '',
-                    phone: require('../utils/phone').formatForVonage(patient?.phone),
+                    phone: require('../utils/phone').digitsOnly(patient?.phone),
                     date: startDate.toLocaleDateString('el-GR'),
                     time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                     reason: reason || '',

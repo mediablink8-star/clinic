@@ -126,7 +126,7 @@ const WelcomeModal = ({ clinic, onClose }) => {
             {[
               { text: 'Στοιχεία Ιατρείου — Όνομα, τηλέφωνο, email' },
               { text: 'Ωράριο εργασίας και υπηρεσίες' },
-              { text: 'API κλειδιά (Vonage, Gemini, n8n)' },
+              { text: 'API κλειδιά (Twilio, Gemini)' },
               { text: 'Voice AI (προαιρετικό)' },
             ].map((item, i) => (
               <div key={i} style={{

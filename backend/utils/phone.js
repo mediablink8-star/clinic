@@ -11,13 +11,10 @@ function normalizePhone(phone) {
     return cleaned;
 }
 
-/**
- * Format for Vonage API — requires only digits, no '+'
- */
-function formatForVonage(phone) {
+function digitsOnly(phone) {
     const normalized = normalizePhone(phone);
     if (!normalized) return null;
     return normalized.replace('+', '');
 }
 
-module.exports = { normalizePhone, formatForVonage };
+module.exports = { normalizePhone, digitsOnly };

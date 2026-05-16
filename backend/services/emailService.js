@@ -109,7 +109,7 @@ const sendSmsFailureAlert = async (to, clinicName, phone, error) => {
                     <h2 style="color: #ef4444;">⚠️ Αποτυχία Αποστολής SMS</h2>
                     <p>Το σύστημα δεν μπόρεσε να στείλει SMS στον αριθμό <strong>${phone}</strong>.</p>
                     <p><strong>Σφάλμα:</strong> ${error}</p>
-                    <p>Παρακαλώ ελέγξτε τα credentials Vonage και τα webhook URLs στις ρυθμίσεις.</p>
+                    <p>Παρακαλώ ελέγξτε τα credentials Twilio και τα webhook URLs στις ρυθμίσεις.</p>
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
                     <p style="font-size: 12px; color: #64748b;">ClinicFlow — Αυτόματη ειδοποίηση</p>
                 </div>

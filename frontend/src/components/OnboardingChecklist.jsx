@@ -11,7 +11,6 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
 
     const hasClinicInfo = !!(clinic?.name && clinic?.phone && clinic.phone !== '+10000000000');
     const hasVoice = !!(clinic?.voiceEnabled && clinic?.vapiPhoneNumberId);
-    const hasVonage = !!(clinic?.vonageApiKey);
     const hasWebhooks = !!(clinic?.webhookMissedCall || clinic?.webhookUrl);
     const hasRecovery = Array.isArray(recoveryLog) && recoveryLog.length > 0;
 
@@ -42,18 +41,18 @@ const OnboardingChecklist = ({ clinic, systemStatus, recoveryLog }) => {
             color: '#0891b2',
             label: 'Προώθηση Κλήσεων',
             hint: clinic?.vapiPhoneNumberId
-                ? 'Ρυθμίστε forwarding στο Vonage.'
+                ? 'Ρυθμίστε forwarding στο Vapi.'
                 : 'Ρυθμίστε forwarding στο κινητό του ιατρείου.',
             done: hasRecovery,
         },
         {
-            key: 'vonage',
+            key: 'twilio',
             icon: MessageSquare,
             color: '#059669',
-            label: 'Vonage — SMS Fallback',
-            hint: 'Προσθέστε Vonage API Key και Secret για αποστολή SMS όταν η κλήση δεν απαντηθεί.',
+            label: 'Twilio SMS',
+            hint: 'Το Twilio αποστέλλει SMS αυτόματα μετά από αναπάντητες κλήσεις.',
             action: 'Ρυθμίσεις → Webhooks',
-            done: hasVonage,
+            done: true,
         },
         {
             key: 'webhooks',
