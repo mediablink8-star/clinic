@@ -180,10 +180,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
     await ensureRecoveryCaseForMissedCall(missedCall.id);
 
     // ── Voice call (Vapi) — if enabled, call patient first ───────────────
-    // Voice calls trigger regardless of working hours — AI handles closed hours messaging
     if (clinic.voiceEnabled) {
         console.info(`[Voice] voiceEnabled=true for clinic ${clinicId}, attempting call to ${normalizedPhone}`);
-        // Look up patient by phone number for personalised greeting
         let patientName = null;
         try {
             const existingPatient = await prisma.patient.findFirst({
@@ -191,9 +189,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 select: { name: true }
             });
             patientName = existingPatient?.name || null;
-            if (existingPatient?.name && existingPatient.name !== phone) {
-                console.info(`[Voice] Known patient lookup succeeded (${phone.slice(-4)})`);
-            }
         } catch (err) {
             console.warn('[Voice] Patient lookup failed:', err.message);
         }
@@ -220,10 +215,14 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', callId: callResult.callId, channel: 'voice', provider: 'vapi' } };
         }
         console.warn(`[Voice] Call failed (${callResult.reason}) — falling back to SMS`);
+        // Attach voice failure reason to the missed call record for visibility
+        await prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { smsError: `voice_failed: ${callResult.reason}` }
+        });
+    } else {
+        console.info(`[Voice] Skipped — voiceEnabled=${clinic.voiceEnabled}, vapiAssistantId=${clinic.vapiAssistantId ? 'set' : 'null'}, vapiPhoneNumberId=${clinic.vapiPhoneNumberId ? 'set' : 'null'}, apiKey=${(clinic.vapiApiKey || process.env.VAPI_API_KEY) ? 'set' : 'MISSING'}`);
     }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    console.info(`[Voice] Debug: clinic.voiceEnabled=${clinic.voiceEnabled}, vapiAssistantId=${clinic.vapiAssistantId ? 'set' : 'null'}, vapiPhoneNumberId=${clinic.vapiPhoneNumberId ? 'set' : 'null'}`);
 
     // Enforce SMS limits before triggering n8n
     try {
