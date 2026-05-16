@@ -4,7 +4,7 @@ const router = express.Router();
 const prisma = require('../services/prisma');
 const AppError = require('../errors/AppError');
 const asyncHandler = require('../middleware/asyncHandler');
-const { retrySms } = require('../services/missedCallService');
+const { handleMissedCall } = require('../services/missedCallService');
 const { createAppointment } = require('../services/appointmentService');
 const chrono = require('chrono-node');
 const { formatInTimeZone } = require('date-fns-tz');
@@ -197,8 +197,9 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
 }));
 
 router.post('/:id/retry', asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { data } = await retrySms({ clinicId: req.clinicId, missedCallId: id });
+    const mc = await prisma.missedCall.findUnique({ where: { id: req.params.id } });
+    if (!mc || mc.clinicId !== req.clinicId) throw new AppError('NOT_FOUND', 'Missed call not found', 404);
+    const { data } = await handleMissedCall({ phone: mc.fromNumber, clinicId: req.clinicId, callSid: mc.callSid, bypassCooldown: true });
     res.json({ success: true, data });
 }));
 

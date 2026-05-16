@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('../middleware/asyncHandler');
-const { handleMissedCall, processScheduledMissedCalls, markRecovered } = require('../services/missedCallService');
+const { handleMissedCall, processScheduledMissedCalls } = require('../services/missedCallService');
 const { getDueNotifications, processNotification } = require('../services/notificationService');
+const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
 const { validate, missedCallSchema, markRecoveredSchema, sendNotificationSchema } = require('../services/validationService');
 
 /**
@@ -79,8 +80,8 @@ router.post('/send-notification', validate(sendNotificationSchema), asyncHandler
  */
 router.post('/mark-recovered', validate(markRecoveredSchema), asyncHandler(async (req, res) => {
     const { clinicId, missedCallId } = req.body;
-    const { data } = await markRecovered({ clinicId, missedCallId });
-    res.json({ success: true, data });
+    const result = await markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt: new Date() });
+    res.json({ success: true, data: { missedCallId, status: 'RECOVERED' } });
 }));
 
 
