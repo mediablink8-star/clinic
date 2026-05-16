@@ -20,7 +20,7 @@
 - **🔄 Recovery Automation** - Missed call recovery with follow-ups
 
 ### Integrations
-- **📱 SMS** - Vonage integration with per-clinic credentials
+- **📱 SMS** - Twilio integration with platform-level credentials
 - **📧 Email** - SMTP for notifications and password reset
 - **🔗 Webhooks** - n8n workflow automation
 - **📆 Calendar** - Google Calendar sync (coming soon)
@@ -52,7 +52,7 @@
 - Google Gemini AI
 - Vapi voice AI
 - n8n workflow automation
-- Vonage SMS
+- Twilio SMS
 
 ### Project Structure
 ```
@@ -172,7 +172,7 @@ Automated patient calls with Vapi:
 ### Multi-Tenant Architecture
 Secure clinic isolation:
 - Clinic-scoped data access
-- Per-clinic credentials (Vonage, webhooks)
+- Per-clinic credentials (webhooks, API keys)
 - Role-based permissions
 - Audit logging per clinic
 
@@ -250,7 +250,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [Vapi](https://vapi.ai) - Voice AI platform
-- [Vonage](https://vonage.com) - SMS provider
+- [Twilio](https://twilio.com) - SMS provider
 - [n8n](https://n8n.io) - Workflow automation
 - [Google Gemini](https://ai.google.dev) - AI assistant
 - [Prisma](https://prisma.io) - Database ORM
@@ -280,3 +280,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Version**: 1.0.0  
 **Last Updated**: May 6, 2026  
 **Status**: ✅ Production Ready
+

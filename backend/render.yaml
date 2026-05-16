@@ -30,11 +30,13 @@ services:
         sync: false
       - key: N8N_WEBHOOK_URL
         sync: false
-      - key: VONAGE_API_KEY
+      - key: TWILIO_ACCOUNT_SID
         sync: false
-      - key: VONAGE_API_SECRET
+      - key: TWILIO_AUTH_TOKEN
         sync: false
-      - key: VONAGE_FROM_NAME
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_ALPHA_SENDER_ID
         sync: false
       - key: SMTP_HOST
         sync: false

@@ -54,8 +54,6 @@ function formatClinicResponse(clinic) {
     };
     const {
         webhookSecret,
-        vonageApiKey,
-        vonageApiSecret,
         vapiApiKey,
         geminiApiKey,
         googleCalendarRefreshToken,

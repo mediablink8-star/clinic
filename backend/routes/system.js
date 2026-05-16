@@ -48,7 +48,6 @@ router.get('/status', asyncHandler(async (req, res) => {
                 vapiApiKey: true,
                 vapiAssistantId: true,
                 vapiPhoneNumberId: true,
-                vonageApiKey: true,
                 webhookUrl: true,
                 webhookMissedCall: true,
             }

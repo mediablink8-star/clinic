@@ -110,7 +110,7 @@
 
 ## 🔒 SECURITY NOTES
 
-- All sensitive data (Vonage, Vapi, Gemini keys) are encrypted using `encryptionService.js` ✅
+- All sensitive data (Vapi, Gemini keys) are encrypted using `encryptionService.js` ✅
 - JWT tokens use httpOnly cookies for refresh tokens ✅
 - Rate limiting is in place for auth and webhook endpoints ✅
 - CORS is properly configured with origin whitelist ✅
@@ -181,3 +181,4 @@ Before deploying to production:
 **Critical fixes:** 7
 **Issues identified:** 12
 **Security status:** ✅ Good
+

@@ -156,40 +156,7 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
     res.json({ success: true, data });
 }));
 
-
-// PUT /api/clinic/vonage — store per-clinic Vonage credentials (encrypted)
-router.put('/vonage', requireOwner, asyncHandler(async (req, res) => {
-    const { vonageApiKey, vonageApiSecret, vonageFromName } = req.body;
-
-    const data = await prisma.clinic.update({
-        where: { id: req.clinicId },
-        data: {
-            ...(vonageApiKey !== undefined && { vonageApiKey: vonageApiKey ? encrypt(vonageApiKey) : null }),
-            ...(vonageApiSecret !== undefined && { vonageApiSecret: vonageApiSecret ? encrypt(vonageApiSecret) : null }),
-            ...(vonageFromName !== undefined && { vonageFromName: vonageFromName || null }),
-        },
-        select: { vonageFromName: true }
-    });
-
-    res.json({ success: true, data: { vonageFromName: data.vonageFromName, vonageApiKey: vonageApiKey ? '***' : null } });
-}));
-
-// GET /api/clinic/vonage — return masked credentials
-router.get('/vonage', requireOwner, asyncHandler(async (req, res) => {
-    const clinic = await prisma.clinic.findUnique({
-        where: { id: req.clinicId },
-        select: { vonageApiKey: true, vonageApiSecret: true, vonageFromName: true }
-    });
-
-    res.json({
-        vonageApiKey: clinic?.vonageApiKey ? '***configured***' : null,
-        vonageApiSecret: clinic?.vonageApiSecret ? '***configured***' : null,
-        vonageFromName: clinic?.vonageFromName || null,
-    });
-}));
-
-
-// PUT /api/clinic/vapi — store Vapi credentials (Vapi + Vonage for Greek numbers)
+// PUT /api/clinic/vapi
 router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
     const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled } = req.body;
 
@@ -276,10 +243,6 @@ router.post('/test-sms', requireOwner, asyncHandler(async (req, res) => {
             phone: require('../utils/phone').digitsOnly(phone),
             message: `Τεστ από το ClinicFlow για το ιατρείο: ${clinic.name}`,
             clinicName: clinic.name,
-            // Include credentials for webhook use
-            vonageApiKey: clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY,
-            vonageApiSecret: clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET,
-            vonageFromName: clinic.vonageFromName || 'ClinicFlow'
         },
         logType: 'TEST_SMS',
         treatMissingWebhookAsSimulated: false // Force failure if no webhook configured for test
@@ -300,27 +263,6 @@ router.post('/webhooks/test', requireOwner, asyncHandler(async (req, res) => {
         res.json({ success: true, latency: Date.now() - start });
     } catch (err) {
         res.json({ success: false, error: err.message, latency: Date.now() - start });
-    }
-}));
-
-// POST /api/clinic/vonage/test
-router.post('/vonage/test', requireOwner, asyncHandler(async (req, res) => {
-    const clinic = await prisma.clinic.findUnique({
-        where: { id: req.clinicId },
-        select: { vonageApiKey: true, vonageApiSecret: true }
-    });
-
-    const apiKey = clinic?.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY;
-    const apiSecret = clinic?.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET;
-
-    if (!apiKey || !apiSecret) throw new AppError('CONFIGURATION_ERROR', 'Vonage credentials not found', 400);
-
-    const axios = require('axios');
-    try {
-        const resp = await axios.get(`https://rest.nexmo.com/account/get-balance?api_key=${apiKey}&api_secret=${apiSecret}`);
-        res.json({ success: true, balance: resp.data.value });
-    } catch (err) {
-        res.json({ success: false, error: err.response?.data?.['error-code-label'] || err.message });
     }
 }));
 

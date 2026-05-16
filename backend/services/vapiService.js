@@ -1,5 +1,5 @@
 /**
- * Vapi Voice Service (integrates with Vonage for Greek numbers)
+ * Vapi Voice Service
  */
 const https = require('https');
 const { decrypt } = require('./encryptionService');
@@ -166,31 +166,6 @@ ${slotsText ? `ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ: ${slotsText}` : ''}
 Σημαντικό: Πρέπει να στείλεις το request στο server για να καταχωρηθεί το ραντεβού.`;
 }
 
-async function importVonageNumber({ clinic, vonageNumber, credentialId }) {
-    const apiKey = clinic.vapiApiKey ? decrypt(clinic.vapiApiKey) : process.env.VAPI_API_KEY;
-    if (!apiKey) {
-        return { success: false, reason: 'no_api_key' };
-    }
-
-    const payload = {
-        provider: 'vonage',
-        number: vonageNumber,
-        credentialId: credentialId,
-        name: `Vonage ${vonageNumber}`,
-    };
-
-    try {
-        const result = await vapiRequest('POST', '/phone-number', payload, apiKey);
-        if (result.status === 200 && result.data?.id) {
-            console.info(`[Vapi] Imported Vonage number: ${vonageNumber}`);
-            return { success: true, phoneNumberId: result.data.id };
-        }
-        return { success: false, reason: JSON.stringify(result.data) };
-    } catch (err) {
-        return { success: false, reason: err.message };
-    }
-}
-
 async function getCallDetails(callId) {
     const apiKey = process.env.VAPI_API_KEY;
     try {
@@ -202,4 +177,4 @@ async function getCallDetails(callId) {
     }
 }
 
-module.exports = { triggerOutboundCall, buildAgentPrompt, importVonageNumber, getCallDetails };
+module.exports = { triggerOutboundCall, buildAgentPrompt, getCallDetails };

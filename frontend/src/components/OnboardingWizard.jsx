@@ -355,7 +355,7 @@ const saveInfo = async () => {
 
                         <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)', marginBottom: '1.25rem' }}>
                             <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: 0 }}>
-                                Χρησιμοποιεί τον αριθμό σας από το Vonage για ελληνικό caller ID.
+                                Χρησιμοποιεί τον αριθμό σας για ελληνικό caller ID.
                             </p>
                         </div>
 

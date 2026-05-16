@@ -461,48 +461,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
-    const [vonageData, setVonageData] = React.useState({ vonageApiKey: '', vonageApiSecret: '', vonageFromName: '' });
-    const [vonageStatus, setVonageStatus] = React.useState(null);
-    const [savingVonage, setSavingVonage] = React.useState(false);
-    const [testingVonage, setTestingVonage] = React.useState(false);
-    const [vonageTestResult, setVonageTestResult] = React.useState(null);
-
-    const handleTestVonage = async () => {
-        setTestingVonage(true);
-        setVonageTestResult(null);
-        try {
-            const res = await api.post('/clinic/vonage/test');
-            setVonageTestResult(res.data);
-            if (res.data.success) showToast(`Vonage connected! Balance: ${res.data.balance}`);
-            else showToast(`Vonage error: ${res.data.error}`, 'error');
-        } catch (err) {
-            showToast('Failed to test Vonage', 'error');
-        } finally {
-            setTestingVonage(false);
-        }
-    };
-
-    React.useEffect(() => {
-        api.get('/clinic/vonage')
-            .then(r => setVonageStatus(r.data.vonageApiKey ? 'configured' : 'not_configured'))
-            .catch(() => setVonageStatus('not_configured'));
-    }, []);
-
-    const handleSaveVonage = async () => {
-        if (!vonageData.vonageApiKey || !vonageData.vonageApiSecret) {
-            showToast('API Key και Secret είναι υποχρεωτικά.', 'error'); return;
-        }
-        setSavingVonage(true);
-        try {
-            await api.put('/clinic/vonage', vonageData);
-            setVonageStatus('configured');
-            setVonageData(d => ({ ...d, vonageApiKey: '', vonageApiSecret: '' }));
-            showToast('Vonage credentials αποθηκεύτηκαν!', 'success');
-        } catch (err) {
-            showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
-        } finally { setSavingVonage(false); }
-    };
-
     // Vapi state
     const [vapiData, setVapiData] = React.useState({
         vapiApiKey: '',
