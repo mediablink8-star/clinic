@@ -6,7 +6,6 @@ const prisma = require('../services/prisma');
 const { handleMissedCall } = require('../services/missedCallService');
 const { forwardInboundMessage } = require('../services/webhookService');
 const { recordInboundMessage } = require('../services/recoveryTrackingService');
-const { handleInboundReply } = require('../services/conversationService');
 const { normalizePhone } = require('../utils/phone');
 
 router.post('/missed-call', asyncHandler(async (req, res) => {
@@ -143,11 +142,6 @@ router.post('/inbound-sms', asyncHandler(async (req, res) => {
         missedCallId,
         recoveryCaseId,
     });
-
-    if (missedCallId) {
-        handleInboundReply({ clinicId, fromPhone: normalizedFrom, messageBody, missedCallId })
-            .catch(err => console.warn('[Conversation] handleInboundReply error:', err.message));
-    }
 
     res.json({ success: true, ...result });
 }));

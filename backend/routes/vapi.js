@@ -16,7 +16,32 @@ const { handleMissedCall } = require('../services/missedCallService');
 const { markRecoveryCaseRecovered, ensureRecoveryCaseForMissedCall } = require('../services/recoveryTrackingService');
 const { triggerSmsFallback } = require('../services/smsFallbackService');
 const { createAppointment } = require('../services/appointmentService');
-const { parseAppointmentDay } = require('../services/conversationService');
+
+function parseAppointmentDay(dayStr) {
+    const now = new Date();
+    const lower = (dayStr || '').toLowerCase().trim();
+    if (lower.includes('αύριο') || lower.includes('tomorrow')) {
+        now.setDate(now.getDate() + 1);
+        return now;
+    }
+    if (lower.includes('μεθαύριο')) {
+        now.setDate(now.getDate() + 2);
+        return now;
+    }
+    const greekDays = {
+        'δευτέρα': 1, 'τριτη': 2, 'τρίτη': 2, 'τεταρτη': 3, 'τετάρτη': 3,
+        'πεμπτη': 4, 'πέμπτη': 4, 'παρασκευη': 5, 'παρασκευή': 5,
+        'σαββατο': 6, 'σάββατο': 6, 'κυριακη': 0, 'κυριακή': 0,
+    };
+    for (const [name, wd] of Object.entries(greekDays)) {
+        if (lower.includes(name)) {
+            const diff = (wd - now.getDay() + 7) % 7 || 7;
+            now.setDate(now.getDate() + diff);
+            return now;
+        }
+    }
+    return null;
+}
 
 // Shared secret check for Vapi webhooks
 function vapiAuth(req, res, next) {

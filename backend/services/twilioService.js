@@ -42,6 +42,14 @@ async function sendSms({ to, body }) {
 }
 
 async function sendSmsWithTracking({ to, body, clinicId }) {
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: clinicId },
+        select: { messageCredits: true },
+    });
+    if (!clinic || clinic.messageCredits <= 0) {
+        return { success: false, error: 'Insufficient message credits' };
+    }
+
     const result = await sendSms({ to, body });
     if (!result.success) return result;
 

@@ -1,7 +1,6 @@
 const { Queue, Worker } = require('bullmq');
 const { getDueNotifications, markNotificationEnqueued } = require('./notificationService');
 const { processScheduledMissedCalls } = require('./missedCallService');
-const { processFollowUps } = require('./followUpService');
 
 /**
  * Cluster-safe background workers using BullMQ repeatable jobs.
@@ -83,11 +82,6 @@ reminderWorker.on('failed', (job, err) => {
         jobId: 'process-scheduled-sms',
     }).catch(err => console.warn('[Scheduler] Failed to register process-scheduled-sms:', err.message));
 
-    schedulerQueue.add('process-followups', {}, {
-        repeat: { every: 5 * 60000 }, // every 5 minutes
-        jobId: 'process-followups',
-    }).catch(err => console.warn('[Scheduler] Failed to register process-followups:', err.message));
-
     // Worker that processes the scheduled tasks
     schedulerWorker = new Worker('scheduler', async (job) => {
         if (job.name === 'process-notifications') {
@@ -109,14 +103,6 @@ reminderWorker.on('failed', (job, err) => {
             if (count > 0) console.info(`[Scheduler] Processed ${count} scheduled SMS(es)`);
             return { processed: count };
         }
-
-        if (job.name === 'process-followups') {
-            const result = await processFollowUps();
-            if (result.followUp1 + result.followUp2 > 0) {
-                console.info(`[Scheduler] Follow-ups sent: F1=${result.followUp1} F2=${result.followUp2}`);
-            }
-            return result;
-        }
     }, {
         connection,
         concurrency: 1, // serial execution — prevents overlapping runs
@@ -131,14 +117,8 @@ reminderWorker.on('failed', (job, err) => {
     console.info('✅ BullMQ scheduler worker started (cluster-safe repeatable jobs)');
 }
 
-// Legacy exports kept for backward compatibility
-function startFollowUpWorker() {}
-function startScheduledSmsWorker() {}
-
 module.exports = { 
     startNotificationWorker, 
-    startFollowUpWorker, 
-    startScheduledSmsWorker, 
     get schedulerWorker() { return schedulerWorker; },
     get reminderWorker() { return reminderWorker; },
     get isRunning() { return workersRunning; }

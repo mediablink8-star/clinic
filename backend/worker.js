@@ -1,18 +1,11 @@
 require('dotenv').config(); // MUST be first — env vars must be set before any service is loaded
-const { startNotificationWorker, startFollowUpWorker, startScheduledSmsWorker } = require('./services/notificationWorker');
+const { startNotificationWorker } = require('./services/notificationWorker');
 
 console.info('🚀 SaaS-Grade Background Worker process starting...');
 
 // Start the BullMQ workers by default
 startNotificationWorker();
 console.info('✅ BullMQ workers started (reminders + scheduler).');
-
-// Legacy automation flags (kept for backward compatibility)
-if (process.env.USE_INTERNAL_AUTOMATION === 'true') {
-    startFollowUpWorker();
-    startScheduledSmsWorker();
-    console.info('✅ Legacy internal cron automation enabled (USE_INTERNAL_AUTOMATION=true).');
-}
 
 // Keep process alive
 process.on('SIGTERM', () => {
