@@ -16,7 +16,11 @@ async function analyzeSentiment(text, clinic) {
     if (!text || text.length < 5) return 'NEUTRAL';
 
     try {
-        await assertWithinAiLimit(clinic.id);
+        const { degraded } = await assertWithinAiLimit(clinic.id);
+
+        if (degraded) {
+            return classifyRuleBased(text);
+        }
 
         // Use per-clinic Gemini key if set, fall back to global
         const { decrypt } = require('./encryptionService');
@@ -41,15 +45,19 @@ async function analyzeSentiment(text, clinic) {
         if (response.includes('NEGATIVE')) return 'NEGATIVE';
         return 'NEUTRAL';
     } catch (error) {
-        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+        if (error.code === 'RATE_LIMITED') {
             throw error;
         }
         console.error('Sentiment analysis error:', error);
-        const normalized = text.toLowerCase();
-        if (normalized.includes('καλ') || normalized.includes('ευχαριστ') || normalized.includes('τελει')) return 'POSITIVE';
-        if (normalized.includes('κακ') || normalized.includes('ακριβ') || normalized.includes('αργ')) return 'NEGATIVE';
-        return 'NEUTRAL';
+        return classifyRuleBased(text);
     }
+}
+
+function classifyRuleBased(text) {
+    const normalized = text.toLowerCase();
+    if (normalized.includes('καλ') || normalized.includes('ευχαριστ') || normalized.includes('τελει')) return 'POSITIVE';
+    if (normalized.includes('κακ') || normalized.includes('ακριβ') || normalized.includes('αργ')) return 'NEGATIVE';
+    return 'NEUTRAL';
 }
 
 module.exports = { analyzeSentiment };

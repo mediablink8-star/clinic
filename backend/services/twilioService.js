@@ -1,6 +1,6 @@
 const twilio = require('twilio');
 const prisma = require('./prisma');
-const { incrementSmsUsage } = require('./usageService');
+const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const AppError = require('../errors/AppError');
 
 function getClient() {
@@ -44,10 +44,20 @@ async function sendSms({ to, body }) {
 async function sendSmsWithTracking({ to, body, clinicId }) {
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { messageCredits: true },
+        select: { messageCredits: true, smsCount: true, smsMonthlyLimit: true, dailyUsedCount: true, dailyMessageCap: true, lastResetDate: true, lastResetDay: true, timezone: true },
     });
     if (!clinic || clinic.messageCredits <= 0) {
         return { success: false, error: 'Insufficient message credits' };
+    }
+
+    // Check monthly + daily limits BEFORE sending
+    try {
+        await assertWithinSmsLimit(clinicId);
+    } catch (err) {
+        if (err.code === 'USAGE_LIMIT_REACHED') {
+            return { success: false, error: 'Monthly SMS limit reached (500)' };
+        }
+        return { success: false, error: 'SMS rate limit exceeded' };
     }
 
     const result = await sendSms({ to, body });

@@ -23,7 +23,14 @@ function getModel(apiKey) {
  */
 async function classifyAppointment(reason, clinic) {
     try {
-        await assertWithinAiLimit(clinic.id);
+        const { degraded } = await assertWithinAiLimit(clinic.id);
+
+        // Degraded mode → skip Gemini, use rule-based fallback immediately
+        if (degraded) {
+            console.info(`[AI Triage] Degraded mode for clinic ${clinic.id} — using rule-based classification`);
+            return classifyRuleBased(reason);
+        }
+
         let servicesList = '';
         try { servicesList = JSON.parse(clinic.services || '[]').map(s => s.name).join(', '); } catch {}
         const aiConfig = JSON.parse(clinic.aiConfig || '{}');
@@ -72,36 +79,31 @@ async function classifyAppointment(reason, clinic) {
 
         return cleanedResult;
     } catch (error) {
-        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+        if (error.code === 'RATE_LIMITED') {
             throw error;
         }
         console.error('Gemini error, using fallback:', error.message);
-        throw new AppError('AI_PROVIDER_ERROR', 'AI provider request failed', 502, { type: 'ai' });
+        return classifyRuleBased(reason);
     }
 }
 
-async function classifyAppointmentWithFallback(reason, clinic) {
-    try {
-        return await classifyAppointment(reason, clinic);
-    } catch (error) {
-        if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
-            throw error;
-        }
-        // Realistic fallback for mock data
-        const normalized = reason.toLowerCase();
-        // Better Greek keyword matching for roots
-        const isUrgent = normalized.includes('πον') || // πονάει, πόνος
-            normalized.includes('σπασ') || // έσπασε, σπασμένο
-            normalized.includes('αιμ') || // αίμα, αιμορραγία, ματώνει 
-            normalized.includes('ματ') || // ματώνει
-            normalized.includes('εμποδ') || // εμπόδιο
-            normalized.includes('πρηξ'); // πρήξιμο
+function classifyRuleBased(reason) {
+    const normalized = reason.toLowerCase();
+    const isUrgent = normalized.includes('πον') ||
+        normalized.includes('σπασ') ||
+        normalized.includes('αιμ') ||
+        normalized.includes('ματ') ||
+        normalized.includes('εμποδ') ||
+        normalized.includes('πρηξ');
 
-        return {
-            priority: isUrgent ? 'URGENT' : 'NORMAL',
-            greekSummary: isUrgent ? 'Επείγον περιστατικό (Πόνος/Τραύμα)' : 'Προγραμματισμένος έλεγχος / Καθαρισμός'
-        };
-    }
+    return {
+        priority: isUrgent ? 'URGENT' : 'NORMAL',
+        greekSummary: isUrgent ? 'Επείγον περιστατικό (Πόνος/Τραύμα)' : 'Προγραμματισμένος έλεγχος / Καθαρισμός'
+    };
+}
+
+async function classifyAppointmentWithFallback(reason, clinic) {
+    return await classifyAppointment(reason, clinic);
 }
 
 module.exports = { classifyAppointment: classifyAppointmentWithFallback };

@@ -13,7 +13,13 @@ function getModel() {
  */
 async function processVoiceIntent(transcript, clinic) {
   try {
-    await assertWithinAiLimit(clinic.id);
+    const { degraded } = await assertWithinAiLimit(clinic.id);
+
+    if (degraded) {
+      console.info(`[VoiceProcessor] Degraded mode for clinic ${clinic.id} — using rule-based intent`);
+      return classifyRuleBased(transcript);
+    }
+
     const aiConfig = JSON.parse(clinic.aiConfig || '{}');
     const specialty = aiConfig.specialty || 'Medical';
     const prompt = `
@@ -62,20 +68,24 @@ async function processVoiceIntent(transcript, clinic) {
 
     return cleanedResult;
   } catch (error) {
-    if (error.code === 'USAGE_LIMIT_REACHED' || error.code === 'RATE_LIMITED') {
+    if (error.code === 'RATE_LIMITED') {
       throw error;
     }
     console.error('[VoiceProcessor] Error:', error.message);
-    const normalized = transcript.toLowerCase();
-    const intent = normalized.includes('κλεισ') || normalized.includes('ραντεβ') ? 'BOOK' :
-      normalized.includes('ακυρ') ? 'CANCEL' : 'INFO';
-
-    return {
-      intent,
-      suggestedResponse: intent === 'BOOK' ? 'Βεβαίως, θα χαρούμε να σας κλείσουμε ένα ραντεβού. Πότε σας βολεύει;' : 'Πώς θα μπορούσαμε να σας βοηθήσουμε;',
-      data: { intent }
-    };
+    return classifyRuleBased(transcript);
   }
+}
+
+function classifyRuleBased(transcript) {
+  const normalized = transcript.toLowerCase();
+  const intent = normalized.includes('κλεισ') || normalized.includes('ραντεβ') ? 'BOOK' :
+    normalized.includes('ακυρ') ? 'CANCEL' : 'INFO';
+
+  return {
+    intent,
+    suggestedResponse: intent === 'BOOK' ? 'Βεβαίως, θα χαρούμε να σας κλείσουμε ένα ραντεβού. Πότε σας βολεύει;' : 'Πώς θα μπορούσαμε να σας βοηθήσουμε;',
+    data: { intent }
+  };
 }
 
 module.exports = { processVoiceIntent };

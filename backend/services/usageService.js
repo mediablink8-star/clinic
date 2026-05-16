@@ -258,12 +258,18 @@ async function assertWithinAiLimit(clinicId, tx = prisma) {
     await assertNotTemporarilyBlocked(clinicId, 'ai');
     await assertRateLimits(clinicId, 'ai');
     const limit = clinic.aiMonthlyLimit || DEFAULT_AI_LIMIT;
-    
+
+    // Over limit → degrade (return flag, do NOT throw)
     if (clinic.aiRequestCount >= limit) {
-        throw usageError('ai');
+        return { clinic, limit, degraded: true };
     }
-    
-    return { clinic, limit };
+
+    return { clinic, limit, degraded: false };
+}
+
+function isAiDegraded(clinic) {
+    const limit = clinic.aiMonthlyLimit || DEFAULT_AI_LIMIT;
+    return clinic.aiRequestCount >= limit;
 }
 
 async function incrementSmsUsage(clinicId, tx = prisma) {
