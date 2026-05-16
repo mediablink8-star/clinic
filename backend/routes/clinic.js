@@ -12,6 +12,7 @@ const {
 } = require('../services/clinicService');
 const { logAction } = require('../services/auditService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
+const { PLANS, getPlanLimits, getUpgradeablePlans } = require('../services/planService');
 const prisma = require('../services/prisma');
 const { encrypt, decrypt } = require('../services/encryptionService');
 const AppError = require('../errors/AppError');
@@ -302,6 +303,43 @@ router.post('/onboarding-complete', requireOwner, asyncHandler(async (req, res) 
 router.post('/reset-defaults', requireOwner, asyncHandler(async (req, res) => {
     const { data } = await resetClinicToDefaults(req.clinicId, { userId: req.user.userId, ip: req.ip });
     res.json({ success: true, clinic: data });
+}));
+
+// GET /api/clinic/plans — list available plans
+router.get('/plans', asyncHandler(async (req, res) => {
+    const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId }, select: { smsMonthlyLimit: true } });
+    const currentKey = Object.entries(PLANS).find(([, p]) => p.smsMonthlyLimit === clinic?.smsMonthlyLimit)?.[0] || 'trial';
+    const upgradeable = getUpgradeablePlans(currentKey);
+    res.json({ currentPlan: currentKey, plans: upgradeable });
+}));
+
+// POST /api/clinic/upgrade-plan — self-service plan upgrade
+router.post('/upgrade-plan', requireOwner, asyncHandler(async (req, res) => {
+    const { plan } = req.body;
+    if (!plan || !PLANS[plan]) throw new AppError('VALIDATION_ERROR', 'Invalid plan', 400);
+
+    const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId }, select: { smsMonthlyLimit: true } });
+    const currentKey = Object.entries(PLANS).find(([, p]) => p.smsMonthlyLimit === clinic?.smsMonthlyLimit)?.[0] || 'trial';
+    const planOrder = ['trial', 'pro', 'business', 'scale'];
+    const currentIdx = planOrder.indexOf(currentKey);
+    const targetIdx = planOrder.indexOf(plan);
+
+    if (targetIdx <= currentIdx) throw new AppError('VALIDATION_ERROR', 'Can only upgrade to a higher plan', 400);
+
+    const limits = getPlanLimits(plan);
+    const updated = await prisma.clinic.update({
+        where: { id: req.clinicId },
+        data: { ...limits },
+        select: { id: true, name: true, smsMonthlyLimit: true, dailyMessageCap: true, aiMonthlyLimit: true }
+    });
+
+    await logAction({
+        clinicId: req.clinicId, userId: req.user.userId,
+        action: 'UPGRADE_PLAN', entity: 'CLINIC', entityId: req.clinicId,
+        details: { from: currentKey, to: plan }, ipAddress: req.ip
+    });
+
+    res.json({ success: true, plan, limits, clinic: updated });
 }));
 
 module.exports = router;

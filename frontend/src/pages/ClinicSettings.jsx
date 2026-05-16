@@ -157,6 +157,41 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }));
     }, [clinic?.id, clinic?.updatedAt]);
 
+    // Fetch available upgrade plans
+    React.useEffect(() => {
+        api.get('/clinic/plans')
+            .then(res => {
+                setCurrentPlan(res.data.currentPlan);
+                setUpgradePlans(res.data.plans);
+            })
+            .catch(() => {});
+    }, []);
+
+    const handleUpgrade = async (planKey) => {
+        setUpgrading(true);
+        try {
+            await api.post('/clinic/upgrade-plan', { plan: planKey });
+            setShowUpgradeModal(false);
+            showToast('Το πακέτο αναβαθμίστηκε επιτυχώς!', 'success');
+            // Refresh usage data
+            api.get('/clinic/usage').then(res => setUsageData(res.data)).catch(() => {});
+        } catch (err) {
+            showToast(err.response?.data?.error || 'Σφάλμα αναβάθμισης.', 'error');
+        } finally {
+            setUpgrading(false);
+        }
+    };
+
+    const openUpgradeModal = () => {
+        api.get('/clinic/plans')
+            .then(res => {
+                setCurrentPlan(res.data.currentPlan);
+                setUpgradePlans(res.data.plans);
+                setShowUpgradeModal(true);
+            })
+            .catch(() => showToast('Αδυναμία φόρτωσης πακέτων.', 'error'));
+    };
+
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('s1');
     const [logs, setLogs] = useState([]);
@@ -164,6 +199,12 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [usageData, setUsageData] = useState(null);
     const [loadingUsage, setLoadingUsage] = useState(true);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // Upgrade plan state
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [upgradePlans, setUpgradePlans] = useState([]);
+    const [currentPlan, setCurrentPlan] = useState('trial');
+    const [upgrading, setUpgrading] = useState(false);
 
     // Team management state
     const isOwner = ['OWNER', 'ADMIN'].includes(clinic?.role);
@@ -1110,7 +1151,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '4px' }}>Χρειάζεστε περισσότερες πιστώσεις;</h4>
                         <p style={{ fontSize: '0.75rem', color: '#64748b' }}>Αναβαθμίστε το πακέτο σας ή αγοράστε πακέτα SMS για να συνεχίσετε την αυτοματοποίηση.</p>
                     </div>
-                    <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => showToast('Η αναβάθμιση θα είναι διαθέσιμη σύντομα!', 'info')}>
+                    <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={openUpgradeModal}>
                         Αναβάθμιση Τώρα
                     </button>
                 </div>
@@ -1506,6 +1547,94 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                                 <button type="submit" disabled={doctorSaving} className="btn btn-primary">{doctorSaving ? 'Αποθήκευση...' : 'Αποθήκευση'}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showUpgradeModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowUpgradeModal(false)}>
+                    <div style={{ background: 'white', padding: '2rem', borderRadius: '20px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '800' }}>Αναβάθμιση Πακέτου</h3>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>Τρέχον πακέτο: <strong>{currentPlan === 'trial' ? 'Trial' : currentPlan === 'pro' ? 'Pro' : currentPlan === 'business' ? 'Business' : 'Scale'}</strong></p>
+                            </div>
+                            <button onClick={() => setShowUpgradeModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '4px 8px' }}>×</button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                            {upgradePlans.map(plan => {
+                                const isBusiness = plan.key === 'business';
+                                const isScale = plan.key === 'scale';
+                                const cardBg = isScale ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : isBusiness ? 'linear-gradient(135deg, #1e3a5f, #2563eb)' : 'linear-gradient(135deg, #f8fafc, #f1f5f9)';
+                                const textColor = (isBusiness || isScale) ? 'white' : '#0f172a';
+                                const borderColor = isScale ? '#8b5cf6' : isBusiness ? '#3b82f6' : '#e2e8f0';
+                                const btnBg = isScale ? '#8b5cf6' : isBusiness ? '#3b82f6' : '#0f172a';
+
+                                return (
+                                    <div key={plan.key} style={{
+                                        background: cardBg, borderRadius: '16px', padding: '1.5rem',
+                                        border: `2px solid ${borderColor}`, position: 'relative',
+                                        display: 'flex', flexDirection: 'column'
+                                    }}>
+                                        {isBusiness && (
+                                            <div style={{
+                                                position: 'absolute', top: '-10px', right: '12px',
+                                                background: '#f59e0b', color: 'white', fontSize: '0.65rem',
+                                                fontWeight: '800', padding: '3px 10px', borderRadius: '20px',
+                                                textTransform: 'uppercase', letterSpacing: '0.05em'
+                                            }}>Δημοφιλές</div>
+                                        )}
+                                        {isScale && (
+                                            <div style={{
+                                                position: 'absolute', top: '-10px', right: '12px',
+                                                background: '#8b5cf6', color: 'white', fontSize: '0.65rem',
+                                                fontWeight: '800', padding: '3px 10px', borderRadius: '20px',
+                                                textTransform: 'uppercase', letterSpacing: '0.05em'
+                                            }}>Premium</div>
+                                        )}
+
+                                        <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', fontWeight: '800', color: textColor }}>{plan.name}</h4>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: textColor, marginBottom: '1rem' }}>{plan.price}</div>
+
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '6px', fontWeight: '600' }}>
+                                                📨 {plan.smsMonthlyLimit.toLocaleString()} SMS/μήνα
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '6px', fontWeight: '600' }}>
+                                                🤖 {plan.aiMonthlyLimit.toLocaleString()} AI requests/μήνα
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '1rem', fontWeight: '600' }}>
+                                                📅 {plan.dailyMessageCap.toLocaleString()} ημερήσιο όριο
+                                            </div>
+                                            <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '0.75rem', color: textColor, opacity: 0.85 }}>
+                                                {plan.features.map((f, i) => <li key={i} style={{ marginBottom: '4px' }}>{f}</li>)}
+                                            </ul>
+                                        </div>
+
+                                        <button
+                                            onClick={() => handleUpgrade(plan.key)}
+                                            disabled={upgrading}
+                                            style={{
+                                                marginTop: '1.25rem', padding: '0.7rem', borderRadius: '12px',
+                                                border: 'none', background: btnBg, color: 'white',
+                                                fontWeight: '700', fontSize: '0.85rem', cursor: upgrading ? 'not-allowed' : 'pointer',
+                                                opacity: upgrading ? 0.7 : 1, transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {upgrading ? 'Επεξεργασία...' : 'Επιλογή'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {upgradePlans.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                                <p style={{ fontSize: '1rem', fontWeight: '600' }}>Είστε ήδη στο μέγιστο πακέτο!</p>
+                                <p style={{ fontSize: '0.85rem' }}>Επικοινωνήστε μαζί μας για custom λύση.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
