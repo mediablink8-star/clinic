@@ -108,8 +108,9 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
 
     try {
         const result = await vapiRequest('POST', '/call', payload, apiKey);
-        if (result.status === 200 && result.data?.id) {
-            console.info(`[Vapi] Outbound call triggered: ${result.data.id} → ***${phone.slice(-4)}`);
+        // Vapi returns 201 with status "queued" on success
+        if ((result.status === 200 || result.status === 201) && result.data?.id) {
+            console.info(`[Vapi] Outbound call triggered: ${result.data.id} → ***${phone.slice(-4)} (status: ${result.data.status})`);
             return { success: true, callId: result.data.id };
         }
         console.warn('[Vapi] Outbound call failed:', JSON.stringify(result.data));
