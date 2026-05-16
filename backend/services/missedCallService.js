@@ -258,100 +258,66 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         }
     } catch { /* use default */ }
 
-    const n8nUrl = process.env.N8N_WEBHOOK_URL;
-    // Resolve per-clinic Vonage credentials (decrypt if stored), fallback to process.env
-    const vonageApiKey = clinic.vonageApiKey ? decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY;
-    const vonageApiSecret = clinic.vonageApiSecret ? decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET;
-    const vonageFromName = clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow';
-
-    triggerN8n('/missed-call', {
-        clinicId,
-        missedCallId: missedCall.id,
-        phone: require('../utils/phone').formatForVonage(normalizedPhone),
-        name: null,
-        smsBody: smartSmsBody,
-        backendUrl: process.env.BACKEND_API_URL || '',
-        vonageApiKey,
-        vonageApiSecret,
-        vonageFromName,
-    });
-
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
     }
 
-    // If N8N_WEBHOOK_URL is set, n8n handles SMS delivery — mark as sent and return
-    if (n8nUrl) {
-        incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
-        await prisma.missedCall.update({
-            where: { id: missedCall.id },
-            data: { smsStatus: 'sent', lastSmsSentAt: new Date(), totalContactAttempts: { increment: 1 } }
-        });
-        await recordOutboundMessageForMissedCall({
-            missedCallId: missedCall.id,
-            status: 'QUEUED',
-            providerStatusRaw: 'n8n_queued',
-            fromPhone: clinic.phone || null,
-            toPhone: normalizedPhone,
-        });
-        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'sent', scheduledSmsAt: null } };
-    }
-
-    await prisma.missedCall.update({
-        where: { id: missedCall.id },
-        data: { smsStatus: 'processing' }
-    });
-
-    if (!clinic.webhookUrl) {
-        await prisma.missedCall.update({
-            where: { id: missedCall.id },
-            data: { smsStatus: 'pending' }
-        });
-        return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'pending', scheduledSmsAt: null } };
-    }
-
-    let webhookResult;
-    try {
-        await sendManagedSms({
+    // Fire n8n notification non-blocking (for any automation workflows) — does NOT gate SMS delivery
+    if (process.env.N8N_WEBHOOK_URL) {
+        triggerN8n('/missed-call', {
             clinicId,
-            clinic,
-            eventType: 'missed_call.detected',
-            payload: { phone: normalizedPhone, missedCallId: missedCall.id, clinicId },
-            logType: 'SMS',
+            missedCallId: missedCall.id,
+            phone: normalizedPhone,
+            smsBody: smartSmsBody,
+            backendUrl: process.env.BACKEND_API_URL || '',
         });
-        webhookResult = { success: true };
-    } catch (err) {
-        webhookResult = { success: false, error: err.message };
     }
 
-    const finalSmsStatus = webhookResult.success ? 'sent' : 'failed';
+    // Send SMS directly via Twilio
+    const { sendSms } = require('./twilioService');
+    const twilioResult = await sendSms({ to: normalizedPhone, body: smartSmsBody });
+
+    const finalSmsStatus = twilioResult.success ? 'sent' : 'failed';
     await prisma.missedCall.update({
         where: { id: missedCall.id },
-        data: webhookResult.success
+        data: twilioResult.success
             ? { smsStatus: 'sent', lastSmsSentAt: new Date() }
-            : { smsStatus: 'failed', smsError: webhookResult.error || 'Webhook failed' }
+            : { smsStatus: 'failed', smsError: twilioResult.error || 'Twilio send failed' }
     });
 
     // Alert clinic owner on SMS failure
-    if (!webhookResult.success) {
+    if (!twilioResult.success) {
         const owner = await prisma.user.findFirst({
             where: { clinicId, role: { in: ['OWNER', 'ADMIN'] } },
             select: { email: true }
         });
         if (owner?.email) {
-            sendSmsFailureAlert(owner.email, clinic.name, normalizedPhone, webhookResult.error || 'Webhook failed')
+            sendSmsFailureAlert(owner.email, clinic.name, normalizedPhone, twilioResult.error || 'Twilio send failed')
                 .catch(() => {});
         }
     }
 
+    if (twilioResult.success) {
+        incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
+        prisma.clinic.update({ where: { id: clinicId }, data: { messageCredits: { decrement: 1 } } })
+            .catch(err => console.warn(`[USAGE] credit decrement failed: ${err.message}`));
+    }
+
     await recordOutboundMessageForMissedCall({
         missedCallId: missedCall.id,
-        status: webhookResult.success ? 'QUEUED' : 'FAILED',
-        providerStatusRaw: webhookResult.success ? 'workflow_queued' : 'workflow_failed',
+        status: twilioResult.success ? 'QUEUED' : 'FAILED',
+        providerStatusRaw: twilioResult.success ? 'twilio_sent' : 'twilio_failed',
         fromPhone: clinic.phone || null,
         toPhone: normalizedPhone,
-        errorMessage: webhookResult.success ? null : (webhookResult.error || 'Webhook failed'),
+        errorMessage: twilioResult.success ? null : (twilioResult.error || 'Twilio send failed'),
     });
+
+    if (twilioResult.success) {
+        await prisma.missedCall.update({
+            where: { id: missedCall.id },
+            data: { totalContactAttempts: { increment: 1 } }
+        });
+    }
 
     return { success: true, data: { missedCallId: missedCall.id, smsStatus: finalSmsStatus, scheduledSmsAt: null } };
 }

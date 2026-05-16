@@ -5,7 +5,7 @@
 const prisma = require('./prisma');
 const { detectIntent } = require('./intentService');
 const { checkWorkingHours } = require('./workingHours');
-const { sendManagedSms } = require('./messagingService');
+const { sendSms } = require('./twilioService');
 const { createAppointment } = require('./appointmentService');
 const { normalizePhone } = require('../utils/phone');
 
@@ -88,13 +88,13 @@ function parseAppointmentTime(timeText) {
 
 async function sendReply(clinic, phone, message) {
     try {
-        await sendManagedSms({
-            clinicId: clinic.id,
-            clinic,
-            eventType: 'conversation.reply',
-            payload: { phone, message, clinicId: clinic.id },
-            logType: 'CONVERSATION',
-        });
+        const result = await sendSms({ to: phone, body: message });
+        if (!result.success) throw new Error(result.error || 'Twilio send failed');
+        // Deduct credit non-blocking
+        prisma.clinic.update({
+            where: { id: clinic.id },
+            data: { messageCredits: { decrement: 1 } }
+        }).catch(err => console.warn(`[Conversation] credit decrement failed: ${err.message}`));
     } catch (err) {
         console.warn(`[Conversation] sendReply failed for ${phone}: ${err.message}`);
         const mc = await prisma.missedCall.findFirst({

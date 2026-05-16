@@ -1,18 +1,18 @@
 /**
  * SMS fallback service for Voice AI calls.
- * Uses sendManagedSms for consistent credit deduction and logging.
+ * Sends directly via Twilio.
  */
-const { sendManagedSms } = require('./messagingService');
+const { sendSms } = require('./twilioService');
+const prisma = require('./prisma');
 
 async function triggerSmsFallback(clinic, phone, message, missedCallId) {
     try {
-        await sendManagedSms({
-            clinicId: clinic.id,
-            clinic,
-            eventType: 'voice.sms_fallback',
-            payload: { phone, message, missedCallId, clinicId: clinic.id },
-            logType: 'SMS',
-        });
+        const result = await sendSms({ to: phone, body: message });
+        if (!result.success) throw new Error(result.error || 'Twilio send failed');
+        prisma.clinic.update({
+            where: { id: clinic.id },
+            data: { messageCredits: { decrement: 1 } }
+        }).catch(err => console.warn(`[SMS Fallback] credit decrement failed: ${err.message}`));
         return { success: true };
     } catch (err) {
         console.warn(`[SMS Fallback] Failed for ${phone}: ${err.message}`);
