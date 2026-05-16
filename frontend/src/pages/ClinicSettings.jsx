@@ -192,6 +192,11 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             .catch(() => showToast('Αδυναμία φόρτωσης πακέτων.', 'error'));
     };
 
+    const planLabel = (key) => {
+        const labels = { trial: 'Trial', solo: 'Solo', team: 'Team', multi: 'Multi', enterprise: 'Enterprise' };
+        return labels[key] || key;
+    };
+
     const [aiConfigSaving, setAiConfigSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('s1');
     const [logs, setLogs] = useState([]);
@@ -1557,19 +1562,24 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '800' }}>Αναβάθμιση Πακέτου</h3>
-                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>Τρέχον πακέτο: <strong>{currentPlan === 'trial' ? 'Trial' : currentPlan === 'pro' ? 'Pro' : currentPlan === 'business' ? 'Business' : 'Scale'}</strong></p>
+                                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>Τρέχον πακέτο: <strong>{planLabel(currentPlan)}</strong></p>
                             </div>
                             <button onClick={() => setShowUpgradeModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', padding: '4px 8px' }}>×</button>
                         </div>
 
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem', textAlign: 'center' }}>Η τιμολόγηση βασίζεται στον αριθμό γιατρών του ιατρείου σας.</p>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                             {upgradePlans.map(plan => {
-                                const isBusiness = plan.key === 'business';
-                                const isScale = plan.key === 'scale';
-                                const cardBg = isScale ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : isBusiness ? 'linear-gradient(135deg, #1e3a5f, #2563eb)' : 'linear-gradient(135deg, #f8fafc, #f1f5f9)';
-                                const textColor = (isBusiness || isScale) ? 'white' : '#0f172a';
-                                const borderColor = isScale ? '#8b5cf6' : isBusiness ? '#3b82f6' : '#e2e8f0';
-                                const btnBg = isScale ? '#8b5cf6' : isBusiness ? '#3b82f6' : '#0f172a';
+                                const isTeam = plan.key === 'team';
+                                const isMulti = plan.key === 'multi';
+                                const isEnterprise = plan.key === 'enterprise';
+                                const cardBg = isEnterprise ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : isMulti ? 'linear-gradient(135deg, #1e3a5f, #2563eb)' : isTeam ? 'linear-gradient(135deg, #0f766e, #0d9488)' : 'linear-gradient(135deg, #f8fafc, #f1f5f9)';
+                                const textColor = (isEnterprise || isMulti || isTeam) ? 'white' : '#0f172a';
+                                const borderColor = isEnterprise ? '#8b5cf6' : isMulti ? '#3b82f6' : isTeam ? '#14b8a6' : '#e2e8f0';
+                                const btnBg = isEnterprise ? '#8b5cf6' : isMulti ? '#3b82f6' : isTeam ? '#0d9488' : '#0f172a';
+                                const badge = isTeam ? 'Δημοφιλές' : isMulti ? 'Professional' : isEnterprise ? 'Premium' : null;
+                                const badgeColor = isTeam ? '#f59e0b' : isMulti ? '#3b82f6' : isEnterprise ? '#8b5cf6' : null;
 
                                 return (
                                     <div key={plan.key} style={{
@@ -1577,35 +1587,32 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                                         border: `2px solid ${borderColor}`, position: 'relative',
                                         display: 'flex', flexDirection: 'column'
                                     }}>
-                                        {isBusiness && (
+                                        {badge && (
                                             <div style={{
                                                 position: 'absolute', top: '-10px', right: '12px',
-                                                background: '#f59e0b', color: 'white', fontSize: '0.65rem',
+                                                background: badgeColor, color: 'white', fontSize: '0.65rem',
                                                 fontWeight: '800', padding: '3px 10px', borderRadius: '20px',
                                                 textTransform: 'uppercase', letterSpacing: '0.05em'
-                                            }}>Δημοφιλές</div>
-                                        )}
-                                        {isScale && (
-                                            <div style={{
-                                                position: 'absolute', top: '-10px', right: '12px',
-                                                background: '#8b5cf6', color: 'white', fontSize: '0.65rem',
-                                                fontWeight: '800', padding: '3px 10px', borderRadius: '20px',
-                                                textTransform: 'uppercase', letterSpacing: '0.05em'
-                                            }}>Premium</div>
+                                            }}>{badge}</div>
                                         )}
 
-                                        <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', fontWeight: '800', color: textColor }}>{plan.name}</h4>
-                                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: textColor, marginBottom: '1rem' }}>{plan.price}</div>
+                                        <h4 style={{ margin: '0 0 2px', fontSize: '1.1rem', fontWeight: '800', color: textColor }}>{plan.nameEl || plan.name}</h4>
+                                        <div style={{ fontSize: '0.75rem', color: textColor, opacity: 0.8, marginBottom: '8px', fontWeight: '600' }}>
+                                            {plan.doctorRange}
+                                        </div>
+                                        <div style={{ fontSize: '1.4rem', fontWeight: '900', color: textColor, marginBottom: '1rem' }}>
+                                            {plan.price}<span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: 0.8 }}>{plan.priceNote}</span>
+                                        </div>
 
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '6px', fontWeight: '600' }}>
-                                                📨 {plan.smsMonthlyLimit.toLocaleString()} SMS/μήνα
+                                                📨 {plan.smsMonthlyLimit >= 99999 ? 'Απεριόριστα' : plan.smsMonthlyLimit.toLocaleString()} SMS/μήνα
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '6px', fontWeight: '600' }}>
-                                                🤖 {plan.aiMonthlyLimit.toLocaleString()} AI requests/μήνα
+                                                🤖 {plan.aiMonthlyLimit >= 99999 ? 'Απεριόριστα' : plan.aiMonthlyLimit.toLocaleString()} AI requests/μήνα
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: textColor, opacity: 0.9, marginBottom: '1rem', fontWeight: '600' }}>
-                                                📅 {plan.dailyMessageCap.toLocaleString()} ημερήσιο όριο
+                                                📅 {plan.dailyMessageCap >= 9999 ? 'Απεριόριστο' : plan.dailyMessageCap.toLocaleString()} ημερήσιο όριο
                                             </div>
                                             <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '0.75rem', color: textColor, opacity: 0.85 }}>
                                                 {plan.features.map((f, i) => <li key={i} style={{ marginBottom: '4px' }}>{f}</li>)}
