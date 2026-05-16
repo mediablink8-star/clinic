@@ -30,14 +30,14 @@
     "@prisma/client": "^7.8.0",
     "@sentry/node": "^10.39.0",
     "@sentry/profiling-node": "^10.39.0",
-    "chrono-node": "^2.7.9",
-    "date-fns": "^4.1.0",
-    "date-fns-tz": "^3.2.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.69.3",
+    "chrono-node": "^2.7.9",
     "concurrently": "^9.2.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
@@ -53,7 +53,8 @@
     "otplib": "^13.3.0",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "twilio": "^6.0.2"
   },
   "jest": {
     "testEnvironment": "node",

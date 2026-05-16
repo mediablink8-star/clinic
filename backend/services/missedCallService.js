@@ -7,9 +7,8 @@ const {
     markRecoveryCaseRecovered,
 } = require('./recoveryTrackingService');
 const { sendManagedSms } = require('./messagingService');
-const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
+const { assertWithinSmsLimit } = require('./usageService');
 const https = require('https');
-const { decrypt } = require('./encryptionService');
 const { sendSmsFailureAlert } = require('./emailService');
 const http = require('http');
 const { normalizePhone } = require('../utils/phone');
@@ -224,7 +223,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         console.info(`[Voice] Skipped — voiceEnabled=${clinic.voiceEnabled}, vapiAssistantId=${clinic.vapiAssistantId ? 'set' : 'null'}, vapiPhoneNumberId=${clinic.vapiPhoneNumberId ? 'set' : 'null'}, apiKey=${(clinic.vapiApiKey || process.env.VAPI_API_KEY) ? 'set' : 'MISSING'}`);
     }
 
-    // Enforce SMS limits before triggering n8n
+    // Enforce SMS limits before sending
     try {
         await assertWithinSmsLimit(clinicId);
     } catch (limitErr) {
@@ -273,9 +272,9 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         });
     }
 
-    // Send SMS directly via Twilio
-    const { sendSms } = require('./twilioService');
-    const twilioResult = await sendSms({ to: normalizedPhone, body: smartSmsBody });
+    // Send SMS directly via Twilio with atomic credit deduction + usage tracking
+    const { sendSmsWithTracking } = require('./twilioService');
+    const twilioResult = await sendSmsWithTracking({ to: normalizedPhone, body: smartSmsBody, clinicId });
 
     const finalSmsStatus = twilioResult.success ? 'sent' : 'failed';
     await prisma.missedCall.update({
@@ -285,7 +284,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             : { smsStatus: 'failed', smsError: twilioResult.error || 'Twilio send failed' }
     });
 
-    // Alert clinic owner on SMS failure
     if (!twilioResult.success) {
         const owner = await prisma.user.findFirst({
             where: { clinicId, role: { in: ['OWNER', 'ADMIN'] } },
@@ -295,12 +293,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             sendSmsFailureAlert(owner.email, clinic.name, normalizedPhone, twilioResult.error || 'Twilio send failed')
                 .catch(() => {});
         }
-    }
-
-    if (twilioResult.success) {
-        incrementSmsUsage(clinicId).catch(err => console.warn(`[USAGE] increment failed: ${err.message}`));
-        prisma.clinic.update({ where: { id: clinicId }, data: { messageCredits: { decrement: 1 } } })
-            .catch(err => console.warn(`[USAGE] credit decrement failed: ${err.message}`));
     }
 
     await recordOutboundMessageForMissedCall({

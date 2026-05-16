@@ -73,13 +73,9 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         payload: { 
             patientId, 
             patientName: patient.name, 
-            phone: require('../utils/phone').formatForVonage(patient.phone), 
+            phone: require('../utils/phone').normalizePhone(patient.phone), 
             message, 
             type,
-            // Include per-clinic Vonage credentials, fallback to process.env
-            vonageApiKey: clinic.vonageApiKey ? require('./encryptionService').decrypt(clinic.vonageApiKey) : process.env.VONAGE_API_KEY,
-            vonageApiSecret: clinic.vonageApiSecret ? require('./encryptionService').decrypt(clinic.vonageApiSecret) : process.env.VONAGE_API_SECRET,
-            vonageFromName: clinic.vonageFromName || process.env.VONAGE_FROM_NAME || 'ClinicFlow',
         },
         logType: type,
         treatMissingWebhookAsSimulated: false,

@@ -108,7 +108,6 @@ router.post('/register', validate(registerSchema), asyncHandler(async (req, res)
                     services: JSON.stringify([]),
                     policies: JSON.stringify({}),
                     workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
-                    messageCredits: 500,
                     dailyMessageCap: 300
                 }
             });

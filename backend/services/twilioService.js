@@ -1,67 +1,78 @@
-const https = require('https');
+const twilio = require('twilio');
+const prisma = require('./prisma');
+const { incrementSmsUsage } = require('./usageService');
+const AppError = require('../errors/AppError');
 
-/**
- * Sends an SMS via Twilio.
- * Uses TWILIO_PHONE_NUMBER as sender if set (works on trial + paid).
- * Falls back to TWILIO_ALPHA_SENDER_ID for alphanumeric sender (paid accounts only).
- */
-function sendSms({ to, body }) {
+function getClient() {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-        console.error('[Twilio] TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN not set');
-        return Promise.resolve({ success: false, error: 'Twilio not configured' });
-    }
-
-    // Prefer phone number (works on trial), fall back to alphanumeric sender ID (paid only)
-    const sender = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID || '';
-    if (!sender) {
-        console.error('[Twilio] No sender configured — set TWILIO_PHONE_NUMBER or TWILIO_ALPHA_SENDER_ID');
-        return Promise.resolve({ success: false, error: 'No Twilio sender configured. Set TWILIO_PHONE_NUMBER or TWILIO_ALPHA_SENDER_ID.' });
-    }
-
-    const payload = `To=${encodeURIComponent(to)}&From=${encodeURIComponent(sender)}&Body=${encodeURIComponent(body)}`;
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-
-    return new Promise((resolve) => {
-        const req = https.request({
-            hostname: 'api.twilio.com',
-            path: `/2010-04-01/Accounts/${accountSid}/Messages.json`,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(payload),
-                'Authorization': `Basic ${auth}`,
-            },
-        }, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                if (res.statusCode < 300) {
-                    try {
-                        const parsed = JSON.parse(data);
-                        console.info(`[Twilio] SMS sent: ${parsed.sid} → ***${to.slice(-4)}`);
-                        resolve({ success: true, sid: parsed.sid });
-                    } catch {
-                        resolve({ success: true });
-                    }
-                } else {
-                    let errMsg = `HTTP ${res.statusCode}`;
-                    try { const parsed = JSON.parse(data); errMsg = parsed.message || errMsg; } catch {}
-                    console.warn(`[Twilio] Failed: ${errMsg}`);
-                    resolve({ success: false, error: errMsg });
-                }
-            });
-        });
-        req.on('error', (err) => {
-            console.warn(`[Twilio] Request failed: ${err.message}`);
-            resolve({ success: false, error: err.message });
-        });
-        req.setTimeout(15000, () => { req.destroy(); resolve({ success: false, error: 'Timeout' }); });
-        req.write(payload);
-        req.end();
-    });
+    if (!accountSid || !authToken) return null;
+    return twilio(accountSid, authToken);
 }
 
-module.exports = { sendSms };
+function getSender() {
+    return process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID || '';
+}
+
+async function sendSms({ to, body }) {
+    const client = getClient();
+    if (!client) {
+        console.error('[Twilio] TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN not set');
+        return { success: false, error: 'Twilio not configured' };
+    }
+
+    const sender = getSender();
+    if (!sender) {
+        console.error('[Twilio] No sender configured');
+        return { success: false, error: 'No Twilio sender configured. Set TWILIO_PHONE_NUMBER or TWILIO_ALPHA_SENDER_ID.' };
+    }
+
+    try {
+        const message = await client.messages.create({
+            to,
+            from: sender,
+            body,
+        });
+        console.info(`[Twilio] SMS sent: ${message.sid} -> ***${to.slice(-4)}`);
+        return { success: true, sid: message.sid };
+    } catch (err) {
+        console.warn(`[Twilio] Failed: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+}
+
+async function sendSmsWithTracking({ to, body, clinicId }) {
+    const result = await sendSms({ to, body });
+    if (!result.success) return result;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            const updated = await tx.clinic.updateMany({
+                where: { id: clinicId, messageCredits: { gt: 0 } },
+                data: { messageCredits: { decrement: 1 } },
+            });
+            if (updated.count === 0) {
+                throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
+            }
+            await incrementSmsUsage(clinicId, tx);
+            await tx.messageLog.create({
+                data: {
+                    clinicId,
+                    type: 'SMS',
+                    status: 'SENT',
+                    cost: 1,
+                },
+            });
+        });
+    } catch (err) {
+        if (err.code === 'INSUFFICIENT_CREDITS') {
+            console.warn(`[Twilio] Credit deduction failed for clinic ${clinicId}: insufficient credits`);
+        } else {
+            console.warn(`[Twilio] Credit/usage tracking failed for clinic ${clinicId}: ${err.message}`);
+        }
+    }
+
+    return result;
+}
+
+module.exports = { sendSms, sendSmsWithTracking };

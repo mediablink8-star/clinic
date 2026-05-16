@@ -21,7 +21,6 @@ async function createClinic({ name, ownerEmail, ownerPassword, ownerName }) {
                 services: JSON.stringify([]),
                 policies: JSON.stringify({}),
                 workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
-                messageCredits: 500,
                 dailyMessageCap: 300,
                 monthlyCreditLimit: 500
             }
