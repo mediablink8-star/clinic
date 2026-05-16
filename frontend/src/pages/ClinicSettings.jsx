@@ -1331,15 +1331,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         </button>
                     </div>
                 </div>
-
-                <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h5 style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Οδηγός Ρύθμισης</h5>
-                    <ul style={{ fontSize: '0.75rem', color: '#64748b', paddingLeft: '1.2rem', margin: 0, lineHeight: 1.6 }}>
-                        <li>Δημιουργήστε λογαριασμό στο <a href="https://www.vonage.com/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>Vonage</a> για SMS/Voice.</li>
-                        <li>Ρυθμίστε τα workflows στο <a href="https://n8n.io/" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', fontWeight: '700' }}>n8n</a> χρησιμοποιώντας τα templates μας.</li>
-                        <li>Αντιγράψτε τα Webhook URLs από το n8n στα αντίστοιχα πεδία παραπάνω.</li>
-                    </ul>
-                </div>
             </SectionCard>
 
             {/* 7 · Google Calendar */}
