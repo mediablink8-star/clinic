@@ -15,10 +15,12 @@ async function processVoiceIntent(transcript, clinic) {
   try {
     await assertWithinAiLimit(clinic.id);
     const aiConfig = JSON.parse(clinic.aiConfig || '{}');
+    const specialty = aiConfig.specialty || 'Medical';
     const prompt = `
-      You are an AI dental receptionist for "${clinic.name}" in ${clinic.location}.
+      You are an AI medical receptionist for "${clinic.name}" in ${clinic.location}.
+      Specialty: ${specialty}.
       Clinic Hours: ${JSON.stringify(aiConfig.workingHours || clinic.workingHours)}
-      Clinic Services: ${aiConfig.services || 'General Dental Services'}
+      Clinic Services: ${aiConfig.services || 'General Services'}
       Clinic Policies: ${aiConfig.policies || 'Standard clinic policies'}
       AI Tone: ${aiConfig.tone || 'Professional'}
       Average Appointment Value: ${aiConfig.avgAppointmentValue || 80}

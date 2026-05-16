@@ -8,52 +8,8 @@ const {
 } = require('./recoveryTrackingService');
 const { sendManagedSms } = require('./messagingService');
 const { assertWithinSmsLimit } = require('./usageService');
-const https = require('https');
 const { sendSmsFailureAlert } = require('./emailService');
-const http = require('http');
 const { normalizePhone } = require('../utils/phone');
-
-/**
- * Non-blocking fire-and-forget trigger to n8n.
- * Never throws — failures are logged only.
- */
-function triggerN8n(path, payload) {
-    const baseUrl = process.env.N8N_WEBHOOK_URL;
-    if (!baseUrl) return;
-
-    const url = `${baseUrl.replace(/\/$/, '')}${path}`;
-    const body = JSON.stringify(payload);
-    const secret = process.env.WEBHOOK_SECRET || '';
-
-    try {
-        const parsedUrl = new URL(url);
-        const lib = parsedUrl.protocol === 'https:' ? https : http;
-        const req = lib.request({
-            hostname: parsedUrl.hostname,
-            port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
-            path: parsedUrl.pathname + parsedUrl.search,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body),
-                'x-webhook-key': secret,
-                'x-api-key': process.env.AUTOMATION_API_KEY || '',
-            },
-        }, (res) => {
-
-            res.resume(); // drain response
-            if (res.statusCode >= 400) {
-                console.warn(`[N8N] ${path} responded ${res.statusCode}`);
-            }
-        });
-        req.on('error', (err) => console.warn(`[N8N] trigger failed: ${err.message}`));
-        req.setTimeout(8000, () => { req.destroy(); console.warn(`[N8N] ${path} timeout`); });
-        req.write(body);
-        req.end();
-    } catch (err) {
-        console.warn(`[N8N] trigger error: ${err.message}`);
-    }
-}
 
 async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = false }) {
     if (callSid) {
@@ -85,7 +41,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // Warn early if no recovery channel is configured
     const hasVoice = clinic.voiceEnabled && (clinic.vapiAssistantId || clinic.vapiPhoneNumberId) && (clinic.vapiApiKey || process.env.VAPI_API_KEY);
-    const hasSms = !!(process.env.N8N_WEBHOOK_URL || clinic.webhookUrl || clinic.webhookMissedCall || clinic.vonageApiKey || process.env.VONAGE_API_KEY);
+    const hasSms = !!(process.env.TWILIO_ACCOUNT_SID && (process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID));
     if (!hasVoice && !hasSms) {
         console.warn(`[MissedCall] Clinic ${clinicId} has no voice or SMS channel configured — call logged but no recovery will be triggered.`);
     }
@@ -259,17 +215,6 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     if (!withinHours) {
         return { success: true, data: { missedCallId: missedCall.id, smsStatus: 'scheduled', scheduledSmsAt: scheduledAt } };
-    }
-
-    // Fire n8n notification non-blocking (for any automation workflows) — does NOT gate SMS delivery
-    if (process.env.N8N_WEBHOOK_URL) {
-        triggerN8n('/missed-call', {
-            clinicId,
-            missedCallId: missedCall.id,
-            phone: normalizedPhone,
-            smsBody: smartSmsBody,
-            backendUrl: process.env.BACKEND_API_URL || '',
-        });
     }
 
     // Send SMS directly via Twilio with atomic credit deduction + usage tracking
