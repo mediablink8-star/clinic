@@ -76,7 +76,9 @@ router.get('/status', asyncHandler(async (req, res) => {
         warnings,
     });
 
-    logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_SYSTEM_STATUS', entity: 'SYSTEM', ipAddress: req.ip }).catch(() => {});
+    logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_SYSTEM_STATUS', entity: 'SYSTEM', ipAddress: req.ip }).catch(err =>
+        console.error(`[Audit] Failed to log READ_SYSTEM_STATUS: ${err.message}`)
+    );
 }));
 
 /**

@@ -200,7 +200,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         });
         if (owner?.email) {
             sendSmsFailureAlert(owner.email, clinic.name, normalizedPhone, twilioResult.error || 'Twilio send failed')
-                .catch(() => {});
+                .catch(err => console.error(`[MissedCall] SMS failure alert email failed: ${err.message}`));
         }
     }
 

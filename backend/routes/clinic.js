@@ -41,7 +41,9 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/usage', asyncHandler(async (req, res) => {
     const { data } = await getClinicUsage(req.clinicId);
     res.json(data);
-    logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_CLINIC_USAGE', entity: 'CLINIC', entityId: req.clinicId, ipAddress: req.ip }).catch(() => {});
+    logAction({ clinicId: req.clinicId, userId: req.user.userId, action: 'READ_CLINIC_USAGE', entity: 'CLINIC', entityId: req.clinicId, ipAddress: req.ip }).catch(err =>
+        console.error(`[Audit] Failed to log READ_CLINIC_USAGE: ${err.message}`)
+    );
 }));
 
 // GET /api/clinic/spending

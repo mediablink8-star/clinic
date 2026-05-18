@@ -341,7 +341,8 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     });
 });
 
-app.listen(port, () => {
+// Graceful shutdown — finish in-flight requests before exiting
+let server = app.listen(port, () => {
     console.info(`SaaS Backend running on port ${port}`);
 
     // System check — logs all critical config at startup
@@ -365,10 +366,39 @@ app.listen(port, () => {
     console.info('====================\n');
 });
 
+function gracefulShutdown(signal) {
+    console.info(`\n[Shutdown] Received ${signal}. Draining connections...`);
+
+    // Stop accepting new connections
+    server.close(async () => {
+        console.info('[Shutdown] HTTP server closed.');
+
+        // Stop background worker
+        if (global.worker) {
+            console.info('[Shutdown] Stopping background worker...');
+            global.worker.stop();
+        }
+
+        // Disconnect Prisma
+        await prisma.$disconnect();
+        console.info('[Shutdown] Database disconnected. Exiting.');
+        process.exit(0);
+    });
+
+    // Force exit after 10s if connections don't drain
+    setTimeout(() => {
+        console.error('[Shutdown] Force exit after 10s timeout.');
+        process.exit(1);
+    }, 10000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 // Start background worker by default (disable with DISABLE_WORKER=true)
 if (process.env.DISABLE_WORKER !== 'true') {
     console.info('[WORKER] Starting background worker for reminders and follow-ups...');
-    require('./worker');
+    global.worker = require('./worker');
 } else {
     console.warn('[WORKER] Background worker is DISABLED. No automated reminders will be sent.');
 }

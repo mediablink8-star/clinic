@@ -20,6 +20,11 @@ function validateEnv() {
         'SMTP_HOST',
         'REDIS_URL',
         'SENTRY_BACKEND_DSN',
+        'TWILIO_ACCOUNT_SID',
+        'TWILIO_AUTH_TOKEN',
+        'TWILIO_PHONE_NUMBER',
+        'VAPI_API_KEY',
+        'DATABASE_CONNECTION_POOL_URL',
     ];
 
     let allRequiredPresent = true;
@@ -61,6 +66,9 @@ function validateEnv() {
     }
     if (!process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
         console.warn('⚠️  REDIS_URL not set — background SMS/reminder jobs will be skipped in production. Provision Redis (e.g. Upstash) and set REDIS_URL.');
+    }
+    if (!process.env.DATABASE_CONNECTION_POOL_URL && process.env.NODE_ENV === 'production') {
+        console.warn('⚠️  DATABASE_CONNECTION_POOL_URL not set — Prisma will use direct connections. For production, use PgBouncer or Supavisor to pool connections.');
     }
 
     return allRequiredPresent;

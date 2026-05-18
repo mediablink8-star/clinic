@@ -25,7 +25,8 @@ async function logAction({ clinicId, userId, action, entity, entityId, details, 
             }
         });
     } catch (error) {
-        console.error('Failed to create audit log:', error.message);
+        // Audit log failures should not break the main flow, but must be visible
+        console.error(`[AUDIT_FAIL] action=${action} clinic=${clinicId} error=${error.message}`);
     }
 }
 

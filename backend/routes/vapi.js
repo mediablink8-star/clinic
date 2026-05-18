@@ -228,7 +228,9 @@ async function handleVoiceBooking(mc, input) {
             // Send SMS fallback with booking link so patient can self-book
             const bookingLink = `${process.env.FRONTEND_URL || 'https://clinicflow.app'}/book?clinicId=${clinic.id}&missedCallId=${mc.id}`;
             const smsBody = `Δεν μπορέσαμε να κλείσουμε το ραντεβού για ${preferred_day} στις ${preferred_time} (εκτός ωραρίου ή μη διαθέσιμη ώρα).\nΚλείστε εδώ: ${bookingLink}`;
-            await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id).catch(() => {});
+            await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id).catch(err =>
+                console.error(`[Vapi] SMS fallback failed for ${mc.id}: ${err.message}`)
+            );
         }
     }
 
