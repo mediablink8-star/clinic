@@ -5,119 +5,63 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "missed-call",
-        "responseMode": "responseNode",
+        "responseMode": "lastNode",
         "options": {}
       },
       "id": "node_webhook_trigger",
       "name": "Missed Call Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [240, 300]
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
+        "assignments": {
+          "assignments": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] || $json.body?.webhookSecret || $json.webhookSecret }}",
-              "operation": "isNotEmpty"
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.phone || $json.body?.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "clinicId",
+              "name": "clinicId",
+              "value": "={{ $json.clinicId || $json.body?.clinicId }}",
+              "type": "string"
+            },
+            {
+              "id": "mc-id",
+              "name": "missedCallId",
+              "value": "={{ $json.missedCallId || $json.body?.missedCallId }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.name || $json.body?.name || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "smsBody",
+              "name": "smsBody",
+              "value": "={{ $json.smsBody || $json.body?.smsBody || 'Γεια! Χάσαμε την κλήση σας. Κλείστε ραντεβού εδώ: [link]' }}",
+              "type": "string"
             }
           ]
-        }
-      },
-      "id": "node_auth_check",
-      "name": "Auth Check",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [460, 300]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
-        "options": {"responseCode": 401}
-      },
-      "id": "node_unauthorized",
-      "name": "Return 401",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [680, 480]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {"value1": "={{ $json.body.phone }}", "operation": "isNotEmpty"},
-            {"value1": "={{ $json.body.clinicId }}", "operation": "isNotEmpty"},
-            {"value1": "={{ $json.body.missedCallId }}", "operation": "isNotEmpty"}
-          ]
-        }
-      },
-      "id": "node_validate",
-      "name": "Validate Payload",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [680, 300]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": false, \"error\": \"missing required fields\" }",
-        "options": {"responseCode": 400}
-      },
-      "id": "node_bad_request",
-      "name": "Return 400",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [900, 480]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"received\": true }",
-        "options": {"responseCode": 200}
-      },
-      "id": "node_respond_ok",
-      "name": "Respond 200",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [900, 300]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {"name": "phone", "value": "={{ $json.phone || $json.body?.phone }}"},
-            {"name": "clinicId", "value": "={{ $json.clinicId || $json.body?.clinicId }}"},
-            {"name": "missedCallId", "value": "={{ $json.missedCallId || $json.body?.missedCallId }}"},
-            {"name": "name", "value": "={{ $json.name || $json.body?.name || '' }}"}
-          ]
-        }
+        },
+        "options": {}
       },
       "id": "node_set_vars",
       "name": "Set Variables",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1120, 300]
+      "typeVersion": 3.4,
+      "position": [460, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {"name": "smsBody", "value": "={{ $json.smsBody || $json.body?.smsBody || \"Γεια! Χάσαμε την κλήση σας. Κλείστε ραντεβού εδώ: [link]\" }}"}
-          ]
-        }
-      },
-      "id": "node_sms_body",
-      "name": "Set SMS Body",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1340, 300]
-    },
-    {
-      "parameters": {
-        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -128,159 +72,260 @@
           ]
         },
         "sendBody": true,
+        "specifyBody": "form",
         "bodyParameters": {
-          "formParams": [
-            {
-              "name": "From",
-              "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
-            },
-            {
-              "name": "To",
-              "value": "={{ $node[\"Set Variables\"].json.phone }}"
-            },
-            {
-              "name": "Body",
-              "value": "={{ $node[\"Set SMS Body\"].json.smsBody }}"
-            }
-          ]
+          "formBodyParameters": {
+            "parameters": [
+              {
+                "name": "From",
+                "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
+              },
+              {
+                "name": "To",
+                "value": "={{ $json.phone }}"
+              },
+              {
+                "name": "Body",
+                "value": "={{ $json.smsBody }}"
+              }
+            ]
+          }
         },
-        "options": {"timeout": 10000}
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_send_sms",
       "name": "Send Recovery SMS",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [1560, 300],
-      "continueOnFail": true
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "conditions": {
-          "string": [
-            {"value1": "={{ $json.sid }}", "operation": "isNotEmpty"}
-          ]
-        }
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-sid",
+              "leftValue": "={{ $json.sid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "node_sms_ok",
       "name": "SMS Sent OK?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [1780, 300]
+      "typeVersion": 2.2,
+      "position": [900, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {"name": "result", "value": "sent"},
-            {"name": "messageId", "value": "={{ $json.sid }}"}
+        "assignments": {
+          "assignments": [
+            {
+              "id": "result",
+              "name": "result",
+              "value": "sent",
+              "type": "string"
+            },
+            {
+              "id": "msg-id",
+              "name": "messageId",
+              "value": "={{ $json.sid }}",
+              "type": "string"
+            }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "node_log_success",
       "name": "Log Success",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [2000, 200]
+      "typeVersion": 3.4,
+      "position": [1120, 200]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {"name": "result", "value": "failed"},
-            {"name": "error", "value": "={{ $json.message || $json.errorMessage || 'SMS send failed' }}"},
-            {"name": "errorCode", "value": "={{ $json.status || $json.code || 'error' }}"},
-            {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"}
+        "assignments": {
+          "assignments": [
+            {
+              "id": "result",
+              "name": "result",
+              "value": "failed",
+              "type": "string"
+            },
+            {
+              "id": "error",
+              "name": "error",
+              "value": "={{ $json.message || $json.errorMessage || 'SMS send failed' }}",
+              "type": "string"
+            },
+            {
+              "id": "code",
+              "name": "errorCode",
+              "value": "={{ $json.status || $json.code || 'error' }}",
+              "type": "string"
+            }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "node_log_failure",
       "name": "Log Failure",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [2000, 400]
+      "typeVersion": 3.4,
+      "position": [1120, 400]
     },
     {
       "parameters": {
-        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/mark-recovered",
         "method": "POST",
-        "sendBody": true,
+        "url": "={{ $env.BACKEND_API_URL }}/automation/mark-recovered",
+        "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
-            },
-            {
-              "name": "x-webhook-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
+              "value": "={{ $env.AUTOMATION_API_KEY }}"
             }
           ]
         },
-        "bodyParameters": {
-          "parameters": [
-            {"name": "clinicId", "value": "={{ $node[\"Set Variables\"].json.clinicId }}"},
-            {"name": "missedCallId", "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"},
-            {"name": "smsStatus", "value": "sent"},
-            {"name": "messageId", "value": "={{ $node[\"Log Success\"].json.messageId }}"}
-          ]
-        },
-        "options": {"timeout": 10000}
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"clinicId\": \"{{ $('Set Variables').first().json.clinicId }}\",\n  \"missedCallId\": \"{{ $('Set Variables').first().json.missedCallId }}\",\n  \"smsStatus\": \"sent\",\n  \"messageId\": \"{{ $json.messageId }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_mark_recovered",
       "name": "Mark SMS Sent",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [2220, 200],
-      "continueOnFail": true
+      "typeVersion": 4.2,
+      "position": [1340, 200],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/send-notification",
         "method": "POST",
-        "sendBody": true,
+        "url": "={{ $env.BACKEND_API_URL }}/automation/send-notification",
+        "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
-            },
-            {
-              "name": "x-webhook-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
+              "value": "={{ $env.AUTOMATION_API_KEY }}"
             }
           ]
         },
-        "bodyParameters": {
-          "parameters": [
-            {"name": "type", "value": "sms_failed"},
-            {"name": "executionId", "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"},
-            {"name": "entityType", "value": "missed_call"},
-            {"name": "entityId", "value": "={{ $node[\"Set Variables\"].json.missedCallId }}"},
-            {"name": "phone", "value": "={{ $node[\"Set Variables\"].json.phone }}"},
-            {"name": "error", "value": "={{ $node[\"Log Failure\"].json.error }}"}
-          ]
-        },
-        "options": {"timeout": 10000}
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"sms_failed\",\n  \"executionId\": \"{{ $('Set Variables').first().json.missedCallId }}\",\n  \"entityType\": \"missed_call\",\n  \"entityId\": \"{{ $('Set Variables').first().json.missedCallId }}\",\n  \"phone\": \"{{ $('Set Variables').first().json.phone }}\",\n  \"error\": \"{{ $json.error }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_notify_backend_failure",
       "name": "Notify Backend of Failure",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [2220, 400],
-      "continueOnFail": true
+      "typeVersion": 4.2,
+      "position": [1340, 400],
+      "onError": "continueErrorOutput"
     }
   ],
   "connections": {
-    "Missed Call Webhook": {"main": [[{"node": "Auth Check", "type": "main", "index": 0}]]},
-    "Auth Check": {"main": [[{"node": "Validate Payload", "type": "main", "index": 0}], [{"node": "Return 401", "type": "main", "index": 0}]]},
-    "Validate Payload": {"main": [[{"node": "Respond 200", "type": "main", "index": 0}], [{"node": "Return 400", "type": "main", "index": 0}]]},
-    "Respond 200": {"main": [[{"node": "Set Variables", "type": "main", "index": 0}]]},
-    "Set Variables": {"main": [[{"node": "Set SMS Body", "type": "main", "index": 0}]]},
-    "Set SMS Body": {"main": [[{"node": "Send Recovery SMS", "type": "main", "index": 0}]]},
-    "Send Recovery SMS": {"main": [[{"node": "SMS Sent OK?", "type": "main", "index": 0}]]},
-    "SMS Sent OK?": {"main": [[{"node": "Log Success", "type": "main", "index": 0}], [{"node": "Log Failure", "type": "main", "index": 0}]]},
-    "Log Success": {"main": [[{"node": "Mark SMS Sent", "type": "main", "index": 0}]]},
-    "Log Failure": {"main": [[{"node": "Notify Backend of Failure", "type": "main", "index": 0}]]}
+    "Missed Call Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Send Recovery SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Recovery SMS": {
+      "main": [
+        [
+          {
+            "node": "SMS Sent OK?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Sent OK?": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success": {
+      "main": [
+        [
+          {
+            "node": "Mark SMS Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Failure": {
+      "main": [
+        [
+          {
+            "node": "Notify Backend of Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1",

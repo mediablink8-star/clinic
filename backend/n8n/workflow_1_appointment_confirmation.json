@@ -5,108 +5,63 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "appointment-created",
-        "responseMode": "responseNode",
+        "responseMode": "lastNode",
         "options": {}
       },
       "id": "node_webhook_appt",
       "name": "Receive Appointment Event",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [240, 400]
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
+        "assignments": {
+          "assignments": [
             {
-              "value1": "={{ $json.headers['x-webhook-key'] || $json.body?.webhookSecret || $json.webhookSecret }}",
-              "operation": "isNotEmpty"
+              "id": "exec-id",
+              "name": "executionId",
+              "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "entity-id",
+              "name": "entityId",
+              "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "entity-type",
+              "name": "entityType",
+              "value": "appointment",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.data?.phone || $json.body?.data?.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "smsBody",
+              "name": "smsBody",
+              "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}",
+              "type": "string"
             }
           ]
-        }
-      },
-      "id": "node_auth_check",
-      "name": "Auth Check",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [460, 400]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": false, \"error\": \"Unauthorized\" }",
-        "options": {"responseCode": 401}
-      },
-      "id": "node_unauthorized",
-      "name": "Return 401",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [680, 560]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {"value1": "={{ $json.body.data.phone }}", "operation": "isNotEmpty"},
-            {"value1": "={{ $json.body.data.patientName }}", "operation": "isNotEmpty"},
-            {"value1": "={{ $json.body.data.date }}", "operation": "isNotEmpty"}
-          ]
-        }
-      },
-      "id": "node_validate_appt",
-      "name": "Validate Payload",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [680, 400]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"success\": false, \"error\": \"missing required fields\" }",
-        "options": {"responseCode": 400}
-      },
-      "id": "node_error_appt",
-      "name": "Return 400",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [900, 560]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={ \"received\": true }",
-        "options": {"responseCode": 200}
-      },
-      "id": "node_respond_immediately",
-      "name": "Respond 200 Immediately",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [900, 400]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {"name": "executionId", "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || $execution.id }}"},
-            {"name": "entityId", "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || '' }}"},
-            {"name": "entityType", "value": "appointment"},
-            {"name": "phone", "value": "={{ $json.data?.phone || $json.body?.data?.phone }}"},
-            {"name": "clinicName", "value": "={{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"},
-            {"name": "doctorName", "value": "={{ ($json.data?.doctorName || $json.body?.data?.doctorName) ? ' με τον/την ' + ($json.data?.doctorName || $json.body?.data?.doctorName) : '' }}"},
-            {"name": "smsBody", "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }}{{ ($json.data?.doctorName || $json.body?.data?.doctorName) ? ' με τον/την ' + ($json.data?.doctorName || $json.body?.data?.doctorName) : '' }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}"}
-          ]
-        }
+        },
+        "options": {}
       },
       "id": "node_format_msg",
       "name": "Format Confirmation Message",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1120, 400]
+      "typeVersion": 3.4,
+      "position": [460, 400]
     },
     {
       "parameters": {
-        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -117,103 +72,187 @@
           ]
         },
         "sendBody": true,
+        "specifyBody": "form",
         "bodyParameters": {
-          "formParams": [
-            {
-              "name": "From",
-              "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
-            },
-            {"name": "To", "value": "={{ $json.phone }}"},
-            {"name": "Body", "value": "={{ $json.smsBody }}"}
-          ]
+          "formBodyParameters": {
+            "parameters": [
+              {
+                "name": "From",
+                "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
+              },
+              {
+                "name": "To",
+                "value": "={{ $json.phone }}"
+              },
+              {
+                "name": "Body",
+                "value": "={{ $json.smsBody }}"
+              }
+            ]
+          }
         },
-        "options": {"timeout": 10000}
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node_twilio_appt",
       "name": "Send Confirmation SMS",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [1340, 400],
+      "typeVersion": 4.2,
+      "position": [680, 400],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000,
-      "continueOnFail": true
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "conditions": {
-          "string": [
-            {"value1": "={{ $json.sid }}", "operation": "isNotEmpty"}
-          ]
-        }
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-sid",
+              "leftValue": "={{ $json.sid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "node_check_appt",
       "name": "SMS Sent?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [1560, 400]
+      "typeVersion": 2.2,
+      "position": [900, 400]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json[\"phone\"] }} | messageId: {{ $json.sid }}"},
-            {"name": "smsStatus", "value": "sent"},
-            {"name": "messageId", "value": "={{ $json.sid }}"}
+        "assignments": {
+          "assignments": [
+            {
+              "id": "log",
+              "name": "log",
+              "value": "=SMS sent to {{ $('Format Confirmation Message').first().json.phone }} | messageId: {{ $json.sid }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "smsStatus",
+              "value": "sent",
+              "type": "string"
+            },
+            {
+              "id": "msg-id",
+              "name": "messageId",
+              "value": "={{ $json.sid }}",
+              "type": "string"
+            }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "node_log_success",
       "name": "Log SMS Sent",
       "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1780, 300]
+      "typeVersion": 3.4,
+      "position": [1120, 300]
     },
     {
       "parameters": {
-        "url": "={{ $json.backendUrl || $json.body?.backendUrl }}/automation/send-notification",
-        "method": "POST",
-        "sendBody": true,
-        "headerParameters": {
-          "parameters": [
+        "assignments": {
+          "assignments": [
             {
-              "name": "x-api-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
+              "id": "error",
+              "name": "error",
+              "value": "={{ $json.message || $json.errorMessage || 'Unknown SMS failure' }}",
+              "type": "string"
             },
             {
-              "name": "x-webhook-key",
-              "value": "={{ $json.headers?.['x-api-key'] || $json.headers?.['X-API-Key'] || $json.automationApiKey || $json.body?.automationApiKey }}"
+              "id": "code",
+              "name": "errorCode",
+              "value": "={{ $json.status || $json.code || 'error' }}",
+              "type": "string"
             }
           ]
         },
-        "bodyParameters": {
-          "parameters": [
-            {"name": "type", "value": "sms_failure"},
-            {"name": "executionId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"executionId\"] }}"},
-            {"name": "error", "value": "={{ $json.message || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"},
-            {"name": "errorCode", "value": "={{ $json.status || $json.code || 'error' }}"},
-            {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"},
-            {"name": "entityType", "value": "appointment"},
-            {"name": "entityId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"entityId\"] }}"}
-          ]
-        },
-        "options": {"timeout": 10000}
+        "options": {}
       },
       "id": "node_log_failure",
       "name": "Log SMS Failure",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [1780, 500]
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1120, 500]
     }
   ],
   "connections": {
-    "Receive Appointment Event": {"main": [[{"node": "Auth Check", "type": "main", "index": 0}]]},
-    "Auth Check": {"main": [[{"node": "Validate Payload", "type": "main", "index": 0}], [{"node": "Return 401", "type": "main", "index": 0}]]},
-    "Validate Payload": {"main": [[{"node": "Respond 200 Immediately", "type": "main", "index": 0}], [{"node": "Return 400", "type": "main", "index": 0}]]},
-    "Respond 200 Immediately": {"main": [[{"node": "Format Confirmation Message", "type": "main", "index": 0}]]},
-    "Format Confirmation Message": {"main": [[{"node": "Send Confirmation SMS", "type": "main", "index": 0}]]},
-    "Send Confirmation SMS": {"main": [[{"node": "SMS Sent?", "type": "main", "index": 0}]]},
-    "SMS Sent?": {"main": [[{"node": "Log SMS Sent", "type": "main", "index": 0}], [{"node": "Log SMS Failure", "type": "main", "index": 0}]]}
+    "Receive Appointment Event": {
+      "main": [
+        [
+          {
+            "node": "Format Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation SMS": {
+      "main": [
+        [
+          {
+            "node": "SMS Sent?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log SMS Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Sent?": {
+      "main": [
+        [
+          {
+            "node": "Log SMS Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log SMS Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
     "executionOrder": "v1",
