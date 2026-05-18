@@ -23,8 +23,8 @@ function getOAuth2Client() {
 async function getAuthUrl(clinicId) {
     const oauth2Client = getOAuth2Client();
     const nonce = require('crypto').randomBytes(16).toString('hex');
-    const state = `${nonce}:${clinicId}`;
-    
+    const state = Buffer.from(JSON.stringify({ nonce, clinicId })).toString('base64url');
+
     // Save nonce to clinic to verify upon callback
     await prisma.clinic.update({
         where: { id: clinicId },

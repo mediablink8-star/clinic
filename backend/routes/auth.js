@@ -17,6 +17,10 @@ const rateLimit = require('express-rate-limit');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
 
+// Generate a random bcrypt hash that will never match any password
+// Used for social login users who have no password
+const SOCIAL_LOGIN_HASH = '$2b$10$' + crypto.randomBytes(32).toString('hex').slice(0, 53);
+
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 attempts
@@ -444,7 +448,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                 u = await tx.user.create({
                     data: {
                         email,
-                        passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
+                        passwordHash: SOCIAL_LOGIN_HASH,
                         role: 'OWNER',
                         clinicId: c.id,
                         name: name || email
@@ -456,7 +460,7 @@ router.post('/google', asyncHandler(async (req, res) => {
                     u = await tx.user.create({
                         data: {
                             email,
-                            passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD',
+                            passwordHash: SOCIAL_LOGIN_HASH,
                             role: 'OWNER',
                             clinicId: c.id,
                             name: name || email
@@ -649,7 +653,7 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
 
         // Social login users have no password — skip the check
-        if (user.passwordHash !== 'SOCIAL_LOGIN_NO_PASSWORD') {
+        if (!user.passwordHash.startsWith('$2b$')) {
             if (!password) {
                 throw new AppError('VALIDATION_ERROR', 'Password required to disable MFA', 400);
             }

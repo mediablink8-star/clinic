@@ -10,8 +10,10 @@ const {
 } = require('../services/appointmentService');
 
 router.get('/patients', asyncHandler(async (req, res) => {
-    const { data } = await listPatients(req.clinicId);
-    res.json(data);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const { data, total, totalPages } = await listPatients(req.clinicId, page, limit);
+    res.json({ data, total, page, limit, totalPages });
 }));
 
 router.post('/patients', validate(patientSchema), asyncHandler(async (req, res) => {
@@ -24,9 +26,11 @@ router.post('/patients', validate(patientSchema), asyncHandler(async (req, res) 
 }));
 
 router.get('/appointments', asyncHandler(async (req, res) => {
-    const { doctorId } = req.query;
-    const { data } = await listAppointments(req.clinicId, doctorId);
-    res.json(data);
+    const { doctorId, page, limit } = req.query;
+    const p = parseInt(page) || 1;
+    const l = parseInt(limit) || 50;
+    const { data, total, totalPages } = await listAppointments(req.clinicId, doctorId, p, l);
+    res.json({ data, total, page: p, limit: l, totalPages });
 }));
 
 router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {

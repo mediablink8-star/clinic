@@ -15,9 +15,13 @@ class ErrorBoundary extends Component {
         console.error('[ErrorBoundary]', error, info);
     }
 
+    handleReset = () => {
+        this.setState({ hasError: false, error: null });
+    };
+
     render() {
         if (this.state.hasError) {
-            return <ServerError error={this.state.error} />;
+            return <ServerError error={this.state.error} onReset={this.handleReset} />;
         }
         return this.props.children;
     }

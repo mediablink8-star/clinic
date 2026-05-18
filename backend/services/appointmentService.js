@@ -11,14 +11,19 @@ const logPrefix = '[AppointmentService]';
 const MIN_APPOINTMENT_MINUTES = 15;
 const MAX_APPOINTMENT_MINUTES = 240;
 
-async function listPatients(clinicId) {
-    const data = await prisma.patient.findMany({
-        where: { clinicId },
-        include: { appointments: true },
-        orderBy: { createdAt: 'desc' },
-        take: 200
-    });
-    return { success: true, data };
+async function listPatients(clinicId, page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+        prisma.patient.findMany({
+            where: { clinicId },
+            include: { appointments: { take: 5, orderBy: { createdAt: 'desc' } } },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit
+        }),
+        prisma.patient.count({ where: { clinicId } })
+    ]);
+    return { success: true, data, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 async function createPatient({ clinicId, name, phone, email }, actor) {
@@ -47,18 +52,23 @@ async function createPatient({ clinicId, name, phone, email }, actor) {
     return { success: true, data: patient };
 }
 
-async function listAppointments(clinicId, doctorId = null) {
+async function listAppointments(clinicId, doctorId = null, page = 1, limit = 50) {
     const whereClause = { clinicId };
     if (doctorId) {
         whereClause.doctorId = doctorId;
     }
-    const data = await prisma.appointment.findMany({
-        where: whereClause,
-        include: { patient: true, feedbacks: true, doctor: true },
-        orderBy: { createdAt: 'desc' },
-        take: 200
-    });
-    return { success: true, data };
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+        prisma.appointment.findMany({
+            where: whereClause,
+            include: { patient: true, feedbacks: true, doctor: true },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit
+        }),
+        prisma.appointment.count({ where: whereClause })
+    ]);
+    return { success: true, data, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
 async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId }, actor) {

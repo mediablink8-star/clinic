@@ -46,7 +46,7 @@ model Clinic {
   googleOAuthState           String?
   
   googleId      String?      @unique
-  avatarUrl     String?      @default("https://images.unsplash.com/photo-1516542077369-bc831dfb1b17?q=80&w=1000")
+  avatarUrl     String?      @default("/avatars/default.svg")
   messageCredits    Int           @default(100)
   monthlyCreditLimit Int           @default(100)
   creditResetDate    DateTime      @default(now())
@@ -198,6 +198,7 @@ model Appointment {
   updatedAt       DateTime          @updatedAt
 
   @@index([clinicId, doctorId, startTime, endTime, status])
+  @@unique([clinicId, doctorId, startTime, status], name: "unique_doctor_slot")
 }
 
 model Feedback {

@@ -1,9 +1,13 @@
 import React from 'react';
 import { Home, AlertCircle, RefreshCw } from 'lucide-react';
 
-const ServerError = ({ error }) => {
+const ServerError = ({ error, onReset }) => {
   const reload = () => {
-    window.location.reload();
+    if (onReset) {
+      onReset();
+    } else {
+      window.location.reload();
+    }
   };
 
   const navigateToHome = () => {

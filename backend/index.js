@@ -135,9 +135,13 @@ const requireAuth = asyncHandler(async (req, res, next) => {
 });
 
 const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'DOCTOR', 'ADMIN', 'OWNER'];
+const AUTOMATION_ROLE = 'AUTOMATION'; // Special role for API-key authenticated requests
 
 const requireRole = (role) => {
     return (req, res, next) => {
+        // Automation role bypasses role checks (it's a machine account)
+        if (req.user?.role === AUTOMATION_ROLE) return next();
+
         const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
         const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
         if (userRoleIndex < requiredRoleIndex) {
@@ -236,11 +240,13 @@ app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) =>
         return res.redirect(`${frontendUrl}/settings?gcal=error&reason=missing_params`);
     }
 
-    const [nonce, clinicId] = state.split(':');
-    if (!nonce || !clinicId) {
-        console.error('[GoogleCalendar] Invalid state format');
-        return res.redirect(`${frontendUrl}/settings?gcal=error&reason=invalid_state`);
-    }
+    try {
+        const stateObj = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+        const { nonce, clinicId } = stateObj;
+        if (!nonce || !clinicId) {
+            console.error('[GoogleCalendar] Invalid state format');
+            return res.redirect(`${frontendUrl}/settings?gcal=error&reason=invalid_state`);
+        }
 
     try {
         await gcalHandleCallback(code, clinicId, nonce);

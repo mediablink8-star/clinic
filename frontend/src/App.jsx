@@ -35,6 +35,20 @@ import { clearAccessToken, refreshAccessToken, setAccessToken } from './lib/auth
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
+// Only store essential auth fields in localStorage — not PII or sensitive data
+function sanitizeClinicData(clinic) {
+  if (!clinic) return null;
+  return {
+    id: clinic.id,
+    name: clinic.name,
+    role: clinic.role,
+    userId: clinic.userId,
+    isAdmin: clinic.isAdmin,
+    isPlatformAdmin: clinic.isPlatformAdmin,
+    onboardingCompleted: clinic.onboardingCompleted,
+  };
+}
+
 const App = () => {
   const queryClient = useQueryClient();
   // Simple Routing
@@ -133,13 +147,25 @@ const App = () => {
     // Attempt silent token refresh — cookie is sent automatically
     refreshAccessToken()
       .then(async refreshedToken => {
-        setToken(refreshedToken);
-        setAuthToken(refreshedToken);
-        // Load from localStorage immediately so UI isn't blank
-        let localClinic = null;
-        try { localClinic = JSON.parse(savedClinic); }
-        catch (e) { console.warn('[App] Failed to parse clinic data:', e); localStorage.removeItem('clinic_data'); }
-        if (localClinic) setClinic(localClinic);
+      setToken(refreshedToken);
+      setAuthToken(refreshedToken);
+      // Load minimal data from localStorage — only id, name, role for auth check
+      let localClinic = null;
+      try {
+        const raw = JSON.parse(savedClinic);
+        // Only keep essential auth fields, not PII
+        localClinic = {
+          id: raw.id,
+          name: raw.name,
+          role: raw.role,
+          userId: raw.userId,
+          isAdmin: raw.isAdmin,
+          isPlatformAdmin: raw.isPlatformAdmin,
+          onboardingCompleted: raw.onboardingCompleted,
+        };
+      }
+      catch (e) { console.warn('[App] Failed to parse clinic data:', e); localStorage.removeItem('clinic_data'); }
+      if (localClinic) setClinic(localClinic);
         // Then fetch fresh clinic data from API to pick up any DB changes (e.g. webhook URLs)
         try {
           const res = await fetch(`${API_BASE}/clinic`, {
@@ -148,7 +174,7 @@ const App = () => {
           if (res.ok) {
             const freshClinic = await res.json();
             setClinic(freshClinic);
-            localStorage.setItem('clinic_data', JSON.stringify(freshClinic));
+            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(freshClinic)));
             
             // Show onboarding if not completed and not a platform admin
             if (!freshClinic.onboardingCompleted && !freshClinic.isPlatformAdmin) {
@@ -385,7 +411,7 @@ const handleLogin = (loginData) => {
      } else if (!clinic?.onboardingCompleted) {
        setShowOnboarding(true);
      }
-     localStorage.setItem('clinic_data', JSON.stringify(clinic));
+     localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(clinic)));
      queryClient.invalidateQueries();
   };
 
@@ -399,7 +425,7 @@ const handleLogin = (loginData) => {
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
-    localStorage.setItem('clinic_data', JSON.stringify(clinic));
+    localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(clinic)));
     setShowOnboarding(true); // show wizard for new registrations
     queryClient.invalidateQueries();
   };
@@ -641,7 +667,7 @@ const handleLogin = (loginData) => {
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
-            localStorage.setItem('clinic_data', JSON.stringify(next));
+            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
           }}
           warnings={systemConfigStatus.warnings || []}
         />;
@@ -666,7 +692,7 @@ const handleLogin = (loginData) => {
         return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };
           setClinic(next);
-          localStorage.setItem('clinic_data', JSON.stringify(next));
+          localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
         }} />;
       case 'admin':
         return <AdminDashboard />;
@@ -696,13 +722,13 @@ const handleLogin = (loginData) => {
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
-            localStorage.setItem('clinic_data', JSON.stringify(next));
+            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
           }}
         />;
         return <AISettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };
           setClinic(next);
-          localStorage.setItem('clinic_data', JSON.stringify(next));
+          localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
         }} />;
       default:
         return (
@@ -736,11 +762,11 @@ const handleLogin = (loginData) => {
                setShowWelcome(true);
                setCurrentTab('dashboard');
              }}
-             onUpdate={(updated) => {
-               const next = { ...clinic, ...updated };
-               setClinic(next);
-               localStorage.setItem('clinic_data', JSON.stringify(next));
-             }}
+              onUpdate={(updated) => {
+                const next = { ...clinic, ...updated };
+                setClinic(next);
+                localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
+              }}
            />
          </ErrorBoundary>
        )}
