@@ -98,7 +98,7 @@ const PatientBooking = () => {
                     const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
                     const resp = await axios.get(url);
                     setAvailableSlots(resp.data.data);
-                    setFormData({ ...formData, time: '' }); // Clear selected time
+                    setFormData(prev => ({ ...prev, time: '' })); // Clear selected time
                 } catch (refreshErr) {
                     console.error("Failed to refresh slots:", refreshErr);
                 }
@@ -168,21 +168,21 @@ const PatientBooking = () => {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div className="form-group">
                                     <label htmlFor="name" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Ονοματεπώνυμο</label>
-                                    <input id="name" type="text" placeholder="Π.χ. Ιωάννης Παπαδόπουλος" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                    <input id="name" type="text" placeholder="Π.χ. Ιωάννης Παπαδόπουλος" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div className="form-group">
                                         <label htmlFor="phone" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Τηλέφωνο</label>
-                                        <input id="phone" type="tel" placeholder="69..." style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                        <input id="phone" type="tel" placeholder="69..." style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.phone} onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))} />
                                     </div>
                                     <div className="form-group">
                                         <label htmlFor="email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Email (Προαιρετικά)</label>
-                                        <input id="email" type="email" placeholder="email@example.com" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                        <input id="email" type="email" placeholder="email@example.com" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
                                     </div>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="reason" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>Λόγος Επίσκεψης</label>
-                                    <textarea id="reason" placeholder="Περιγράψτε σύντομα τι σας απασχολεί..." style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '100px', resize: 'none' }} value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} />
+                                    <textarea id="reason" placeholder="Περιγράψτε σύντομα τι σας απασχολεί..." style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '100px', resize: 'none' }} value={formData.reason} onChange={e => setFormData(prev => ({ ...prev, reason: e.target.value }))} />
                                 </div>
                                 <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', marginTop: '1rem' }} onClick={() => setStep(2)} disabled={!formData.name || !formData.phone}>
                                     Συνέχεια
@@ -206,7 +206,7 @@ const PatientBooking = () => {
                                         <select id="doctor" 
                                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white' }} 
                                             value={formData.doctorId} 
-                                            onChange={e => setFormData({ ...formData, doctorId: e.target.value, date: '', time: '' })}
+                                            onChange={e => setFormData(prev => ({ ...prev, doctorId: e.target.value, date: '', time: '' }))}
                                         >
                                             {doctors.length > 0 && <option value="">Οποιοσδήποτε διαθέσιμος</option>}
                                             {doctors.map(d => (
@@ -222,7 +222,7 @@ const PatientBooking = () => {
                                             type="date" 
                                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0' }} 
                                             value={formData.date} 
-                                            onChange={e => setFormData({ ...formData, date: e.target.value })} 
+                                            onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} 
                                             min={minDate} 
                                         />
                                     </div>
@@ -231,7 +231,7 @@ const PatientBooking = () => {
                                         <select id="time" 
                                             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: slotsLoading ? '#f1f5f9' : 'white' }} 
                                             value={formData.time} 
-                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                            onChange={e => setFormData(prev => ({ ...prev, time: e.target.value }))}
                                             disabled={!formData.date || slotsLoading || availableSlots.length === 0}
                                         >
                                             {!formData.date ? (

@@ -145,7 +145,7 @@ const App = () => {
 
   // On mount: try to restore session
   useEffect(() => {
-    const savedClinic = localStorage.getItem('clinic_data');
+    const savedClinic = localStorage.getItem('clinic_data:v1');
     
     if (!savedClinic) {
       setAuthLoading(false);
@@ -172,7 +172,7 @@ const App = () => {
           onboardingCompleted: raw.onboardingCompleted,
         };
       }
-      catch (e) { console.warn('[App] Failed to parse clinic data:', e); localStorage.removeItem('clinic_data'); }
+      catch (e) { console.warn('[App] Failed to parse clinic data:', e); localStorage.removeItem('clinic_data:v1'); }
       if (localClinic) setClinic(localClinic);
         // Then fetch fresh clinic data from API to pick up any DB changes (e.g. webhook URLs)
         try {
@@ -182,7 +182,7 @@ const App = () => {
           if (res.ok) {
             const freshClinic = await res.json();
             setClinic(freshClinic);
-            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(freshClinic)));
+            localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(freshClinic)));
             
             // Show onboarding if not completed and not a platform admin
             if (!freshClinic.onboardingCompleted && !freshClinic.isPlatformAdmin) {
@@ -195,7 +195,7 @@ const App = () => {
         // Refresh failed — clear stale clinic data
         clearAccessToken();
         clearAuthToken();
-        localStorage.removeItem('clinic_data');
+        localStorage.removeItem('clinic_data:v1');
       })
       .finally(() => {
         // Crucial: check is done, allow UI to render
@@ -419,7 +419,7 @@ const handleLogin = (loginData) => {
      } else if (!clinic?.onboardingCompleted) {
        setShowOnboarding(true);
      }
-     localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(clinic)));
+     localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(clinic)));
      queryClient.invalidateQueries();
   };
 
@@ -433,7 +433,7 @@ const handleLogin = (loginData) => {
     setToken(token);
     setAuthToken(token);
     setClinic(clinic);
-    localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(clinic)));
+    localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(clinic)));
     setShowOnboarding(true); // show wizard for new registrations
     queryClient.invalidateQueries();
   };
@@ -444,7 +444,7 @@ const handleLogin = (loginData) => {
     setToken(null);
     clearAuthToken();
     setClinic(null);
-    localStorage.removeItem('clinic_data');
+    localStorage.removeItem('clinic_data:v1');
     queryClient.clear();
   };
 
@@ -675,7 +675,7 @@ const handleLogin = (loginData) => {
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
-            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
+            localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(next)));
           }}
           warnings={systemConfigStatus.warnings || []}
         />;
@@ -701,7 +701,7 @@ const handleLogin = (loginData) => {
         return <ClinicSettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };
           setClinic(next);
-          localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
+          localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(next)));
         }} />;
       case 'admin':
         return <AdminDashboard />;
@@ -731,13 +731,13 @@ const handleLogin = (loginData) => {
           onUpdate={(updated) => {
             const next = { ...clinic, ...updated };
             setClinic(next);
-            localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
+            localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(next)));
           }}
         />;
         return <AISettings clinic={clinic} token={token} onUpdate={(updated) => {
           const next = { ...clinic, ...updated };
           setClinic(next);
-          localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
+          localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(next)));
         }} />;
       default:
         return (
@@ -771,11 +771,11 @@ const handleLogin = (loginData) => {
                setShowWelcome(true);
                setCurrentTab('dashboard');
              }}
-              onUpdate={(updated) => {
-                const next = { ...clinic, ...updated };
-                setClinic(next);
-                localStorage.setItem('clinic_data', JSON.stringify(sanitizeClinicData(next)));
-              }}
+               onUpdate={(updated) => {
+                 const next = { ...clinic, ...updated };
+                 setClinic(next);
+                 localStorage.setItem('clinic_data:v1', JSON.stringify(sanitizeClinicData(next)));
+               }}
            />
          </ErrorBoundary>
        )}

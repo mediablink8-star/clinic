@@ -207,7 +207,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                     { icon: '⚡', text: 'Το σύστημα ανιχνεύει αναπάντητες κλήσεις αυτόματα' },
                     { icon: '📅', text: 'Ασθενείς κλείνουν ραντεβού χωρίς χειροκίνητη παρέμβαση' },
                 ].map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '0.85rem' }}>{item.icon}</span>
                         <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#374151' }}>{item.text}</span>
                     </div>

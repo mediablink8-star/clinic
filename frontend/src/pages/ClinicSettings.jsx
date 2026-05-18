@@ -431,7 +431,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const handleStartMfaSetup = async () => {
         try {
             const res = await api.post('/auth/mfa/setup', {});
-            setMfaSetup({ ...mfaSetup, step: 'QR', secret: res.data.secret, qrImageUrl: res.data.qrImageUrl });
+            setMfaSetup(prev => ({ ...prev, step: 'QR', secret: res.data.secret, qrImageUrl: res.data.qrImageUrl }));
         } catch {
             showToast('Failed to start MFA setup.', 'error');
         }
@@ -1499,7 +1499,7 @@ zIndex: 30
                     <div style={{ background: 'white', padding: '2.5rem', borderRadius: '24px', width: '350px', boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
                         <h3 style={{ margin: '0 0 1rem', fontWeight: '900' }}>Ρύθμιση MFA</h3>
                         <img src={mfaSetup.qrImageUrl} style={{ width: '180px', borderRadius: '12px', margin: '1rem 0' }} alt="QR" />
-                        <input style={{ ...inputStyle, textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.4em' }} maxLength="6" placeholder="000000" value={mfaSetup.code} onChange={e => setMfaSetup({ ...mfaSetup, code: e.target.value })} />
+                        <input style={{ ...inputStyle, textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.4em' }} maxLength="6" placeholder="000000" value={mfaSetup.code} onChange={e => setMfaSetup(prev => ({ ...prev, code: e.target.value }))} />
                         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleVerifyMfa}>Επαλήθευση</button>
                             <button className="btn btn-outline" onClick={() => setMfaSetup({ step: '' })}>Ακύρωση</button>
@@ -1536,24 +1536,24 @@ zIndex: 30
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>{doctorForm.id ? 'Επεξεργασία Γιατρού' : 'Προσθήκη Γιατρού'}</h3>
                         <form onSubmit={handleSaveDoctor}>
                             <FormGroup label="Όνομα *">
-                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.name} onChange={e => setDoctorForm({...doctorForm, name: e.target.value})} required />
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.name} onChange={e => setDoctorForm(prev => ({...prev, name: e.target.value}))} required />
                             </FormGroup>
                             <FormGroup label="Ειδικότητα">
-                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.specialty || ''} onChange={e => setDoctorForm({...doctorForm, specialty: e.target.value})} />
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.specialty || ''} onChange={e => setDoctorForm(prev => ({...prev, specialty: e.target.value}))} />
                             </FormGroup>
                             <FormRow>
                                 <FormGroup label="Τηλέφωνο">
-                                    <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.phone || ''} onChange={e => setDoctorForm({...doctorForm, phone: e.target.value})} />
+                                    <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.phone || ''} onChange={e => setDoctorForm(prev => ({...prev, phone: e.target.value}))} />
                                 </FormGroup>
                                 <FormGroup label="Email">
-                                    <input type="email" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.email || ''} onChange={e => setDoctorForm({...doctorForm, email: e.target.value})} />
+                                    <input type="email" style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.email || ''} onChange={e => setDoctorForm(prev => ({...prev, email: e.target.value}))} />
                                 </FormGroup>
                             </FormRow>
                             <FormGroup label="Avatar URL">
-                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.avatarUrl || ''} onChange={e => setDoctorForm({...doctorForm, avatarUrl: e.target.value})} placeholder="https://..." />
+                                <input style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }} value={doctorForm.avatarUrl || ''} onChange={e => setDoctorForm(prev => ({...prev, avatarUrl: e.target.value}))} placeholder="https://..." />
                             </FormGroup>
                             <FormGroup label="Ωράριο (JSON)">
-                                <textarea style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '120px', fontFamily: 'monospace', fontSize: '0.8rem'}} value={doctorForm.workingHours || '{}'} onChange={e => setDoctorForm({...doctorForm, workingHours: e.target.value})} />
+                                <textarea style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '120px', fontFamily: 'monospace', fontSize: '0.8rem'}} value={doctorForm.workingHours || '{}'} onChange={e => setDoctorForm(prev => ({...prev, workingHours: e.target.value}))} />
                                 <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>JSON μορφή (π.χ. {"{"} "weekdays": "09:00 - 17:00" {"}"})</p>
                             </FormGroup>
                             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

@@ -159,7 +159,7 @@ const saveInfo = async () => {
         setSaving(true);
         try {
             await api.post('/clinic/onboarding-complete');
-            localStorage.setItem('onboarding_complete', 'true');
+            localStorage.setItem('onboarding_complete:v1', 'true');
             if (onUpdate) onUpdate({ onboardingCompleted: true });
             onComplete();
         } catch (err) {

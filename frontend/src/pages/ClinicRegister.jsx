@@ -139,7 +139,7 @@ const ClinicRegister = ({ onRegister }) => {
                   id="register-clinic-name"
                   required type="text"
                   value={formData.clinicName}
-                  onChange={e => setFormData({ ...formData, clinicName: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, clinicName: e.target.value }))}
                   placeholder="Οδοντιατρείο Παπαδόπουλος"
                   style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
@@ -155,7 +155,7 @@ const ClinicRegister = ({ onRegister }) => {
                   id="register-email"
                   required type="email"
                   value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="dr@clinic.gr"
                   style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
@@ -171,7 +171,7 @@ const ClinicRegister = ({ onRegister }) => {
                   id="register-phone"
                   required type="tel"
                   value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder="6912345678 ή 2101234567"
@@ -192,7 +192,7 @@ const ClinicRegister = ({ onRegister }) => {
                   id="register-password"
                   required type="password"
                   value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   placeholder="••••••••"
                   style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
@@ -204,7 +204,7 @@ const ClinicRegister = ({ onRegister }) => {
                 type="checkbox" 
                 id="agreedToTerms"
                 checked={formData.agreedToTerms}
-                onChange={e => setFormData({ ...formData, agreedToTerms: e.target.checked })}
+                onChange={e => setFormData(prev => ({ ...prev, agreedToTerms: e.target.checked }))}
                 style={{ marginTop: '4px', cursor: 'pointer' }}
               />
               <label htmlFor="agreedToTerms" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, cursor: 'pointer' }}>
