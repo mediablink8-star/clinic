@@ -248,7 +248,6 @@ app.get('/api/clinic/google-calendar/callback', asyncHandler(async (req, res) =>
             return res.redirect(`${frontendUrl}/settings?gcal=error&reason=invalid_state`);
         }
 
-    try {
         await gcalHandleCallback(code, clinicId, nonce);
         console.log('[GoogleCalendar] Successfully connected for clinic:', clinicId);
         res.redirect(`${frontendUrl}/settings?gcal=connected`);
