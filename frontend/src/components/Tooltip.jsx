@@ -75,7 +75,7 @@ const Tooltip = ({ children, text, position = 'top', style = {} }) => {
                         fontSize: '0.75rem',
                         fontWeight: '600',
                         whiteSpace: 'nowrap',
-                        zIndex: 10000,
+                        zIndex: 55,
                         pointerEvents: 'none',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(8px)',

@@ -107,7 +107,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                             if (!content || (isSystem && content.startsWith('vapi_call_id:'))) return null;
                             
                             return (
-                                <div key={idx} className={`message-bubble ${isPatient ? 'patient' : isSystem ? 'system' : 'ai'}`}>
+                                <div key={`msg-${idx}`} className={`message-bubble ${isPatient ? 'patient' : isSystem ? 'system' : 'ai'}`}>
                                     <div className="message-role">
                                         {isPatient ? 'Ασθενής' : isSystem ? 'Σύστημα' : 'AI Βοηθός'}
                                     </div>
@@ -254,8 +254,9 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                     </div>
 
                     <div className="action-panel-section">
-                        <label className="action-panel-label">Αποστολή SMS</label>
+                        <label htmlFor="action-sms-text" className="action-panel-label">Αποστολή SMS</label>
                         <textarea
+                            id="action-sms-text"
                             value={smsText}
                             onChange={e => setSmsText(e.target.value)}
                             placeholder="Γράψτε μήνυμα..."
@@ -272,7 +273,7 @@ const ActionPanel = ({ log, token, onClose, onNavigate }) => {
                     </div>
 
                     <div className="action-panel-section">
-                        <label className="action-panel-label">Γρήγορες Ενέργειες</label>
+                        <label htmlFor="quick-actions" className="action-panel-label">Γρήγορες Ενέργειες</label>
                         <div className="quick-actions">
                             <button className="quick-action-btn" onClick={() => { onNavigate && onNavigate('appointments'); onClose(); }}>
                                 <Calendar size={15} />

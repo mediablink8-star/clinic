@@ -13,7 +13,7 @@ const MetricRow = ({ icon: Icon, label, value, color = '#6366f1', warn = false }
 );
 
 const SectionCard = ({ title, children }) => (
-    <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(16px)', borderRadius: '20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(10px)', borderRadius: '20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <h3 style={{ fontSize: '0.78rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{title}</h3>
         {children}
     </div>
@@ -41,15 +41,15 @@ const Sparkline = ({ logs }) => {
                     const missedH = Math.max(2, Math.round((b.missed / maxVal) * H));
                     const recovH = b.recovered > 0 ? Math.max(2, Math.round((b.recovered / maxVal) * H)) : 0;
                     return (
-                        <g key={i}>
+                        <g key={`bar-${b.date}`}>
                             <rect x={x + 1} y={H - missedH} width={barW} height={missedH} rx="3" fill="rgba(239,68,68,0.25)" />
                             {recovH > 0 && <rect x={x + 1} y={H - recovH} width={barW} height={recovH} rx="3" fill="rgba(16,185,129,0.7)" />}
                         </g>
                     );
                 })}
-                {[0, 6, 13].map(i => (
-                    <text key={i} x={i * (W / days) + barW / 2} y={H + 14} textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="600">
-                        {new Date(buckets[i].date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}
+                {[0, 6, 13].map(idx => (
+                    <text key={`label-${idx}`} x={idx * (W / days) + barW / 2} y={H + 14} textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="600">
+                        {new Date(buckets[idx].date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' })}
                     </text>
                 ))}
             </svg>
@@ -76,7 +76,7 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
     return (
         <section className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <header style={{ padding: '1.75rem 2rem', background: 'linear-gradient(135deg, #0f172a 0%, #062c2b 100%)', borderRadius: '24px', color: 'white', boxShadow: 'var(--shadow-lg)', position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(80px)', opacity: 0.25, pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(10px)', opacity: 0.25, pointerEvents: 'none' }} />
                 <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '14px', padding: '10px', display: 'flex' }}><BarChart2 size={26} color="white" /></div>
                     <div>
@@ -97,7 +97,7 @@ const Analytics = ({ recoveryLog = [], recoveryStats = {}, spending = {}, system
                         const d = isRate ? (delta || 0) : (typeof value === 'number' ? value - prev : 0);
                         const up = d > 0; const neutral = d === 0;
                         return (
-                            <div key={label} style={{ background: 'var(--card-bg)', backdropFilter: 'blur(16px)', borderRadius: '16px', border: '1px solid var(--border)', padding: '1.1rem 1.25rem', boxShadow: 'var(--shadow-sm)' }}>
+                            <div key={label} style={{ background: 'var(--card-bg)', backdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid var(--border)', padding: '1.1rem 1.25rem', boxShadow: 'var(--shadow-sm)' }}>
                                 <p style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>{label}</p>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
                                     <span style={{ fontSize: '1.8rem', fontWeight: '900', color, letterSpacing: '-0.04em' }}>{value}</span>

@@ -76,8 +76,8 @@ const RecoveryFunnel = ({ logs = [], stats = {} }) => {
             className={`grid-cell-glass card-hover${flashing ? ' recovery-flash' : ''}`}
             style={{
                 background: 'rgba(255,255,255,0.72)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                backdropFilter: 'blur(10px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(180%)',
                 borderRadius: '24px',
                 border: '1px solid rgba(255,255,255,0.5)',
                 padding: '1.25rem',

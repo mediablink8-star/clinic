@@ -35,8 +35,8 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
         <div className={`appointment-card animate-fade${isUrgent ? ' urgent' : ''}`} style={{
             animationDelay: delay,
             background: isUrgent ? 'rgba(239,68,68,0.04)' : 'var(--glass-surface)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             padding: '1.5rem 1.75rem',
             borderRadius: '20px',
             border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,

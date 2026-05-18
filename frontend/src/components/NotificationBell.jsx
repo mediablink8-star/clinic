@@ -72,12 +72,12 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                 width: '340px',
                 maxHeight: '480px',
                 background: 'var(--modal-bg)',
-                backdropFilter: 'blur(28px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+                backdropFilter: 'blur(10px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(180%)',
                 borderRadius: '20px',
                 border: '1px solid var(--modal-border)',
                 boxShadow: '0 24px 60px -12px rgba(0,0,0,0.25)',
-                zIndex: 9999,
+                zIndex: 45,
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
@@ -108,7 +108,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                     <div style={{ padding: '10px 14px 6px' }}>
                         <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Προειδοποιήσεις Συστήματος</p>
                         {warnings.map((w, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', borderRadius: '10px', marginBottom: '4px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                            <div key={`warn-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', borderRadius: '10px', marginBottom: '4px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                                 <AlertTriangle size={13} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
                                 <span style={{ fontSize: '0.78rem', fontWeight: '600', color: 'var(--text)', lineHeight: 1.4 }}>{typeof w === 'object' ? w.message : w}</span>
                             </div>
@@ -172,7 +172,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: open ? 'var(--primary)' : 'var(--text-light)',
                     position: 'relative', transition: 'all 0.18s ease',
-                    backdropFilter: 'blur(16px) saturate(160%)', boxShadow: 'var(--shadow-sm)',
+                    backdropFilter: 'blur(10px) saturate(160%)', boxShadow: 'var(--shadow-sm)',
                 }}
             >
                 <Bell size={17} />

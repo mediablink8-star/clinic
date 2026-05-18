@@ -4,11 +4,25 @@ import { Brain, Activity, Check, MessageSquare } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
+const StatusBadge = ({ status, error }) => {
+    let config = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
+    if (status === 'connected') config = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
+    if (status === 'failed') config = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε', dot: '#ef4444' };
+    if (status === 'loading') config = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
+    return (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '99px', background: config.bg, color: config.color, fontSize: '0.75rem', fontWeight: '700' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: config.dot }} />
+            {config.text}
+            {error && <span title={error} style={{ cursor: 'help', marginLeft: '4px' }}>ⓘ</span>}
+        </div>
+    );
+};
+
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
         background: 'var(--card-bg)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        backdropFilter: 'blur(10px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(180%)',
         borderRadius: '20px',
         border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
@@ -43,9 +57,9 @@ const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) =>
 
 const FormRow = ({ children }) => <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>{children}</div>;
 
-const FormGroup = ({ label, flex, children }) => (
+const FormGroup = ({ label, htmlFor, flex, children }) => (
     <div style={{ marginBottom: '1.25rem', flex: flex || '1 1 200px' }}>
-        <label style={{
+        <label htmlFor={htmlFor} style={{
             display: 'block', marginBottom: '0.45rem', fontWeight: '600',
             fontSize: '0.82rem', color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.03em'
         }}>{label}</label>
@@ -55,7 +69,7 @@ const FormGroup = ({ label, flex, children }) => (
 
 const inputStyle = {
     width: '100%', padding: '0.7rem 1rem', borderRadius: '12px',
-    border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none',
+    border: '1px solid var(--border)', fontSize: '0.9rem', outline: '2px solid transparent',
     boxSizing: 'border-box', background: 'var(--bg-subtle)', color: 'var(--text)'
 };
 
@@ -116,31 +130,6 @@ const AISettings = ({ clinic, token, onUpdate }) => {
             .then(r => setGeminiStatus(r.data.configured ? 'configured' : 'not_configured'))
             .catch(() => setGeminiStatus('not_configured'));
     }, []);
-
-    const StatusBadge = ({ status, error }) => {
-        let config = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
-        if (status === 'connected') config = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
-        if (status === 'failed') config = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε', dot: '#ef4444' };
-        if (status === 'loading') config = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
-
-        return (
-            <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 12px',
-                borderRadius: '99px',
-                background: config.bg,
-                color: config.color,
-                fontSize: '0.75rem',
-                fontWeight: '700'
-            }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: config.dot }} />
-                {config.text}
-                {error && <span title={error} style={{ cursor: 'help', marginLeft: '4px' }}>ⓘ</span>}
-            </div>
-        );
-    };
 
     const set    = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
@@ -227,8 +216,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
             {/* Section 1 — AI Knowledge Config */}
             <SectionCard id="ai-s2" number="1" icon={<Brain size={15} color="#0891b2" />} iconBg="#ecfeff"
                 title="Ρυθμίσεις Γνώσης AI" subtitle="Ορίστε τη λογική του βοηθού — μετά τρέχει μόνος του">
-                <FormGroup label="Υπηρεσίες Ιατρείου">
-                    <textarea style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
+                <FormGroup label="Υπηρεσίες Ιατρείου" htmlFor="ai-services">
+                    <textarea id="ai-services" style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
                         value={formData.aiConfig?.services || ''}
                         placeholder="Λίστα υπηρεσιών (μία ανά γραμμή)..."
                         onChange={e => set('aiConfig', { ...formData.aiConfig, services: e.target.value })} />
@@ -315,8 +304,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                             { step: 'AI στέλνει SMS', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
                             { step: 'Ασθενής απαντά', color: '#6366f1', bg: 'rgba(99,102,241,0.1)' },
                             { step: 'Ραντεβού κλείνει', color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-                        ].map((item, i, arr) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                        ].map((item) => (
+                            <div key={item.step} style={{ display: 'flex', alignItems: 'center' }}>
                                 <div style={{
                                     padding: '5px 12px', borderRadius: '99px',
                                     background: item.bg, border: `1px solid ${item.color}22`,
@@ -325,7 +314,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                                 }}>
                                     {item.step}
                                 </div>
-                                {i < arr.length - 1 && (
+                                {item.step !== 'Ραντεβού κλείνει' && (
                                     <span style={{ fontSize: '0.7rem', color: '#cbd5e1', margin: '0 4px', fontWeight: '700' }}>→</span>
                                 )}
                             </div>
@@ -438,8 +427,8 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                         { label: 'Πάροχος AI',   status: systemStatus?.aiConfigured },
                         { label: 'n8n Webhook',   status: systemStatus?.webhookConfigured, altLabel: 'Ρυθμίστηκε' },
                         { label: 'Worker Ουράς', status: systemStatus?.worker, customRunning: 'Σε λειτουργία', customOffline: 'Εκτός λειτουργίας' }
-                    ].map((item, idx) => (
-                        <div key={idx} style={{
+                    ].map((item) => (
+                        <div key={item.label} style={{
                             padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafbfc'
                         }}>
@@ -463,7 +452,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
                     padding: '1.25rem 2.5rem', borderRadius: '14px',
                     backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444',
                     color: 'white', fontWeight: '700', fontSize: '0.95rem',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 1000,
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 45,
                     display: 'flex', alignItems: 'center', gap: '12px'
                 }}>
                     <Check size={18} />

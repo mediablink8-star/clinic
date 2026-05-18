@@ -20,7 +20,7 @@ const STEPS = [
 const inputStyle = {
     width: '100%', padding: '11px 14px', borderRadius: '12px',
     border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)',
-    color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box',
+    color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box',
 };
 
 const labelStyle = {
@@ -173,7 +173,7 @@ const saveInfo = async () => {
 
     return (
         <div style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
+            position: 'fixed', inset: 0, zIndex: 52,
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '1rem',
@@ -186,8 +186,8 @@ const saveInfo = async () => {
                     position: relative;
                     z-index: 1;
                     background: rgba(255,255,255,0.05);
-                    backdrop-filter: blur(24px);
-                    -webkit-backdrop-filter: blur(24px);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
                     border-radius: 28px;
                     border: 1px solid rgba(255,255,255,0.1);
                     padding: 2.5rem;
@@ -208,8 +208,8 @@ const saveInfo = async () => {
                 }
             `}</style>
             {/* Background glows */}
-            <div style={{ position: 'absolute', top: '-150px', left: '-150px', width: '500px', height: '500px', background: 'rgba(99,102,241,0.12)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-150px', right: '-150px', width: '400px', height: '400px', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: '-150px', left: '-150px', width: '500px', height: '500px', background: 'rgba(99,102,241,0.12)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-150px', right: '-150px', width: '400px', height: '400px', background: 'rgba(16,185,129,0.08)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
             <div className="wizard-container">
                 {/* Progress dots */}
@@ -254,20 +254,20 @@ const saveInfo = async () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Όνομα Ιατρείου *</label>
-                                <input style={inputStyle} value={info.name} onChange={e => setInfo(p => ({ ...p, name: e.target.value }))} placeholder="π.χ. Οδοντιατρείο Παπαδόπουλος" />
+                                <label htmlFor="wizard-clinic-name" style={labelStyle}>Όνομα Ιατρείου *</label>
+                                <input id="wizard-clinic-name" style={inputStyle} value={info.name} onChange={e => setInfo(p => ({ ...p, name: e.target.value }))} placeholder="π.χ. Οδοντιατρείο Παπαδόπουλος" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Email *</label>
-                                <input style={inputStyle} type="email" value={info.email} onChange={e => setInfo(p => ({ ...p, email: e.target.value }))} placeholder="info@clinic.gr" />
+                                <label htmlFor="wizard-email" style={labelStyle}>Email *</label>
+                                <input id="wizard-email" style={inputStyle} type="email" value={info.email} onChange={e => setInfo(p => ({ ...p, email: e.target.value }))} placeholder="info@clinic.gr" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Τηλέφωνο *</label>
-                                <input style={inputStyle} value={info.phone} onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} placeholder="6912345678" />
+                                <label htmlFor="wizard-phone" style={labelStyle}>Τηλέφωνο *</label>
+                                <input id="wizard-phone" style={inputStyle} value={info.phone} onChange={e => setInfo(p => ({ ...p, phone: e.target.value }))} placeholder="6912345678" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Διεύθυνση</label>
-                                <input style={inputStyle} value={info.location} onChange={e => setInfo(p => ({ ...p, location: e.target.value }))} placeholder="Αθήνα, Ελλάδα" />
+                                <label htmlFor="wizard-location" style={labelStyle}>Διεύθυνση</label>
+                                <input id="wizard-location" style={inputStyle} value={info.location} onChange={e => setInfo(p => ({ ...p, location: e.target.value }))} placeholder="Αθήνα, Ελλάδα" />
                             </div>
                         </div>
                     </div>
@@ -281,8 +281,9 @@ const saveInfo = async () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Υπηρεσίες Ιατρείου</label>
+                                <label htmlFor="wizard-services" style={labelStyle}>Υπηρεσίες Ιατρείου</label>
                                 <textarea
+                                    id="wizard-services"
                                     style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
                                     value={aiConfig.services}
                                     onChange={e => setAiConfig(p => ({ ...p, services: e.target.value }))}
@@ -291,13 +292,13 @@ const saveInfo = async () => {
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label style={labelStyle}>Μέση Αξία Ραντεβού (€)</label>
-                                    <input style={inputStyle} type="number" value={aiConfig.avgAppointmentValue}
+                                    <label htmlFor="wizard-appt-value" style={labelStyle}>Μέση Αξία Ραντεβού (€)</label>
+                                    <input id="wizard-appt-value" style={inputStyle} type="number" value={aiConfig.avgAppointmentValue}
                                         onChange={e => setAiConfig(p => ({ ...p, avgAppointmentValue: parseFloat(e.target.value) || 80 }))} />
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <label style={labelStyle}>Ύφος AI</label>
-                                    <select style={{ ...inputStyle, cursor: 'pointer' }} value={aiConfig.tone}
+                                    <label htmlFor="wizard-tone" style={labelStyle}>Ύφος AI</label>
+                                    <select id="wizard-tone" style={{ ...inputStyle, cursor: 'pointer' }} value={aiConfig.tone}
                                         onChange={e => setAiConfig(p => ({ ...p, tone: e.target.value }))}>
                                         <option value="Friendly">Φιλικό</option>
                                         <option value="Professional">Επαγγελματικό</option>
@@ -306,8 +307,8 @@ const saveInfo = async () => {
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Ωράριο (Καθημερινές)</label>
-                                <input style={inputStyle} value={aiConfig.workingHours['Δευτέρα'] || ''}
+                                <label htmlFor="wizard-working-hours" style={labelStyle}>Ωράριο (Καθημερινές)</label>
+                                <input id="wizard-working-hours" style={inputStyle} value={aiConfig.workingHours['Δευτέρα'] || ''}
                                     onChange={e => setAiConfig(p => ({
                                         ...p, workingHours: {
                                             ...p.workingHours,
@@ -319,8 +320,9 @@ const saveInfo = async () => {
                                 <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Εφαρμόζεται σε Δευτέρα–Παρασκευή. Μπορείτε να το αλλάξετε ανά ημέρα από τις Ρυθμίσεις AI.</p>
                             </div>
                             <div>
-                                <label style={labelStyle}>Αρχικό SMS (προαιρετικό)</label>
+                                <label htmlFor="wizard-sms-initial" style={labelStyle}>Αρχικό SMS (προαιρετικό)</label>
                                 <textarea
+                                    id="wizard-sms-initial"
                                     style={{ ...inputStyle, minHeight: '70px', resize: 'vertical', fontFamily: 'monospace', fontSize: '0.82rem' }}
                                     value={aiConfig.smsInitial}
                                     onChange={e => setAiConfig(p => ({ ...p, smsInitial: e.target.value }))}
@@ -329,7 +331,7 @@ const saveInfo = async () => {
                                 <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>Χρησιμοποιήστε {'{clinic_name}'} για το όνομα του ιατρείου.</p>
                             </div>
                             <div>
-                                <label style={labelStyle}>Γλώσσες</label>
+                                <label htmlFor="wizard-languages" style={labelStyle}>Γλώσσες</label>
                                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                                     {['Ελληνικά', 'Αγγλικά'].map(lang => (
                                         <label key={lang} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 12px', borderRadius: '8px', border: aiConfig.languages?.includes(lang) ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.15)', background: aiConfig.languages?.includes(lang) ? 'rgba(99,102,241,0.2)' : 'transparent' }}>
@@ -362,9 +364,10 @@ const saveInfo = async () => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Vapi API Key (προαιρετικό)</label>
+                                <label htmlFor="wizard-vapi-key" style={labelStyle}>Vapi API Key (προαιρετικό)</label>
                                 <div style={{ position: 'relative' }}>
                                     <input
+                                        id="wizard-vapi-key"
                                         style={{ ...inputStyle, paddingRight: '40px' }}
                                         type={showKey ? 'text' : 'password'}
                                         value={voiceData.vapiApiKey}
@@ -377,12 +380,12 @@ const saveInfo = async () => {
                                 </div>
                             </div>
                             <div>
-                                <label style={labelStyle}>Assistant ID *</label>
-                                <input style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
+                                <label htmlFor="wizard-assistant-id" style={labelStyle}>Assistant ID *</label>
+                                <input id="wizard-assistant-id" style={inputStyle} value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Phone Number ID *</label>
-                                <input style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
+                                <label htmlFor="wizard-phone-number-id" style={labelStyle}>Phone Number ID *</label>
+                                <input id="wizard-phone-number-id" style={inputStyle} value={voiceData.vapiPhoneNumberId} onChange={e => setVoiceData(p => ({ ...p, vapiPhoneNumberId: e.target.value }))} placeholder="phone_xxxxx" />
                             </div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '0.5rem' }}>
                                 <input type="checkbox" checked={voiceData.voiceEnabled} onChange={e => setVoiceData(p => ({ ...p, voiceEnabled: e.target.checked }))} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
@@ -405,12 +408,12 @@ const saveInfo = async () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
-                                <label style={labelStyle}>Webhook Αναπάντητων Κλήσεων</label>
-                                <input style={inputStyle} value={webhooks.webhookMissedCall} onChange={e => setWebhooks(p => ({ ...p, webhookMissedCall: e.target.value }))} placeholder="https://your-n8n.app/webhook/missed-call" />
+                                <label htmlFor="wizard-webhook-missed" style={labelStyle}>Webhook Αναπάντητων Κλήσεων</label>
+                                <input id="wizard-webhook-missed" style={inputStyle} value={webhooks.webhookMissedCall} onChange={e => setWebhooks(p => ({ ...p, webhookMissedCall: e.target.value }))} placeholder="https://your-n8n.app/webhook/missed-call" />
                             </div>
                             <div>
-                                <label style={labelStyle}>Webhook Άμεσου SMS</label>
-                                <input style={inputStyle} value={webhooks.webhookDirectSms} onChange={e => setWebhooks(p => ({ ...p, webhookDirectSms: e.target.value }))} placeholder="https://your-n8n.app/webhook/direct-sms" />
+                                <label htmlFor="wizard-webhook-sms" style={labelStyle}>Webhook Άμεσου SMS</label>
+                                <input id="wizard-webhook-sms" style={inputStyle} value={webhooks.webhookDirectSms} onChange={e => setWebhooks(p => ({ ...p, webhookDirectSms: e.target.value }))} placeholder="https://your-n8n.app/webhook/direct-sms" />
                             </div>
                         </div>
                     </div>

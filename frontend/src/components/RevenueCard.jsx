@@ -53,8 +53,8 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
             e.currentTarget.style.boxShadow = '0 8px 32px -8px rgba(15,23,42,0.4), 0 0 0 1px rgba(255,255,255,0.05)';
         }}
         >
-            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(70px)', opacity: 0.18, pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.12, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(10px)', opacity: 0.18, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(10px)', opacity: 0.12, pointerEvents: 'none' }} />
 
             <div style={{ padding: '0.85rem 1.25rem', display: 'flex', gap: '1rem', flex: 1, position: 'relative', zIndex: 1 }}>
                 {/* Left: performance metrics */}

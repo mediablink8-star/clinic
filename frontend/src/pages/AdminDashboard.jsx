@@ -66,7 +66,7 @@ const LoadingPlaceholder = ({ rows = 4 }) => (
   <div style={{ padding: '2rem' }}>
     <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
       {[...Array(rows)].map((_, i) => (
-        <div key={i} style={{
+        <div key={`sk-${i}`} style={{
           flex: 1, height: '72px', borderRadius: '12px',
           background: 'rgba(255,255,255,0.03)',
           animation: 'pulse 1.5s ease-in-out infinite',
@@ -121,8 +121,8 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid">
-        {cards.map((card, i) => (
-          <div key={i} style={{
+        {cards.map((card) => (
+          <div key={card.label} style={{
             background: 'var(--glass-surface)',
             backdropFilter: 'var(--glass-strong)',
             WebkitBackdropFilter: 'var(--glass-strong)',
@@ -166,8 +166,8 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
           {data.recentLogins?.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Δεν υπάρχουν πρόσφατες εισόδοι</p>
           ) : (
-            (data.recentLogins || []).map((u, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            (data.recentLogins || []).map((u) => (
+              <div key={u.email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{u.name || u.email}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{u.email}</div>
@@ -197,8 +197,8 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
           {(data.lowCreditClinics || []).length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Όλα τα ιατρεία έχουν επαρκή credits</p>
           ) : (
-            (data.lowCreditClinics || []).map((c, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            (data.lowCreditClinics || []).map((c) => (
+              <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{c.name}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.email}</div>
@@ -231,8 +231,8 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             Πικ Ώρες Ραντεβού
           </h3>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {data.peakHours.map((h, i) => (
-              <div key={i} style={{
+            {data.peakHours.map((h) => (
+              <div key={h.hour} style={{
                 padding: '8px 16px', borderRadius: '10px',
                 background: 'rgba(99,91,255,0.08)',
                 border: '1px solid rgba(99,91,255,0.15)',
@@ -366,12 +366,12 @@ const UserManagement = () => {
                <input
                  type="text" placeholder="Αναζήτηση χρηστών..."
                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                 style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+                 style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
                />
           </div>
           <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={{
             padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none',
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
             appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
             backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
@@ -385,7 +385,7 @@ const UserManagement = () => {
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
             padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none',
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
             appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
             backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
@@ -554,11 +554,11 @@ const AuditLogs = () => {
         display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end'
       }}>
         <div style={{ flex: 1, minWidth: '160px' }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Ενέργεια</label>
-          <select value={filters.action} onChange={e => handleFilterChange('action', e.target.value)} style={{
+          <label htmlFor="audit-action" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Ενέργεια</label>
+          <select id="audit-action" value={filters.action} onChange={e => handleFilterChange('action', e.target.value)} style={{
             width: '100%', padding: '8px 10px', borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit'
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', fontFamily: 'inherit'
           }}>
             <option value="">Όλες</option>
             <option value="CREATE_APPOINTMENT">Δημιουργία Ραντεβού</option>
@@ -576,11 +576,11 @@ const AuditLogs = () => {
           </select>
         </div>
         <div style={{ flex: 1, minWidth: '160px' }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Οντότητα</label>
-          <select value={filters.entity} onChange={e => handleFilterChange('entity', e.target.value)} style={{
+          <label htmlFor="audit-entity" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Οντότητα</label>
+          <select id="audit-entity" value={filters.entity} onChange={e => handleFilterChange('entity', e.target.value)} style={{
             width: '100%', padding: '8px 10px', borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit'
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', fontFamily: 'inherit'
           }}>
             <option value="">Όλες</option>
             <option value="APPOINTMENT">Ραντεβού</option>
@@ -592,19 +592,19 @@ const AuditLogs = () => {
           </select>
         </div>
         <div style={{ minWidth: '140px' }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Από</label>
-          <input type="date" value={filters.startDate} onChange={e => handleFilterChange('startDate', e.target.value)} style={{
+          <label htmlFor="audit-start-date" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Από</label>
+          <input id="audit-start-date" type="date" value={filters.startDate} onChange={e => handleFilterChange('startDate', e.target.value)} style={{
             width: '100%', padding: '8px 10px', borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit'
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', fontFamily: 'inherit'
           }} />
         </div>
         <div style={{ minWidth: '140px' }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Έως</label>
-          <input type="date" value={filters.endDate} onChange={e => handleFilterChange('endDate', e.target.value)} style={{
+          <label htmlFor="audit-end-date" style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '4px', display: 'block' }}>Έως</label>
+          <input id="audit-end-date" type="date" value={filters.endDate} onChange={e => handleFilterChange('endDate', e.target.value)} style={{
             width: '100%', padding: '8px 10px', borderRadius: '8px',
             border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit'
+            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', fontFamily: 'inherit'
           }} />
         </div>
         <button onClick={handleResetFilters} style={{
@@ -841,7 +841,7 @@ const AdminDashboard = () => {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 fontFamily: 'inherit',
-                outline: 'none'
+                outline: '2px solid transparent'
               }}
               onMouseOver={e => !isActive && (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
               onMouseOut={e => !isActive && (e.currentTarget.style.background = 'transparent')}
@@ -861,6 +861,17 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
+const SortThClinic = ({ field, label, sortBy, sortDir, handleSort }) => (
+    <th onClick={() => handleSort(field)} style={{
+      ...thBase, cursor: 'pointer', userSelect: 'none',
+      background: sortBy === field ? 'rgba(99,91,255,0.08)' : 'transparent'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {label}<SortArrow field={field} sortBy={sortBy} sortDir={sortDir} />
+      </div>
+    </th>
+  );
 
 /* ================================================================
    CLINICS TAB (refactored as a subcomponent)
@@ -1058,17 +1069,6 @@ const handleBulkAction = async (action) => {
     toast.success('Εξαγωγή CSV ολοκληρώθηκε');
   }, [filteredClinics]);
 
-  const SortThClinic = ({ field, label }) => (
-    <th onClick={() => handleSort(field)} style={{
-      ...thBase, cursor: 'pointer', userSelect: 'none',
-      background: sortBy === field ? 'rgba(99,91,255,0.08)' : 'transparent'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {label}<SortArrow field={field} sortBy={sortBy} sortDir={sortDir} />
-      </div>
-    </th>
-  );
-
   if (isLoading) return <LoadingPlaceholder />;
   if (error) return <ErrorState onRetry={refetch} />;
 
@@ -1081,8 +1081,8 @@ const handleBulkAction = async (action) => {
            { label: 'Ενεργά', value: metrics.active, icon: <CheckCircle2 size={20} />, accent: '#10b981', bg: 'rgba(16,185,129,0.08)' },
            { label: 'Ανενεργά', value: metrics.inactive, icon: <XCircle size={20} />, accent: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
            { label: 'Σύνολο Χρήστες', value: metrics.totalUsers, icon: <Users size={20} />, accent: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
-         ].map((card, i) => (
-          <div key={i} style={{
+          ].map((card) => (
+           <div key={card.label} style={{
             background: 'var(--glass-surface)',
             backdropFilter: 'var(--glass-strong)',
             WebkitBackdropFilter: 'var(--glass-strong)',
@@ -1115,8 +1115,8 @@ const handleBulkAction = async (action) => {
           { label: 'Μηνύματα / Ημέρα', value: `${metrics.totalUsedMsgs} / ${metrics.totalMsgs}`, icon: <MessageSquare size={18} />, accent: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', sub: `${Math.round((metrics.totalUsedMsgs / (metrics.totalMsgs || 1)) * 100)}% χρησιμοποίηση` },
           { label: 'Μεταβίβαση SMS', value: metrics.totalLogs, icon: <TrendingUp size={18} />, accent: '#10b981', bg: 'rgba(16,185,129,0.08)', sub: `${metrics.sentLogs} OK / ${metrics.failedLogs} λάθη` },
           { label: 'Ποσοστό Ενεργών', value: `${Math.round((metrics.active / (metrics.total || 1)) * 100)}%`, icon: <Activity size={18} />, accent: '#06b6d4', bg: 'rgba(6,182,212,0.08)' },
-        ].map((card, i) => (
-          <div key={i} style={{
+        ].map((card) => (
+          <div key={card.label} style={{
             background: 'var(--glass-surface)',
             backdropFilter: 'var(--glass-strong)',
             WebkitBackdropFilter: 'var(--glass-strong)',
@@ -1161,7 +1161,7 @@ const handleBulkAction = async (action) => {
              <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} style={{
                padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)',
                background: 'var(--glass-control)', color: 'var(--text)',
-               fontSize: '0.78rem', fontWeight: '600', outline: 'none', fontFamily: 'inherit',
+               fontSize: '0.78rem', fontWeight: '600', outline: '2px solid transparent', fontFamily: 'inherit',
                appearance: 'none', cursor: 'pointer'
              }}>
                <option value="">Επιλέξτε ενέργεια…</option>
@@ -1208,13 +1208,13 @@ const handleBulkAction = async (action) => {
               <input
                 type="text" placeholder="Αναζήτηση..."
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none', width: '200px', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+                style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', width: '200px', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
               />
             </div>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
               padding: '8px 30px 8px 12px', borderRadius: '8px',
               border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none',
+              background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
               appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
               backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
               backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
@@ -1246,12 +1246,10 @@ const handleBulkAction = async (action) => {
                    else setSelectedClinics([]);
                  }} checked={selectedClinics.length === filteredClinics.length && filteredClinics.length > 0} style={{ accentColor: 'var(--primary)' }} />
                </th>
-               <SortThClinic field="name" label="Ιατρείο" />
-               <SortThClinic field="email" label="Email" />
-               <th style={thBase}>Credits</th>
-               <SortThClinic field="_count.users" label="Χρήστες" />
-               <th style={thBase}>Status</th>
-               <SortThClinic field="createdAt" label="Δημιουργία" />
+               <SortThClinic field="name" label="Ιατρείο" sortBy={sortBy} sortDir={sortDir} handleSort={handleSort} />
+               <SortThClinic field="email" label="Email" sortBy={sortBy} sortDir={sortDir} handleSort={handleSort} />
+               <SortThClinic field="_count.users" label="Χρήστες" sortBy={sortBy} sortDir={sortDir} handleSort={handleSort} />
+               <SortThClinic field="createdAt" label="Δημιουργία" sortBy={sortBy} sortDir={sortDir} handleSort={handleSort} />
                <th style={thBase}>Ενέργειες</th>
              </tr>
            </thead>
@@ -1424,15 +1422,15 @@ const handleBulkAction = async (action) => {
 <div onClick={() => setShowCreateModal(false)} style={{
            position: 'fixed', inset: 0, zIndex: 100,
            background: 'rgba(5,11,27,0.65)',
-           backdropFilter: 'blur(16px) saturate(160%)',
-           WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+           backdropFilter: 'blur(10px) saturate(160%)',
+           WebkitBackdropFilter: 'blur(10px) saturate(160%)',
            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
          }}>
            <div onClick={e => e.stopPropagation()} style={{
              width: '100%', maxWidth: '480px',
              background: 'var(--glass-surface-strong)',
-             backdropFilter: 'blur(32px) saturate(200%)',
-             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+backdropFilter: 'blur(10px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(10px) saturate(200%)',
              borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
              boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)',
              overflow: 'hidden', position: 'relative'
@@ -1452,7 +1450,7 @@ const handleBulkAction = async (action) => {
                 width: '28px', height: '28px', borderRadius: '6px',
                 background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.12)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--cancel-color)', backdropFilter: 'blur(12px)'
+                color: 'var(--cancel-color)', backdropFilter: 'blur(10px)'
               }}><X size={14} /></button>
             </div>
             <form
@@ -1479,15 +1477,15 @@ const handleBulkAction = async (action) => {
                 <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Στοιχεία Ιατρείου</span>
                 <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
               </div>
-              <div><label style={formLabel}>Όνομα Ιατρείου *</label><input required style={inputBase} value={newClinic.name} onChange={e => setNewClinic({ ...newClinic, name: e.target.value })} placeholder="π.χ. Οδοντιατρείο Παπαδόπουλου" /></div>
+              <div><label htmlFor="new-clinic-name" style={formLabel}>Όνομα Ιατρείου *</label><input id="new-clinic-name" required style={inputBase} value={newClinic.name} onChange={e => setNewClinic({ ...newClinic, name: e.target.value })} placeholder="π.χ. Οδοντιατρείο Παπαδόπουλου" /></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.25rem' }}>
                 <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
                 <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Στοιχεία Ιδιοκτήτη</span>
                 <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
               </div>
-              <div><label style={formLabel}>Όνομα Ιδιοκτήτη</label><input style={inputBase} value={newClinic.ownerName} onChange={e => setNewClinic({ ...newClinic, ownerName: e.target.value })} placeholder="Πλήρες όνομα" /></div>
-              <div><label style={formLabel}>Email Ιδιοκτήτη *</label><input required type="email" style={inputBase} value={newClinic.ownerEmail} onChange={e => setNewClinic({ ...newClinic, ownerEmail: e.target.value })} placeholder="owner@clinic.gr" /></div>
-              <div><label style={formLabel}>Αρχικός Κωδικός *</label><input required type="password" style={inputBase} value={newClinic.ownerPassword} onChange={e => setNewClinic({ ...newClinic, ownerPassword: e.target.value })} placeholder="••••••••" /></div>
+              <div><label htmlFor="new-owner-name" style={formLabel}>Όνομα Ιδιοκτήτη</label><input id="new-owner-name" style={inputBase} value={newClinic.ownerName} onChange={e => setNewClinic({ ...newClinic, ownerName: e.target.value })} placeholder="Πλήρες όνομα" /></div>
+              <div><label htmlFor="new-owner-email" style={formLabel}>Email Ιδιοκτήτη *</label><input id="new-owner-email" required type="email" style={inputBase} value={newClinic.ownerEmail} onChange={e => setNewClinic({ ...newClinic, ownerEmail: e.target.value })} placeholder="owner@clinic.gr" /></div>
+              <div><label htmlFor="new-owner-password" style={formLabel}>Αρχικός Κωδικός *</label><input id="new-owner-password" required type="password" style={inputBase} value={newClinic.ownerPassword} onChange={e => setNewClinic({ ...newClinic, ownerPassword: e.target.value })} placeholder="••••••••" /></div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowCreateModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.15)', background: 'var(--glass-control)', color: 'var(--text-light)', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s' }}>Ακύρωση</button>
                 <button type="submit" disabled={isCreating} style={{ flex: 2, padding: '10px', borderRadius: '10px', border: 'none', background: isCreating ? 'var(--glass-control)' : 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)', color: isCreating ? 'var(--text-light)' : 'white', fontWeight: '800', fontSize: '0.88rem', cursor: isCreating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 6px 18px -6px rgba(99,91,255,0.4)', transition: 'all 0.2s' }}>
@@ -1505,21 +1503,21 @@ const handleBulkAction = async (action) => {
 <div onClick={() => setDetailClinic(null)} style={{
            position: 'fixed', inset: 0, zIndex: 100,
            background: 'rgba(5,11,27,0.65)',
-           backdropFilter: 'blur(16px) saturate(160%)',
-           WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+           backdropFilter: 'blur(10px) saturate(160%)',
+           WebkitBackdropFilter: 'blur(10px) saturate(160%)',
            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
          }}>
            <div onClick={e => e.stopPropagation()} style={{
              width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
              background: 'var(--glass-surface-strong)',
-             backdropFilter: 'blur(32px) saturate(200%)',
-             WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+backdropFilter: 'blur(10px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(10px) saturate(200%)',
              borderRadius: '16px', border: '1px solid rgba(255,255,255,0.2)',
              boxShadow: '0 32px 64px -12px rgba(5,11,27,0.4)', overflow: 'hidden', position: 'relative'
            }} className="modal-responsive">
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--glass-control-soft)', position: 'relative' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--text)', margin: 0 }}>{detailClinic.name}</h3>
-              <button onClick={() => setDetailClinic(null)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cancel-color)', backdropFilter: 'blur(12px)' }}><X size={14} /></button>
+              <button onClick={() => setDetailClinic(null)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cancel-color)', backdropFilter: 'blur(10px)' }}><X size={14} /></button>
             </div>
             <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <DetailRow label="ID" value={detailClinic.id} />
@@ -1570,7 +1568,7 @@ const inputBase = {
   width: '100%', padding: '10px 12px', borderRadius: '8px',
   border: '1px solid rgba(255,255,255,0.1)',
   background: 'rgba(255,255,255,0.05)', color: 'white',
-  fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit',
+  fontSize: '0.85rem', outline: '2px solid transparent', fontFamily: 'inherit',
   transition: 'border-color 0.2s', boxSizing: 'border-box'
 };
 

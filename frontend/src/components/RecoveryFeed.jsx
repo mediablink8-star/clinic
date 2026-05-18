@@ -224,7 +224,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     justify-content: space-around; 
                     padding: 10px 12px; 
                     background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-                    backdrop-filter: blur(20px) saturate(180%); 
+                    backdrop-filter: blur(10px) saturate(180%); 
                     border: 1px solid rgba(255,255,255,0.12); 
                     border-radius: 12px; 
                     margin-bottom: 8px; 
@@ -280,7 +280,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     border-radius: 12px; 
                     background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
                     border: 1px solid rgba(255,255,255,0.08);
-                    backdrop-filter: blur(16px);
+                    backdrop-filter: blur(10px);
                 }
                 .empty-icon { 
                     width: 40px; 
@@ -322,7 +322,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     cursor: pointer; 
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
                     position: relative;
-                    backdrop-filter: blur(12px);
+                    backdrop-filter: blur(10px);
                 }
                 .feed-item:hover { 
                     transform: translateX(4px) translateY(-2px); 

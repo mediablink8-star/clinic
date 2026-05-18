@@ -150,7 +150,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 999,
+                    zIndex: 30,
                     transition: 'all 0.3s ease',
                     animation: isOpen ? 'none' : 'pulse 2s infinite'
                 }}
@@ -186,7 +186,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                         display: 'flex',
                         flexDirection: 'column',
-                        zIndex: 998,
+                        zIndex: 40,
                         overflow: 'hidden',
                         animation: 'slideUp 0.3s ease'
                     }}
@@ -260,7 +260,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                     }}>
                         {messages.map((msg, idx) => (
                             <div
-                                key={idx}
+                                key={`msg-${idx}`}
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -295,7 +295,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                                 {msg.suggestions && (
                                     <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
                                         {msg.suggestions.map((sug, i) => (
-                                            <div key={i} style={{ fontSize: '0.72rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                                            <div key={`sug-${i}`} style={{ fontSize: '0.72rem', color: 'var(--text-light)', fontStyle: 'italic' }}>
                                                 💡 {sug}
                                             </div>
                                         ))}
@@ -320,7 +320,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                         <div style={{ padding: '0 1rem 0.5rem', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                             {quickCommands.map((cmd, idx) => (
                                 <button
-                                    key={idx}
+                                    key={`cmd-${cmd.command}`}
                                     onClick={() => setInput(cmd.command)}
                                     style={{
                                         padding: '6px 12px',
@@ -366,7 +366,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                                 background: 'var(--bg-subtle)',
                                 color: 'var(--text)',
                                 fontSize: '0.85rem',
-                                outline: 'none'
+                                outline: '2px solid transparent'
                             }}
                         />
                         <button

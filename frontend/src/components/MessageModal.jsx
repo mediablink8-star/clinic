@@ -53,10 +53,10 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
     <div style={{
       position: 'fixed', inset: 0,
       background: 'rgba(15,23,42,0.5)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: '1rem'
+      zIndex: 51, padding: '1rem'
     }}>
       <div style={{
         background: 'var(--modal-bg)',
@@ -101,10 +101,11 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
 
         {/* Textarea */}
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+          <label htmlFor="message-content" style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
             Περιεχόμενο Μηνύματος
           </label>
           <textarea
+            id="message-content"
             autoFocus
             value={message}
             onChange={e => setMessage(e.target.value)}
@@ -114,7 +115,7 @@ const MessageModal = ({ isOpen, onClose, patient, token }) => {
               width: '100%', padding: '12px', borderRadius: '12px',
               border: '1px solid var(--border)', fontSize: '0.9rem',
               resize: 'none', minHeight: '140px', boxSizing: 'border-box',
-              outline: 'none', fontFamily: 'inherit', color: 'var(--text)'
+              outline: '2px solid transparent', fontFamily: 'inherit', color: 'var(--text)'
             }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.7rem', color: '#94a3b8', fontWeight: '600' }}>

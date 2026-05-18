@@ -76,7 +76,7 @@ function TestSetupModal({ token, clinic, onClose }) {
     };
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 45, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <div style={{ background: 'var(--card-bg)', borderRadius: '20px', border: '1px solid var(--border)', padding: '1.75rem', width: '100%', maxWidth: '420px', boxShadow: 'var(--shadow-lg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -96,12 +96,13 @@ function TestSetupModal({ token, clinic, onClose }) {
                 </p>
 
                 <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-light)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Αριθμός Τηλεφώνου</label>
+                    <label htmlFor="test-phone" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-light)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Αριθμός Τηλεφώνου</label>
                     <input
+                        id="test-phone"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
                         placeholder="+306912345678"
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                     />
                 </div>
 
@@ -155,7 +156,7 @@ function BugReportModal({ onClose }) {
     };
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 45, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <div style={{ background: 'var(--card-bg)', borderRadius: '20px', border: '1px solid var(--border)', padding: '1.75rem', width: '100%', maxWidth: '420px', boxShadow: 'var(--shadow-lg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -183,7 +184,7 @@ function BugReportModal({ onClose }) {
                             onChange={e => setDescription(e.target.value)}
                             placeholder="π.χ. Όταν πατάω 'Νέο Ραντεβού' δεν ανοίγει το παράθυρο..."
                             rows={5}
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', boxSizing: 'border-box', outline: 'none', marginBottom: '1rem' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', boxSizing: 'border-box', outline: '2px solid transparent', marginBottom: '1rem' }}
                         />
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                             <button onClick={onClose} style={{ padding: '9px 16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer' }}>Ακύρωση</button>

@@ -7,7 +7,24 @@ import {
     MessageSquare
 } from 'lucide-react';
 
+const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+
+const StatusBadge = ({ status, latency, error }) => {
+    let config = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
+    if (status === 'connected') config = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
+    if (status === 'failed') config = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε', dot: '#ef4444' };
+    if (status === 'loading') config = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
+    return (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '99px', background: config.bg, color: config.color, fontSize: '0.75rem', fontWeight: '700' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: config.dot }} />
+            {config.text}
+            {latency && <span style={{ opacity: 0.6 }}>({latency}ms)</span>}
+            {error && <span title={error} style={{ cursor: 'help' }}>ⓘ</span>}
+        </div>
+    );
+};
 
 /* ─────────────────────────────────────────────────────────
    Layout primitives
@@ -15,8 +32,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
         background: 'var(--card-bg)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        backdropFilter: 'blur(10px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(180%)',
         borderRadius: '20px',
         border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
@@ -78,9 +95,9 @@ const FormRow = ({ children }) => (
     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>{children}</div>
 );
 
-const FormGroup = ({ label, flex, children }) => (
+const FormGroup = ({ label, htmlFor, flex, children }) => (
     <div style={{ marginBottom: '1.25rem', flex: flex || '1 1 200px' }}>
-        <label style={{
+        <label htmlFor={htmlFor} style={{
             display: 'block',
             marginBottom: '0.45rem',
             fontWeight: '600',
@@ -101,7 +118,7 @@ const inputStyle = {
     borderRadius: '12px',
     border: '1px solid var(--border)',
     fontSize: '0.9rem',
-    outline: 'none',
+    outline: '2px solid transparent',
     boxSizing: 'border-box',
     background: 'var(--bg-subtle)',
     color: 'var(--text)'
@@ -411,32 +428,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
-    const StatusBadge = ({ status, latency, error }) => {
-        let config = { bg: '#fefce8', color: '#854d0e', text: 'Δεν δοκιμάστηκε', dot: '#eab308' };
-        if (status === 'connected') config = { bg: '#f0fdf4', color: '#166534', text: 'Συνδέθηκε', dot: '#22c55e' };
-        if (status === 'failed') config = { bg: '#fef2f2', color: '#991b1b', text: 'Απέτυχε', dot: '#ef4444' };
-        if (status === 'loading') config = { bg: '#f8fafc', color: '#475569', text: 'Δοκιμή...', dot: '#94a3b8' };
-
-        return (
-            <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 12px',
-                borderRadius: '99px',
-                background: config.bg,
-                color: config.color,
-                fontSize: '0.75rem',
-                fontWeight: '700'
-            }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: config.dot }} />
-                {config.text}
-                {latency && <span style={{ opacity: 0.6 }}>({latency}ms)</span>}
-                {error && <span title={error} style={{ cursor: 'help' }}>ⓘ</span>}
-            </div>
-        );
-    };
-
     const handleStartMfaSetup = async () => {
         try {
             const res = await api.post('/auth/mfa/setup', {});
@@ -685,8 +676,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         } finally { setTestingVapi(false); }
     };
 
-    const ErrorText = ({ message }) => message ? <p style={{ color: '#ef4444', fontSize: '0.72rem', marginTop: '4px', fontWeight: '600' }}>{message}</p> : null;
-
     return (
         <div className="animate-fade" style={{ maxWidth: '860px', paddingBottom: '3rem' }}>
 
@@ -717,14 +706,14 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 marginBottom: '1.75rem',
                 padding: '0.6rem',
                 background: 'var(--card-bg)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
                 borderRadius: '16px',
                 border: '1px solid var(--border)',
                 boxShadow: 'var(--shadow-md)',
                 position: 'sticky',
                 top: '20px',
-                zIndex: 10
+zIndex: 30
             }}>
                 {SECTIONS.map(s => (
                     <button
@@ -754,8 +743,9 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             {/* 1 · General Info */}
             <SectionCard id="s1" number="1" icon={<Globe size={15} color="var(--primary)" />} iconBg="var(--primary-light)"
                 title="Γενικές Πληροφορίες Ιατρείου" subtitle="Βασική ταυτότητα και στοιχεία επικοινωνίας">
-                <FormGroup label="Όνομα Ιατρείου *" flex="1 1 100%">
+                <FormGroup label="Όνομα Ιατρείου *" htmlFor="clinic-name" flex="1 1 100%">
                     <input
+                        id="clinic-name"
                         style={{ ...inputStyle, borderColor: infoErrors.name ? '#dc2626' : undefined }}
                         type="text"
                         value={formData.name || ''}
@@ -765,8 +755,9 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     <ErrorText message={infoErrors.name} />
                 </FormGroup>
                 <FormRow>
-                    <FormGroup label="Τηλέφωνο *">
+                    <FormGroup label="Τηλέφωνο *" htmlFor="clinic-phone">
                         <input
+                            id="clinic-phone"
                             style={{ ...inputStyle, borderColor: infoErrors.phone ? '#dc2626' : undefined }}
                             type="text"
                             value={formData.phone || ''}
@@ -774,8 +765,9 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         />
                         <ErrorText message={infoErrors.phone} />
                     </FormGroup>
-                    <FormGroup label="Email *">
+                    <FormGroup label="Email *" htmlFor="clinic-email">
                         <input
+                            id="clinic-email"
                             style={{ ...inputStyle, borderColor: infoErrors.email ? '#dc2626' : undefined }}
                             type="email"
                             value={formData.email || ''}
@@ -785,16 +777,18 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     </FormGroup>
                 </FormRow>
                 <FormRow>
-                    <FormGroup label="Διεύθυνση" flex="2 1 200px">
+                    <FormGroup label="Διεύθυνση" htmlFor="clinic-location" flex="2 1 200px">
                         <input
+                            id="clinic-location"
                             style={inputStyle}
                             type="text"
                             value={formData.location || ''}
                             onChange={e => set('location', e.target.value)}
                         />
                     </FormGroup>
-                    <FormGroup label="Ζώνη Ώρας" flex="1 1 180px">
+                    <FormGroup label="Ζώνη Ώρας" htmlFor="clinic-timezone" flex="1 1 180px">
                         <select
+                            id="clinic-timezone"
                             style={inputStyle}
                             value={formData.timezone || 'Europe/Athens'}
                             onChange={e => set('timezone', e.target.value)}
@@ -961,7 +955,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                                                 style={{
                                                     padding: '4px 28px 4px 10px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800',
                                                     border: `1px solid ${color}33`, background: `${color}10`, color,
-                                                    cursor: 'pointer', appearance: 'none', outline: 'none'
+                                                    cursor: 'pointer', appearance: 'none', outline: '2px solid transparent'
                                                 }}
                                             >
                                                 <option value="OWNER">Ιδιοκτήτης</option>
@@ -995,20 +989,20 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <form onSubmit={handleInvite} style={{ padding: '1.25rem', borderRadius: '14px', background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.12)' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                 <div>
-                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Όνομα</label>
-                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} placeholder="π.χ. Μαρία" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
+                                    <label htmlFor="invite-name" style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Όνομα</label>
+                                    <input id="invite-name" style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} placeholder="π.χ. Μαρία" value={inviteForm.name} onChange={e => setInviteForm(f => ({ ...f, name: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Email *</label>
-                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="email" placeholder="email@example.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
+                                    <label htmlFor="invite-email" style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Email *</label>
+                                    <input id="invite-email" style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="email" placeholder="email@example.com" value={inviteForm.email} onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Κωδικός *</label>
-                                    <input style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="password" placeholder="Προσωρινός κωδικός" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} />
+                                    <label htmlFor="invite-password" style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Κωδικός *</label>
+                                    <input id="invite-password" style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} type="password" placeholder="Προσωρινός κωδικός" value={inviteForm.password} onChange={e => setInviteForm(f => ({ ...f, password: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Ρόλος</label>
-                                    <select style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
+                                    <label htmlFor="invite-role" style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-light)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Ρόλος</label>
+                                    <select id="invite-role" style={{ ...inputStyle, padding: '0.5rem 0.75rem' }} value={inviteForm.role} onChange={e => setInviteForm(f => ({ ...f, role: e.target.value }))}>
                                         <option value="OWNER">Ιδιοκτήτης</option>
                                         <option value="RECEPTIONIST">Γραμματέας</option>
                                         <option value="ASSISTANT">Βοηθός</option>
@@ -1054,7 +1048,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                                     <tr key={label}>
                                         <td style={{ padding: '5px 8px', color: 'var(--text)', fontWeight: '500' }}>{label}</td>
                                         {perms.map((allowed, i) => (
-                                            <td key={i} style={{ textAlign: 'center', padding: '5px 8px' }}>
+                                            <td key={`perm-${i}`} style={{ textAlign: 'center', padding: '5px 8px' }}>
                                                 {allowed
                                                     ? <span style={{ color: '#10b981', fontWeight: '800' }}>✓</span>
                                                     : <span style={{ color: '#cbd5e1', fontWeight: '800' }}>—</span>
@@ -1501,7 +1495,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
             {/* MFA Modal */}
             {mfaSetup.step === 'QR' && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 51 }}>
                     <div style={{ background: 'white', padding: '2.5rem', borderRadius: '24px', width: '350px', boxShadow: 'var(--shadow-lg)', textAlign: 'center' }}>
                         <h3 style={{ margin: '0 0 1rem', fontWeight: '900' }}>Ρύθμιση MFA</h3>
                         <img src={mfaSetup.qrImageUrl} style={{ width: '180px', borderRadius: '12px', margin: '1rem 0' }} alt="QR" />
@@ -1528,7 +1522,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     backgroundColor: toast.type === 'success' ? '#10b981' : '#ef4444',
                     color: 'white', fontWeight: '700', fontSize: '0.95rem',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                    zIndex: 1000, animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    zIndex: 45, animation: 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                     display: 'flex', alignItems: 'center', gap: '12px'
                 }}>
                     {toast.type === 'success' ? <Check size={18} /> : <Activity size={18} />}
@@ -1537,7 +1531,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             )}
 
             {showDoctorModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 52 }}>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h3 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.25rem' }}>{doctorForm.id ? 'Επεξεργασία Γιατρού' : 'Προσθήκη Γιατρού'}</h3>
                         <form onSubmit={handleSaveDoctor}>
@@ -1572,7 +1566,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             )}
 
             {showUpgradeModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={() => setShowUpgradeModal(false)}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 52 }} onClick={() => setShowUpgradeModal(false)}>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '20px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
@@ -1630,7 +1624,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                                                 📅 {plan.dailyMessageCap >= 9999 ? 'Απεριόριστο' : plan.dailyMessageCap.toLocaleString()} ημερήσιο όριο
                                             </div>
                                             <ul style={{ margin: 0, padding: '0 0 0 16px', fontSize: '0.75rem', color: textColor, opacity: 0.85 }}>
-                                                {plan.features.map((f, i) => <li key={i} style={{ marginBottom: '4px' }}>{f}</li>)}
+                                                {plan.features.map((f, i) => <li key={`feat-${plan.key}-${i}`} style={{ marginBottom: '4px' }}>{f}</li>)}
                                             </ul>
                                         </div>
 

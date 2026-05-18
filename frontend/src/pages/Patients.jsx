@@ -52,7 +52,7 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
     };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 51 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '440px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: 'var(--text)' }}>Νέος Ασθενής</h2>
@@ -60,8 +60,8 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
                 </div>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Ονοματεπώνυμο *</label>
-                        <input 
+                        <label htmlFor="patient-name" style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Ονοματεπώνυμο *</label>
+                        <input id="patient-name" 
                             type="text" 
                             value={form.name} 
                             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} 
@@ -72,8 +72,8 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
                         {touched.name && validateField('name', form.name) && <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '4px 0 0' }}>{validateField('name', form.name)}</p>}
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Τηλέφωνο *</label>
-                        <input 
+                        <label htmlFor="patient-phone" style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Τηλέφωνο *</label>
+                        <input id="patient-phone" 
                             type="tel" 
                             value={form.phone} 
                             onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} 
@@ -84,8 +84,8 @@ const NewPatientModal = ({ onClose, onCreated, token }) => {
                         {touched.phone && validateField('phone', form.phone) && <p style={{ color: '#ef4444', fontSize: '0.75rem', margin: '4px 0 0' }}>{validateField('phone', form.phone)}</p>}
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Email (προαιρετικό)</label>
-                        <input 
+                        <label htmlFor="patient-email" style={{ fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-light)', display: 'block', marginBottom: '4px' }}>Email (προαιρετικό)</label>
+                        <input id="patient-email" 
                             type="email" 
                             value={form.email} 
                             onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
@@ -135,7 +135,7 @@ const PatientProfilePanel = ({ patient, token, onClose }) => {
     };
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex' }}>
             <div style={{ flex: 1, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
             <div style={{ width: '400px', background: 'var(--modal-bg)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', boxShadow: '-20px 0 60px rgba(0,0,0,0.15)', animation: 'slideInRight 0.2s ease' }}>
                 {/* Header */}
@@ -213,7 +213,7 @@ const PatientProfilePanel = ({ patient, token, onClose }) => {
                                 onChange={e => setSmsText(e.target.value)}
                                 placeholder="Γράψτε το μήνυμά σας..."
                                 rows={5}
-                                style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', resize: 'none', boxSizing: 'border-box', outline: 'none' }}
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', resize: 'none', boxSizing: 'border-box', outline: '2px solid transparent' }}
                             />
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.68rem', color: 'var(--text-light)' }}>{smsText.length} χαρακτήρες</span>
@@ -256,13 +256,13 @@ const PatientsSkeleton = () => (
         <Skeleton height="48px" width="100%" borderRadius="12px" style={{ marginBottom: '1.5rem' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[...Array(5)].map((_, i) => (
-                <div key={i} style={{
+                <div key={`pt-sk-${i}`} style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '1rem 1.25rem',
                     background: 'var(--glass-surface)',
-                    backdropFilter: 'blur(12px)',
+backdropFilter: 'blur(10px)',
                     borderRadius: '16px',
                     border: '1px solid var(--border)',
                 }}>
@@ -328,7 +328,7 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated, isLoading,
                         </button>
                     </div>
                 </div>
-                <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(100px)', opacity: 0.3, borderRadius: '50%' }} />
+                <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(10px)', opacity: 0.3, borderRadius: '50%' }} />
             </header>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -355,7 +355,7 @@ const Patients = ({ patients, setCurrentTab, token, onPatientCreated, isLoading,
                         key={p.id}
                         onClick={() => setSelectedPatient(p)}
                         className="animate-fade card-hover"
-                        style={{ animationDelay: `${idx * 0.04}s`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'var(--glass-surface)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                        style={{ animationDelay: `${idx * 0.04}s`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', background: 'var(--glass-surface)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer', transition: 'all 0.2s ease' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                     >

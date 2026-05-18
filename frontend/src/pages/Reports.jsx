@@ -44,8 +44,8 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
 
     const cardStyle = {
         background: 'var(--card-bg)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         padding: '1.25rem',
         borderRadius: '20px',
         border: '1px solid var(--border)',
@@ -70,7 +70,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                         <p style={{ fontSize: '0.95rem', fontWeight: '500', opacity: 0.7 }}>Ανάλυση απόδοσης ιατρείου και εμπειρίας ασθενών.</p>
                     </div>
                 </div>
-                <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(100px)', opacity: 0.3, borderRadius: '50%' }} />
+                <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--primary)', filter: 'blur(10px)', opacity: 0.3, borderRadius: '50%' }} />
             </header>
 
             {/* Top KPI cards */}
@@ -91,7 +91,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
             {/* Recovery funnel + Appointment breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
                 {/* Recovery funnel */}
-                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                     <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Πρόοδος Ασθενών</h3>
                     {[
                         { label: 'Αναπάντητες', value: totalMissed, color: '#ef4444', pct: 100 },
@@ -117,7 +117,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                 </div>
 
                 {/* Appointment status breakdown */}
-                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(12px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '1.5rem', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
                     <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κατάσταση Ραντεβού</h3>
                     {[
                         { key: 'CONFIRMED', label: 'Επιβεβαιωμένα', color: '#10b981' },
@@ -174,7 +174,7 @@ const Reports = ({ appointments, recoveryStats: recoveryStatsProp, recoveryLog: 
                             animationDelay: `${idx * 0.05}s`,
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             padding: '1.25rem 1.5rem',
-                            background: 'var(--card-bg)', backdropFilter: 'blur(12px)',
+                            background: 'var(--card-bg)', backdropFilter: 'blur(10px)',
                             borderRadius: '16px', border: '1px solid var(--border)',
                             boxShadow: 'var(--shadow-sm)',
                         }}>

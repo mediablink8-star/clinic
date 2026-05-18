@@ -45,7 +45,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
     };
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)' }} onClick={onClose}>
             <div style={{ width: '90%', maxWidth: '480px', maxHeight: '80vh', background: 'var(--modal-bg)', borderRadius: '20px', boxShadow: 'var(--shadow-xl)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -72,7 +72,7 @@ const CallPatientModal = ({ patients = [], token, onClose }) => {
                             placeholder="Αναζήτηση ασθενή..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            style={{ width: '100%', padding: '10px 12px 10px 38px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '10px 12px 10px 38px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                         />
                     </div>
                 </div>

@@ -155,7 +155,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                         marginBottom: '12px',
                         transition: 'all 0.2s ease',
                         boxShadow: 'var(--shadow-sm)',
-                        backdropFilter: 'blur(16px) saturate(160%)'
+                        backdropFilter: 'blur(10px) saturate(160%)'
                     }}
                 >
                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-light)' }}>
@@ -198,7 +198,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                     gap: '12px',
                     padding: '12px',
                     background: 'var(--card-bg)',
-                    backdropFilter: 'blur(20px) saturate(180%)',
+                    backdropFilter: 'blur(10px) saturate(180%)',
                     borderRadius: '16px',
                     boxShadow: 'var(--shadow-sm)',
                     border: '1px solid rgba(255,255,255,0.26)'
@@ -237,7 +237,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                             justifyContent: 'center',
                             transition: 'all 0.2s ease',
                             boxShadow: 'var(--shadow-sm)',
-                            backdropFilter: 'blur(14px) saturate(160%)'
+                            backdropFilter: 'blur(10px) saturate(160%)'
                         }}
                         title="Αποσύνδεση"
                     >

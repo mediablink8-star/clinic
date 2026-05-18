@@ -65,7 +65,7 @@ const SendMessageModal = ({
             background: 'rgba(15,23,42,0.5)', 
             backdropFilter: 'blur(6px)', 
             display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            zIndex: 1000 
+            zIndex: 51 
         }}>
             <div style={{ 
                 background: 'var(--modal-bg)', 
@@ -165,10 +165,10 @@ const SendMessageModal = ({
                             </button>
                         </div>
                         <div>
-                            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
+                            <label htmlFor="sms-message" style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>
                                 Μήνυμα
                             </label>
-                            <textarea 
+                            <textarea id="sms-message" 
                                 autoFocus 
                                 value={message} 
                                 onChange={e => setMessage(e.target.value)} 
@@ -179,7 +179,7 @@ const SendMessageModal = ({
                                     border: '1px solid var(--input-border)', 
                                     background: 'var(--input-bg)', color: 'var(--text)', 
                                     fontSize: '0.875rem', resize: 'none', minHeight: '110px', 
-                                    boxSizing: 'border-box', outline: 'none' 
+                                    boxSizing: 'border-box', outline: '2px solid transparent' 
                                 }} 
                             />
                             <p style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>

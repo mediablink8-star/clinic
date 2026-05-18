@@ -14,10 +14,10 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
       style={{
         position: 'fixed', inset: 0,
         background: 'rgba(5,11,27,0.6)',
-        backdropFilter: 'blur(16px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+        backdropFilter: 'blur(10px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(160%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: '1rem'
+        zIndex: 51, padding: '1rem'
       }}
     >
       <div
@@ -25,8 +25,8 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
         style={{
           width: '100%', maxWidth: '560px',
           background: 'var(--glass-surface-strong)',
-          backdropFilter: 'blur(32px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+          backdropFilter: 'blur(10px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(10px) saturate(200%)',
           borderRadius: '28px',
           border: '1px solid rgba(255,255,255,0.4)',
           boxShadow: '0 32px 64px -12px rgba(5,11,27,0.3), 0 0 0 1px rgba(255,255,255,0.3)',
@@ -78,7 +78,7 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
               background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.3)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'var(--cancel-color)', transition: 'all 0.15s',
-              backdropFilter: 'blur(16px) saturate(160%)', zIndex: 2
+              backdropFilter: 'blur(10px) saturate(160%)', zIndex: 2
             }}
           >
             <X size={16} />
@@ -94,8 +94,8 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
               { icon: <Zap size={20} />, label: 'Ρυθμίσεις AI', desc: 'Ρύθμιση ωραρίου και υπηρεσιών', gradient: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)', navigate: 'ai' },
               { icon: <Building2 size={20} />, label: 'Στοιχεία Ιατρείου', desc: 'Όνομα, τηλέφωνο, τοποθεσία', gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', navigate: 'settings' },
               { icon: <CheckCircle2 size={20} />, label: 'Ανακτήσεις', desc: 'Ελέγξτε τις ρυθμίσεις ανάκτησης', gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)', navigate: 'dashboard' },
-            ].map((item, i) => (
-              <div key={i} onClick={() => { if (onNavigate) onNavigate(item.navigate); onClose(); }} style={{
+            ].map((item) => (
+              <div key={item.label} onClick={() => { if (onNavigate) onNavigate(item.navigate); onClose(); }} style={{
                 padding: '1rem', borderRadius: '14px',
                 background: item.gradient,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
@@ -128,8 +128,8 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
               { text: 'Ωράριο εργασίας και υπηρεσίες' },
               { text: 'API κλειδιά (Twilio, Gemini)' },
               { text: 'Voice AI (προαιρετικό)' },
-            ].map((item, i) => (
-              <div key={i} style={{
+            ].map((item) => (
+              <div key={item.text} style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 padding: '6px 0', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)'
               }}>
@@ -161,7 +161,7 @@ const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
               borderRadius: '14px', border: '1px solid rgba(255,255,255,0.3)',
               background: 'var(--glass-control)', fontSize: '0.9rem',
               fontWeight: '700', color: 'var(--text)', cursor: 'pointer',
-              backdropFilter: 'blur(18px) saturate(160%)',
+              backdropFilter: 'blur(10px) saturate(160%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)'
             }}
           >

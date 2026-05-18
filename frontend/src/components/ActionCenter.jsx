@@ -330,7 +330,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                 height: '100%',
                                 background: color,
                                 borderRadius: '50%',
-                                filter: 'blur(30px)',
+                                filter: 'blur(10px)',
                                 opacity: 0.08,
                                 pointerEvents: 'none'
                             }} />

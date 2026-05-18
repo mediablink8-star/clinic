@@ -61,7 +61,7 @@ const ClinicRegister = ({ onRegister }) => {
         <div style={{
           textAlign: 'center',
           background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(10px)',
           padding: '3rem',
           borderRadius: '28px',
           border: '1px solid rgba(255,255,255,0.1)',
@@ -82,8 +82,8 @@ const ClinicRegister = ({ onRegister }) => {
   return (
     <div className="register-layout">
       {/* Background glows */}
-      <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
       {/* Left panel — branding */}
       <div className="register-left">
@@ -115,8 +115,8 @@ const ClinicRegister = ({ onRegister }) => {
         <div style={{
           width: '100%',
           background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '28px',
           border: '1px solid rgba(255,255,255,0.1)',
           padding: '2.5rem',
@@ -132,47 +132,50 @@ const ClinicRegister = ({ onRegister }) => {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Clinic Name */}
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Όνομα Ιατρείου</label>
+              <label htmlFor="register-clinic-name" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Όνομα Ιατρείου</label>
               <div style={{ position: 'relative' }}>
                 <Building2 size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
                 <input
+                  id="register-clinic-name"
                   required type="text"
                   value={formData.clinicName}
                   onChange={e => setFormData({ ...formData, clinicName: e.target.value })}
                   placeholder="Οδοντιατρείο Παπαδόπουλος"
-                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email Ιδιοκτήτη</label>
+              <label htmlFor="register-email" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email Ιδιοκτήτη</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
                 <input
+                  id="register-email"
                   required type="email"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                   placeholder="dr@clinic.gr"
-                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
 
             {/* Phone */}
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Τηλέφωνο Επικοινωνίας</label>
+              <label htmlFor="register-phone" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Τηλέφωνο Επικοινωνίας</label>
               <div style={{ position: 'relative' }}>
                 <Phone size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
                 <input
+                  id="register-phone"
                   required type="tel"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder="6912345678 ή 2101234567"
-                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
               </div>
               <p style={{ marginTop: '6px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
@@ -182,15 +185,16 @@ const ClinicRegister = ({ onRegister }) => {
 
             {/* Password */}
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Κωδικός Πρόσβασης</label>
+              <label htmlFor="register-password" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Κωδικός Πρόσβασης</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
                 <input
+                  id="register-password"
                   required type="password"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••"
-                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                 />
               </div>
             </div>

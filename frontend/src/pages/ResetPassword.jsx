@@ -58,7 +58,7 @@ const ResetPassword = () => {
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', color: 'white'
       }}>
         <div style={{
-          textAlign: 'center', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px)',
+          textAlign: 'center', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)',
           padding: '3rem', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.1)', maxWidth: '400px'
         }}>
           <div style={{ width: '64px', height: '64px', background: 'rgba(16,185,129,0.2)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
@@ -85,7 +85,7 @@ const ResetPassword = () => {
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', color: 'white'
     }}>
       <div style={{
-        width: '400px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(24px)',
+        width: '400px', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)',
         padding: '2.5rem', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.1)',
         boxShadow: '0 32px 64px rgba(0,0,0,0.4)'
       }}>
@@ -107,29 +107,31 @@ const ResetPassword = () => {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>Νέος Κωδικός</label>
+            <label htmlFor="new-password" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>Νέος Κωδικός</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
               <input
+                id="new-password"
                 required type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.95rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>Επιβεβαίωση Κωδικού</label>
+            <label htmlFor="confirm-password" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>Επιβεβαίωση Κωδικού</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
               <input
+                id="confirm-password"
                 required type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '14px 14px 14px 44px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.95rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
               />
             </div>
           </div>

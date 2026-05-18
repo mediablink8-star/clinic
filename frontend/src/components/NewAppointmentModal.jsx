@@ -27,10 +27,10 @@ const NewAppointmentModal = ({
             style={{
                 position: 'fixed', inset: 0,
                 background: 'rgba(5,11,27,0.55)',
-                backdropFilter: 'blur(16px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                backdropFilter: 'blur(10px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(180%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                zIndex: 1000, padding: '1rem'
+                zIndex: 51, padding: '1rem'
             }}
         >
             <div
@@ -38,8 +38,8 @@ const NewAppointmentModal = ({
                 style={{
                     width: '100%', maxWidth: '520px',
                     background: 'var(--glass-surface-strong)',
-                    backdropFilter: 'blur(32px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+                    backdropFilter: 'blur(10px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(10px) saturate(200%)',
                     borderRadius: '28px',
                     border: '1px solid rgba(255,255,255,0.56)',
                     boxShadow: '0 32px 64px -12px rgba(5,11,27,0.25), 0 0 0 1px rgba(255,255,255,0.5)',
@@ -85,7 +85,7 @@ const NewAppointmentModal = ({
                             background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.36)',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             color: 'var(--cancel-color)', transition: 'all 0.15s',
-                            backdropFilter: 'blur(16px) saturate(160%)'
+                            backdropFilter: 'blur(10px) saturate(160%)'
                         }}
                     >
                         <X size={16} />
@@ -96,15 +96,16 @@ const NewAppointmentModal = ({
                 <div style={{ padding: '1.5rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                     {/* Patient */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        <label htmlFor="appt-patient" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                             <User size={12} /> Ασθενής
                         </label>
                         <select
+                            id="appt-patient"
                             style={{
                                 width: '100%', padding: '11px 14px',
                                 borderRadius: '12px', border: '1px solid var(--input-border)',
                                 background: 'var(--input-bg)', fontSize: '0.9rem',
-                                color: 'var(--text)', outline: 'none', fontWeight: '500'
+                                color: 'var(--text)', outline: '2px solid transparent', fontWeight: '500'
                             }}
                             value={newAppt.patientId}
                             onChange={e => setNewAppt({ ...newAppt, patientId: e.target.value })}
@@ -116,16 +117,17 @@ const NewAppointmentModal = ({
 
                     {/* Reason */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                        <label htmlFor="appt-reason" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                             <FileText size={12} /> Αιτία Επίσκεψης
                         </label>
                         <textarea
+                            id="appt-reason"
                             placeholder="Περιγράψτε το πρόβλημα..."
                             style={{
                                 width: '100%', padding: '11px 14px',
                                 borderRadius: '12px', border: '1px solid var(--input-border)',
                                 background: 'var(--input-bg)', fontSize: '0.9rem',
-                                minHeight: '90px', resize: 'none', outline: 'none',
+                                minHeight: '90px', resize: 'none', outline: '2px solid transparent',
                                 color: 'var(--text)', fontFamily: 'inherit'
                             }}
                             value={newAppt.reason}
@@ -159,15 +161,16 @@ const NewAppointmentModal = ({
                     {/* Date + Time */}
                     <div className="modal-two-column" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                         <div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            <label htmlFor="appt-date" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Calendar size={12} /> Ημερομηνία
                             </label>
                             <input
+                                id="appt-date"
                                 type="date"
                                 style={{
                                     width: '100%', padding: '11px 14px',
                                     borderRadius: '12px', border: '1px solid var(--input-border)',
-                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: 'none',
+                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: '2px solid transparent',
                                     color: 'var(--text)'
                                 }}
                                 value={newAppt.date}
@@ -175,15 +178,16 @@ const NewAppointmentModal = ({
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            <label htmlFor="appt-time" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Clock size={12} /> Ώρα
                             </label>
                             <input
+                                id="appt-time"
                                 type="time"
                                 style={{
                                     width: '100%', padding: '11px 14px',
                                     borderRadius: '12px', border: '1px solid var(--input-border)',
-                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: 'none',
+                                    background: 'var(--input-bg)', fontSize: '0.9rem', outline: '2px solid transparent',
                                     color: 'var(--text)'
                                 }}
                                 value={newAppt.time}
@@ -195,15 +199,16 @@ const NewAppointmentModal = ({
                     {/* Doctor */}
                     {doctors.length > 0 && (
                         <div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            <label htmlFor="appt-doctor" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
                                 <Stethoscope size={12} /> Γιατρός
                             </label>
                             <select
+                                id="appt-doctor"
                                 style={{
                                     width: '100%', padding: '11px 14px',
                                     borderRadius: '12px', border: '1px solid var(--input-border)',
                                     background: 'var(--input-bg)', fontSize: '0.9rem',
-                                    color: 'var(--text)', outline: 'none', fontWeight: '500'
+                                    color: 'var(--text)', outline: '2px solid transparent', fontWeight: '500'
                                 }}
                                 value={newAppt.doctorId || ''}
                                 onChange={e => setNewAppt({ ...newAppt, doctorId: e.target.value || null })}
@@ -224,7 +229,7 @@ const NewAppointmentModal = ({
                             borderRadius: '14px', border: '1px solid rgba(255,255,255,0.34)',
                             background: 'var(--glass-control)', fontSize: '0.9rem',
                             fontWeight: '700', color: 'var(--cancel-color)', cursor: 'pointer',
-                            backdropFilter: 'blur(18px) saturate(160%)',
+                            backdropFilter: 'blur(10px) saturate(160%)',
                             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.28)'
                         }}
                     >
@@ -244,7 +249,7 @@ const NewAppointmentModal = ({
                             cursor: isValid && !booking ? 'pointer' : 'not-allowed',
                             boxShadow: isValid && !booking ? '0 12px 26px -12px rgba(0,102,255,0.42), inset 0 1px 0 rgba(255,255,255,0.26)' : 'none',
                             transition: 'all 0.2s',
-                            backdropFilter: 'blur(18px) saturate(180%)',
+                            backdropFilter: 'blur(10px) saturate(180%)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         }}
                     >

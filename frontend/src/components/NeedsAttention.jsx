@@ -31,7 +31,7 @@ const ReplyModal = ({ patients, token, onClose }) => {
     };
 
     return createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 51 }}>
             <div style={{ background: 'var(--modal-bg)', borderRadius: '20px', padding: '1.75rem', width: '100%', maxWidth: '460px', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', border: '1px solid var(--modal-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -77,7 +77,7 @@ const ReplyModal = ({ patients, token, onClose }) => {
                             onChange={e => setMessage(e.target.value)}
                             placeholder="Γράψτε την απάντησή σας..."
                             rows={4}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', boxSizing: 'border-box', outline: 'none', marginBottom: '0.75rem' }}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.875rem', resize: 'none', boxSizing: 'border-box', outline: '2px solid transparent', marginBottom: '0.75rem' }}
                         />
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid var(--cancel-border)', background: 'var(--cancel-bg)', cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem', color: 'var(--cancel-color)' }}>Ακύρωση</button>

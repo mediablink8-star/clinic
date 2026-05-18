@@ -88,8 +88,8 @@ const ClinicLogin = ({ onLogin }) => {
   return (
     <div className="login-layout">
       {/* Background glows */}
-      <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-200px', left: '-200px', width: '600px', height: '600px', background: 'rgba(99,102,241,0.15)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-200px', right: '-200px', width: '500px', height: '500px', background: 'rgba(16,185,129,0.1)', filter: 'blur(10px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
       {/* Left panel — branding */}
       <div className="login-left">
@@ -121,8 +121,8 @@ const ClinicLogin = ({ onLogin }) => {
         <div style={{
           width: '100%',
           background: 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '28px',
           border: '1px solid rgba(255,255,255,0.1)',
           padding: '2.5rem',
@@ -146,7 +146,7 @@ const ClinicLogin = ({ onLogin }) => {
                   value={mfaData.code}
                   onChange={e => setMfaData({ ...mfaData, code: e.target.value })}
                   placeholder="000000"
-                  style={{ textAlign: 'center', fontSize: '2rem', letterSpacing: '0.5rem', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'white', outline: 'none' }}
+                  style={{ textAlign: 'center', fontSize: '2rem', letterSpacing: '0.5rem', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)', color: 'white', outline: '2px solid transparent' }}
                 />
                 <button type="submit" disabled={loading} style={{ padding: '14px', borderRadius: '14px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '800', fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
                   {loading ? 'Επαλήθευση...' : 'Επαλήθευση'}
@@ -184,15 +184,16 @@ const ClinicLogin = ({ onLogin }) => {
                   ) : (
                   <form onSubmit={handleForgotPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                       <div>
-                          <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
+                          <label htmlFor="reset-email" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
                           <div style={{ position: 'relative' }}>
                               <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
-                              <input
+                        <input
+                          id="reset-email"
                                   required type="email"
                                   value={resetEmail}
                                   onChange={e => setResetEmail(e.target.value)}
                                   placeholder="dr@clinic.gr"
-                                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                                  style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                               />
                           </div>
                       </div>
@@ -208,15 +209,16 @@ const ClinicLogin = ({ onLogin }) => {
                   <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {/* Email */}
                     <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
+                      <label htmlFor="login-email" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>Email</label>
                       <div style={{ position: 'relative' }}>
                         <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
                         <input
+                          id="login-email"
                           required type="email"
                           value={credentials.email}
                           onChange={e => setCredentials({ ...credentials, email: e.target.value })}
                           placeholder="dr@clinic.gr"
-                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
@@ -224,8 +226,8 @@ const ClinicLogin = ({ onLogin }) => {
                     {/* Password */}
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κωδικός</label>
-                        <button type="button" onClick={() => setForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0, outline: 'none' }}>
+                        <label htmlFor="login-password" style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Κωδικός</label>
+                        <button type="button" onClick={() => setForgotPassword(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: 0, outline: '2px solid transparent' }}>
                             Ξεχάσατε τον κωδικό;
                         </button>
                       </div>
@@ -236,7 +238,7 @@ const ClinicLogin = ({ onLogin }) => {
                           value={credentials.password}
                           onChange={e => setCredentials({ ...credentials, password: e.target.value })}
                           placeholder="••••••••"
-                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                          style={{ width: '100%', padding: '13px 14px 13px 42px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', color: 'white', fontSize: '0.9rem', outline: '2px solid transparent', boxSizing: 'border-box' }}
                         />
                       </div>
                     </div>
@@ -265,7 +267,7 @@ const ClinicLogin = ({ onLogin }) => {
 
               <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
                 <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
-                  Δεν έχετε ιατρείο; <button onClick={() => navigateTo('/register')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', outline: 'none' }}>Δημιουργία Λογαριασμού</button>
+                  Δεν έχετε ιατρείο; <button onClick={() => navigateTo('/register')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', outline: '2px solid transparent' }}>Δημιουργία Λογαριασμού</button>
                 </p>
               </div>
 

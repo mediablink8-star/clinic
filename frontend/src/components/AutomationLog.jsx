@@ -101,8 +101,8 @@ const AutomationLog = ({ logs = [], onTestRecovery }) => {
     return (
         <div className={`grid-cell-glass${flashing ? ' recovery-flash' : ''}`} style={{
             background: 'rgba(255,255,255,0.65)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             borderRadius: '20px',
             border: '1px solid rgba(255,255,255,0.5)',
             padding: '1.1rem 1.25rem',

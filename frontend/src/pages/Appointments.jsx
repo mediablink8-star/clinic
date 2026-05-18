@@ -32,7 +32,7 @@ const AppointmentsSkeleton = () => (
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[...Array(4)].map((_, i) => (
-                <div key={i} className="appointment-card" style={{ display: 'flex', gap: '1.5rem', padding: '1.5rem' }}>
+                <div key={`apt-sk-${i}`} className="appointment-card" style={{ display: 'flex', gap: '1.5rem', padding: '1.5rem' }}>
                     <Skeleton height="80px" width="100px" borderRadius="14px" />
                     <div style={{ flex: 1 }}>
                         <Skeleton height="24px" width="200px" borderRadius="8px" style={{ marginBottom: '8px' }} />
@@ -120,7 +120,7 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
                     width: '200px',
                     height: '200px',
                     background: 'var(--primary)',
-                    filter: 'blur(100px)',
+                    filter: 'blur(10px)',
                     opacity: 0.3,
                     borderRadius: '50%'
                 }}></div>
