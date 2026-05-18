@@ -1,5 +1,5 @@
 {
-  "name": "Workflow 3 — Missed Call Recovery",
+  "name": "Workflow 3 — Missed Call Recovery (Twilio)",
   "nodes": [
     {
       "parameters": {
@@ -90,10 +90,7 @@
             {"name": "phone", "value": "={{ $json.phone || $json.body?.phone }}"},
             {"name": "clinicId", "value": "={{ $json.clinicId || $json.body?.clinicId }}"},
             {"name": "missedCallId", "value": "={{ $json.missedCallId || $json.body?.missedCallId }}"},
-            {"name": "name", "value": "={{ $json.name || $json.body?.name || '' }}"},
-            {"name": "vonageApiKey", "value": "={{ $json.vonageApiKey || $json.body?.vonageApiKey }}"},
-            {"name": "vonageApiSecret", "value": "={{ $json.vonageApiSecret || $json.body?.vonageApiSecret }}"},
-            {"name": "vonageFromName", "value": "={{ $json.vonageFromName || $json.body?.vonageFromName }}"}
+            {"name": "name", "value": "={{ $json.name || $json.body?.name || '' }}"}
           ]
         }
       },
@@ -119,34 +116,31 @@
     },
     {
       "parameters": {
-        "url": "https://rest.nexmo.com/sms/json",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
             {
-              "name": "api_key",
-              "value": "={{ $node[\"Set Variables\"].json.vonageApiKey }}"
+              "name": "Authorization",
+              "value": "=Basic {{ $buffer($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "formParams": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
             },
             {
-              "name": "api_secret",
-              "value": "={{ $node[\"Set Variables\"].json.vonageApiSecret }}"
-            },
-            {
-              "name": "from",
-              "value": "={{ $node[\"Set Variables\"].json.vonageFromName }}"
-            },
-            {
-              "name": "to",
+              "name": "To",
               "value": "={{ $node[\"Set Variables\"].json.phone }}"
             },
             {
-              "name": "text",
+              "name": "Body",
               "value": "={{ $node[\"Set SMS Body\"].json.smsBody }}"
-            },
-            {
-              "name": "type",
-              "value": "unicode"
             }
           ]
         },
@@ -163,7 +157,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json.messages[0]['status'] }}", "operation": "equal", "value2": "0"}
+            {"value1": "={{ $json.sid }}", "operation": "isNotEmpty"}
           ]
         }
       },
@@ -178,7 +172,7 @@
         "values": {
           "string": [
             {"name": "result", "value": "sent"},
-            {"name": "messageId", "value": "={{ $json.messages[0]['message-id'] }}"}
+            {"name": "messageId", "value": "={{ $json.sid }}"}
           ]
         }
       },
@@ -193,8 +187,8 @@
         "values": {
           "string": [
             {"name": "result", "value": "failed"},
-            {"name": "error", "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || 'SMS send failed' }}"},
-            {"name": "errorCode", "value": "={{ $json.messages?.[0]?.status || 'error' }}"},
+            {"name": "error", "value": "={{ $json.message || $json.errorMessage || 'SMS send failed' }}"},
+            {"name": "errorCode", "value": "={{ $json.status || $json.code || 'error' }}"},
             {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"}
           ]
         }

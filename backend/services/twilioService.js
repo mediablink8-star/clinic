@@ -10,8 +10,20 @@ function getClient() {
     return twilio(accountSid, authToken);
 }
 
+/**
+ * Get the sender for outbound SMS.
+ * Supports both phone numbers (+1234567890) and alphanumeric sender IDs (e.g. "ClinicFlow").
+ * Alphanumeric sender IDs are supported in many countries but NOT in the US/Canada.
+ */
 function getSender() {
     return process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID || '';
+}
+
+/**
+ * Check if a sender is an alphanumeric sender ID (not a phone number).
+ */
+function isAlphanumericSender(sender) {
+    return sender && !sender.startsWith('+') && !/^\d+$/.test(sender);
 }
 
 async function sendSms({ to, body }) {
@@ -30,9 +42,25 @@ async function sendSms({ to, body }) {
     try {
         const message = await client.messages.create({
             to,
-            from: sender,
+            from: isAlphanumericSender(sender) ? undefined : sender,
+            messagingServiceSid: isAlphanumericSender(sender) ? process.env.TWILIO_MESSAGING_SERVICE_SID : undefined,
             body,
+            ...(isAlphanumericSender(sender) && { statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status` }),
         });
+
+        // For alphanumeric senders, Twilio requires a Messaging Service SID
+        // If no Messaging Service SID is set, fall back to using the alpha sender directly
+        if (isAlphanumericSender(sender) && !process.env.TWILIO_MESSAGING_SERVICE_SID) {
+            // Direct alpha sender (works in supported countries like Greece)
+            const message2 = await client.messages.create({
+                to,
+                from: sender,
+                body,
+            });
+            console.info(`[Twilio] SMS sent (alpha): ${message2.sid} -> ***${to.slice(-4)} [${sender}]`);
+            return { success: true, sid: message2.sid };
+        }
+
         console.info(`[Twilio] SMS sent: ${message.sid} -> ***${to.slice(-4)}`);
         return { success: true, sid: message.sid };
     } catch (err) {

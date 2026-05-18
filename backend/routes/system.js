@@ -54,7 +54,7 @@ router.get('/status', asyncHandler(async (req, res) => {
         })
     ]);
 
-    const voiceConfigured = !!(clinic?.voiceEnabled && clinic?.vapiAssistantId && clinic?.vapiPhoneNumberId && (clinic?.vapiApiKey || process.env.VAPI_API_KEY));
+    const voiceConfigured = !!(clinic?.voiceEnabled && clinic?.vapiAssistantId && clinic?.vapiPhoneNumberId && (clinic?.zadarmaApiKey || process.env.ZADARMA_API_KEY));
     const smsConfigured = !!(process.env.TWILIO_ACCOUNT_SID && (process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID));
     const webhookConfigured = !!(clinic?.webhookMissedCall || clinic?.webhookUrl || process.env.N8N_WEBHOOK_URL);
 

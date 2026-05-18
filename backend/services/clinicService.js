@@ -54,7 +54,8 @@ function formatClinicResponse(clinic) {
     };
     const {
         webhookSecret,
-        vapiApiKey,
+        zadarmaApiKey,
+        zadarmaApiSecret,
         geminiApiKey,
         googleCalendarRefreshToken,
         googleOAuthState,
@@ -67,7 +68,7 @@ function formatClinicResponse(clinic) {
         policies: safeJsonParse(clinic.policies, {}),
         aiConfig: safeJsonParse(clinic.aiConfig, null),
         hasWebhookSecret: Boolean(webhookSecret),
-        hasVapiApiKey: Boolean(vapiApiKey),
+        hasZadarmaCredentials: Boolean(zadarmaApiKey),
         hasGeminiApiKey: Boolean(geminiApiKey),
         googleCalendarConnected: Boolean(googleCalendarRefreshToken),
     };

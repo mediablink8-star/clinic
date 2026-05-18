@@ -54,5 +54,11 @@ services:
         sync: false
       - key: VAPI_PHONE_NUMBER_ID
         sync: false
+      - key: ZADARMA_API_KEY
+        sync: false
+      - key: ZADARMA_API_SECRET
+        sync: false
+      - key: TWILIO_MESSAGING_SERVICE_SID
+        sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false

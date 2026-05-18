@@ -14,7 +14,7 @@ const services = [
     {
         key: 'voice',
         icon: Phone,
-        label: 'Voice AI',
+        label: 'Voice AI (Vapi+Zadarma)',
         check: s => s?.voiceConfigured,
         offlineLabel: 'Μη ρυθμισμένη',
         actionLabel: 'Ρύθμιση',
@@ -23,9 +23,9 @@ const services = [
     {
         key: 'sms',
         icon: MessageSquare,
-        label: 'SMS Ανάκτηση',
+        label: 'SMS (Twilio)',
         check: s => s?.smsConfigured,
-        offlineLabel: 'Μη ρυθμισμένη',
+        offlineLabel: 'Μη ρυθμισμένο',
         actionLabel: 'Ρύθμιση',
         actionTab: 'settings',
     },

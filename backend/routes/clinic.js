@@ -159,41 +159,44 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
 
 // PUT /api/clinic/vapi
 router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
-    const { vapiApiKey, vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, voiceEnabled } = req.body;
+    const { vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, zadarmaApiKey, zadarmaApiSecret, zadarmaPhoneNumber, voiceEnabled } = req.body;
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },
         data: {
-            ...(vapiApiKey !== undefined && { vapiApiKey: vapiApiKey ? encrypt(vapiApiKey) : null }),
             ...(vapiAssistantId !== undefined && { vapiAssistantId: vapiAssistantId || null }),
             ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId || null }),
             ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId || null }),
+            ...(zadarmaApiKey !== undefined && { zadarmaApiKey: zadarmaApiKey ? encrypt(zadarmaApiKey) : null }),
+            ...(zadarmaApiSecret !== undefined && { zadarmaApiSecret: zadarmaApiSecret ? encrypt(zadarmaApiSecret) : null }),
+            ...(zadarmaPhoneNumber !== undefined && { zadarmaPhoneNumber: zadarmaPhoneNumber || null }),
             ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
         },
-        select: { vapiAssistantId: true, vapiPhoneNumberId: true, voiceEnabled: true }
+        select: { vapiAssistantId: true, vapiPhoneNumberId: true, zadarmaPhoneNumber: true, voiceEnabled: true }
     });
 
     res.json({ success: true, data });
 }));
 
 
-// GET /api/clinic/vapi-config — get Vapi configuration status
+// GET /api/clinic/vapi-config — get Vapi + Zadarma configuration status
 router.get('/vapi-config', asyncHandler(async (req, res) => {
     const clinic = await prisma.clinic.findUnique({
         where: { id: req.clinicId },
-        select: { voiceEnabled: true, vapiAssistantId: true, vapiPhoneNumberId: true, vapiApiKey: true }
+        select: { voiceEnabled: true, vapiAssistantId: true, vapiPhoneNumberId: true, zadarmaApiKey: true, zadarmaPhoneNumber: true }
     });
 
-    const vapiConfigured = !!(clinic?.voiceEnabled && 
+    const voiceConfigured = !!(clinic?.voiceEnabled && 
         clinic?.vapiAssistantId && 
         clinic?.vapiPhoneNumberId && 
-        (clinic?.vapiApiKey || process.env.VAPI_API_KEY));
+        (clinic?.zadarmaApiKey || process.env.ZADARMA_API_KEY));
 
     res.json({
         voiceEnabled: clinic?.voiceEnabled || false,
-        vapiConfigured,
+        voiceConfigured,
         hasAssistant: !!clinic?.vapiAssistantId,
         hasPhoneNumber: !!clinic?.vapiPhoneNumberId,
+        hasZadarmaCredentials: !!(clinic?.zadarmaApiKey || process.env.ZADARMA_API_KEY),
     });
 }));
 

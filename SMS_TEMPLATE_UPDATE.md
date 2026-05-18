@@ -136,9 +136,9 @@ Make sure these are set in your backend:
 ```bash
 FRONTEND_URL=https://clinicflows.vercel.app
 N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook
-VONAGE_API_KEY=your_key
-VONAGE_API_SECRET=your_secret
-VONAGE_FROM_NAME=YourClinic
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_ALPHA_SENDER_ID=YourClinic
 ```
 
 ## Monitoring

@@ -24,7 +24,7 @@ Backend:   Node.js + Express + Prisma
 Database:  PostgreSQL 14+
 Cache:     Redis + BullMQ
 AI:        Google Gemini + Vapi Voice AI
-SMS:       Vonage + n8n workflows
+SMS:       Twilio (alphanumeric sender IDs) + n8n workflows
 ```
 
 ---
@@ -78,7 +78,7 @@ SMS:       Vonage + n8n workflows
 - [x] Data processing agreement
 
 ### Integrations
-- [x] Vonage SMS (per-clinic credentials)
+- [x] Twilio SMS (alphanumeric sender IDs)
 - [x] Vapi voice calls
 - [x] n8n webhook workflows
 - [x] Email notifications (SMTP)
@@ -163,8 +163,11 @@ REDIS_URL=redis://...
 DISABLE_REDIS=false
 
 # SMS & Voice
-VONAGE_API_KEY=...
-VONAGE_API_SECRET=...
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_ALPHA_SENDER_ID=...
+ZADARMA_API_KEY=...
+ZADARMA_API_SECRET=...
 N8N_WEBHOOK_URL=https://...
 VAPI_API_KEY=... (optional)
 
@@ -290,7 +293,7 @@ curl -X POST $N8N_WEBHOOK_URL/send-sms \
   -H "x-webhook-key: $WEBHOOK_SECRET" \
   -d '{"to":"+30...", "message":"test"}'
 
-# Check Vonage credentials in database
+# Check Twilio credentials in environment
 ```
 
 **Issue**: Double bookings occurring

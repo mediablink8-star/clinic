@@ -15,7 +15,8 @@
 - [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Email provider
 - [ ] `N8N_WEBHOOK_URL` - n8n instance for SMS workflows
 - [ ] `VAPI_API_KEY` - Voice AI (optional)
-- [ ] `VONAGE_API_KEY`, `VONAGE_API_SECRET` - SMS provider
+- [ ] `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_ALPHA_SENDER_ID` - SMS provider (Twilio)
+- [ ] `ZADARMA_API_KEY`, `ZADARMA_API_SECRET` - VoIP provider (Zadarma for Vapi phone numbers)
 - [ ] `SENTRY_BACKEND_DSN` - Error tracking (optional)
 
 ### 2. Database Setup ✅
@@ -92,7 +93,7 @@ npm install
 
 ### Integrations ✅
 - [x] n8n webhook workflows
-- [x] Vonage SMS (per-clinic credentials)
+- [x] Twilio SMS (alphanumeric sender IDs)
 - [x] Vapi voice calls
 - [x] Google Calendar (placeholder for future)
 - [x] Email notifications (SMTP)

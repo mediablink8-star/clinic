@@ -32,12 +32,12 @@ Body: {
 2. **Shortened** template to fit in single SMS:
    - Old: `Γεια σας {name}, το ραντεβού σας στο {clinic} επιβεβαιώθηκε για {date} στις {time}.` (100+ chars)
    - New: `Ραντεβού επιβεβαιώθηκε: {name}, {date} {time} — {clinic}` (~60 chars)
-3. **Added** `type: unicode` to Vonage API call for proper Greek character handling
+3. **Added** `type: unicode` to Twilio API call for proper Greek character handling
 
 **Impact**: 
 - Messages fit in single SMS (saves costs)
 - Professional appearance
-- Vonage handles multi-part automatically if needed
+- Twilio handles multi-part automatically if needed
 
 ---
 
@@ -53,16 +53,16 @@ Body: {
 
 ---
 
-### 🟡 Issue 4: Workflow 3 Sends Vonage Credentials in Plaintext
+### 🟡 Issue 4: Workflow 3 Sends SMS Credentials in Payload
 
-**Problem**: Backend sent decrypted `vonageApiKey` and `vonageApiSecret` in webhook payload. These appeared in n8n execution logs.
+**Problem**: Backend sent decrypted credentials in webhook payload. These appeared in n8n execution logs.
 
 **Fix**: 
-1. **Removed** `vonageApiKey`, `vonageApiSecret`, `vonageFromName` from payload
+1. **Removed** credential passing from payload
 2. **Use** n8n environment variables instead:
-   - `$env.VONAGE_API_KEY`
-   - `$env.VONAGE_API_SECRET`
-   - `$env.VONAGE_FROM_NAME`
+   - `$env.TWILIO_ACCOUNT_SID`
+   - `$env.TWILIO_AUTH_TOKEN`
+   - `$env.TWILIO_ALPHA_SENDER_ID`
 
 **Impact**: Credentials no longer visible in n8n logs. More secure for multi-clinic setup.
 
@@ -116,10 +116,10 @@ curl -X POST https://your-n8n-instance.com/api/v1/workflows \
 Add these to your n8n instance:
 
 ```bash
-# Vonage SMS
-VONAGE_API_KEY=your_vonage_api_key
-VONAGE_API_SECRET=your_vonage_api_secret
-VONAGE_FROM_NAME=YourClinic
+# Twilio SMS
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_ALPHA_SENDER_ID=YourClinic
 
 # Backend API
 BACKEND_API_URL=https://backend-l9el.onrender.com/api
@@ -129,7 +129,7 @@ AUTOMATION_API_KEY=your_automation_api_key
 
 ### 3. Update Backend to Remove Credential Passing
 
-The backend should no longer send Vonage credentials in the webhook payload. Update `missedCallService.js`:
+The backend should no longer send credentials in the webhook payload. Update `missedCallService.js`:
 
 ```javascript
 // OLD - Don't do this
@@ -143,7 +143,7 @@ triggerN8n('/missed-call', {
   vonageFromName: clinic.vonageFromName  // ❌ Remove
 });
 
-// NEW - Do this
+// NEW - Do this (credentials from n8n env vars)
 triggerN8n('/missed-call', {
   clinicId,
   missedCallId: missedCall.id,
@@ -286,7 +286,7 @@ If issues occur:
 
 When adding multiple clinics:
 
-1. **Store Vonage credentials per clinic** in database (encrypted)
+1. **Store Zadarma/Twilio credentials** in n8n environment variables (encrypted)
 2. **Pass credentials in payload** OR **use clinic-specific n8n workflows**
 3. **Add clinic lookup** in Workflow 5 for inbound SMS
 
@@ -329,4 +329,4 @@ If you encounter issues:
 2. Check backend logs for API call failures
 3. Verify environment variables are set correctly
 4. Test with curl commands to isolate the issue
-5. Check Vonage dashboard for SMS delivery status
+5. Check Twilio dashboard for SMS delivery status

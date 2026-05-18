@@ -1,5 +1,5 @@
 {
-  "name": "Workflow 2 — Direct SMS Delivery",
+  "name": "Workflow 2 — Direct SMS Delivery (Twilio)",
   "nodes": [
     {
       "parameters": {
@@ -62,7 +62,7 @@
             {
               "value1": "={{ $json.body.message ? $json.body.message.length : 0 }}",
               "operation": "smallerEqual",
-              "value2": 500
+              "value2": 1600
             }
           ]
         }
@@ -124,18 +124,6 @@
             {
               "name": "message",
               "value": "={{ $json.message || $json.body?.message }}"
-            },
-            {
-              "name": "vonageApiKey",
-              "value": "={{ $json.vonageApiKey || $json.body?.vonageApiKey }}"
-            },
-            {
-              "name": "vonageApiSecret",
-              "value": "={{ $json.vonageApiSecret || $json.body?.vonageApiSecret }}"
-            },
-            {
-              "name": "vonageFromName",
-              "value": "={{ $json.vonageFromName || $json.body?.vonageFromName }}"
             }
           ]
         }
@@ -148,34 +136,31 @@
     },
     {
       "parameters": {
-        "url": "https://rest.nexmo.com/sms/json",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
             {
-              "name": "api_key",
-              "value": "={{ $node[\"Set Execution ID\"].json.vonageApiKey }}"
+              "name": "Authorization",
+              "value": "=Basic {{ $buffer($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "formParams": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
             },
             {
-              "name": "api_secret",
-              "value": "={{ $node[\"Set Execution ID\"].json.vonageApiSecret }}"
-            },
-            {
-              "name": "from",
-              "value": "={{ $node[\"Set Execution ID\"].json.vonageFromName }}"
-            },
-            {
-              "name": "to",
+              "name": "To",
               "value": "={{ $node[\"Set Execution ID\"].json.phone }}"
             },
             {
-              "name": "text",
+              "name": "Body",
               "value": "={{ $node[\"Set Execution ID\"].json.message }}"
-            },
-            {
-              "name": "type",
-              "value": "unicode"
             }
           ]
         },
@@ -184,7 +169,7 @@
         }
       },
       "id": "node_twilio_sms",
-      "name": "Send SMS via Vonage",
+      "name": "Send SMS via Twilio",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [1340, 300],
@@ -198,9 +183,8 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.messages[0]['status'] }}",
-              "operation": "equal",
-              "value2": "0"
+              "value1": "={{ $json.sid }}",
+              "operation": "isNotEmpty"
             }
           ]
         }
@@ -217,7 +201,7 @@
           "string": [
             {
               "name": "log",
-              "value": "=SMS sent to {{ $node[\"Set Execution ID\"].json.phone }} | messageId: {{ $json.messages[0]['message-id'] }}"
+              "value": "=SMS sent to {{ $node[\"Set Execution ID\"].json.phone }} | messageId: {{ $json.sid }}"
             },
             {
               "name": "smsStatus",
@@ -225,7 +209,7 @@
             },
             {
               "name": "messageId",
-              "value": "={{ $json.messages[0]['message-id'] }}"
+              "value": "={{ $json.sid }}"
             }
           ]
         }
@@ -265,11 +249,11 @@
             },
             {
               "name": "error",
-              "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
+              "value": "={{ $json.message || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"
             },
             {
               "name": "errorCode",
-              "value": "={{ $json.messages?.[0]?.status || 'error' }}"
+              "value": "={{ $json.status || $json.code || 'error' }}"
             },
             {
               "name": "fullResponse",
@@ -316,9 +300,9 @@
       "main": [[{"node": "Set Execution ID", "type": "main", "index": 0}]]
     },
     "Set Execution ID": {
-      "main": [[{"node": "Send SMS via Vonage", "type": "main", "index": 0}]]
+      "main": [[{"node": "Send SMS via Twilio", "type": "main", "index": 0}]]
     },
-    "Send SMS via Vonage": {
+    "Send SMS via Twilio": {
       "main": [[{"node": "SMS Sent?", "type": "main", "index": 0}]]
     },
     "SMS Sent?": {

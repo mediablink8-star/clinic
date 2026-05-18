@@ -151,7 +151,8 @@ Before deploying to production:
 
 5. **Configure integrations:**
    - Add `GEMINI_API_KEY` for AI features
-   - Add Vonage credentials for SMS
+   - Add Twilio credentials for SMS
+   - Add Zadarma credentials for Vapi phone numbers
    - Add Vapi credentials for voice calls (optional)
 
 6. **Update CORS:**

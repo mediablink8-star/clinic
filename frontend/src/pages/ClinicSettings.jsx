@@ -507,11 +507,14 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         }
     };
 
-    // Vapi state
+    // Vapi + Zadarma state
     const [vapiData, setVapiData] = React.useState({
-        vapiApiKey: '',
         vapiAssistantId: clinic?.vapiAssistantId || '',
         vapiPhoneNumberId: clinic?.vapiPhoneNumberId || '',
+        vapiCredentialId: clinic?.vapiCredentialId || '',
+        zadarmaApiKey: '',
+        zadarmaApiSecret: '',
+        zadarmaPhoneNumber: clinic?.zadarmaPhoneNumber || '',
         voiceEnabled: clinic?.voiceEnabled || false,
     });
     const [savingVapi, setSavingVapi] = React.useState(false);
@@ -654,7 +657,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setVapiStatus(null);
         try {
             await api.put('/clinic/vapi', vapiData);
-            showToast('Voice AI (Vapi) settings αποθηκεύτηκαν!', 'success');
+            showToast('Voice AI (Vapi + Zadarma) settings αποθηκεύτηκαν!', 'success');
             if (onUpdate) onUpdate({ voiceEnabled: vapiData.voiceEnabled, vapiAssistantId: vapiData.vapiAssistantId });
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αποθήκευσης.', 'error');
@@ -1170,7 +1173,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
                 <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', marginBottom: '1rem' }}>
                     <p style={{ fontSize: '0.78rem', color: '#5b21b6', fontWeight: '600', margin: 0 }}>
-                        Vapi + Vonage: Χρησιμοποιεί τον αριθμό σας από το Vonage για ελληνικό caller ID.
+                        Vapi + Zadarma: Χρησιμοποιεί τον αριθμό σας από το Zadarma για ελληνικό caller ID.
                     </p>
                 </div>
 
@@ -1201,23 +1204,31 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                     </button>
                 </div>
 
-                <FormGroup label="Vapi API Key (προαιρετικό)" flex="1 1 100%">
-                <input style={inputStyle} type="password" placeholder="sk-..." value={vapiData.vapiApiKey} onChange={e => setVapiData(d => ({ ...d, vapiApiKey: e.target.value }))} />
-                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '4px' }}>Αν left κενό, χρησιμοποιείται το env variable</p>
+                <FormGroup label="Assistant ID *" flex="1 1 100%">
+                    <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />
                 </FormGroup>
                 
-                        <FormRow>
-                            <FormGroup label="Assistant ID *">
-                                <input style={inputStyle} type="text" placeholder="assistant_xxxxx" value={vapiData.vapiAssistantId} onChange={e => setVapiData(d => ({ ...d, vapiAssistantId: e.target.value }))} />
-                            </FormGroup>
-                            <FormGroup label="Phone Number ID *">
-                                <input style={inputStyle} type="text" placeholder="phone_xxxxx" value={vapiData.vapiPhoneNumberId} onChange={e => setVapiData(d => ({ ...d, vapiPhoneNumberId: e.target.value }))} />
-                            </FormGroup>
-                        </FormRow>
+                <FormRow>
+                    <FormGroup label="Phone Number ID (Vapi) *">
+                        <input style={inputStyle} type="text" placeholder="phone_xxxxx" value={vapiData.vapiPhoneNumberId} onChange={e => setVapiData(d => ({ ...d, vapiPhoneNumberId: e.target.value }))} />
+                    </FormGroup>
+                    <FormGroup label="Zadarma Phone Number">
+                        <input style={inputStyle} type="text" placeholder="+30..." value={vapiData.zadarmaPhoneNumber} onChange={e => setVapiData(d => ({ ...d, zadarmaPhoneNumber: e.target.value }))} />
+                    </FormGroup>
+                </FormRow>
+
+                <FormRow>
+                    <FormGroup label="Zadarma API Key">
+                        <input style={inputStyle} type="password" placeholder="zadarma api key" value={vapiData.zadarmaApiKey} onChange={e => setVapiData(d => ({ ...d, zadarmaApiKey: e.target.value }))} />
+                    </FormGroup>
+                    <FormGroup label="Zadarma API Secret">
+                        <input style={inputStyle} type="password" placeholder="zadarma api secret" value={vapiData.zadarmaApiSecret} onChange={e => setVapiData(d => ({ ...d, zadarmaApiSecret: e.target.value }))} />
+                    </FormGroup>
+                </FormRow>
                         <div style={{ padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.1)', marginBottom: '0.75rem' }}>
                             <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#5b21b6', margin: '0 0 4px' }}>Ελληνικοί Αριθμοί</p>
                             <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', margin: 0 }}>
-                                Αγοράστε αριθμό από Vonage και εισάγετέ τον στο Vapi. Ο αριθμός θα εμφανίζεται τοπικά στον ασθενή.
+                                Αγοράστε αριθμό από Zadarma και συνδέστε τον στο Vapi ως SIP trunk. Ο αριθμός θα εμφανίζεται τοπικά στον ασθενή.
                             </p>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -1357,7 +1368,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                         <MessageSquare size={16} className="text-primary" /> Δοκιμή Αποστολής SMS
                     </h4>
                     <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-                        Βεβαιωθείτε ότι τα webhooks και τα credentials του Vonage λειτουργούν σωστά στέλνοντας ένα δοκιμαστικό SMS.
+                        Βεβαιωθείτε ότι τα webhooks και το Twilio λειτουργούν σωστά στέλνοντας ένα δοκιμαστικό SMS.
                     </p>
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <input 

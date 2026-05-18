@@ -101,16 +101,16 @@ In Supabase → Table Editor → Notification table
 
 ## PHASE 3 — SMS Setup (45 minutes)
 
-### 3.1 Create Vonage Account
-1. Go to https://vonage.com → Sign up
-2. Get a Greek virtual number (+30...)
-3. Note your API Key and API Secret from dashboard
+### 3.1 Create Twilio Account
+1. Go to https://twilio.com → Sign up
+2. Get a phone number or set up an alphanumeric sender ID (for Greece/EU)
+3. Note your Account SID and Auth Token from dashboard
 
-### 3.2 Configure Vonage in ClinicFlow
-- Settings → Webhooks → Vonage section
-- Enter API Key and API Secret
-- Vonage From Name: your clinic name or number
-- Save
+### 3.2 Configure Twilio in ClinicFlow
+- Set environment variables on Railway:
+  - `TWILIO_ACCOUNT_SID`: your Twilio account SID
+  - `TWILIO_AUTH_TOKEN`: your Twilio auth token
+  - `TWILIO_ALPHA_SENDER_ID`: your clinic name (for Greece/EU alphanumeric sender)
 
 ### 3.3 Set Up n8n
 
@@ -138,9 +138,10 @@ In n8n → Settings → Variables, add:
 ```
 BACKEND_API_URL = https://your-backend.railway.app/api
 AUTOMATION_API_KEY = <same value as in Railway>
-VONAGE_API_KEY = <your Vonage key>
-VONAGE_API_SECRET = <your Vonage secret>
-VONAGE_FROM_NUMBER = <your Greek number>
+TWILIO_ACCOUNT_SID = <your Twilio Account SID>
+TWILIO_ACCOUNT_SID = <your Twilio Account SID>
+TWILIO_AUTH_TOKEN = <your Twilio Auth Token>
+TWILIO_ALPHA_SENDER_ID = <your clinic name>
 ```
 
 ### 3.6 Configure Webhooks in ClinicFlow
@@ -181,7 +182,7 @@ N8N_WEBHOOK_URL=https://your-n8n.app.n8n.cloud/webhook
 - ✅ Revenue shows in dashboard
 
 ### 4.4 Test Real Missed Call (final test)
-- Set up call forwarding on clinic phone to Vonage number
+- Set up call forwarding on clinic phone to Zadarma number (linked to Vapi)
 - Call the clinic from a different phone, don't answer
 - ✅ SMS arrives within 60 seconds
 - ✅ Recovery case appears in dashboard
@@ -219,9 +220,9 @@ SMTP_FROM=ClinicFlow <no-reply@yourdomain.com>
 2. Create an Assistant with the Greek prompt from `backend/services/vapiService.js`
 3. Note the Assistant ID
 
-### 6.2 Import Vonage Number to Vapi
-1. In Vapi → Phone Numbers → Import
-2. Select Vonage, enter your credentials
+### 6.2 Import Zadarma Number to Vapi
+1. In Vapi → Phone Numbers → Import Zadarma SIP trunk
+2. Enter your Zadarma SIP credentials
 3. Note the Phone Number ID
 
 ### 6.3 Configure in ClinicFlow
@@ -249,7 +250,8 @@ SMTP_FROM=ClinicFlow <no-reply@yourdomain.com>
 - [ ] Can register and login
 - [ ] Can create patient and appointment
 - [ ] Reminder notification scheduled in DB
-- [ ] Vonage account created
+- [ ] Twilio account created
+- [ ] Zadarma account created (for Vapi phone numbers)
 - [ ] n8n workflows imported and active
 - [ ] Webhooks configured in ClinicFlow
 - [ ] Direct SMS test passes

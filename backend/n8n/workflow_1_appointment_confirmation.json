@@ -1,5 +1,5 @@
 {
-  "name": "Workflow 1 — Appointment Confirmation SMS",
+  "name": "Workflow 1 — Appointment Confirmation SMS (Twilio)",
   "nodes": [
     {
       "parameters": {
@@ -105,26 +105,26 @@
     },
     {
       "parameters": {
-        "url": "https://rest.nexmo.com/sms/json",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
         "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
+        "sendHeaders": true,
+        "headerParameters": {
           "parameters": [
             {
-              "name": "api_key",
-              "value": "={{ $json.body.data.vonageApiKey }}"
-            },
+              "name": "Authorization",
+              "value": "=Basic {{ $buffer($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "formParams": [
             {
-              "name": "api_secret",
-              "value": "={{ $json.body.data.vonageApiSecret }}"
+              "name": "From",
+              "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
             },
-            {
-              "name": "from",
-              "value": "={{ $json.body.data.vonageFromName }}"
-            },
-            {"name": "to", "value": "={{ $json.phone }}"},
-            {"name": "text", "value": "={{ $json.smsBody }}"},
-            {"name": "type", "value": "unicode"}
+            {"name": "To", "value": "={{ $json.phone }}"},
+            {"name": "Body", "value": "={{ $json.smsBody }}"}
           ]
         },
         "options": {"timeout": 10000}
@@ -143,7 +143,7 @@
       "parameters": {
         "conditions": {
           "string": [
-            {"value1": "={{ $json.messages[0]['status'] }}", "operation": "equal", "value2": "0"}
+            {"value1": "={{ $json.sid }}", "operation": "isNotEmpty"}
           ]
         }
       },
@@ -157,9 +157,9 @@
       "parameters": {
         "values": {
           "string": [
-            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json[\"phone\"] }} | messageId: {{ $json.messages[0]['message-id'] }}"},
+            {"name": "log", "value": "=SMS sent to {{ $node[\"Format Confirmation Message\"].json[\"phone\"] }} | messageId: {{ $json.sid }}"},
             {"name": "smsStatus", "value": "sent"},
-            {"name": "messageId", "value": "={{ $json.messages[0]['message-id'] }}"}
+            {"name": "messageId", "value": "={{ $json.sid }}"}
           ]
         }
       },
@@ -190,8 +190,8 @@
           "parameters": [
             {"name": "type", "value": "sms_failure"},
             {"name": "executionId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"executionId\"] }}"},
-            {"name": "error", "value": "={{ $json.messages?.[0]?.['error-text'] || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"},
-            {"name": "errorCode", "value": "={{ $json.messages?.[0]?.status || 'error' }}"},
+            {"name": "error", "value": "={{ $json.message || $json.errorMessage || $json.error?.message || 'Unknown SMS failure' }}"},
+            {"name": "errorCode", "value": "={{ $json.status || $json.code || 'error' }}"},
             {"name": "fullResponse", "value": "={{ JSON.stringify($json) }}"},
             {"name": "entityType", "value": "appointment"},
             {"name": "entityId", "value": "={{ $node[\"Format Confirmation Message\"].json[\"entityId\"] }}"}

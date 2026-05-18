@@ -27,12 +27,14 @@ model Clinic {
   webhookDirectSms String? // Event-specific override
   webhookInboundSms String? // Event-specific override
   
-// Vapi (Voice AI)
-  vapiApiKey         String? // Encrypted per-clinic Vapi API key
-  vapiAssistantId   String? // Vapi assistant ID
-  vapiPhoneNumberId String? // Vapi phone number ID
-  vapiCredentialId  String? // Vapi credential ID
-  voiceEnabled      Boolean @default(false) // Master switch for voice AI
+// Vapi (Voice AI) + Zadarma (SIP trunk / phone numbers)
+  vapiAssistantId    String? // Vapi assistant ID
+  vapiPhoneNumberId  String? // Vapi phone number ID (Zadarma SIP trunk)
+  vapiCredentialId   String? // Vapi credential ID (Zadarma SIP credentials)
+  zadarmaApiKey      String? // Encrypted per-clinic Zadarma API key
+  zadarmaApiSecret   String? // Encrypted per-clinic Zadarma API secret
+  zadarmaPhoneNumber String? // Zadarma phone number for caller ID
+  voiceEnabled       Boolean @default(false) // Master switch for voice AI
   
   // Gemini AI (for AI assistant commands)
   geminiApiKey      String? // Encrypted per-clinic Gemini API key

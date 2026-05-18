@@ -1,5 +1,9 @@
 /**
- * Vapi Voice Service
+ * Vapi Voice Service (with Zadarma SIP trunk integration)
+ * 
+ * Architecture: Zadarma provides the phone number/SIP trunk,
+ * Vapi handles the AI voice agent. Zadarma credentials are
+ * stored per-clinic (encrypted), Vapi API key is global.
  */
 const https = require('https');
 const { decrypt } = require('./encryptionService');
@@ -37,9 +41,10 @@ function vapiRequest(method, path, body, apiKey) {
 }
 
 async function triggerOutboundCall({ clinic, phone, missedCallId, patientName }) {
-    const apiKey = clinic.vapiApiKey ? decrypt(clinic.vapiApiKey) : process.env.VAPI_API_KEY;
+    // Vapi API key is global (env variable), not per-clinic
+    const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) {
-        console.warn('[Vapi] No API key configured for clinic', clinic.id);
+        console.warn('[Vapi] VAPI_API_KEY not set in environment');
         return { success: false, reason: 'no_api_key' };
     }
 
