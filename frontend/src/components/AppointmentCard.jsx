@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../lib/api';
 import Badge from './Badge';
 import { CheckCircle, AlertCircle, MessageSquare, ChevronDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, onCancel, onMessage, onReassignDoctor }) => {
     const startTime = new Date(appointment.startTime);
@@ -23,6 +24,7 @@ const AppointmentCard = ({ appointment, delay, showActions = false, onConfirm, o
             if (onReassignDoctor) onReassignDoctor();
         } catch (e) {
             console.error('Reassign failed', e);
+            toast.error('Αποτυχία ανάθεσης γιατρού');
         } finally {
             setReassigning(false);
             setShowDoctorSelect(false);

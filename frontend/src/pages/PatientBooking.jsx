@@ -271,8 +271,8 @@ const PatientBooking = () => {
                             <p style={{ color: 'var(--text-light)', marginBottom: '2rem', lineHeight: '1.6' }}>
                                 Σας ευχαριστούμε, {formData.name.split(' ')[0]}. Το ιατρείο θα επεξεργαστεί το αίτημα σας για τις <strong>{new Date(formData.date + 'T00:00:00').toLocaleDateString('el-GR', { day: 'numeric', month: 'long' })}</strong> στις <strong>{formData.time}</strong> και θα επικοινωνήσει μαζί σας για επιβεβαίωση.
                             </p>
-                            <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px' }} onClick={() => window.location.reload()}>
-                                Νέα Κράτηση
+            <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px' }} onClick={() => { setStep(1); setFormData({ name: '', phone: '', email: '', reason: '', date: '', time: '', doctorId: '' }); setAvailableSlots([]); setError(null); }}>
+                Νέα Κράτηση
                             </button>
                         </div>
                     )}

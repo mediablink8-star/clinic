@@ -101,8 +101,7 @@ const AISettings = ({ clinic, token, onUpdate }) => {
         } catch (err) {
             showToast('Failed to test Gemini', 'error');
         } finally {
-            setTestingGemini(true);
-            setTimeout(() => setTestingGemini(false), 1000);
+            setTestingGemini(false);
         }
     };
 

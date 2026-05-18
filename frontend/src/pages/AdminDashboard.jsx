@@ -451,35 +451,28 @@ const UserManagement = () => {
                 </td>
                 <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', gap: '3px' }}>
-                    <Tooltip title={user.lockedUntil ? 'Ξεκλείδωμα' : 'Κλείδωμα'}>
-                      <button onClick={() => handleToggleLock(user.id, user.lockedUntil, user.name)} style={{
+                    <button title={user.lockedUntil ? 'Ξεκλείδωμα' : 'Κλείδωμα'} onClick={() => handleToggleLock(user.id, user.lockedUntil, user.name)} style={{
                         ...actionBtnBase,
                         color: user.lockedUntil ? '#10b981' : '#f59e0b',
                         background: user.lockedUntil ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)'
                       }}>
                         {user.lockedUntil ? <Unlock size={13} /> : <Lock size={13} />}
                       </button>
-                    </Tooltip>
-                    <Tooltip title={user.isActive ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}>
-                      <button onClick={() => handleToggleActive(user.id, user.isActive, user.name)} style={{
+                    <button title={user.isActive ? 'Απενεργοποίηση' : 'Ενεργοποίηση'} onClick={() => handleToggleActive(user.id, user.isActive, user.name)} style={{
                         ...actionBtnBase,
                         color: user.isActive ? '#f59e0b' : '#10b981',
                         background: user.isActive ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)'
                       }}>
                         <RefreshCw size={13} />
                       </button>
-                    </Tooltip>
-                    <Tooltip title="Αλλαγή κωδικού">
-                      <button onClick={() => handleResetPassword(user.id, user.email)} style={{
+                    <button title="Αλλαγή κωδικού" onClick={() => handleResetPassword(user.id, user.email)} style={{
                         ...actionBtnBase,
                         color: '#8b5cf6',
                         background: 'rgba(139,92,246,0.08)'
                       }}>
                         <ShieldCheck size={13} />
                       </button>
-                    </Tooltip>
-                    <Tooltip title={user.isPlatformAdmin ? 'Αδύνατο — τελευταίος admin' : 'Διαγραφή'}>
-                      <button onClick={() => handleDeleteUser(user.id, user.name)} disabled={user.isPlatformAdmin} style={{
+                    <button title={user.isPlatformAdmin ? 'Αδύνατο — τελευταίος admin' : 'Διαγραφή'} onClick={() => handleDeleteUser(user.id, user.name)} disabled={user.isPlatformAdmin} style={{
                         ...actionBtnBase,
                         color: user.isPlatformAdmin ? '#64748b' : '#ef4444',
                         background: user.isPlatformAdmin ? 'rgba(100,116,139,0.05)' : 'rgba(239,68,68,0.08)',
@@ -488,7 +481,6 @@ const UserManagement = () => {
                       }}>
                         <Trash2 size={13} />
                       </button>
-                    </Tooltip>
                   </div>
                 </td>
               </tr>

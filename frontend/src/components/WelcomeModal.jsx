@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, CheckCircle2, Building2, Zap, ArrowRight } from 'lucide-react';
 
-const WelcomeModal = ({ clinic, onClose }) => {
+const WelcomeModal = ({ clinic, onClose, onNavigate }) => {
   // Auto-close after 12 seconds
   useEffect(() => {
     const timer = setTimeout(() => onClose(), 12000);
@@ -91,11 +91,11 @@ const WelcomeModal = ({ clinic, onClose }) => {
           {/* Quick-setup cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
             {[
-              { icon: <Zap size={20} />, label: 'Ρυθμίσεις AI', desc: 'Ρύθμιση ωραρίου και υπηρεσιών', gradient: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)' },
-              { icon: <Building2 size={20} />, label: 'Στοιχεία Ιατρείου', desc: 'Όνομα, τηλέφωνο, τοποθεσία', gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)' },
-              { icon: <CheckCircle2 size={20} />, label: 'Ανακτήσεις', desc: 'Ελέγξτε τις ρυθμίσεις ανάκτησης', gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)' },
+              { icon: <Zap size={20} />, label: 'Ρυθμίσεις AI', desc: 'Ρύθμιση ωραρίου και υπηρεσιών', gradient: 'linear-gradient(135deg, #635bff 0%, #8b5cf6 100%)', navigate: 'ai' },
+              { icon: <Building2 size={20} />, label: 'Στοιχεία Ιατρείου', desc: 'Όνομα, τηλέφωνο, τοποθεσία', gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', navigate: 'settings' },
+              { icon: <CheckCircle2 size={20} />, label: 'Ανακτήσεις', desc: 'Ελέγξτε τις ρυθμίσεις ανάκτησης', gradient: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)', navigate: 'dashboard' },
             ].map((item, i) => (
-              <div key={i} style={{
+              <div key={i} onClick={() => { if (onNavigate) onNavigate(item.navigate); onClose(); }} style={{
                 padding: '1rem', borderRadius: '14px',
                 background: item.gradient,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',

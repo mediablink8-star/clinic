@@ -164,7 +164,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 setCurrentPlan(res.data.currentPlan);
                 setUpgradePlans(res.data.plans);
             })
-            .catch(() => {});
+            .catch((err) => console.error('Failed to fetch clinic plans:', err));
     }, []);
 
     const handleUpgrade = async (planKey) => {
@@ -174,7 +174,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
             setShowUpgradeModal(false);
             showToast('Το πακέτο αναβαθμίστηκε επιτυχώς!', 'success');
             // Refresh usage data
-            api.get('/clinic/usage').then(res => setUsageData(res.data)).catch(() => {});
+            api.get('/clinic/usage').then(res => setUsageData(res.data)).catch((err) => console.error('Failed to refresh usage data:', err));
         } catch (err) {
             showToast(err.response?.data?.error || 'Σφάλμα αναβάθμισης.', 'error');
         } finally {
@@ -294,14 +294,18 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         try {
             const res = await api.get(`/team`);
             setTeamMembers(res.data);
-        } catch { /* silently fail */ }
+        } catch (err) {
+            console.error('Failed to fetch team members:', err);
+        }
     };
 
     const fetchDoctors = async () => {
         try {
             const res = await api.get('/doctors');
             setDoctors(res.data.data || []);
-        } catch { /* silently fail */ }
+        } catch (err) {
+            console.error('Failed to fetch doctors:', err);
+        }
     };
 
     const handleSaveDoctor = async (e) => {

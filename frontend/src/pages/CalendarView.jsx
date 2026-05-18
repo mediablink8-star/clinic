@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, MapPin } from 'lucide-react';
 
-const CalendarView = ({ appointments = [], onAppointmentClick }) => {
+const CalendarView = ({ appointments = [], onAppointmentClick, gcalConnected = false }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [view, setView] = useState('month'); // 'month' | 'week' | 'day'
 
     // Calendar helpers
     const getDaysInMonth = (date) => {
@@ -135,8 +134,9 @@ const CalendarView = ({ appointments = [], onAppointmentClick }) => {
                                 +{dayAppointments.length - 3} ακόμα
                             </div>
                         )}
-                    </div>
                 </div>
+            </div>
+            )}
             );
         }
 
@@ -225,6 +225,7 @@ const CalendarView = ({ appointments = [], onAppointmentClick }) => {
             </div>
 
             {/* Google Calendar Integration Notice */}
+            {gcalConnected && (
             <div style={{
                 padding: '1rem 1.5rem',
                 borderRadius: '12px',
@@ -253,6 +254,7 @@ const CalendarView = ({ appointments = [], onAppointmentClick }) => {
                     </p>
                 </div>
             </div>
+            )}
 
             {/* Calendar Grid */}
             <div style={{

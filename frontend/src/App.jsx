@@ -55,7 +55,15 @@ const App = () => {
   const [path, setPath] = useState(window.location.pathname);
 
   useEffect(() => {
-    const handleLocationChange = () => setPath(window.location.pathname);
+    const handleLocationChange = () => {
+      const pathname = window.location.pathname;
+      setPath(pathname);
+      const tab = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+      const validTabs = ['dashboard', 'calendar', 'appointments', 'patients', 'reports', 'analytics', 'settings', 'ai', 'admin'];
+      if (validTabs.includes(tab)) {
+        setCurrentTab(tab);
+      }
+    };
     window.addEventListener('popstate', handleLocationChange);
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
@@ -674,6 +682,7 @@ const handleLogin = (loginData) => {
       case 'calendar':
         return <CalendarView 
           appointments={appointments} 
+          gcalConnected={clinic?.googleCalendarConnected || false}
           onAppointmentClick={(apt) => {
             // Navigate to appointments tab and potentially highlight the appointment
             setCurrentTab('appointments');
@@ -806,9 +815,9 @@ const handleLogin = (loginData) => {
          />
        )}
 
-       {showWelcome && (
-         <WelcomeModal clinic={clinic} onClose={handleWelcomeComplete} />
-       )}
+        {showWelcome && (
+          <WelcomeModal clinic={clinic} onClose={handleWelcomeComplete} onNavigate={(tab) => handleSetCurrentTab(tab)} />
+        )}
 
       <main className="main-content">
         {isMobile && (

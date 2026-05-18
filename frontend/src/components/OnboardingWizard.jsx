@@ -4,6 +4,7 @@ import {
     Building2, Phone, Zap, CheckCircle2, ArrowRight,
     ArrowLeft, X, Loader, Eye, EyeOff
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
