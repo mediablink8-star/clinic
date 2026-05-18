@@ -1,59 +1,60 @@
 {
-  "name": "Workflow 2 — Direct SMS Delivery (Twilio)",
+  "name": "Workflow 2 — Direct SMS",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "send-sms",
+        "path": "direct-sms",
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "node_webhook_sms",
-      "name": "Receive SMS Request",
+      "id": "node_webhook",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300]
+      "position": [240, 300],
+      "webhookId": "direct-sms"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "exec-id",
-              "name": "executionId",
-              "value": "={{ $json.notificationId || $json.body?.notificationId || $execution.id }}",
+              "id": "twilio-sid",
+              "name": "TWILIO_ACCOUNT_SID",
+              "value": "YOUR_TWILIO_ACCOUNT_SID",
               "type": "string"
             },
             {
-              "id": "entity-id",
-              "name": "entityId",
-              "value": "={{ $json.notificationId || $json.body?.notificationId || '' }}",
+              "id": "twilio-token",
+              "name": "TWILIO_AUTH_TOKEN",
+              "value": "YOUR_TWILIO_AUTH_TOKEN",
               "type": "string"
             },
             {
-              "id": "entity-type",
-              "name": "entityType",
-              "value": "notification",
+              "id": "twilio-sender",
+              "name": "TWILIO_SENDER",
+              "value": "YOUR_TWILIO_SENDER",
               "type": "string"
             },
             {
-              "id": "phone",
-              "name": "phone",
-              "value": "={{ $json.phone || $json.body?.phone }}",
+              "id": "backend-url",
+              "name": "BACKEND_API_URL",
+              "value": "YOUR_BACKEND_API_URL",
               "type": "string"
             },
             {
-              "id": "message",
-              "name": "message",
-              "value": "={{ $json.message || $json.body?.message }}",
+              "id": "api-key",
+              "name": "AUTOMATION_API_KEY",
+              "value": "YOUR_AUTOMATION_API_KEY",
               "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "node_set_execution_id",
-      "name": "Set Variables",
+      "id": "node_set_creds",
+      "name": "Set Credentials",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [460, 300]
@@ -61,185 +62,126 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('Set Credentials').first().json.TWILIO_ACCOUNT_SID }}/Messages.json",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Basic {{ $buffer($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+              "value": "=Basic {{ $base64($('Set Credentials').first().json.TWILIO_ACCOUNT_SID + ':' + $('Set Credentials').first().json.TWILIO_AUTH_TOKEN) }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "form",
-        "bodyParameters": {
-          "formBodyParameters": {
-            "parameters": [
-              {
-                "name": "From",
-                "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
-              },
-              {
-                "name": "To",
-                "value": "={{ $json.phone }}"
-              },
-              {
-                "name": "Body",
-                "value": "={{ $json.message }}"
-              }
-            ]
-          }
+        "formBodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $('Set Credentials').first().json.TWILIO_SENDER }}"
+            },
+            {
+              "name": "To",
+              "value": "={{ $json.patientPhone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.message }}"
+            }
+          ]
         },
         "options": {
           "timeout": 10000
         }
       },
-      "id": "node_twilio_sms",
-      "name": "Send SMS via Twilio",
+      "id": "node_send_sms",
+      "name": "Send Direct SMS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [680, 300],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 10000,
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/log-sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "check-sid",
-              "leftValue": "={{ $json.sid }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
             }
-          ],
-          "combinator": "and"
+          ]
         },
-        "options": {}
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointmentId\": \"{{ $json.appointmentId }}\",\n  \"patientPhone\": \"{{ $json.patientPhone }}\",\n  \"sid\": \"{{ $json.sid }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"type\": \"direct\"\n}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "node_check_sent",
-      "name": "SMS Sent?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
+      "id": "node_log_sms",
+      "name": "Log SMS to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [900, 300]
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/log-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "log",
-              "name": "log",
-              "value": "=SMS sent to {{ $('Set Variables').first().json.phone }} | messageId: {{ $json.sid }}",
-              "type": "string"
-            },
-            {
-              "id": "status",
-              "name": "smsStatus",
-              "value": "sent",
-              "type": "string"
-            },
-            {
-              "id": "msg-id",
-              "name": "messageId",
-              "value": "={{ $json.sid }}",
-              "type": "string"
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
             }
           ]
         },
-        "options": {}
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"sms_failed\",\n  \"patientPhone\": \"{{ $('Send Direct SMS').first().json.patientPhone }}\",\n  \"error\": \"{{ $('Send Direct SMS').last().json.error || $json.message }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "node_log_success",
-      "name": "Log SMS Sent",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 200]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "err",
-              "name": "error",
-              "value": "={{ $json.message || $json.errorMessage || 'Unknown SMS failure' }}",
-              "type": "string"
-            },
-            {
-              "id": "code",
-              "name": "errorCode",
-              "value": "={{ $json.status || $json.code || 'error' }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node_log_failure",
+      "id": "node_log_error",
       "name": "Log SMS Failure",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 400]
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 500]
     }
   ],
   "connections": {
-    "Receive SMS Request": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "Set Variables",
+            "node": "Set Credentials",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Variables": {
+    "Set Credentials": {
       "main": [
         [
           {
-            "node": "Send SMS via Twilio",
+            "node": "Send Direct SMS",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send SMS via Twilio": {
+    "Send Direct SMS": {
       "main": [
         [
           {
-            "node": "SMS Sent?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log SMS Failure",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SMS Sent?": {
-      "main": [
-        [
-          {
-            "node": "Log SMS Sent",
+            "node": "Log SMS to Backend",
             "type": "main",
             "index": 0
           }
@@ -255,7 +197,6 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "workflow_0_global_error_handler"
+    "executionOrder": "v1"
   }
 }

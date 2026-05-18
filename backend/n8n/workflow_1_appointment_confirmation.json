@@ -1,108 +1,89 @@
 {
-  "name": "Workflow 1 — Appointment Confirmation SMS (Twilio)",
+  "name": "Workflow 1 — Appointment Confirmation",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "appointment-created",
+        "path": "appointment-confirmation",
         "responseMode": "lastNode",
         "options": {}
       },
-      "id": "node_webhook_appt",
-      "name": "Receive Appointment Event",
+      "id": "node_webhook",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 400]
+      "position": [240, 300],
+      "webhookId": "appointment-confirmation"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "exec-id",
-              "name": "executionId",
-              "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || $execution.id }}",
+              "id": "twilio-sid",
+              "name": "TWILIO_ACCOUNT_SID",
+              "value": "YOUR_TWILIO_ACCOUNT_SID",
               "type": "string"
             },
             {
-              "id": "entity-id",
-              "name": "entityId",
-              "value": "={{ $json.data?.appointmentId || $json.body?.data?.appointmentId || '' }}",
+              "id": "twilio-token",
+              "name": "TWILIO_AUTH_TOKEN",
+              "value": "YOUR_TWILIO_AUTH_TOKEN",
               "type": "string"
             },
             {
-              "id": "entity-type",
-              "name": "entityType",
-              "value": "appointment",
+              "id": "twilio-sender",
+              "name": "TWILIO_SENDER",
+              "value": "YOUR_TWILIO_SENDER",
               "type": "string"
             },
             {
-              "id": "phone",
-              "name": "phone",
-              "value": "={{ $json.data?.phone || $json.body?.data?.phone }}",
+              "id": "backend-url",
+              "name": "BACKEND_API_URL",
+              "value": "YOUR_BACKEND_API_URL",
               "type": "string"
             },
             {
-              "id": "smsBody",
-              "name": "smsBody",
-              "value": "=Ραντεβού επιβεβαιώθηκε: {{ $json.data?.patientName || $json.body?.data?.patientName }}, {{ $json.data?.date || $json.body?.data?.date }} {{ $json.data?.time || $json.body?.data?.time }} — {{ $json.clinic?.name || $json.body?.clinic?.name || 'Ιατρείο' }}",
+              "id": "api-key",
+              "name": "AUTOMATION_API_KEY",
+              "value": "YOUR_AUTOMATION_API_KEY",
               "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "node_format_msg",
-      "name": "Format Confirmation Message",
+      "id": "node_set_creds",
+      "name": "Set Credentials",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [460, 400]
+      "position": [460, 300]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/verify-appointment",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "=Basic {{ $buffer($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
-        "specifyBody": "form",
-        "bodyParameters": {
-          "formBodyParameters": {
-            "parameters": [
-              {
-                "name": "From",
-                "value": "={{ $env.TWILIO_ALPHA_SENDER_ID || $env.TWILIO_PHONE_NUMBER }}"
-              },
-              {
-                "name": "To",
-                "value": "={{ $json.phone }}"
-              },
-              {
-                "name": "Body",
-                "value": "={{ $json.smsBody }}"
-              }
-            ]
-          }
-        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointmentId\": \"{{ $json.appointmentId }}\",\n  \"patientPhone\": \"{{ $json.patientPhone }}\",\n  \"clinicId\": \"{{ $json.clinicId }}\"\n}",
         "options": {
           "timeout": 10000
         }
       },
-      "id": "node_twilio_appt",
-      "name": "Send Confirmation SMS",
+      "id": "node_verify_appointment",
+      "name": "Verify Appointment",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 400],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 10000,
+      "position": [680, 300],
       "onError": "continueErrorOutput"
     },
     {
@@ -116,12 +97,12 @@
           },
           "conditions": [
             {
-              "id": "check-sid",
-              "leftValue": "={{ $json.sid }}",
-              "rightValue": "",
+              "id": "check-valid",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
               "operator": {
-                "type": "string",
-                "operation": "notEmpty"
+                "type": "boolean",
+                "operation": "equal"
               }
             }
           ],
@@ -129,88 +110,160 @@
         },
         "options": {}
       },
-      "id": "node_check_appt",
-      "name": "SMS Sent?",
+      "id": "node_is_valid",
+      "name": "Appointment Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [900, 400]
+      "position": [900, 300]
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('Set Credentials').first().json.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "log",
-              "name": "log",
-              "value": "=SMS sent to {{ $('Format Confirmation Message').first().json.phone }} | messageId: {{ $json.sid }}",
-              "type": "string"
-            },
-            {
-              "id": "status",
-              "name": "smsStatus",
-              "value": "sent",
-              "type": "string"
-            },
-            {
-              "id": "msg-id",
-              "name": "messageId",
-              "value": "={{ $json.sid }}",
-              "type": "string"
+              "name": "Authorization",
+              "value": "=Basic {{ $base64($('Set Credentials').first().json.TWILIO_ACCOUNT_SID + ':' + $('Set Credentials').first().json.TWILIO_AUTH_TOKEN) }}"
             }
           ]
         },
-        "options": {}
+        "sendBody": true,
+        "specifyBody": "form",
+        "formBodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $('Set Credentials').first().json.TWILIO_SENDER }}"
+            },
+            {
+              "name": "To",
+              "value": "={{ $json.patientPhone }}"
+            },
+            {
+              "name": "Body",
+              "value": "=Your appointment is confirmed for {{ $json.appointmentDate }} at {{ $json.clinicName }}. Reply CANCEL to cancel or RESCHEDULE to change."
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "node_log_success",
-      "name": "Log SMS Sent",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 300]
+      "id": "node_send_sms",
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/log-sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "error",
-              "name": "error",
-              "value": "={{ $json.message || $json.errorMessage || 'Unknown SMS failure' }}",
-              "type": "string"
-            },
-            {
-              "id": "code",
-              "name": "errorCode",
-              "value": "={{ $json.status || $json.code || 'error' }}",
-              "type": "string"
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
             }
           ]
         },
-        "options": {}
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointmentId\": \"{{ $('Verify Appointment').first().json.appointmentId }}\",\n  \"patientPhone\": \"{{ $('Verify Appointment').first().json.patientPhone }}\",\n  \"sid\": \"{{ $json.sid }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"type\": \"confirmation\"\n}",
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "node_log_failure",
-      "name": "Log SMS Failure",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 500]
+      "id": "node_log_sms",
+      "name": "Log SMS to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/log-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"invalid_appointment\",\n  \"appointmentId\": \"{{ $json.appointmentId }}\",\n  \"error\": \"{{ $json.error || 'Appointment verification failed' }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_log_error",
+      "name": "Log Invalid Appointment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 420]
     }
   ],
   "connections": {
-    "Receive Appointment Event": {
+    "Webhook Trigger": {
       "main": [
         [
           {
-            "node": "Format Confirmation Message",
+            "node": "Set Credentials",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Confirmation Message": {
+    "Set Credentials": {
+      "main": [
+        [
+          {
+            "node": "Verify Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Appointment": {
+      "main": [
+        [
+          {
+            "node": "Appointment Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Invalid Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appointment Valid?": {
       "main": [
         [
           {
             "node": "Send Confirmation SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Invalid Appointment",
             "type": "main",
             "index": 0
           }
@@ -221,32 +274,7 @@
       "main": [
         [
           {
-            "node": "SMS Sent?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log SMS Failure",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "SMS Sent?": {
-      "main": [
-        [
-          {
-            "node": "Log SMS Sent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log SMS Failure",
+            "node": "Log SMS to Backend",
             "type": "main",
             "index": 0
           }
@@ -255,7 +283,6 @@
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": "workflow_0_global_error_handler"
+    "executionOrder": "v1"
   }
 }

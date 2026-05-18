@@ -6,146 +6,209 @@
       "id": "node_error_trigger",
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [240, 300]
     },
     {
       "parameters": {
-        "values": {
-          "string": [
+        "assignments": {
+          "assignments": [
             {
+              "id": "wf-name",
               "name": "workflow",
-              "value": "={{ $json.workflow.name }}"
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
             },
             {
+              "id": "wf-error",
               "name": "error",
-              "value": "={{ $json.error.message }}"
+              "value": "={{ $json.error.message }}",
+              "type": "string"
             },
             {
+              "id": "exec-id",
               "name": "executionId",
-              "value": "={{ $json.execution.id || 'unknown' }}"
+              "value": "={{ $json.execution.id || 'unknown' }}",
+              "type": "string"
             },
             {
+              "id": "ts",
               "name": "timestamp",
-              "value": "={{ new Date().toISOString() }}"
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
             }
-          ]
-        }
-      },
-      "id": "node_extract_error",
-      "name": "Extract Error Details",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [460, 300]
-    },
-    {
-      "parameters": {
-        "url": "={{ $env.BACKEND_API_URL }}/automation/log-error",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "method": "POST",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            { "name": "type", "value": "workflow_error" },
-            { "name": "workflow", "value": "={{ $json.workflow }}" },
-            { "name": "error", "value": "={{ $json.error }}" },
-            { "name": "executionId", "value": "={{ $json.executionId }}" },
-            { "name": "timestamp", "value": "={{ $json.timestamp }}" }
-          ]
-        },
-        "options": { "timeout": 10000 }
-      },
-      "id": "node_log_error",
-      "name": "Log Workflow Error",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [680, 300],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 15000,
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            { "value1": "={{ $response.statusCode }}", "operation": "exists" }
-          ]
-        }
-      },
-      "id": "node_check_success",
-      "name": "Backend Reached?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [900, 300]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            { "name": "fallbackLog", "value": "=Error logged to backend: {{ $node[\"Extract Error Details\"].json.workflow }} - {{ $node[\"Extract Error Details\"].json.error }}" }
-          ]
-        }
-      },
-      "id": "node_log_success",
-      "name": "Log Success",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1120, 220]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            { "name": "fallbackLog", "value": "=FALLBACK: Error logged to console - workflow: {{ $node[\"Extract Error Details\"].json.workflow }}, error: {{ $node[\"Extract Error Details\"].json.error }}, executionId: {{ $node[\"Extract Error Details\"].json.executionId }}" }
-          ]
-        }
-      },
-      "id": "node_fallback_log",
-      "name": "Fallback to Console",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [1120, 420]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            { "name": "log", "value": "={{ $json.fallbackLog }}" }
           ]
         },
         "options": {}
       },
-      "id": "node_console_log",
-      "name": "Console Log",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [1340, 420]
+      "id": "node_extract_error",
+      "name": "Extract Error Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_BACKEND_API_URL/automation/log-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_AUTOMATION_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"workflow_error\",\n  \"workflow\": \"{{ $('Extract Error Details').first().json.workflow }}\",\n  \"error\": \"{{ $('Extract Error Details').first().json.error }}\",\n  \"executionId\": \"{{ $('Extract Error Details').first().json.executionId }}\",\n  \"timestamp\": \"{{ $('Extract Error Details').first().json.timestamp }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_log_error",
+      "name": "Log Workflow Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 15000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-response",
+              "leftValue": "={{ $json.sid ?? $json.messageId ?? $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_check_success",
+      "name": "Backend Reached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "log-ok",
+              "name": "fallbackLog",
+              "value": "=Error logged to backend: {{ $('Extract Error Details').first().json.workflow }} - {{ $('Extract Error Details').first().json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_log_success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1120, 220]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "log-fb",
+              "name": "fallbackLog",
+              "value": "=FALLBACK: Error logged to console - workflow: {{ $('Extract Error Details').first().json.workflow }}, error: {{ $('Extract Error Details').first().json.error }}, executionId: {{ $('Extract Error Details').first().json.executionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_fallback_log",
+      "name": "Fallback to Console",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1120, 420]
     }
   ],
   "connections": {
     "Error Trigger": {
-      "main": [[{ "node": "Extract Error Details", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract Error Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Error Details": {
-      "main": [[{ "node": "Log Workflow Error", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log Workflow Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Log Workflow Error": {
-      "main": [[{ "node": "Backend Reached?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Backend Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback to Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Backend Reached?": {
       "main": [
-        [{ "node": "Log Success", "type": "main", "index": 0 }],
-        [{ "node": "Fallback to Console", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback to Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
-    },
-    "Fallback to Console": {
-      "main": [[{ "node": "Console Log", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": ""
+    "executionOrder": "v1"
   }
 }
