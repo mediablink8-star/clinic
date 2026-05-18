@@ -114,19 +114,38 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
   // Create appointment with double-booking prevention
   const appointment = await prisma.$transaction(async (tx) => {
-    const conflict = await tx.$queryRaw`
-      SELECT id FROM "Appointment"
-      WHERE "clinicId" = ${clinicId}
-      ${doctorId ? Prisma.sql`AND "doctorId" = ${doctorId}` : Prisma.empty}
-      AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-      AND "startTime" < ${endTime}
-      AND "endTime" > ${startDateTime}
-      FOR UPDATE
-      LIMIT 1
-    `;
+    if (doctorId) {
+      // Specific doctor — check only that doctor's schedule
+      const conflict = await tx.$queryRaw`
+        SELECT id FROM "Appointment"
+        WHERE "clinicId" = ${clinicId}
+        AND "doctorId" = ${doctorId}
+        AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+        AND "startTime" < ${endTime}
+        AND "endTime" > ${startDateTime}
+        FOR UPDATE
+        LIMIT 1
+      `;
 
-    if (conflict && conflict.length > 0) {
-      throw new AppError('CONFLICT', 'This time slot has already been booked. Please choose a different time.', 409);
+      if (conflict && conflict.length > 0) {
+        throw new AppError('CONFLICT', 'This time slot has already been booked. Please choose a different time.', 409);
+      }
+    } else {
+      // No specific doctor — check ALL doctors to prevent double-booking
+      const conflicts = await tx.$queryRaw`
+        SELECT id FROM "Appointment"
+        WHERE "clinicId" = ${clinicId}
+        AND "doctorId" IS NOT NULL
+        AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+        AND "startTime" < ${endTime}
+        AND "endTime" > ${startDateTime}
+        FOR UPDATE
+        LIMIT 1
+      `;
+
+      if (conflicts && conflicts.length > 0) {
+        throw new AppError('CONFLICT', 'All doctors are busy at this time. Please choose a different time.', 409);
+      }
     }
 
     return tx.appointment.create({

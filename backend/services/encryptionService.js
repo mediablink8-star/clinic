@@ -35,10 +35,12 @@ function encrypt(text) {
  * @returns {string} - Decrypted text.
  */
 function decrypt(encryptedText) {
-    if (!encryptedText) return '';
+    if (!encryptedText) return null;
     try {
         const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
-        if (!ivHex || !authTagHex || !encrypted) return '';
+        if (!ivHex || !authTagHex || !encrypted) {
+            throw new Error('Invalid encrypted data format');
+        }
 
         const iv = Buffer.from(ivHex, 'hex');
         const authTag = Buffer.from(authTagHex, 'hex');
@@ -52,7 +54,7 @@ function decrypt(encryptedText) {
         return decrypted;
     } catch (error) {
         console.error('Decryption failed:', error.message);
-        return '';
+        throw new Error(`Decryption failed: ${error.message}`);
     }
 }
 

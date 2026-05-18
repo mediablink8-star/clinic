@@ -82,17 +82,32 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
          return { success: false, reason: 'No URL' };
      }
 
-     // Validate URL to prevent SSRF
-     try {
-         const parsed = new URL(targetUrl);
-         if (!['http:', 'https:'].includes(parsed.protocol)) {
-             console.warn(`[Webhook] Skipped ${eventType}: Invalid protocol`);
-             return { success: false, reason: 'Invalid URL protocol' };
-         }
-     } catch {
-         console.warn(`[Webhook] Skipped ${eventType}: Malformed URL`);
-         return { success: false, reason: 'Malformed URL' };
-     }
+    // Validate URL to prevent SSRF
+    try {
+        const parsed = new URL(targetUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            console.warn(`[Webhook] Skipped ${eventType}: Invalid protocol`);
+            return { success: false, reason: 'Invalid URL protocol' };
+        }
+        // Block private/internal IP ranges to prevent SSRF attacks
+        const hostname = parsed.hostname.toLowerCase();
+        const isPrivateIp = /^10\./.test(hostname) ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+            /^192\.168\./.test(hostname) ||
+            /^127\./.test(hostname) ||
+            hostname === 'localhost' ||
+            hostname === '0.0.0.0' ||
+            /^169\.254\./.test(hostname) || // AWS metadata
+            /^::1$/.test(hostname) ||
+            /^\[::1\]/.test(hostname);
+        if (isPrivateIp) {
+            console.warn(`[Webhook] Skipped ${eventType}: Private/internal IP blocked (${hostname})`);
+            return { success: false, reason: 'Private IP blocked' };
+        }
+    } catch {
+        console.warn(`[Webhook] Skipped ${eventType}: Malformed URL`);
+        return { success: false, reason: 'Malformed URL' };
+    }
 
     const { maxRetries = 3, baseDelay = 500 } = options;
     const secret = webhookSecret || clinic?.webhookSecret;

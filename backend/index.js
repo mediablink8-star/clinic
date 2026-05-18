@@ -15,7 +15,7 @@ const AppError = require('./errors/AppError');
 if (process.env.SENTRY_BACKEND_DSN) {
     Sentry.init({
         dsn: process.env.SENTRY_BACKEND_DSN,
-        tracesSampleRate: 1.0,
+        tracesSampleRate: 0.1,
     });
 }
 

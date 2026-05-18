@@ -40,6 +40,17 @@ async function sendSms({ to, body }) {
     }
 
     try {
+        if (isAlphanumericSender(sender) && !process.env.TWILIO_MESSAGING_SERVICE_SID) {
+            // Direct alpha sender (works in supported countries like Greece)
+            const message = await client.messages.create({
+                to,
+                from: sender,
+                body,
+            });
+            console.info(`[Twilio] SMS sent (alpha): ${message.sid} -> ***${to.slice(-4)} [${sender}]`);
+            return { success: true, sid: message.sid };
+        }
+
         const message = await client.messages.create({
             to,
             from: isAlphanumericSender(sender) ? undefined : sender,
@@ -47,19 +58,6 @@ async function sendSms({ to, body }) {
             body,
             ...(isAlphanumericSender(sender) && { statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status` }),
         });
-
-        // For alphanumeric senders, Twilio requires a Messaging Service SID
-        // If no Messaging Service SID is set, fall back to using the alpha sender directly
-        if (isAlphanumericSender(sender) && !process.env.TWILIO_MESSAGING_SERVICE_SID) {
-            // Direct alpha sender (works in supported countries like Greece)
-            const message2 = await client.messages.create({
-                to,
-                from: sender,
-                body,
-            });
-            console.info(`[Twilio] SMS sent (alpha): ${message2.sid} -> ***${to.slice(-4)} [${sender}]`);
-            return { success: true, sid: message2.sid };
-        }
 
         console.info(`[Twilio] SMS sent: ${message.sid} -> ***${to.slice(-4)}`);
         return { success: true, sid: message.sid };

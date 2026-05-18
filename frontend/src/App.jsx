@@ -586,6 +586,7 @@ const handleLogin = (loginData) => {
 
   const handleSetCurrentTab = (tab) => {
     setCurrentTab(tab);
+    window.history.pushState({ tab }, '', `/${tab}`);
     // Refetch appointments when navigating to appointments or calendar tab
     // so public bookings and external changes show up immediately
     if (tab === 'appointments' || tab === 'calendar') {

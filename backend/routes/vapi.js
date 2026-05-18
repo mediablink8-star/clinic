@@ -9,6 +9,7 @@
 
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const asyncHandler = require('../middleware/asyncHandler');
 const AppError = require('../errors/AppError');
 const prisma = require('../services/prisma');
@@ -54,7 +55,13 @@ function vapiAuth(req, res, next) {
         return next();
     }
     const provided = req.headers['x-vapi-secret'] || req.headers['authorization']?.replace('Bearer ', '');
-    if (!provided || provided !== vapiSecret) {
+    if (!provided) {
+        throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
+    }
+    // Timing-safe comparison to prevent timing attacks
+    const providedBuffer = Buffer.from(provided, 'utf8');
+    const secretBuffer = Buffer.from(vapiSecret, 'utf8');
+    if (providedBuffer.length !== secretBuffer.length || !crypto.timingSafeEqual(providedBuffer, secretBuffer)) {
         throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
     }
     next();
@@ -212,7 +219,7 @@ async function handleVoiceBooking(mc, input) {
                     notes: `Ημέρα: ${preferred_day} | Ώρα: ${preferred_time}`,
                     priority: 'NORMAL',
                 },
-                { userId: null, ip: null }
+                { userId: 'vapi-ai', ip: '127.0.0.1' }
             );
             console.info(`[Vapi] Appointment created via appointmentService`);
             booked = true;

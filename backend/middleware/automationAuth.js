@@ -24,16 +24,22 @@ module.exports = asyncHandler(async function automationAuth(req, res, next) {
             throw new AppError('NO_API_KEY_CONFIGURED', 'AUTOMATION_API_KEY is not set on this server', 401);
         }
 
-        // Simpler comparison to avoid buffer length errors, while still being safe enough for this context
-        if (apiKey !== envKey) {
+        // Timing-safe comparison to prevent timing attacks
+        const envKeyBuffer = Buffer.from(envKey, 'utf8');
+        const apiKeyBuffer = Buffer.from(apiKey, 'utf8');
+        if (envKeyBuffer.length !== apiKeyBuffer.length || !crypto.timingSafeEqual(envKeyBuffer, apiKeyBuffer)) {
             console.warn('[Auth] Invalid API Key attempt');
             throw new AppError('INVALID_API_KEY', 'Invalid API key', 401);
         }
 
         // API key auth doesn't have a user context — set a sentinel so downstream services know
         req.user = { userId: 'automation', role: 'AUTOMATION' };
-        req.clinicId = req.body?.clinicId || req.query?.clinicId || null;
-        
+
+        // Only accept clinicId from the request if the caller explicitly provides it,
+        // but validate it belongs to an active clinic (prevents injection of arbitrary IDs)
+        const requestedClinicId = req.body?.clinicId || req.query?.clinicId || null;
+        req.clinicId = requestedClinicId;
+
         console.info(`[Auth] Automation authenticated for clinic: ${req.clinicId || 'Global'}`);
 
         // Verify clinic exists and is active when clinicId is provided

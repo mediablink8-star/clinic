@@ -38,23 +38,29 @@ router.delete('/clinics/:clinicId', asyncHandler(async (req, res) => {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
-    await prisma.$transaction([
-        prisma.activityEvent.deleteMany({ where: { clinicId } }),
-        prisma.message.deleteMany({ where: { clinicId } }),
-        prisma.conversation.deleteMany({ where: { clinicId } }),
-        prisma.recoveryCase.deleteMany({ where: { clinicId } }),
-        prisma.missedCall.deleteMany({ where: { clinicId } }),
-        prisma.appointment.deleteMany({ where: { clinicId } }),
-        prisma.notification.deleteMany({ where: { clinicId } }),
-        prisma.patient.deleteMany({ where: { clinicId } }),
-        prisma.doctor.deleteMany({ where: { clinicId } }),
-        prisma.messageLog.deleteMany({ where: { clinicId } }),
-        prisma.auditLog.deleteMany({ where: { clinicId } }),
-        prisma.user.deleteMany({ where: { clinicId } }),
-        prisma.clinic.delete({ where: { id: clinicId } })
-    ]);
+    // Soft-delete: deactivate clinic instead of hard-deleting
+    // This prevents accidental data loss and allows recovery
+    await prisma.$transaction(async (tx) => {
+        // Deactivate the clinic (disables all workflows)
+        await tx.clinic.update({
+            where: { id: clinicId },
+            data: { isActive: false }
+        });
 
-    res.json({ success: true, message: 'Το ιατρείο και όλα τα δεδομένα διαγράφηκαν' });
+        // Log the deletion for audit trail
+        await tx.auditLog.create({
+            data: {
+                clinicId,
+                userId: req.user?.userId || 'admin',
+                action: 'DELETE_CLINIC',
+                entity: 'CLINIC',
+                entityId: clinicId,
+                details: JSON.stringify({ clinicName: clinic.name, deletedAt: new Date().toISOString(), deletedBy: req.user?.userId || 'admin' })
+            }
+        });
+    });
+
+    res.json({ success: true, message: 'Το ιατρείο απενεργοποιήθηκε (soft-delete). Τα δεδομένα διατηρούνται.' });
 }));
 
 // ── Credits ──

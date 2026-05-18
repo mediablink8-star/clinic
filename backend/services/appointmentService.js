@@ -305,23 +305,26 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
     if (status === 'CONFIRMED') {
         const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
         const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
-        
+        const doctor = existing.doctorId
+            ? await prisma.doctor.findUnique({ where: { id: existing.doctorId } })
+            : null;
+
         // 1. Send SMS (this also triggers message.direct_send webhook to n8n)
-        sendConfirmationSms({ appointment, patient, clinic })
+        sendConfirmationSms({ appointment: { ...existing, doctor }, patient, clinic })
             .catch(err => console.warn('[SMS] Confirmation send failed:', err.message));
 
-        // 2. Clear explicit event webhook to n8n (for custom workflows like medical forms)
-        const startDate = new Date(appointment.startTime);
+        // 2. Fire explicit event webhook to n8n (for custom workflows like medical forms)
+        const startDate = new Date(existing.startTime);
         triggerWebhook(
             'appointment.confirmed',
             {
-                appointmentId: appointment.id,
+                appointmentId: existing.id,
                 patientName: patient?.name || '',
                 phone: patient?.phone || '',
                 date: startDate.toLocaleDateString('el-GR'),
                 time: startDate.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                 status: 'CONFIRMED',
-                doctorName: appointment.doctor?.name || null
+                doctorName: doctor?.name || null
             },
             null,
             clinic.webhookSecret,
