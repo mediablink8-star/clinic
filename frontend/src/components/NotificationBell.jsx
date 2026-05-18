@@ -15,7 +15,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
     const [pos, setPos] = useState({ top: 0, right: 0 });
     const [dismissed, setDismissed] = useState(() => {
         try {
-            const saved = localStorage.getItem('notif_dismissed');
+            const saved = localStorage.getItem('notif_dismissed:v1');
             return saved ? new Set(JSON.parse(saved)) : new Set();
         } catch { return new Set(); }
     });
@@ -23,7 +23,7 @@ const NotificationBell = ({ warnings = [], notifications = [], onAction }) => {
     const dismissAll = (ids) => {
         const next = new Set(ids);
         setDismissed(next);
-        try { localStorage.setItem('notif_dismissed', JSON.stringify([...next])); } catch {}
+        try { localStorage.setItem('notif_dismissed:v1', JSON.stringify([...next])); } catch {}
     };
     const btnRef = useRef(null);
 

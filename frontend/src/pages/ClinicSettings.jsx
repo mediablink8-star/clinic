@@ -829,7 +829,7 @@ zIndex: 30
                         <a 
                             href={`/book?clinicId=${clinic?.id}`} 
                             target="_blank" 
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             title="Άνοιγμα Σελίδας"
                             style={{ padding: '0 12px', background: 'white', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >

@@ -23,7 +23,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     const [selected, setSelected] = React.useState(null);
     const [dismissed, setDismissed] = React.useState(() => {
         try {
-            const saved = localStorage.getItem('feed_dismissed');
+            const saved = localStorage.getItem('feed_dismissed:v1');
             return saved ? new Set(JSON.parse(saved)) : new Set();
         } catch { return new Set(); }
     });
@@ -31,7 +31,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
     const dismissAll = (ids) => {
         const next = new Set(ids);
         setDismissed(next);
-        try { localStorage.setItem('feed_dismissed', JSON.stringify([...next])); } catch {}
+        try { localStorage.setItem('feed_dismissed:v1', JSON.stringify([...next])); } catch {}
     };
 
     const handleRetry = async (logId, e) => {
