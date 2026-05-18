@@ -198,7 +198,7 @@ const App = () => {
   // React Queries
   const { data: appointments = [], isLoading: loadingApts, isFetching: fetchingApts, refetch: refetchApts, error: appointmentsError } = useQuery({
     queryKey: ['appointments'],
-    queryFn: () => api.get('/appointments').then(res => res.data),
+    queryFn: () => api.get('/appointments').then(res => res.data.data || []),
     enabled: !!token,
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
@@ -208,7 +208,7 @@ const App = () => {
 
   const { data: patients = [], isLoading: loadingPatients, isFetching: fetchingPatients, error: patientsError } = useQuery({
     queryKey: ['patients'],
-    queryFn: () => api.get('/patients').then(res => res.data),
+    queryFn: () => api.get('/patients').then(res => res.data.data || []),
     enabled: !!token,
     refetchInterval: 60000,
     refetchOnWindowFocus: true,
