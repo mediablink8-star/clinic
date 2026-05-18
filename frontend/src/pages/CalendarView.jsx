@@ -136,9 +136,8 @@ const CalendarView = ({ appointments = [], onAppointmentClick, gcalConnected = f
                         )}
                 </div>
             </div>
-            )}
-            );
-        }
+        );
+    }
 
         return days;
     };
