@@ -35,6 +35,25 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
         ? (webhookResult.success ? 'SENT' : 'FAILED')
         : (treatMissingWebhookAsSimulated ? 'SIMULATED' : 'FAILED');
 
+    // Twilio fallback when no webhook is configured or webhook failed
+    if (!hasAnyWebhook || !webhookResult.success) {
+        try {
+            const { sendSmsWithTracking } = require('./twilioService');
+            if (payload?.phone) {
+                const twilioResult = await sendSmsWithTracking({
+                    to: payload.phone,
+                    body: payload.message || payload.body || '',
+                    clinicId,
+                });
+                if (twilioResult.success) {
+                    return { logId: null, deliveryStatus: 'SENT' };
+                }
+            }
+        } catch (twilioErr) {
+            console.warn(`[Messaging] Twilio fallback failed: ${twilioErr.message}`);
+        }
+    }
+
     const log = await prisma.$transaction(async (tx) => {
         const updated = await tx.clinic.updateMany({
             where: { id: clinicId, messageCredits: { gt: 0 } },

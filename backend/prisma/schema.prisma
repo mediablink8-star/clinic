@@ -279,7 +279,7 @@ model MissedCall {
   smsStatus        String           @default("pending") // pending | processing | sent | failed | scheduled (Fix 5)
   smsError         String?          // last SMS error message
   scheduledSmsAt   DateTime?        // When outside working hours, SMS is scheduled for this time
-  estimatedRevenue  Float            @default(150.0)
+  estimatedRevenue  Float            @default(80.0)
   aiConversation    String?          // Stored JSON of SMS history
   lastSmsSentAt     DateTime?
   recoveredAt       DateTime?

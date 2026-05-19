@@ -46,6 +46,7 @@ async function sendSms({ to, body }) {
                 to,
                 from: sender,
                 body,
+                statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status`,
             });
             console.info(`[Twilio] SMS sent (alpha): ${message.sid} -> ***${to.slice(-4)} [${sender}]`);
             return { success: true, sid: message.sid };

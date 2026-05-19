@@ -209,6 +209,23 @@ app.use('/api/doctors', requireAuth, doctorsRouter);
 // Unauthenticated Webhooks (Self-protected via HMAC inside)
 // --- REVENUE RECOVERY ROUTES (handled by recoveryRouter above) ---
 
+// --- TWILIO STATUS CALLBACK (no auth, Twilio calls directly with urlencoded body) ---
+app.post('/api/webhook/sms-status', express.urlencoded({ extended: false }), asyncHandler(async (req, res) => {
+    const { MessageSid, MessageStatus, To, ErrorCode } = req.body;
+    console.info(`[Twilio] Status: ${MessageStatus} sid=${MessageSid} to=${To}`);
+    if (MessageSid && MessageStatus) {
+        await prisma.messageLog.updateMany({
+            where: { providerMessageSid: MessageSid },
+            data: {
+                status: MessageStatus === 'delivered' ? 'DELIVERED' :
+                        ['failed','undelivered'].includes(MessageStatus) ? 'FAILED' : 'SENT',
+                providerStatusRaw: `twilio_${MessageStatus}${ErrorCode ? `_${ErrorCode}` : ''}`
+            }
+        }).catch(err => console.warn('[Twilio] Status update failed:', err.message));
+    }
+    res.sendStatus(200);
+}));
+
 // --- WEBHOOK ROUTES ---
 const webhookAuth = require('./middleware/webhookAuth');
 const webhooksRouter = require('./routes/webhooks');

@@ -23,6 +23,8 @@ function validateEnv() {
         'TWILIO_ACCOUNT_SID',
         'TWILIO_AUTH_TOKEN',
         'TWILIO_PHONE_NUMBER',
+        'TWILIO_ALPHA_SENDER_ID',
+        'KNOWN_CLINIC_IDS',
         'VAPI_API_KEY',
         'DATABASE_CONNECTION_POOL_URL',
     ];

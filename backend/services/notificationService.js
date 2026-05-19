@@ -1,6 +1,6 @@
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
-const { sendManagedSms } = require('./messagingService');
+const { sendSmsWithTracking } = require('./twilioService');
 
 /**
  * Process a single queued notification job.
@@ -57,30 +57,24 @@ async function processNotification(notificationId) {
          return { success: false, reason: 'Daily message cap reached' };
      }
 
-     // Trigger webhook outside transaction — network call must not hold a DB connection
-     try {
-         console.info(`${logPrefix} Processing notification ${notificationId} for clinic ${clinic.id}`);
-         await sendManagedSms({
-             clinicId: clinic.id,
-             clinic,
-             eventType: 'notification.send',
-             payload: {
-                 notificationId: notification.id,
-                 type: notification.type,
-                 message: notification.message,
-                 clinicName: clinic.name,
-                 phone: notification.appointment?.patient?.phone || null,
-                 patientName: notification.appointment?.patient?.name || null,
-                 appointmentId: notification.appointmentId || null,
-             },
-             logType: notification.type,
-         });
+      // Trigger webhook outside transaction — network call must not hold a DB connection
+      try {
+          console.info(`${logPrefix} Processing notification ${notificationId} for clinic ${clinic.id}`);
+          const phone = notification.appointment?.patient?.phone;
+          if (!phone) throw new Error('No patient phone number for notification');
 
-         await prisma.notification.update({ where: { id: notificationId }, data: { status: 'SENT', sentAt: new Date() } });
-         console.info(`${logPrefix} Notification ${notificationId} sent successfully`);
+          const result = await sendSmsWithTracking({
+              to: phone,
+              body: notification.message,
+              clinicId: clinic.id,
+          });
+          if (!result.success) throw new Error(result.error || 'Twilio send failed');
 
-         return { success: true };
-     } catch (sendError) {
+          await prisma.notification.update({ where: { id: notificationId }, data: { status: 'SENT', sentAt: new Date() } });
+          console.info(`${logPrefix} Notification ${notificationId} sent successfully`);
+
+          return { success: true };
+      } catch (sendError) {
          console.error(`${logPrefix} Failed to send notification ${notificationId}: ${sendError.message}`);
          await prisma.notification.update({
              where: { id: notificationId },
