@@ -31,15 +31,16 @@ const StatusBadge = ({ status, latency, error }) => {
  ───────────────────────────────────────────────────────── */
 const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) => (
     <div id={id} style={{
-        background: 'var(--card-bg)',
-        backdropFilter: 'blur(10px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(180%)',
+        background: 'var(--glass-surface)',
+        backdropFilter: 'var(--glass-strong)',
+        WebkitBackdropFilter: 'var(--glass-strong)',
         borderRadius: '20px',
-        border: '1px solid var(--border)',
+        border: '1px solid rgba(255,255,255,0.45)',
         boxShadow: 'var(--shadow-md)',
         marginBottom: '1.5rem',
         overflow: 'hidden',
-        scrollMarginTop: '80px'
+        scrollMarginTop: '80px',
+        transition: 'box-shadow 0.3s ease, transform 0.3s ease'
     }}>
         {/* Card header */}
         <div style={{
@@ -48,7 +49,7 @@ const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) =>
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            background: 'var(--bg-subtle)'
+            background: 'var(--modal-header-bg)'
         }}>
             <div style={{
                 width: '26px',
@@ -81,7 +82,7 @@ const SectionCard = ({ id, number, icon, iconBg, title, subtitle, children }) =>
             <div>
                 <h2 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text)', margin: 0 }}>{title}</h2>
                 {subtitle && (
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-light)', margin: '2px 0 0', fontWeight: '400' }}>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-light)', margin: '2px 0 0', fontWeight: '500' }}>
                         {subtitle}
                     </p>
                 )}
@@ -685,7 +686,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
                 background: 'linear-gradient(135deg, var(--secondary) 0%, var(--text) 100%)',
                 borderRadius: '24px',
                 color: 'white',
-                boxShadow: 'var(--shadow-lg)',
+                boxShadow: 'var(--shadow-xl)',
                 position: 'relative',
                 overflow: 'hidden'
             }}>
@@ -800,8 +801,8 @@ zIndex: 30
 
                 <div style={{ 
                     marginTop: '0.5rem', marginBottom: '1.5rem', padding: '1.25rem', 
-                    borderRadius: '16px', background: 'rgba(99,102,241,0.04)', 
-                    border: '1px solid rgba(99,102,241,0.1)' 
+                    borderRadius: '16px', background: 'var(--primary-light)', 
+                    border: '1px solid rgba(99,102,241,0.12)' 
                 }}>
                     <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '800', fontSize: '0.72rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Δημόσιος Σύνδεσμος Κρατήσεων
@@ -1150,7 +1151,7 @@ zIndex: 30
 
                 <div style={{ 
                     marginTop: '1.5rem', padding: '1.25rem', borderRadius: '16px', 
-                    background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)',
+                    background: 'var(--primary-light)', border: '1px solid rgba(99,102,241,0.12)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}>
                     <div>
@@ -1169,7 +1170,7 @@ zIndex: 30
             <SectionCard id="s-voice" number="5" icon={<Phone size={15} color="var(--primary-vibrant)" />} iconBg="rgba(124,58,237,0.1)"
                 title="Voice AI" subtitle="AI φωνητική ανάκτηση κλήσεων">
 
-                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', marginBottom: '1rem' }}>
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.16)', marginBottom: '1rem' }}>
                     <p style={{ fontSize: '0.78rem', color: 'var(--primary-deep)', fontWeight: '600', margin: 0 }}>
                         Vapi + Zadarma: Χρησιμοποιεί τον αριθμό σας από το Zadarma για ελληνικό caller ID.
                     </p>
@@ -1240,7 +1241,7 @@ zIndex: 30
             <SectionCard id="s-gemini" number="5.5" icon={<Sparkles size={15} color="var(--primary-deep)" />} iconBg="rgba(99,102,241,0.1)"
                 title="AI Assistant (Σοφία)" subtitle="Gemini AI για φυσική γλώσσα εντολών">
 
-                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', marginBottom: '1rem' }}>
+                <div style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.16)', marginBottom: '1rem' }}>
                     <p style={{ fontSize: '0.78rem', color: 'var(--primary-deep)', fontWeight: '600', margin: 0 }}>
                         Η Σοφία είναι ο AI βοηθός που εμφανίζεται στο dashboard. Χρησιμοποιεί το Gemini για να καταλαβαίνει εντολές σε φυσική γλώσσα.
                     </p>

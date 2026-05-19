@@ -347,34 +347,34 @@ const UserManagement = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} className="toolbar-group">
              <div style={{ position: 'relative' }}>
-               <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-               <input
-                 type="text" placeholder="Αναζήτηση χρηστών..."
-                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                 style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
-               />
-          </div>
-          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={{
-            padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
-            appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
-            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
-          }}>
-            <option value="all">Όλοι οι ρόλοι</option>
-            <option value="ADMIN">Διαχειριστής</option>
-            <option value="OWNER">Ιδιοκτήτης</option>
-            <option value="DOCTOR">Γιατρός</option>
-            <option value="RECEPTIONIST">Γραμματέας</option>
-            <option value="ASSISTANT">Βοηθός</option>
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
-            padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
-            appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
-            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
-          }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text" placeholder="Αναζήτηση χρηστών..."
+                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  style={{ padding: '8px 12px 8px 30px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent', width: '100%', fontFamily: 'inherit', transition: 'border-color 0.2s' }}
+                />
+           </div>
+           <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={{
+             padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid var(--border)',
+             background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
+             appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
+             backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
+             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
+           }}>
+             <option value="all">Όλοι οι ρόλοι</option>
+             <option value="ADMIN">Διαχειριστής</option>
+             <option value="OWNER">Ιδιοκτήτης</option>
+             <option value="DOCTOR">Γιατρός</option>
+             <option value="RECEPTIONIST">Γραμματέας</option>
+             <option value="ASSISTANT">Βοηθός</option>
+           </select>
+           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
+             padding: '8px 30px 8px 12px', borderRadius: '8px', border: '1px solid var(--border)',
+             background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.82rem', outline: '2px solid transparent',
+             appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
+             backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath d=%22M6 8L1 3h10z%22 fill=%22%2394a3b8%22/%3E%3C/svg%3E")',
+             backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center'
+           }}>
             <option value="all">Όλες οι καταστάσεις</option>
             <option value="active">Ενεργοί</option>
             <option value="locked">Κλειδωμένοι</option>
@@ -400,7 +400,7 @@ const UserManagement = () => {
             {filtered.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Δεν βρέθηκαν χρήστες</td></tr>
             ) : filtered.map(user => (
-              <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s', background: 'rgba(255,255,255,0.01)' }}>
+               <tr key={user.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s', background: 'var(--bg-subtle)' }}>
                 <td style={tdBase}>
                   <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--text)' }}>{user.name || '—'}</div>
                   {user.isPlatformAdmin && <span style={{ fontSize: '0.65rem', color: '#635bff', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}><ShieldCheck size={10} /> Platform Admin</span>}
@@ -410,23 +410,23 @@ const UserManagement = () => {
                   <span style={{
                     fontSize: '0.72rem', fontWeight: '700',
                     padding: '3px 8px', borderRadius: '4px',
-                    background: user.role === 'ADMIN' ? 'rgba(99,91,255,0.1)' : user.role === 'OWNER' ? 'rgba(139,92,246,0.1)' : user.role === 'DOCTOR' ? 'rgba(37,99,235,0.1)' : 'rgba(148,163,184,0.15)',
-                    color: user.role === 'ADMIN' ? '#635bff' : user.role === 'OWNER' ? '#8b5cf6' : user.role === 'DOCTOR' ? '#2563eb' : '#64748b'
+                    background: user.role === 'ADMIN' ? 'var(--primary-light)' : user.role === 'OWNER' ? 'rgba(139,92,246,0.1)' : user.role === 'DOCTOR' ? 'var(--info-light)' : 'rgba(148,163,184,0.15)',
+                    color: user.role === 'ADMIN' ? 'var(--primary)' : user.role === 'OWNER' ? 'var(--primary-vibrant)' : user.role === 'DOCTOR' ? 'var(--ai-blue)' : 'var(--text-muted)'
                   }}>
                     {user.role === 'ADMIN' ? 'Διαχειριστής' : user.role === 'OWNER' ? 'Ιδιοκτήτης' : user.role === 'DOCTOR' ? 'Γιατρός' : user.role === 'RECEPTIONIST' ? 'Γραμματέας' : 'Βοηθός'}
                   </span>
                 </td>
                 <td style={tdBase}>
                   {user.lockedUntil ? (
-                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                       <Lock size={10} /> Κλειδωμένος
                     </span>
                   ) : user.isActive ? (
-                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                       <CheckCircle2 size={10} /> Ενεργός
                     </span>
                   ) : (
-                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--urgent)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                       <XCircle size={10} /> Ανενεργός
                     </span>
                   )}
@@ -436,17 +436,17 @@ const UserManagement = () => {
                 </td>
                 <td style={{ ...tdBase, whiteSpace: 'nowrap' }}>
                   <div style={{ display: 'flex', gap: '3px' }}>
-                    <button title={user.lockedUntil ? 'Ξεκλείδωμα' : 'Κλείδωμα'} onClick={() => handleToggleLock(user.id, user.lockedUntil, user.name)} style={{
-                        ...actionBtnBase,
-                        color: user.lockedUntil ? '#10b981' : '#f59e0b',
-                        background: user.lockedUntil ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)'
-                      }}>
-                        {user.lockedUntil ? <Unlock size={13} /> : <Lock size={13} />}
-                      </button>
-                    <button title={user.isActive ? 'Απενεργοποίηση' : 'Ενεργοποίηση'} onClick={() => handleToggleActive(user.id, user.isActive, user.name)} style={{
-                        ...actionBtnBase,
-                        color: user.isActive ? '#f59e0b' : '#10b981',
-                        background: user.isActive ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)'
+                      <button title={user.lockedUntil ? 'Ξεκλείδωμα' : 'Κλείδωμα'} onClick={() => handleToggleLock(user.id, user.lockedUntil, user.name)} style={{
+                          ...actionBtnBase,
+                          color: user.lockedUntil ? 'var(--accent)' : 'var(--warning)',
+                          background: user.lockedUntil ? 'var(--success-light)' : 'var(--warning-light)'
+                        }}>
+                          {user.lockedUntil ? <Unlock size={13} /> : <Lock size={13} />}
+                        </button>
+                      <button title={user.isActive ? 'Απενεργοποίηση' : 'Ενεργοποίηση'} onClick={() => handleToggleActive(user.id, user.isActive, user.name)} style={{
+                          ...actionBtnBase,
+                          color: user.isActive ? 'var(--warning)' : 'var(--accent)',
+                          background: user.isActive ? 'var(--warning-light)' : 'var(--success-light)'
                       }}>
                         <RefreshCw size={13} />
                       </button>
@@ -626,7 +626,7 @@ const AuditLogs = () => {
 <div style={{ overflowX: 'auto', maxHeight: '500px' }} className="mobile-table-min">
            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
+              <tr style={{ background: 'var(--primary-light)', borderBottom: '2px solid var(--border)' }}>
                 <th style={thBase}>Ώρα</th>
                 <th style={thBase}>Ιατρείο</th>
                 <th style={thBase}>Χρήστης</th>
