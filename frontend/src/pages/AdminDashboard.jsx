@@ -42,7 +42,7 @@ const thBase = {
   color: 'var(--text-light)',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  borderBottom: '2px solid rgba(255,255,255,0.08)',
+  borderBottom: '2px solid var(--border)',
   whiteSpace: 'nowrap'
 };
 
@@ -50,7 +50,7 @@ const tdBase = {
   padding: '12px 14px',
   fontSize: '0.82rem',
   color: 'var(--text)',
-  borderBottom: '1px solid rgba(255,255,255,0.03)',
+  borderBottom: '1px solid var(--border)',
   verticalAlign: 'middle'
 };
 
@@ -68,33 +68,18 @@ const LoadingPlaceholder = ({ rows = 4 }) => (
       {[...Array(rows)].map((_, i) => (
         <div key={`sk-${i}`} style={{
           flex: 1, height: '72px', borderRadius: '12px',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--bg-subtle)',
           animation: 'pulse 1.5s ease-in-out infinite',
           animationDelay: `${i * 0.15}s`
         }} />
       ))}
     </div>
-    <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', height: '200px' }} />
-  </div>
-);
-
-const ErrorState = ({ onRetry }) => (
-  <div style={{ textAlign: 'center', padding: '3rem' }}>
-    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-    <p style={{ color: 'var(--urgent)', fontWeight: '700', marginBottom: '1.5rem' }}>Αποτυχία φόρτωσης δεδομένων</p>
-    <button onClick={onRetry} style={{
-      padding: '10px 24px', borderRadius: '10px', border: 'none',
-      background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
-      color: 'white', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem'
-    }}>
-      <RefreshCw size={14} style={{ marginRight: '6px' }} />
-      Επανάληψη
-    </button>
+    <div style={{ background: 'var(--bg-subtle)', borderRadius: '12px', height: '200px' }} />
   </div>
 );
 
 const DetailRow = ({ label, value }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>{label}</span>
     <span style={{ fontSize: '0.8rem', color: 'var(--text)', fontWeight: '600' }}>{value}</span>
   </div>
@@ -110,12 +95,12 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
 
   const s = data.summary;
   const cards = [
-    { label: 'Συνολικά Ιατρεία', value: s.totalClinics, icon: <Building2 size={20} />, accent: '#635bff', bg: 'rgba(99,91,255,0.08)' },
-    { label: 'Ενεργά', value: s.activeClinics, icon: <CheckCircle2 size={20} />, accent: '#10b981', bg: 'rgba(16,185,129,0.08)' },
-    { label: 'Ανενεργά', value: s.inactiveClinics, icon: <XCircle size={20} />, accent: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
-    { label: 'Σύνολο Χρήστες', value: s.totalUsers, icon: <Users size={20} />, accent: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
-    { label: 'Ραντεβού', value: s.totalAppointments, icon: <Calendar size={18} />, accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-    { label: 'Μηνύματα', value: s.totalMessages, icon: <MessageSquare size={18} />, accent: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
+    { label: 'Συνολικά Ιατρεία', value: s.totalClinics, icon: <Building2 size={20} />, accent: 'var(--primary)', bg: 'var(--primary-light)' },
+    { label: 'Ενεργά', value: s.activeClinics, icon: <CheckCircle2 size={20} />, accent: 'var(--accent)', bg: 'var(--success-light)' },
+    { label: 'Ανενεργά', value: s.inactiveClinics, icon: <XCircle size={20} />, accent: 'var(--urgent)', bg: 'var(--error-light)' },
+    { label: 'Σύνολο Χρήστες', value: s.totalUsers, icon: <Users size={20} />, accent: 'var(--ai-blue)', bg: 'var(--info-light)' },
+    { label: 'Ραντεβού', value: s.totalAppointments, icon: <Calendar size={18} />, accent: 'var(--warning)', bg: 'var(--warning-light)' },
+    { label: 'Μηνύματα', value: s.totalMessages, icon: <MessageSquare size={18} />, accent: 'var(--primary-vibrant)', bg: 'rgba(139,92,246,0.08)' },
   ];
 
   return (
@@ -154,7 +139,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
           background: 'var(--glass-surface)',
           backdropFilter: 'var(--glass-strong)',
           WebkitBackdropFilter: 'var(--glass-strong)',
-          border: '1px solid rgba(255,255,255,0.25)',
+          border: '1px solid var(--border)',
           borderRadius: '14px',
           padding: '1.25rem',
           boxShadow: 'var(--shadow-md)'
@@ -167,7 +152,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Δεν υπάρχουν πρόσφατες εισόδοι</p>
           ) : (
             (data.recentLogins || []).map((u) => (
-              <div key={u.email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={u.email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{u.name || u.email}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{u.email}</div>
@@ -185,26 +170,26 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
           background: 'var(--glass-surface)',
           backdropFilter: 'var(--glass-strong)',
           WebkitBackdropFilter: 'var(--glass-strong)',
-          border: '1px solid rgba(255,255,255,0.25)',
+          border: '1px solid var(--border)',
           borderRadius: '14px',
           padding: '1.25rem',
           boxShadow: 'var(--shadow-md)'
         }}>
           <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={14} style={{ color: '#f59e0b' }} />
+            <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
             Ιατρεία Χαμηλών Credits
           </h3>
           {(data.lowCreditClinics || []).length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Όλα τα ιατρεία έχουν επαρκή credits</p>
           ) : (
             (data.lowCreditClinics || []).map((c) => (
-              <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{c.name}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.email}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: '700', color: c.messageCredits < 20 ? '#ef4444' : '#f59e0b' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '700', color: c.messageCredits < 20 ? 'var(--urgent)' : 'var(--warning)' }}>
                     {c.messageCredits} / {c.monthlyCreditLimit}
                   </div>
                 </div>
@@ -220,7 +205,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
           background: 'var(--glass-surface)',
           backdropFilter: 'var(--glass-strong)',
           WebkitBackdropFilter: 'var(--glass-strong)',
-          border: '1px solid rgba(255,255,255,0.25)',
+          border: '1px solid var(--border)',
           borderRadius: '14px',
           padding: '1.25rem',
           boxShadow: 'var(--shadow-md)',
@@ -234,7 +219,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             {data.peakHours.map((h) => (
               <div key={h.hour} style={{
                 padding: '8px 16px', borderRadius: '10px',
-                background: 'rgba(99,91,255,0.08)',
+                background: 'var(--primary-light)',
                 border: '1px solid rgba(99,91,255,0.15)',
                 fontSize: '0.82rem', fontWeight: '700', color: 'var(--primary)'
               }}>
@@ -1082,11 +1067,11 @@ const handleBulkAction = async (action) => {
            { label: 'Ανενεργά', value: metrics.inactive, icon: <XCircle size={20} />, accent: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
            { label: 'Σύνολο Χρήστες', value: metrics.totalUsers, icon: <Users size={20} />, accent: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
           ].map((card) => (
-           <div key={card.label} style={{
+          <div key={card.label} style={{
             background: 'var(--glass-surface)',
             backdropFilter: 'var(--glass-strong)',
             WebkitBackdropFilter: 'var(--glass-strong)',
-            border: '1px solid rgba(255,255,255,0.25)',
+            border: '1px solid var(--border)',
             borderLeft: `3px solid ${card.accent}`,
             borderRadius: '12px',
             padding: '1.25rem 1.25rem',

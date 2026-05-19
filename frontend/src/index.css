@@ -50,6 +50,24 @@
   --modal-bg: rgba(255, 255, 255, 0.96);
   --modal-border: rgba(255, 255, 255, 0.6);
   --bg-subtle: rgba(248, 250, 252, 0.8);
+  --glass-surface: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.78) 100%);
+  --glass-surface-strong: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.88) 100%);
+  --glass-control: linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.48) 100%);
+  --glass-control-soft: linear-gradient(180deg, rgba(255,255,255,0.54) 0%, rgba(255,255,255,0.28) 100%);
+  --glass-sheen: linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 38%, rgba(255,255,255,0.08) 100%);
+  --modal-header-bg: rgba(99,91,255,0.04);
+  --input-bg: rgba(248,250,252,0.8);
+  --input-border: rgba(226,232,240,0.8);
+  --cancel-bg: rgba(248,250,252,0.6);
+  --cancel-border: rgba(226,232,240,0.6);
+  --cancel-color: #64748b;
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.15);
+  --warning-light: rgba(245, 158, 11, 0.08);
+  --success-light: rgba(16, 185, 129, 0.08);
+  --error-light: rgba(239, 68, 68, 0.08);
+  --info-light: rgba(59, 130, 246, 0.08);
+  --overlay-dark: rgba(0, 0, 0, 0.4);
 }
 
 /* ── Animations ── */
@@ -1147,6 +1165,13 @@ input:focus, textarea:focus, select:focus {
   --cancel-border: rgba(255,255,255,0.09);
   --cancel-color: #94a3b8;
   --bg-subtle: rgba(255, 255, 255, 0.05);
+  --warning: #fbbf24;
+  --warning-glow: rgba(251, 191, 36, 0.2);
+  --warning-light: rgba(251, 191, 36, 0.1);
+  --success-light: rgba(16, 185, 129, 0.1);
+  --error-light: rgba(248, 113, 113, 0.1);
+  --info-light: rgba(59, 130, 246, 0.1);
+  --overlay-dark: rgba(0, 0, 0, 0.6);
 }
 
 /* body dark bg — applied when html has data-theme=dark */
