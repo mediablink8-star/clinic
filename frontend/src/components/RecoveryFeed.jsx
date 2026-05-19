@@ -128,23 +128,23 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     const getActionBackground = () => {
                         // Purple for recovered appointments
                         if (log.status === 'RECOVERED') {
-                            return 'rgba(147,51,234,0.08)'; // Purple
+                            return 'rgba(147,51,234,0.09)'; // Purple
                         }
                         // Red for missed calls / detected
                         if (log.status === 'DETECTED' || log.status === 'LOST') {
-                            return 'rgba(239,68,68,0.08)'; // Red
+                            return 'var(--error-light)'; // Red
                         }
                         // Yellow for SMS sent
                         if (log.smsStatus === 'sent' || log.smsStatus === 'simulated') {
-                            return 'rgba(234,179,8,0.08)'; // Yellow
+                            return 'var(--warning-light)'; // Yellow
                         }
                         // Red for failed SMS
                         if (log.smsStatus === 'failed') {
-                            return 'rgba(239,68,68,0.08)'; // Red
+                            return 'var(--error-light)'; // Red
                         }
                         // Green for recovering/active conversations
                         if (log.status === 'RECOVERING') {
-                            return 'rgba(16,185,129,0.08)'; // Green
+                            return 'var(--success-light)'; // Green
                         }
                         return sorted.indexOf(log) % 2 === 0 ? 'var(--glass-surface)' : 'transparent';
                     };
@@ -152,16 +152,16 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     // Outcome badges
                     const getOutcomeBadge = () => {
                         if (log.status === 'RECOVERED') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>🟢 Κλείστηκε</span>;
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'var(--success-light)', color: 'var(--accent)', border: '1px solid rgba(16,185,129,0.25)' }}>🟢 Κλείστηκε</span>;
                         }
                         if (log.status === 'RECOVERING') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(99,91,255,0.12)', color: '#6366f1', border: '1px solid rgba(99,91,255,0.2)' }}>🟡 Ενεργό</span>;
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid rgba(99,91,255,0.2)' }}>🟡 Ενεργό</span>;
                         }
                         if (log.status === 'LOST') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>🔴 Χάθηκε</span>;
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'var(--error-light)', color: 'var(--urgent)', border: '1px solid rgba(239,68,68,0.2)' }}>🔴 Χάθηκε</span>;
                         }
                         if (log.smsStatus === 'failed') {
-                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '1px solid rgba(239,68,68,0.2)' }}>❌ Απέτυχε</span>;
+                            return <span style={{ fontSize: '0.65rem', fontWeight: '700', padding: '2px 6px', borderRadius: '6px', background: 'var(--error-light)', color: 'var(--urgent)', border: '1px solid rgba(239,68,68,0.2)' }}>❌ Απέτυχε</span>;
                         }
                         return null;
                     };
@@ -223,13 +223,13 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     align-items: center; 
                     justify-content: space-around; 
                     padding: 10px 12px; 
-                    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-                    backdrop-filter: blur(10px) saturate(180%); 
-                    border: 1px solid rgba(255,255,255,0.12); 
+                    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%);
+                    backdrop-filter: blur(12px) saturate(180%); 
+                    border: 1px solid rgba(255,255,255,0.14); 
                     border-radius: 12px; 
                     margin-bottom: 8px; 
                     flex-shrink: 0;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+                    box-shadow: 0 3px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.15);
                 }
                 .stat-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
                 .stat-value { font-size: 1.3rem; font-weight: 950; color: var(--secondary); letter-spacing: -0.03em; line-height: 1; }
@@ -241,7 +241,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     background-clip: text;
                 }
                 .stat-item.warning .stat-value { 
-                    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+                    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
@@ -250,21 +250,22 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                 
                 .feed-header { display: flex; justify-content: flex-end; margin-bottom: 6px; }
                 .clear-btn { 
-                    background: rgba(255,255,255,0.05); 
-                    border: 1px solid rgba(255,255,255,0.08); 
+                    background: rgba(255,255,255,0.06); 
+                    border: 1px solid rgba(255,255,255,0.1); 
                     cursor: pointer; 
                     color: var(--text-light); 
                     font-size: 0.65rem; 
                     font-weight: 700; 
                     padding: 4px 10px; 
                     border-radius: 8px;
-                    transition: all 0.2s;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .clear-btn:hover { 
                     background: var(--primary-light); 
                     color: var(--primary); 
                     border-color: var(--primary);
                     transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(99,91,255,0.15);
                 }
                 
                 .feed-list { display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
@@ -278,19 +279,20 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     text-align: center; 
                     gap: 0.75rem; 
                     border-radius: 12px; 
-                    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    backdrop-filter: blur(10px);
+                    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    backdrop-filter: blur(12px);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
                 }
                 .empty-icon { 
                     width: 40px; 
                     height: 40px; 
                     border-radius: 50%; 
-                    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(99,91,255,0.08) 100%);
+                    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(99,91,255,0.1) 100%);
                     display: flex; 
                     align-items: center; 
                     justify-content: center;
-                    box-shadow: 0 4px 12px rgba(99,91,255,0.15);
+                    box-shadow: 0 4px 14px rgba(99,91,255,0.18), inset 0 1px 0 rgba(255,255,255,0.2);
                 }
                 .empty-icon svg { color: var(--primary); }
                 .empty-title { font-size: 0.8rem; font-weight: 700; color: var(--text); margin: 0; }
@@ -300,8 +302,9 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     gap: 6px; 
                     padding: 5px 12px; 
                     border-radius: 10px; 
-                    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(99,91,255,0.08) 100%);
-                    border: 1px solid rgba(99,91,255,0.15);
+                    background: linear-gradient(135deg, var(--primary-light) 0%, rgba(99,91,255,0.1) 100%);
+                    border: 1px solid rgba(99,91,255,0.18);
+                    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
                 }
                 .empty-status .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--primary); animation: pulse 2s infinite; }
                 .empty-status span { font-size: 0.6rem; font-weight: 700; color: var(--primary); }
@@ -317,18 +320,19 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     gap: 12px; 
                     padding: 12px 14px; 
                     border-radius: 12px; 
-                    border: 1px solid rgba(255,255,255,0.08); 
+                    border: 1px solid rgba(255,255,255,0.1); 
                     border-left: 3px solid; 
                     cursor: pointer; 
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
                     position: relative;
-                    backdrop-filter: blur(10px);
+                    backdrop-filter: blur(12px);
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
                 }
                 .feed-item:hover { 
                     transform: translateX(4px) translateY(-2px); 
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.12) inset;
-                    background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%) !important;
-                    border-color: rgba(255,255,255,0.15);
+                    box-shadow: 0 10px 28px rgba(0,0,0,0.09), 0 0 0 1px rgba(255,255,255,0.14) inset;
+                    background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.07) 100%) !important;
+                    border-color: rgba(255,255,255,0.18);
                 }
                 
                 .feed-icon { 
@@ -340,12 +344,12 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     justify-content: center; 
                     flex-shrink: 0; 
                     border: 1px solid;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-                    transition: all 0.2s;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.15);
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .feed-item:hover .feed-icon {
                     transform: scale(1.05);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    box-shadow: 0 5px 14px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.2);
                 }
                 .feed-content { flex: 1; min-width: 0; }
                 .feed-name { font-size: 0.88rem; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
@@ -358,27 +362,27 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     font-weight: 900; 
                     padding: 4px 9px; 
                     border-radius: 10px; 
-                    background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.08) 100%);
+                    background: linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.1) 100%);
                     color: #059669;
-                    border: 1px solid rgba(16,185,129,0.2);
-                    box-shadow: 0 2px 6px rgba(16,185,129,0.1);
+                    border: 1px solid rgba(16,185,129,0.22);
+                    box-shadow: 0 2px 8px rgba(16,185,129,0.12), inset 0 1px 0 rgba(255,255,255,0.15);
                 }
                 .badge-primary { 
                     font-size: 0.7rem; 
                     font-weight: 800; 
                     padding: 4px 9px; 
                     border-radius: 10px; 
-                    background: linear-gradient(135deg, rgba(99,91,255,0.15) 0%, rgba(99,91,255,0.08) 100%);
+                    background: linear-gradient(135deg, rgba(99,91,255,0.18) 0%, rgba(99,91,255,0.1) 100%);
                     color: var(--primary);
-                    border: 1px solid rgba(99,91,255,0.2);
-                    box-shadow: 0 2px 6px rgba(99,91,255,0.1);
+                    border: 1px solid rgba(99,91,255,0.22);
+                    box-shadow: 0 2px 8px rgba(99,91,255,0.12), inset 0 1px 0 rgba(255,255,255,0.15);
                 }
                 .btn-retry { 
                     width: 26px; 
                     height: 26px; 
                     border-radius: 8px; 
-                    border: 1px solid rgba(239,68,68,0.2); 
-                    background: linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.06) 100%);
+                    border: 1px solid rgba(239,68,68,0.22); 
+                    background: linear-gradient(135deg, rgba(239,68,68,0.14) 0%, rgba(239,68,68,0.07) 100%);
                     color: #dc2626; 
                     font-size: 0.75rem; 
                     font-weight: 700;
@@ -386,23 +390,26 @@ const RecoveryFeed = ({ logs = [], token, onNavigate }) => {
                     display: flex; 
                     align-items: center; 
                     justify-content: center;
-                    transition: all 0.2s;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 1px 4px rgba(239,68,68,0.1);
                 }
                 .btn-retry:hover {
                     transform: scale(1.1);
-                    box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+                    box-shadow: 0 5px 14px rgba(239,68,68,0.22);
+                    border-color: rgba(239,68,68,0.3);
                 }
                 .btn-retry.sent { 
-                    background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.08) 100%);
+                    background: linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(16,185,129,0.1) 100%);
                     color: #059669;
-                    border-color: rgba(16,185,129,0.2);
+                    border-color: rgba(16,185,129,0.22);
+                    box-shadow: 0 1px 4px rgba(16,185,129,0.12);
                 }
                 .status-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
                 
                 .feed-list::-webkit-scrollbar { width: 4px; }
                 .feed-list::-webkit-scrollbar-track { background: transparent; }
-                .feed-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-                .feed-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+                .feed-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+                .feed-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
             `}</style>
         </div>
     );

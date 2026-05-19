@@ -4,11 +4,11 @@ import { Users, BarChart3, Target, CalendarCheck, ChevronDown } from 'lucide-rea
 const FunnelRow = ({ label, value, pct, color }) => (
     <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.6)' }}>{label}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'rgba(255,255,255,0.62)' }}>{label}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: '800', color }}>{value}</span>
         </div>
-        <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '99px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px', transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)' }} />
+        <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px', transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)', boxShadow: `0 0 6px ${color}40` }} />
         </div>
     </div>
 );
@@ -39,34 +39,34 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
             display: 'flex',
             flexDirection: 'column',
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            boxShadow: '0 8px 32px -8px rgba(15,23,42,0.4), 0 0 0 1px rgba(255,255,255,0.05)',
+            boxShadow: '0 10px 36px -10px rgba(15,23,42,0.45), 0 0 0 1px rgba(255,255,255,0.06)',
             position: 'relative',
-            border: '1px solid rgba(255,255,255,0.1)',
-            transition: 'all 0.3s ease'
+            border: '1px solid rgba(255,255,255,0.12)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
         onMouseEnter={e => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 12px 40px -8px rgba(15,23,42,0.5), 0 0 0 1px rgba(255,255,255,0.08)';
+            e.currentTarget.style.boxShadow = '0 14px 44px -10px rgba(15,23,42,0.55), 0 0 0 1px rgba(255,255,255,0.1)';
         }}
         onMouseLeave={e => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 8px 32px -8px rgba(15,23,42,0.4), 0 0 0 1px rgba(255,255,255,0.05)';
+            e.currentTarget.style.boxShadow = '0 10px 36px -10px rgba(15,23,42,0.45), 0 0 0 1px rgba(255,255,255,0.06)';
         }}
         >
-            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(10px)', opacity: 0.18, pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(10px)', opacity: 0.12, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '140px', height: '140px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(12px)', opacity: 0.2, pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '120px', height: '120px', background: '#10b981', borderRadius: '50%', filter: 'blur(12px)', opacity: 0.14, pointerEvents: 'none' }} />
 
             <div style={{ padding: '0.85rem 1.25rem', display: 'flex', gap: '1rem', flex: 1, position: 'relative', zIndex: 1 }}>
                 {/* Left: performance metrics */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{ padding: '5px', borderRadius: '7px', background: 'rgba(255,255,255,0.1)' }}>
+                            <div style={{ padding: '5px', borderRadius: '7px', background: 'rgba(255,255,255,0.12)', boxShadow: '0 1px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1)' }}>
                                 <Target size={12} color="white" />
                             </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Απόδοση Ανάκτησης</span>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.68)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Απόδοση Ανάκτησης</span>
                         </div>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>30 μέρες</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.42)' }}>30 μέρες</span>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', flex: 1 }}>
@@ -77,27 +77,30 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                             { icon: Target,        label: 'Έσοδα',       value: `€${revenue.toLocaleString()}` },
                         ].map(({ icon: Icon, label, value }) => (
                             <div key={label} style={{ 
-                                background: 'rgba(255,255,255,0.05)', 
-                                border: '1px solid rgba(255,255,255,0.08)', 
+                                background: 'rgba(255,255,255,0.06)', 
+                                border: '1px solid rgba(255,255,255,0.1)', 
                                 borderRadius: '12px', 
                                 padding: '0.5rem 0.65rem',
-                                transition: 'all 0.2s ease',
-                                cursor: 'pointer'
+                                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06)'
                             }}
                             onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
                                 e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.1)';
                             }}
                             onMouseLeave={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                                 e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06)';
                             }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-                                    <Icon size={11} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
-                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</span>
+                                    <Icon size={11} color="rgba(255,255,255,0.55)" strokeWidth={2.5} />
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.72)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{label}</span>
                                 </div>
                                 <p style={{ fontSize: '1.15rem', fontWeight: '900', color: 'white', margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
                             </div>
@@ -112,9 +115,9 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                             gap: '6px', 
                             padding: '6px 11px', 
                             borderRadius: '10px', 
-                            background: 'rgba(99,102,241,0.15)', 
-                            border: '1px solid rgba(99,102,241,0.25)',
-                            boxShadow: '0 0 20px rgba(99,102,241,0.15)'
+                            background: 'rgba(99,102,241,0.18)', 
+                            border: '1px solid rgba(99,102,241,0.28)',
+                            boxShadow: '0 0 24px rgba(99,102,241,0.18), inset 0 1px 0 rgba(255,255,255,0.08)'
                         }}>
                             <span style={{ fontSize: '0.76rem', fontWeight: '800', color: '#c7d2fe', letterSpacing: '0.01em' }}>
                                 ✨ AI ανέκτησε {aiRate}% των αναπάντητων κλήσεων
@@ -124,17 +127,17 @@ const RevenueCard = ({ stats, recoveryLog = [] }) => {
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+                <div style={{ width: '1px', background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)', flexShrink: 0 }} />
 
                 {/* Right: mini funnel */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '130px', flexShrink: 0, justifyContent: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Χωνί</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Χωνί</span>
                     <FunnelRow label="Αναπάντητες" value={missed}  pct={100}                              color="#94a3b8" />
-                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.2)" /></div>
+                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.25)" /></div>
                     <FunnelRow label="SMS εστάλη"  value={smsSent} pct={Math.round(smsSent/top*100)}     color="#f59e0b" />
-                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.2)" /></div>
+                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.25)" /></div>
                     <FunnelRow label="Απάντησαν"   value={replied} pct={Math.round(replied/top*100)}     color="#6366f1" />
-                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.2)" /></div>
+                    <div style={{ paddingLeft: '6px' }}><ChevronDown size={10} color="rgba(255,255,255,0.25)" /></div>
                     <FunnelRow label="Κλείστηκαν"  value={booked}  pct={Math.round(booked/top*100)}      color="#10b981" />
                 </div>
             </div>
