@@ -240,6 +240,7 @@ const Sidebar = ({ currentTab, setCurrentTab, clinic, onLogout, onNewAppointment
                             backdropFilter: 'blur(10px) saturate(160%)'
                         }}
                         title="Αποσύνδεση"
+                        aria-label="Αποσύνδεση"
                     >
                         <LogOut size={16} />
                     </button>

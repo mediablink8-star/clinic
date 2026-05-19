@@ -290,7 +290,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                         { icon: MessageCircle, color: '#6366f1', value: awaitingReply, label: 'Αναμένουν', tooltip: 'Αναμένουν απάντηση από ασθενείς' },
                     ].map(({ icon: Icon, color, value, label, tooltip }) => (
                         <Tooltip key={label} text={tooltip} position="top" style={{ height: '100%' }}>
-                            <div
+                            <button
                             onClick={() => onNavigate && onNavigate('analytics')}
                             style={{ 
                                 padding: '14px 10px', 
@@ -372,7 +372,7 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                                     justifyContent: 'center'
                                 }}>{label}</p>
                             </div>
-                        </div>
+                        </button>
                         </Tooltip>
                     ))}
                 </div>
