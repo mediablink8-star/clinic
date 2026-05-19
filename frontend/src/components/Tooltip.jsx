@@ -60,11 +60,14 @@ const Tooltip = ({ children, text, position = 'top', style = {} }) => {
             style={{ position: 'relative', display: 'flex', ...style }}
             onMouseEnter={() => setShow(true)}
             onMouseLeave={() => setShow(false)}
+            onFocus={() => setShow(true)}
+            onBlur={() => setShow(false)}
         >
             {children}
             {show && text && (
                 <div
                     ref={tooltipRef}
+                    role="tooltip"
                     style={{
                         position: 'fixed',
                         ...tooltipStyle,
