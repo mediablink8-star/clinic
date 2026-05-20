@@ -264,11 +264,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-- [ ] Google Calendar two-way sync
+- [x] Google Calendar two-way sync
 - [ ] WhatsApp integration
 - [ ] Mobile app (React Native)
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
+- [x] Advanced analytics dashboard
+- [x] Multi-language support
 - [ ] Payment processing integration
 - [ ] Telemedicine video calls
 - [ ] Electronic health records (EHR)

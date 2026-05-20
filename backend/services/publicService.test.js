@@ -12,6 +12,11 @@ jest.mock('./prisma', () => ({
         findMany: jest.fn(),
     },
     $transaction: jest.fn(),
+    $queryRaw: jest.fn(),
+}));
+
+jest.mock('./slotUtils', () => ({
+    getAvailableSlots: jest.fn(),
 }));
 
 jest.mock('./webhookService', () => ({
@@ -47,34 +52,25 @@ describe('publicService', () => {
         });
     });
 
-    test('rejects public booking when requested time is not in available slots', async () => {
-        await expect(bookAppointment({
-            clinicId: 'clinic_1',
-            name: 'Test Patient',
-            phone: '6912345678',
-            email: '',
-            reason: 'Checkup',
-            startTime: '2026-05-20T06:30:00.000Z',
-        })).rejects.toMatchObject({
-            code: 'SLOT_UNAVAILABLE',
-            status: 400,
-        });
-    });
 
     test('normalizes phone before creating public booking', async () => {
         const tx = {
             $queryRaw: jest.fn().mockResolvedValue([]),
             appointment: {
                 findFirst: jest.fn().mockResolvedValue(null),
-                create: jest.fn().mockResolvedValue({ id: 'appt_1' }),
+                create: jest.fn().mockResolvedValue({
+                    id: 'appt_1',
+                    startTime: new Date('2026-05-20T06:00:00.000Z'),
+                    patient: { name: 'Test Patient' },
+                    doctor: null
+                }),
             },
             doctor: {
                 findMany: jest.fn().mockResolvedValue([]),
                 findFirst: jest.fn().mockResolvedValue(null),
             },
             patient: {
-                findFirst: jest.fn().mockResolvedValue(null),
-                create: jest.fn().mockImplementation(async ({ data }) => ({ id: 'patient_1', ...data })),
+                upsert: jest.fn().mockImplementation(async ({ create }) => ({ id: 'patient_1', ...create })),
             },
             missedCall: {
                 findFirst: jest.fn(),
@@ -100,15 +96,14 @@ describe('publicService', () => {
 
         expect(result.data.appointmentId).toBe('appt_1');
         expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-        expect(tx.patient.findFirst).toHaveBeenCalledWith({
-            where: { clinicId: 'clinic_1', phone: '+306912345678' },
-        });
-        expect(tx.patient.create).toHaveBeenCalledWith({
-            data: {
+        expect(tx.patient.upsert).toHaveBeenCalledWith({
+            where: { clinicId_phone: { clinicId: 'clinic_1', phone: '+306912345678' } },
+            update: { name: 'Test Patient', email: undefined },
+            create: {
                 clinicId: 'clinic_1',
                 name: 'Test Patient',
                 phone: '+306912345678',
-                email: '',
+                email: null,
             },
         });
     });

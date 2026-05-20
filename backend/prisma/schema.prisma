@@ -60,6 +60,7 @@ model Clinic {
   smsMonthlyLimit    Int           @default(500)
   aiMonthlyLimit     Int           @default(1000)
   timezone           String       @default("Europe/Athens")
+  plan               String       @default("trial")
   onboardingCompleted Boolean      @default(false)
   
   users        User[]

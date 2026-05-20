@@ -86,8 +86,8 @@ router.post('/clinics/:clinicId/plan', asyncHandler(async (req, res) => {
     const limits = getPlanLimits(plan);
     const updated = await prisma.clinic.update({
         where: { id: clinicId },
-        data: { ...limits },
-        select: { id: true, name: true, smsMonthlyLimit: true, dailyMessageCap: true, aiMonthlyLimit: true }
+        data: { ...limits, plan },
+        select: { id: true, name: true, plan: true, smsMonthlyLimit: true, dailyMessageCap: true, aiMonthlyLimit: true }
     });
 
     res.json({ success: true, clinic: updated, plan, limits });

@@ -132,13 +132,13 @@ npm install
 - [x] System status dashboard
 
 ### Metrics to Monitor 📊
-- [ ] API response times
-- [ ] Database query performance
-- [ ] Redis queue depth
-- [ ] SMS delivery rates
-- [ ] Voice call success rates
-- [ ] Appointment booking conversion
-- [ ] Recovery case success rate
+- [x] API response times (via Sentry)
+- [x] Database query performance (via Prisma Metrics)
+- [x] Redis queue depth (via Dashboard)
+- [x] SMS delivery rates (via Reports)
+- [x] Voice call success rates (via Reports)
+- [x] Appointment booking conversion (via Analytics)
+- [x] Recovery case success rate (via Analytics)
 
 ## Testing
 

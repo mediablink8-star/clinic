@@ -1,7 +1,8 @@
 const prisma = require('./prisma');
 const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
-const { ensureMonthlyUsageWindow, DEFAULT_SMS_LIMIT, DEFAULT_AI_LIMIT } = require('./usageService');
+const { ensureMonthlyUsageWindow } = require('./usageService');
+const { DEFAULT_PLAN, getPlanLimits } = require('./planService');
 const { 
     DEFAULT_WORKING_HOURS, 
     DEFAULT_SERVICES, 
@@ -13,22 +14,25 @@ const {
 } = require('../utils/defaults');
 
 async function applyClinicDefaults(clinicId, tx = prisma) {
-     return await tx.clinic.update({
-         where: { id: clinicId },
-         data: {
-             workingHours: JSON.stringify(DEFAULT_WORKING_HOURS),
-             services: JSON.stringify(DEFAULT_SERVICES),
-             policies: JSON.stringify(DEFAULT_POLICIES),
-             aiConfig: JSON.stringify(DEFAULT_AI_CONFIG),
-             messageCredits: INITIAL_CREDITS,
-             monthlyCreditLimit: INITIAL_MONTHLY_LIMIT,
-             dailyMessageCap: INITIAL_DAILY_CAP,
-             smsMonthlyLimit: DEFAULT_SMS_LIMIT,
-             aiMonthlyLimit: DEFAULT_AI_LIMIT,
-             onboardingCompleted: false,
-         }
-     });
- }
+    const limits = getPlanLimits(DEFAULT_PLAN);
+
+    return await tx.clinic.update({
+        where: { id: clinicId },
+        data: {
+            workingHours: JSON.stringify(DEFAULT_WORKING_HOURS),
+            services: JSON.stringify(DEFAULT_SERVICES),
+            policies: JSON.stringify(DEFAULT_POLICIES),
+            aiConfig: JSON.stringify(DEFAULT_AI_CONFIG),
+            messageCredits: INITIAL_CREDITS,
+            monthlyCreditLimit: INITIAL_MONTHLY_LIMIT,
+            dailyMessageCap: limits.dailyMessageCap || INITIAL_DAILY_CAP,
+            smsMonthlyLimit: limits.smsMonthlyLimit,
+            aiMonthlyLimit: limits.aiMonthlyLimit,
+            plan: DEFAULT_PLAN,
+            onboardingCompleted: false,
+        }
+    });
+}
 
 async function resetClinicToDefaults(clinicId, actor) {
     const updated = await prisma.$transaction(async (tx) => {

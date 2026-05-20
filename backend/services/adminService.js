@@ -21,8 +21,6 @@ async function createClinic({ name, ownerEmail, ownerPassword, ownerName }) {
                 services: JSON.stringify([]),
                 policies: JSON.stringify({}),
                 workingHours: JSON.stringify({ weekdays: "09:00 - 18:00", saturday: "Closed" }),
-                dailyMessageCap: 300,
-                monthlyCreditLimit: 500
             }
         });
 
@@ -82,6 +80,7 @@ async function getUsage() {
             dailyMessageCap: true,
             creditResetDate: true,
             isActive: true,
+            plan: true,
             onboardingCompleted: true,
             createdAt: true,
             updatedAt: true,

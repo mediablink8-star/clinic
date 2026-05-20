@@ -1506,6 +1506,15 @@ backdropFilter: 'blur(10px) saturate(200%)',
             </div>
             <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <DetailRow label="ID" value={detailClinic.id} />
+              <DetailRow label="Plan" value={
+                <span style={{
+                  textTransform: 'uppercase', fontWeight: '800', fontSize: '0.75rem',
+                  color: detailClinic.plan === 'enterprise' ? '#8b5cf6' :
+                         detailClinic.plan === 'trial' ? 'var(--text-muted)' : 'var(--primary)'
+                }}>
+                  {detailClinic.plan || 'trial'}
+                </span>
+              } />
               <DetailRow label="Email" value={detailClinic.email || '—'} />
               <DetailRow label="Τηλέφωνο" value={detailClinic.phone || '—'} />
               <DetailRow label="Τόπος" value={detailClinic.location || '—'} />
