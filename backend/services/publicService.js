@@ -93,27 +93,27 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
   const endTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
 
-  // Build or find patient
-  let patient;
-  if (phone) {
-    const { normalizePhone } = require('../utils/phone');
-    const normalizedPhone = normalizePhone(phone);
-    patient = await prisma.patient.upsert({
-      where: { clinicId_phone: { clinicId, phone: normalizedPhone } },
-      update: { name: name || undefined, email: email || undefined },
-      create: {
-        clinicId,
-        name: name || 'Ανώνυμος',
-        phone: normalizedPhone,
-        email: email || null,
-      },
-    });
-  } else {
-    throw new AppError('VALIDATION_ERROR', 'Phone number is required', 400);
-  }
-
   // Create appointment with double-booking prevention
   const appointment = await prisma.$transaction(async (tx) => {
+    // Build or find patient INSIDE transaction
+    let patient;
+    if (phone) {
+      const { normalizePhone } = require('../utils/phone');
+      const normalizedPhone = normalizePhone(phone);
+      patient = await tx.patient.upsert({
+        where: { clinicId_phone: { clinicId, phone: normalizedPhone } },
+        update: { name: name || undefined, email: email || undefined },
+        create: {
+          clinicId,
+          name: name || 'Ανώνυμος',
+          phone: normalizedPhone,
+          email: email || null,
+        },
+      });
+    } else {
+      throw new AppError('VALIDATION_ERROR', 'Phone number is required', 400);
+    }
+
     if (doctorId) {
       // Specific doctor — check only that doctor's schedule
       const conflict = await tx.$queryRaw`
@@ -167,7 +167,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     success: true,
     data: {
       appointmentId: appointment.id,
-      patientName: patient.name,
+      patientName: appointment.patient.name,
       startTime: appointment.startTime,
       doctorName: appointment.doctor?.name || null,
     },
