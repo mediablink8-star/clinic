@@ -839,7 +839,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── TAB CONTENT ── */}
-      {activeTab === TABS.CLINICS && <ClinicsTab />}
+      {activeTab === TABS.CLINICS && <ClinicsTab onboardingData={onboardingData} />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
       {activeTab === TABS.STATS && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
@@ -861,7 +861,7 @@ const SortThClinic = ({ field, label, sortBy, sortDir, handleSort }) => (
 /* ================================================================
    CLINICS TAB (refactored as a subcomponent)
    ================================================================ */
-const ClinicsTab = () => {
+const ClinicsTab = ({ onboardingData }) => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
