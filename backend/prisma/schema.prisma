@@ -1,0 +1,470 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Clinic {
+  id           String        @id @default(cuid())
+  name         String
+  location     String
+  phone        String
+  email        String
+  isActive     Boolean       @default(true) // Master switch for clinic workflows
+  workingHours String // Stored as JSON string
+  services     String // Stored as JSON string
+  policies     String // Stored as JSON string
+  webhookUrl   String? // Global URL for n8n/Make integration
+  webhookSecret String       @default(cuid()) // Secret for HMAC signature
+  webhookMissedCall String? // Event-specific override
+  webhookAppointment String? // Event-specific override
+  webhookReminders String? // Event-specific override
+  webhookDirectSms String? // Event-specific override
+  webhookInboundSms String? // Event-specific override
+  
+// Vapi (Voice AI) + Zadarma (SIP trunk / phone numbers)
+  vapiAssistantId    String? // Vapi assistant ID
+  vapiPhoneNumberId  String? // Vapi phone number ID (Zadarma SIP trunk)
+  vapiCredentialId   String? // Vapi credential ID (Zadarma SIP credentials)
+  zadarmaApiKey      String? // Encrypted per-clinic Zadarma API key
+  zadarmaApiSecret   String? // Encrypted per-clinic Zadarma API secret
+  zadarmaPhoneNumber String? // Zadarma phone number for caller ID
+  voiceEnabled       Boolean @default(false) // Master switch for voice AI
+  
+  // Gemini AI (for AI assistant commands)
+  geminiApiKey      String? // Encrypted per-clinic Gemini API key
+  
+  // Google Calendar integration
+  googleCalendarRefreshToken String? // Encrypted OAuth refresh token
+  googleCalendarId           String? // Calendar ID to push events to (default: 'primary')
+  googleCalendarEnabled      Boolean @default(false)
+  googleOAuthState           String?
+  
+  googleId      String?      @unique
+  avatarUrl     String?      @default("/avatars/default.svg")
+  messageCredits    Int           @default(100)
+  monthlyCreditLimit Int           @default(100)
+  creditResetDate    DateTime      @default(now())
+  dailyMessageCap    Int           @default(300)
+  dailyUsedCount     Int           @default(0)
+  lastResetDay       DateTime      @default(now())
+  aiConfig           String       @default("{}") // Stores JSON of AI configuration (tone, services, value, etc)
+  smsCount           Int           @default(0)
+  aiRequestCount     Int           @default(0)
+  lastResetDate      DateTime      @default(now())
+  smsMonthlyLimit    Int           @default(500)
+  aiMonthlyLimit     Int           @default(1000)
+  timezone           String       @default("Europe/Athens")
+  plan               String       @default("trial")
+  onboardingCompleted Boolean      @default(false)
+  
+  users        User[]
+  patients     Patient[]
+  doctors      Doctor[]
+  appointments Appointment[]
+  notifications Notification[]
+  messageLogs   MessageLog[]
+  auditLogs     AuditLog[]
+  missedCalls   MissedCall[]
+  recoveryCases RecoveryCase[]
+  conversations Conversation[]
+  messages      Message[]
+  activityEvents ActivityEvent[]
+  feedEvents     FeedEvent[]
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RECEPTIONIST)
+  isPlatformAdmin Boolean @default(false)
+  name         String   @default("")
+  clinicId     String?
+  clinic       Clinic?  @relation(fields: [clinicId], references: [id])
+  refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  mfaEnabled   Boolean  @default(false)
+  mfaSecret    String?
+  mfaPendingSecret String?
+  failedAttempts Int     @default(0)
+  lockedUntil   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  OWNER
+  DOCTOR
+  RECEPTIONIST
+  ASSISTANT
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  clinicId     String
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  name         String
+  phone        String
+  email        String?
+  amka         String?       // Greek social security number — visible only to OWNER role
+  deletedAt  DateTime?    // Soft-delete column — added via raw SQL on startup
+  appointments Appointment[]
+  missedCalls  MissedCall[]
+  recoveryCases RecoveryCase[]
+  optedOut     Boolean  @default(false)   // Phone-level opt-out
+  optedOutAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([clinicId, phone]) // Unique per clinic
+}
+
+model Doctor {
+  id           String        @id @default(cuid())
+  clinicId     String
+  clinic       Clinic        @relation(fields: [clinicId], references: [id])
+  name         String
+  specialty    String?
+  phone        String?
+  email        String?
+  avatarUrl    String?
+  workingHours Json?
+  avgAppointmentValue Float?
+  isActive     Boolean       @default(true)
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([clinicId])
+  @@index([clinicId, isActive])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  NO_SHOW
+  COMPLETED
+}
+
+enum Priority {
+  URGENT
+  NORMAL
+}
+
+enum AppointmentSource {
+  MANUAL
+  PUBLIC_LINK
+  SMS_BOOKING
+  CALL_BOOKING
+  AI_VOICE
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  clinicId        String
+  clinic          Clinic            @relation(fields: [clinicId], references: [id])
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id])
+  startTime       DateTime
+  endTime         DateTime
+  reason          String?           // Greek description
+  status          AppointmentStatus @default(PENDING)
+  priority        Priority          @default(NORMAL)
+  notes           String?
+  aiClassification String?           // Summary generated by AI
+  doctorId        String?
+  doctor          Doctor?           @relation(fields: [doctorId], references: [id])
+  source          AppointmentSource @default(MANUAL)
+  deletedAt       DateTime?         // Soft-delete column — added via raw SQL on startup
+  feedbacks       Feedback[]
+  notifications   Notification[]
+  missedCalls     MissedCall[]      // Reverse relation for recovered missed calls
+  googleCalendarEventId String?     // Google Calendar event ID for sync
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([clinicId, doctorId, startTime, endTime, status])
+  @@index([clinicId, source, createdAt])
+  @@unique([clinicId, doctorId, startTime, status], name: "unique_doctor_slot")
+}
+
+model FeedEvent {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  type          String   // APPOINTMENT_BOOKED_LINK | APPOINTMENT_BOOKED_SMS | APPOINTMENT_BOOKED_CALL | AI_CALL_ANSWERED
+  title         String?
+  patientName   String?
+  phone         String?
+  appointmentId String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([clinicId, type, createdAt])
+}
+
+model Feedback {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  rating        Int
+  comment       String?
+  sentiment     String?     // POSITIVE, NEUTRAL, NEGATIVE
+  createdAt     DateTime    @default(now())
+}
+
+model MessageLog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  type      String   // SMS, WHATSAPP, VOICE
+  cost      Int      @default(1)
+  status    String   // SENT, FAILED, BLOCKED, PENDING
+  error     String?
+  timestamp DateTime @default(now())
+
+  @@index([clinicId])
+}
+
+enum NotificationType {
+  REMINDER
+  FOLLOW_UP
+  NO_SHOW_ALERT
+  MARKETING
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  clinicId      String
+  clinic        Clinic           @relation(fields: [clinicId], references: [id])
+  appointmentId String?
+  appointment   Appointment?      @relation(fields: [appointmentId], references: [id])
+  type          NotificationType
+  sentAt        DateTime?
+  scheduledFor  DateTime
+  status        String           @default("SCHEDULED")
+  message       String
+  createdAt     DateTime         @default(now())
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  userId    String?
+  action    String   // e.g., CREATE_APPOINTMENT, DELETE_PATIENT
+  entity    String   // e.g., APPOINTMENT, PATIENT
+  entityId  String?
+  details   String?  // JSON string
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([clinicId])
+  @@index([createdAt])
+}
+
+model MissedCall {
+  id               String           @id @default(cuid())
+  clinicId         String
+  clinic           Clinic           @relation(fields: [clinicId], references: [id])
+  fromNumber       String
+  callSid          String?          @unique // External call ID for dedup (Fix 4)
+  patientId        String?
+  patient          Patient?         @relation(fields: [patientId], references: [id])
+  appointmentId    String?
+  appointment      Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  status           MissedCallStatus @default(DETECTED)
+  smsStatus        String           @default("pending") // pending | processing | sent | failed | scheduled (Fix 5)
+  smsError         String?          // last SMS error message
+  scheduledSmsAt   DateTime?        // When outside working hours, SMS is scheduled for this time
+  estimatedRevenue  Float            @default(80.0)
+  aiConversation    String?          // Stored JSON of SMS history
+  lastSmsSentAt     DateTime?
+  recoveredAt       DateTime?
+  // Smart SMS conversation
+  conversationState String           @default("NEW") // NEW | BOOKING | QUESTION | CALLBACK | COMPLETED
+  bookingStep       String?          // null | ASKED_NAME | ASKED_DAY | ASKED_TIME | CONFIRMING
+  bookingDay        String?          // free-text day captured from patient
+  bookingName       String?          // patient name captured during booking
+  followUp1SentAt   DateTime?
+  followUp2SentAt   DateTime?
+  optedOut          Boolean          @default(false)   // Patient replied STOP
+  totalContactAttempts Int           @default(0)       // Total voice + SMS attempts
+  recoveryCase      RecoveryCase?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([smsStatus])
+  @@index([createdAt])
+  @@index([recoveredAt])
+  @@index([appointmentId])
+}
+
+enum MissedCallStatus {
+  DETECTED
+  RECOVERING
+  RECOVERED
+  LOST
+}
+
+enum RecoveryCaseState {
+  ACTIVE
+  ENGAGED
+  RECOVERED
+  CLOSED_NO_RESPONSE
+  CLOSED_OPTED_OUT
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  RECEIVED
+}
+
+enum ActivityEventType {
+  MISSED_CALL_DETECTED
+  OUTBOUND_SMS_QUEUED
+  OUTBOUND_SMS_SENT
+  OUTBOUND_SMS_DELIVERED
+  OUTBOUND_SMS_FAILED
+  INBOUND_SMS_RECEIVED
+  PATIENT_REPLIED
+  CASE_RECOVERED
+  CASE_CLOSED
+}
+
+model RecoveryCase {
+  id             String            @id @default(cuid())
+  clinicId       String
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patientId      String?
+  patient        Patient?          @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  missedCallId   String?           @unique
+  missedCall     MissedCall?       @relation(fields: [missedCallId], references: [id], onDelete: SetNull)
+  patientPhone   String
+  state          RecoveryCaseState @default(ACTIVE)
+  recoveredAt    DateTime?
+  closedAt       DateTime?
+  lastActivityAt DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  conversation   Conversation?
+  activityEvents ActivityEvent[]
+
+  @@index([clinicId, state, lastActivityAt])
+  @@index([clinicId, patientPhone])
+  @@index([clinicId, createdAt])
+  @@index([patientId])
+}
+
+model Conversation {
+  id             String       @id @default(cuid())
+  clinicId       String
+  clinic         Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  recoveryCaseId String       @unique
+  recoveryCase   RecoveryCase @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  patientPhone   String
+  clinicPhone    String?
+  lastMessageAt  DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  messages       Message[]
+  activityEvents ActivityEvent[]
+
+  @@index([clinicId, lastMessageAt])
+  @@index([clinicId, patientPhone])
+}
+
+model Message {
+  id                 String           @id @default(cuid())
+  clinicId           String
+  clinic             Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  conversationId     String
+  conversation       Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction          MessageDirection
+  status             MessageStatus
+  body               String?
+  fromPhone          String?
+  toPhone            String?
+  providerMessageSid String?          @unique
+  providerStatusRaw  String?
+  errorCode          String?
+  errorMessage       String?
+  queuedAt           DateTime?
+  sentAt             DateTime?
+  deliveredAt        DateTime?
+  failedAt           DateTime?
+  receivedAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  activityEvents     ActivityEvent[]
+
+  @@index([conversationId, createdAt])
+  @@index([clinicId, status, createdAt])
+  @@index([clinicId, direction, createdAt])
+}
+
+model ActivityEvent {
+  id             String            @id @default(cuid())
+  clinicId       String
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  recoveryCaseId String
+  recoveryCase   RecoveryCase      @relation(fields: [recoveryCaseId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  messageId      String?
+  message        Message?          @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  type           ActivityEventType
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([recoveryCaseId, createdAt])
+  @@index([clinicId, type, createdAt])
+}

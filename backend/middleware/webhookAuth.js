@@ -1,0 +1,75 @@
+const crypto = require('crypto');
+const AppError = require('../errors/AppError');
+
+const KNOWN_CLINIC_IDS = process.env.KNOWN_CLINIC_IDS 
+    ? process.env.KNOWN_CLINIC_IDS.split(',').map(id => id.trim())
+    : [];
+
+/**
+ * Webhook authentication middleware.
+ * Supports two modes:
+ *  1. Simple secret header: x-webhook-secret must match WEBHOOK_SECRET env var
+ *  2. HMAC signature: x-webhook-signature must be a valid HMAC-SHA256 of the raw body
+ *
+ * If WEBHOOK_SECRET is not set, the request is allowed through with a warning log.
+ */
+const asyncHandler = require('./asyncHandler');
+
+module.exports = asyncHandler(async function webhookAuth(req, res, next) {
+    const envSecret = process.env.WEBHOOK_SECRET;
+
+    if (!envSecret) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new AppError('CONFIGURATION_ERROR', 'Webhook authentication not configured', 500);
+        }
+        console.warn('[WEBHOOK] WARNING: WEBHOOK_SECRET not set. Webhooks running in insecure mode.');
+        return next();
+    }
+
+    // Mode 1: simple secret header (x-webhook-secret, x-api-key, or x-webhook-key)
+    const headerSecret = req.headers['x-webhook-secret'] 
+                      || req.headers['x-api-key'] 
+                      || req.headers['x-webhook-key'];
+    if (headerSecret) {
+        const hBuf = Buffer.from(headerSecret);
+        const sBuf = Buffer.from(envSecret);
+        if (hBuf.length === sBuf.length && crypto.timingSafeEqual(hBuf, sBuf)) {
+            // Check clinicId allowlist if provided
+            if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
+                if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
+                    throw new AppError('FORBIDDEN', 'Clinic not allowed', 403);
+                }
+            }
+            return next();
+        }
+        throw new AppError('UNAUTHORIZED', 'Invalid webhook secret', 401);
+    }
+
+    // Mode 2: HMAC-SHA256 signature header (sent by our own triggerWebhook)
+    const signature = req.headers['x-webhook-signature'];
+    if (signature) {
+        // Use raw body if available, fallback to JSON stringified body
+        const body = req.rawBody || JSON.stringify(req.body);
+        const expected = crypto
+            .createHmac('sha256', envSecret)
+            .update(body)
+            .digest('hex');
+        const signatureBuffer = Buffer.from(signature);
+        const expectedBuffer = Buffer.from(expected);
+        if (signatureBuffer.length !== expectedBuffer.length) {
+            throw new AppError('UNAUTHORIZED', 'Invalid webhook signature', 401);
+        }
+        if (crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+            // Check clinicId allowlist if provided
+            if (KNOWN_CLINIC_IDS.length > 0 && req.body?.clinicId) {
+                if (!KNOWN_CLINIC_IDS.includes(req.body.clinicId)) {
+                    throw new AppError('FORBIDDEN', 'Clinic not allowed', 403);
+                }
+            }
+            return next();
+        }
+        throw new AppError('UNAUTHORIZED', 'Invalid webhook signature', 401);
+    }
+
+    throw new AppError('UNAUTHORIZED', 'Missing webhook authentication', 401);
+});

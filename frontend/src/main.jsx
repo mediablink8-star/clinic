@@ -1,0 +1,51 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import * as Sentry from "@sentry/react";
+import axios from 'axios';
+import './index.css'
+import App from './App.jsx'
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN || "",
+  enabled: !!import.meta.env.VITE_SENTRY_DSN,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
+axios.defaults.withCredentials = true;
+
+const rawGoogleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+const hasGoogleClientId = /^[\w-]+\.apps\.googleusercontent\.com$/.test(rawGoogleClientId);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 30000, // 30 seconds
+    },
+  },
+});
+
+const appTree = hasGoogleClientId ? (
+  <GoogleOAuthProvider clientId={rawGoogleClientId}>
+    <App />
+  </GoogleOAuthProvider>
+) : (
+  <App />
+);
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      {appTree}
+    </QueryClientProvider>
+  </StrictMode>,
+)

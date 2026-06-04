@@ -1,0 +1,306 @@
+{
+  "name": "Workflow 3 — Missed Call Recovery",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "POST /webhook/missed-call",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 }
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "parameters": {},
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": { "handleErrors": true },
+              "filter": {
+                "name": "Validate Payload",
+                "conditions": [
+                  [
+                    { "a": "{{1.body.phone}}", "b": "", "o": "text:notequal" },
+                    { "a": "{{1.body.callSid}}", "b": "", "o": "text:notequal" },
+                    { "a": "{{1.body.clinicId}}", "b": "", "o": "text:notequal" }
+                  ]
+                ]
+              },
+              "mapper": {
+                "url": "{{env.BACKEND_API_URL}}/automation/check-duplicate",
+                "method": "POST",
+                "headers": [{ "name": "Content-Type", "value": "application/json" }],
+                "body": "{\"callSid\":\"{{1.body.callSid}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -300 },
+                "label": "Check Duplicate Call SID"
+              }
+            },
+            {
+              "id": 4,
+              "module": "builtin:BasicRouter",
+              "version": 1,
+              "parameters": {},
+              "mapper": {},
+              "metadata": {
+                "designer": { "x": 900, "y": -300 },
+                "label": "Is Duplicate?"
+              },
+              "routes": [
+                {
+                  "flow": [
+                    {
+                      "id": 5,
+                      "module": "gateway:WebhookRespond",
+                      "version": 1,
+                      "parameters": {},
+                      "filter": {
+                        "name": "Stop — Duplicate",
+                        "conditions": [
+                          [{ "a": "{{3.data.isDuplicate}}", "b": "true", "o": "text:equal" }]
+                        ]
+                      },
+                      "mapper": {
+                        "status": "200",
+                        "body": "{\"status\":\"duplicate_ignored\"}",
+                        "headers": [{ "key": "Content-Type", "value": "application/json" }]
+                      },
+                      "metadata": {
+                        "designer": { "x": 1200, "y": -450 }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "flow": [
+                    {
+                      "id": 6,
+                      "module": "builtin:Sleep",
+                      "version": 1,
+                      "parameters": { "delay": 120 },
+                      "filter": {
+                        "name": "Not Duplicate — Wait 2 Min",
+                        "conditions": [
+                          [{ "a": "{{3.data.isDuplicate}}", "b": "true", "o": "text:notequal" }]
+                        ]
+                      },
+                      "mapper": {},
+                      "metadata": {
+                        "designer": { "x": 1200, "y": -150 },
+                        "label": "Wait 2 Minutes — Allow Manual Callback"
+                      }
+                    },
+                    {
+                      "id": 7,
+                      "module": "http:ActionSendData",
+                      "version": 3,
+                      "parameters": { "handleErrors": true },
+                      "mapper": {
+                        "url": "{{env.BACKEND_API_URL}}/calls/check-returned?phone={{1.body.phone}}",
+                        "method": "GET",
+                        "headers": [{ "name": "Content-Type", "value": "application/json" }]
+                      },
+                      "metadata": {
+                        "designer": { "x": 1500, "y": -150 },
+                        "label": "Check If Call Returned Manually"
+                      }
+                    },
+                    {
+                      "id": 8,
+                      "module": "builtin:BasicRouter",
+                      "version": 1,
+                      "parameters": {},
+                      "mapper": {},
+                      "metadata": {
+                        "designer": { "x": 1800, "y": -150 },
+                        "label": "Was Call Handled Manually?"
+                      },
+                      "routes": [
+                        {
+                          "flow": [
+                            {
+                              "id": 9,
+                              "module": "gateway:WebhookRespond",
+                              "version": 1,
+                              "parameters": {},
+                              "filter": {
+                                "name": "Stop — Handled Manually",
+                                "conditions": [
+                                  [{ "a": "{{7.data.returned}}", "b": "true", "o": "text:equal" }]
+                                ]
+                              },
+                              "mapper": {
+                                "status": "200",
+                                "body": "{\"status\":\"call_handled_manually\"}",
+                                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+                              },
+                              "metadata": {
+                                "designer": { "x": 2100, "y": -300 }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "flow": [
+                            {
+                              "id": 10,
+                              "module": "openai:CreateCompletion",
+                              "version": 1,
+                              "parameters": { "handleErrors": true },
+                              "filter": {
+                                "name": "Not Handled — Generate AI Message",
+                                "conditions": [
+                                  [{ "a": "{{7.data.returned}}", "b": "true", "o": "text:notequal" }]
+                                ]
+                              },
+                              "mapper": {
+                                "model": "gpt-4o-mini",
+                                "messages": [
+                                  {
+                                    "role": "user",
+                                    "content": "Write a friendly Greek SMS for a dental clinic that missed a patient's call. Max 160 characters. Encourage booking. Professional tone. No emojis."
+                                  }
+                                ],
+                                "max_tokens": 100
+                              },
+                              "metadata": {
+                                "designer": { "x": 2100, "y": 0 },
+                                "label": "Generate AI Recovery Message"
+                              }
+                            },
+                            {
+                              "id": 11,
+                              "module": "builtin:SetVariables",
+                              "version": 1,
+                              "parameters": {},
+                              "mapper": {
+                                "variables": [
+                                  {
+                                    "name": "recoveryMessage",
+                                    "value": "{{if(10.choices[].message.content; 10.choices[].message.content; \"Γεια σας, Χάσαμε την κλήση σας. Θέλετε να κλείσουμε ραντεβού; Απαντήστε ή καλέστε μας.\")}}"
+                                  }
+                                ]
+                              },
+                              "metadata": {
+                                "designer": { "x": 2400, "y": 0 },
+                                "label": "Use AI or Fallback Message"
+                              }
+                            },
+                            {
+                              "id": 12,
+                              "module": "twilio:ActionCreateMessage",
+                              "version": 1,
+                              "parameters": {
+                                "accountSid": "{{env.TWILIO_ACCOUNT_SID}}",
+                                "authToken": "{{env.TWILIO_AUTH_TOKEN}}"
+                              },
+                              "mapper": {
+                                "to": "{{1.body.phone}}",
+                                "from": "{{env.TWILIO_PHONE_NUMBER}}",
+                                "body": "{{11.recoveryMessage}}"
+                              },
+                              "metadata": {
+                                "designer": { "x": 2700, "y": 0 },
+                                "label": "Send Recovery SMS"
+                              }
+                            },
+                            {
+                              "id": 13,
+                              "module": "http:ActionSendData",
+                              "version": 3,
+                              "parameters": { "handleErrors": true },
+                              "mapper": {
+                                "url": "{{env.BACKEND_API_URL}}/automation/recovery-log",
+                                "method": "POST",
+                                "headers": [{ "name": "Content-Type", "value": "application/json" }],
+                                "body": "{\"clinicId\":\"{{1.body.clinicId}}\",\"phone\":\"{{1.body.phone}}\",\"callSid\":\"{{1.body.callSid}}\",\"smsStatus\":\"{{if(12.sid; \"sent\"; \"failed\")}}\",\"timestamp\":\"{{now}}\"}"
+                              },
+                              "metadata": {
+                                "designer": { "x": 3000, "y": 0 },
+                                "label": "Log Recovery Attempt"
+                              }
+                            },
+                            {
+                              "id": 14,
+                              "module": "gateway:WebhookRespond",
+                              "version": 1,
+                              "parameters": {},
+                              "mapper": {
+                                "status": "200",
+                                "body": "{\"status\":\"recovery_sent\"}",
+                                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+                              },
+                              "metadata": {
+                                "designer": { "x": 3300, "y": 0 },
+                                "label": "Return Recovery Sent"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 15,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Invalid Payload",
+                "conditions": [
+                  [{ "a": "true", "b": "true", "o": "boolean:equal" }]
+                ]
+              },
+              "mapper": {
+                "status": "400",
+                "body": "{\"status\":\"error\",\"reason\":\"missing fields\"}",
+                "headers": [{ "key": "Content-Type", "value": "application/json" }]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 150 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": { "orphans": [] }
+  }
+}

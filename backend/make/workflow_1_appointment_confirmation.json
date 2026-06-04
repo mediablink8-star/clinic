@@ -1,0 +1,232 @@
+{
+  "name": "Workflow 1 — Appointment Confirmation SMS",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": 1,
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "restore": {
+          "parameters": {
+            "hook": { "label": "Appointment Webhook" }
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "parameters": {},
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 300, "y": 0 }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "builtin:SetVariables",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Validate Payload",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.body.phone}}",
+                      "b": "",
+                      "o": "text:notequal"
+                    }
+                  ],
+                  [
+                    {
+                      "a": "{{1.body.patientName}}",
+                      "b": "",
+                      "o": "text:notequal"
+                    }
+                  ],
+                  [
+                    {
+                      "a": "{{1.body.date}}",
+                      "b": "",
+                      "o": "text:notequal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "variables": [
+                  {
+                    "name": "phone",
+                    "value": "{{1.body.phone}}"
+                  },
+                  {
+                    "name": "patientName",
+                    "value": "{{1.body.patientName}}"
+                  },
+                  {
+                    "name": "formattedMessage",
+                    "value": "Γεια σας {{1.body.patientName}}, Το ραντεβού σας επιβεβαιώθηκε για {{1.body.date}} στις {{1.body.time}}. Advanced Dental Care Athens"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -200 },
+                "label": "Format Confirmation Message"
+              }
+            },
+            {
+              "id": 4,
+              "module": "twilio:SendSMS",
+              "version": 1,
+              "parameters": {
+                "accountSid": "{{connection.accountSid}}",
+                "__IMTCONN__": 1
+              },
+              "filter": {
+                "name": "Valid — Send SMS",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{3.phone}}",
+                      "b": "",
+                      "o": "text:notequal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "to": "{{3.phone}}",
+                "from": "YOUR_TWILIO_NUMBER",
+                "body": "{{3.formattedMessage}}"
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": -200 },
+                "label": "Send Confirmation SMS",
+                "restore": {
+                  "parameters": {
+                    "__IMTCONN__": { "label": "Twilio Connection" }
+                  }
+                }
+              }
+            },
+            {
+              "id": 5,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "SMS Sent",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{4.sid}}",
+                      "b": "",
+                      "o": "text:notequal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "status": "200",
+                "body": "{\"status\":\"sent\"}",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": -200 },
+                "label": "Return Success"
+              }
+            },
+            {
+              "id": 6,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Twilio Failed",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{4.sid}}",
+                      "b": "",
+                      "o": "text:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "status": "502",
+                "body": "{\"status\":\"failed\",\"service\":\"twilio\"}",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": 0 },
+                "label": "Return Twilio Error"
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "module": "gateway:WebhookRespond",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Invalid Payload",
+                "conditions": [
+                  [
+                    {
+                      "a": "true",
+                      "b": "true",
+                      "o": "boolean:equal"
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "status": "400",
+                "body": "{\"status\":\"error\",\"reason\":\"missing fields\"}",
+                "headers": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ]
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 200 },
+                "label": "Return Validation Error"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false
+    },
+    "designer": { "orphans": [] }
+  }
+}

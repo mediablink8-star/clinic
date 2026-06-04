@@ -1,0 +1,1 @@
+ALTER TABLE "MissedCall" ADD COLUMN IF NOT EXISTS "bookingName" TEXT;
