@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinicFlow | Η AI-First Πλατφόρμα Ανάκτησης Εσόδων για Ιατρεία</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #635BFF;
+            --primary-glow: rgba(99, 91, 255, 0.15);
+            --secondary: #0f172a;
+            --accent: #10b981;
+            --text: #1e293b;
+            --text-light: #475569;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
+            --glass: blur(12px) saturate(180%);
+        }
+
+        * {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* --- Background Decoration --- */
+        .mesh-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background-image: 
+                radial-gradient(circle at 10% 0%, rgba(99,91,255,0.06) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(16,185,129,0.04) 0%, transparent 40%);
+        }
+
+        /* --- Components --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 10px 20px -8px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -8px var(--primary-glow);
+            filter: brightness(1.05);
+        }
+
+        .btn-outline {
+            background: var(--white);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            color: var(--secondary);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+            border-color: var(--primary);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: var(--glass);
+            -webkit-backdrop-filter: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-lg);
+        }
+
+        /* --- Navigation --- */
+        nav {
+            padding: 1.5rem 0;
+            position: absolute;
+            top: 0; left: 0; width: 100%;
+            z-index: 10;
+        }
+        
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 950;
+            font-size: 1.5rem;
+            color: var(--secondary);
+            letter-spacing: -1px;
+        }
+
+        .logo-box {
+            width: 36px; height: 36px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            padding: 10rem 0 6rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 950;
+            letter-spacing: -2.5px;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 700px;
+            margin: 0 auto 2.5rem auto;
+            font-weight: 500;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            padding: 6px 16px;
+            border-radius: 99px;
+            background: var(--primary-glow);
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(99, 91, 255, 0.2);
+        }
+
+        /* --- Stats Section --- */
+        .stats {
+            padding: 4rem 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .stat-item {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 950;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-weight: 700;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* --- Features Section --- */
+        .features {
+            padding: 6rem 0;
+        }
+
+        .section-tag {
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 950;
+            letter-spacing: -1.5px;
+            color: var(--secondary);
+            margin-bottom: 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 3rem 2rem;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary-glow);
+        }
+
+        .feature-icon {
+            width: 56px; height: 52px;
+            border-radius: 14px;
+            background: var(--primary-glow);
+            color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .feature-card p {
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        /* --- Sophia Section (Mockup) --- */
+        .sophia-section {
+            padding: 6rem 0;
+            background: var(--secondary);
+            border-radius: var(--radius-xl);
+            color: white;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sophia-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 4rem;
+        }
+
+        .sophia-content h2 {
+            font-size: 3rem;
+            font-weight: 950;
+            letter-spacing: -1.5px;
+            margin-bottom: 1.5rem;
+        }
+
+        .sophia-content p {
+            font-size: 1.15rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+
+        .sophia-mockup {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .chat-bubble {
+            padding: 12px 20px;
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            max-width: 80%;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .bubble-sophia {
+            background: var(--primary);
+            color: white;
+            align-self: flex-start;
+        }
+
+        .bubble-patient {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-left: auto;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 6rem 0 4rem 0;
+            border-top: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .footer-logo {
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-text {
+            color: var(--text-light);
+            font-weight: 500;
+            max-width: 300px;
+        }
+
+        .footer-col h4 {
+            font-weight: 800;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col ul li a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .footer-col ul li a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(226, 232, 240, 0.5);
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* --- Mobile Responsive --- */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.75rem; }
+            .sophia-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .footer-grid { grid-template-columns: 1fr; gap: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="mesh-bg"></div>
+
+    <nav>
+        <div class="container">
+            <div class="logo">
+                <div class="logo-box">CF</div>
+                ClinicFlow
+            </div>
+            <div>
+                <a href="#" class="btn btn-primary">Είσοδος</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge">Νέα έκδοση AI 2.0</div>
+                <h1>Μην αφήνετε καμία <span>αναπάντητη</span> να χαθεί</h1>
+                <p>Η μοναδική πλατφόρμα που μετατρέπει αυτόματα τις αναπάντητες κλήσεις του ιατρείου σας σε κλεισμένα ραντεβού, 24 ώρες το 24ωρο.</p>
+                <div style="display: flex; justify-content: center; gap: 1rem;">
+                    <a href="#" class="btn btn-primary">Ξεκινήστε Δωρεάν <i data-lucide="arrow-right"></i></a>
+                    <a href="#" class="btn btn-outline">Δείτε το demo</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">25%</div>
+                        <div class="stat-label">Μέσος όρος χαμένων εσόδων λόγω αναπάντητων</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">12''</div>
+                        <div class="stat-label">Χρόνος πρώτης επικοινωνίας AI με τον ασθενή</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">€0</div>
+                        <div class="stat-label">Κόστος ανάκτηση για τις πρώτες 10 κλήσεις</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+            <div class="container">
+                <span class="section-tag">Τεχνολογία</span>
+                <h2 class="section-title">Το ιατρείο σας, στον αυτόματο πιλότο</h2>
+                
+                <div class="features-grid">
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="phone-missed"></i></div>
+                        <h3>Ανάκτηση Κλήσεων</h3>
+                        <p>Ανιχνεύουμε κάθε αναπάντητη κλήση και στέλνουμε άμεσα SMS με τον προσωπικό σας σύνδεσμο κρατήσεων.</p>
+                    </div>
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="sparkles"></i></div>
+                        <h3>Sophia AI Voice</h3>
+                        <p>Η AI γραμματέας σας καλεί πίσω τον ασθενή και κλείνει το ραντεβού μιλώντας φυσικά ελληνικά.</p>
+                    </div>
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="calendar-check"></i></div>
+                        <h3>Έξυπνο Ημερολόγιο</h3>
+                        <p>Πλήρης συγχρονισμός με Google Calendar και αυτόματες υπενθυμίσεις 24 ώρες πριν την επίσκεψη.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sophia AI Demo -->
+        <section class="container" style="margin-bottom: 6rem;">
+            <div class="sophia-section">
+                <div class="container">
+                    <div class="sophia-grid">
+                        <div class="sophia-content">
+                            <span class="section-tag" style="color: var(--white); opacity: 0.6;">Sophia Assistant</span>
+                            <h2>Γνωρίστε τη Σοφία</h2>
+                            <p>Η Σοφία δεν είναι ένα απλό bot. Είναι μια εξελιγμένη AI βοηθός που καταλαβαίνει το ωράριο, τις υπηρεσίες και τις ιδιαιτερότητες του ιατρείου σας.</p>
+                            <ul style="list-style: none; margin-bottom: 2rem;">
+                                <li style="margin-bottom: 12px; display: flex; gap: 10px; font-weight: 600;"><i data-lucide="check-circle" style="color: var(--accent);"></i> Φυσική ομιλία & κατανόηση</li>
+                                <li style="margin-bottom: 12px; display: flex; gap: 10px; font-weight: 600;"><i data-lucide="check-circle" style="color: var(--accent);"></i> Διαθεσιμότητα 24/7/365</li>
+                                <li style="margin-bottom: 12px; display: flex; gap: 10px; font-weight: 600;"><i data-lucide="check-circle" style="color: var(--accent);"></i> Μηδενικός χρόνος αναμονής</li>
+                            </ul>
+                            <a href="#" class="btn btn-primary" style="background: white; color: var(--secondary);">Μάθετε περισσότερα</a>
+                        </div>
+                        <div class="sophia-mockup">
+                            <div style="display: flex; flex-direction: column;">
+                                <div class="chat-bubble bubble-sophia">Γεια σας! Σας καλούμε από το ιατρείο. Θα θέλατε να κλείσουμε ένα ραντεβού για την αναπάντητη που είχαμε;</div>
+                                <div class="chat-bubble bubble-patient">Ναι παρακαλώ, για αύριο το πρωί αν γίνεται.</div>
+                                <div class="chat-bubble bubble-sophia">Έχουμε διαθέσιμο slot στις 10:30. Να το κατοχυρώσω στο όνομά σας;</div>
+                                <div class="chat-bubble bubble-patient">Τέλεια, ναι!</div>
+                                <div class="chat-bubble bubble-sophia" style="background: var(--accent);">Έγινε! Θα λάβετε SMS επιβεβαίωσης σε λίγο.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section style="text-align: center; padding: 6rem 0;">
+            <div class="container">
+                <h2 style="font-size: 3rem; font-weight: 950; letter-spacing: -2px; margin-bottom: 1.5rem;">Έτοιμοι να αναβαθμίσετε το ιατρείο σας;</h2>
+                <p style="font-size: 1.25rem; color: var(--text-light); margin-bottom: 3rem;">Γίνετε μέλος 100+ ιατρείων που εμπιστεύονται το ClinicFlow.</p>
+                <a href="#" class="btn btn-primary" style="padding: 18px 40px; font-size: 1.2rem;">Ξεκινήστε Τώρα</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="logo footer-logo">
+                        <div class="logo-box">CF</div>
+                        ClinicFlow
+                    </div>
+                    <p class="footer-text">Η πρώτη AI-first πλατφόρμα διαχείρισης ιατρείων στην Ελλάδα με εστίαση στην ανάκτηση χαμένων κλήσεων.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Πλατφόρμα</h4>
+                    <ul>
+                        <li><a href="#">Χαρακτηριστικά</a></li>
+                        <li><a href="#">Τιμολόγηση</a></li>
+                        <li><a href="#">Sophia AI</a></li>
+                        <li><a href="#">Integrations</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Υποστήριξη</h4>
+                    <ul>
+                        <li><a href="#">Κέντρο Βοήθειας</a></li>
+                        <li><a href="#">Επικοινωνία</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Όροι Χρήσης</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2026 ClinicFlow SaaS System. Με την εγγύηση της Nous Research.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

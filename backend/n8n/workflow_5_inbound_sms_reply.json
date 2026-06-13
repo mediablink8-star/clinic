@@ -1,0 +1,137 @@
+{
+  "name": "Workflow 5 — Inbound SMS Reply",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-sms",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node_webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "inbound-sms"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "backend-url",
+              "name": "BACKEND_API_URL",
+              "value": "YOUR_BACKEND_API_URL",
+              "type": "string"
+            },
+            {
+              "id": "api-key",
+              "name": "AUTOMATION_API_KEY",
+              "value": "YOUR_AUTOMATION_API_KEY",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_set_creds",
+      "name": "Set Credentials",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/webhooks/inbound-sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from\": \"{{ $json.From }}\",\n  \"to\": \"{{ $json.To }}\",\n  \"body\": \"{{ $json.Body }}\",\n  \"providerMessageSid\": \"{{ $json.MessageSid }}\",\n  \"providerStatusRaw\": \"{{ $json.SmsStatus }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_forward",
+      "name": "Forward to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Credentials').first().json.BACKEND_API_URL }}/automation/log-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Set Credentials').first().json.AUTOMATION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"inbound_sms_forward_failed\",\n  \"from\": \"{{ $json.From }}\",\n  \"error\": \"{{ $json.message || $json.error }}\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node_log_error",
+      "name": "Log Forward Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Credentials": {
+      "main": [
+        [
+          {
+            "node": "Forward to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Backend": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Log Forward Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

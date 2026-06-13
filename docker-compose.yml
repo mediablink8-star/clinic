@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mbas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mbas_user
+      POSTGRES_PASSWORD: mbas_password
+      POSTGRES_DB: mbas_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mbas_user -d mbas_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-backup:
+    image: postgres:16-alpine
+    container_name: mbas-db-backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: mbas_user
+      POSTGRES_PASSWORD: mbas_password
+      POSTGRES_DB: mbas_database
+      PGHOST: db
+      BACKUP_RETENTION_DAYS: "7"
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "
+        echo '0 2 * * * pg_dump -U $$POSTGRES_USER -h db $$POSTGRES_DB | gzip > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql.gz && find /backups -name \"backup_*.sql.gz\" -mtime +$$BACKUP_RETENTION_DAYS -delete' | crontab - && crond -f
+      "
+
+  redis:
+    image: redis:7-alpine
+    container_name: mbas-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mbas-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://mbas_user:mbas_password@db:5432/mbas_database?schema=public
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+
+volumes:
+  postgres_data:
+  redis_data:

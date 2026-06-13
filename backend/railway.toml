@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+healthcheckPath = "/api/health"
+startCommand = "npx prisma migrate deploy && node index.js"
+restartPolicyType = "on_failure"
