@@ -1,6 +1,6 @@
 // Recovery routes
 const express = require('express');
-const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
+const { DEFAULT_TIMEZONE, translateGreekDate } = require('../utils/dateConstants');
 const router = express.Router();
 const prisma = require('../services/prisma');
 const AppError = require('../errors/AppError');
@@ -161,6 +161,9 @@ router.get('/insights', asyncHandler(async (req, res) => {
  * Send a follow-up SMS to a stale case via the existing webhook
  */
 router.post('/:id/followup', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER', 'RECEPTIONIST'].includes(req.user?.role)) {
+        throw new AppError('FORBIDDEN', 'Insufficient permissions', 403);
+    }
     const { id } = req.params;
     const mc = await prisma.missedCall.findFirst({
         where: { id, clinicId: req.clinicId },
@@ -199,6 +202,9 @@ router.post('/:id/followup', asyncHandler(async (req, res) => {
 }));
 
 router.post('/:id/retry', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER', 'RECEPTIONIST'].includes(req.user?.role)) {
+        throw new AppError('FORBIDDEN', 'Insufficient permissions', 403);
+    }
     const mc = await prisma.missedCall.findUnique({ where: { id: req.params.id } });
     if (!mc || mc.clinicId !== req.clinicId) throw new AppError('NOT_FOUND', 'Missed call not found', 404);
     const { data } = await handleMissedCall({ phone: mc.fromNumber, clinicId: req.clinicId, callSid: mc.callSid, bypassCooldown: true });
@@ -250,6 +256,7 @@ router.post('/simulate-recovered', asyncHandler(async (req, res) => {
             clinicId,
             name: 'Δοκιμαστικός Ασθενής',
             phone: fakePhone,
+            isTest: true
         }
     });
 
@@ -267,6 +274,7 @@ router.post('/simulate-recovered', asyncHandler(async (req, res) => {
             endTime,
             reason: 'Δοκιμαστικό ραντεβού',
             status: 'CONFIRMED',
+            isTest: true
         }
     });
 
@@ -283,6 +291,7 @@ router.post('/simulate-recovered', asyncHandler(async (req, res) => {
             estimatedRevenue: revenue,
             recoveredAt: new Date(),
             lastSmsSentAt: new Date(Date.now() - 5 * 60 * 1000),
+            isTest: true
         }
     });
 
@@ -311,6 +320,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
  * Automatically converts all "ENGAGED" missed calls with captured booking info into CONFIRMED appointments.
  */
 router.post('/batch-confirm', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
+        throw new AppError('FORBIDDEN', 'Owner role required', 403);
+    }
     const clinicId = req.clinicId;
     const actor = { userId: req.user.userId, ip: req.ip };
     
@@ -336,28 +348,7 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
     for (const mc of engaged) {
         try {
             // Smart parse the Greek/English day/time captured by AI
-            let dayText = mc.bookingDay;
-            
-            // Expanded Greek translation for Chrono
-            const greekMap = {
-                'αύριο': 'tomorrow', 'αυριο': 'tomorrow',
-                'σήμερα': 'today', 'σημερα': 'today',
-                'δευτέρα': 'monday', 'δευτερα': 'monday',
-                'τρίτη': 'tuesday', 'τριτη': 'tuesday',
-                'τετάρτη': 'wednesday', 'τεταρτη': 'wednesday',
-                'πέμπτη': 'thursday', 'πεμπτη': 'thursday',
-                'παρασκευή': 'friday', 'παρασκευη': 'friday',
-                'σάββατο': 'saturday', 'σαββατο': 'saturday',
-                'κυριακή': 'sunday', 'κυριακη': 'sunday',
-                'στις': 'at', 'η ώρα': '',
-                'το μεσημέρι': 'pm', 'το πρωί': 'am',
-                'το απογευμα': 'pm', 'το βράδυ': 'pm'
-            };
-
-            Object.entries(greekMap).forEach(([el, en]) => {
-                const regex = new RegExp(el, 'gi');
-                dayText = dayText.replace(regex, en);
-            });
+            let dayText = translateGreekDate(mc.bookingDay);
 
             const { getStartOfDay } = require('../services/slotUtils');
             const { fromZonedTime } = require('date-fns-tz');
@@ -433,6 +424,9 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
  * Automatically converts an individual recovery case into a CONFIRMED appointment.
  */
 router.post('/:id/confirm', asyncHandler(async (req, res) => {
+    if (!['ADMIN', 'OWNER'].includes(req.user?.role)) {
+        throw new AppError('FORBIDDEN', 'Owner role required', 403);
+    }
     const { id } = req.params;
     const clinicId = req.clinicId;
     const actor = { userId: req.user.userId, ip: req.ip };
@@ -454,28 +448,7 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     const anchorDate = getStartOfDay(localNow, timezone);
 
     // Smart parse the Greek/English day/time captured by AI
-    let dayText = mc.bookingDay;
-    
-    // Expanded Greek translation for Chrono
-    const greekMap = {
-        'αύριο': 'tomorrow', 'αυριο': 'tomorrow',
-        'σήμερα': 'today', 'σημερα': 'today',
-        'δευτέρα': 'monday', 'δευτερα': 'monday',
-        'τρίτη': 'tuesday', 'τριτη': 'tuesday',
-        'τετάρτη': 'wednesday', 'τεταρτη': 'wednesday',
-        'πέμπτη': 'thursday', 'πεμπτη': 'thursday',
-        'παρασκευή': 'friday', 'παρασκευη': 'friday',
-        'σάββατο': 'saturday', 'σαββατο': 'saturday',
-        'κυριακή': 'sunday', 'κυριακη': 'sunday',
-        'στις': 'at', 'η ώρα': '',
-        'το μεσημέρι': 'pm', 'το πρωί': 'am',
-        'το απογευμα': 'pm', 'το βράδυ': 'pm'
-    };
-
-    Object.entries(greekMap).forEach(([el, en]) => {
-        const regex = new RegExp(el, 'gi');
-        dayText = dayText.replace(regex, en);
-    });
+    let dayText = translateGreekDate(mc.bookingDay);
 
     const parsed = chrono.parseDate(dayText, anchorDate, { forwardDate: true });
     if (!parsed) {

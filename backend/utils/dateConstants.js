@@ -16,8 +16,35 @@ const GREEK_DAY_MAP = {
 
 const DEFAULT_TIMEZONE = 'Europe/Athens';
 
+const GREEK_TO_ENGLISH_MAP = {
+    'αύριο': 'tomorrow', 'αυριο': 'tomorrow',
+    'σήμερα': 'today', 'σημερα': 'today',
+    'δευτέρα': 'monday', 'δευτερα': 'monday',
+    'τρίτη': 'tuesday', 'τριτη': 'tuesday',
+    'τετάρτη': 'wednesday', 'τεταρτη': 'wednesday',
+    'πέμπτη': 'thursday', 'πεμπτη': 'thursday',
+    'παρασκευή': 'friday', 'παρασκευη': 'friday',
+    'σάββατο': 'saturday', 'σαββατο': 'saturday',
+    'κυριακή': 'sunday', 'κυριακη': 'sunday',
+    'στις': 'at', 'η ώρα': '',
+    'το μεσημέρι': 'pm', 'το πρωί': 'am',
+    'το απογευμα': 'pm', 'το βράδυ': 'pm'
+};
+
+function translateGreekDate(text) {
+    if (!text) return text;
+    let result = text;
+    Object.entries(GREEK_TO_ENGLISH_MAP).forEach(([el, en]) => {
+        const regex = new RegExp(el, 'gi');
+        result = result.replace(regex, en);
+    });
+    return result;
+}
+
 module.exports = {
     GREEK_DAYS,
     GREEK_DAY_MAP,
-    DEFAULT_TIMEZONE
+    DEFAULT_TIMEZONE,
+    GREEK_TO_ENGLISH_MAP,
+    translateGreekDate
 };
