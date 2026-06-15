@@ -644,3 +644,5 @@ if (process.env.DISABLE_WORKER !== 'true') {
 } else {
     logger.warn('Background worker is DISABLED. No automated reminders will be sent.');
 }
+
+});
