@@ -6,7 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Clinic {
@@ -150,14 +152,15 @@ model Patient {
   phone        String
   email        String?
   amka         String?       // Greek social security number — visible only to OWNER role
-  deletedAt  DateTime?    // Soft-delete column — added via raw SQL on startup
+  deletedAt    DateTime?     // Soft-delete column — added via raw SQL on startup
+  isTest       Boolean       @default(false)
   appointments Appointment[]
   missedCalls  MissedCall[]
   recoveryCases RecoveryCase[]
-  optedOut     Boolean  @default(false)   // Phone-level opt-out
+  optedOut     Boolean       @default(false)   // Phone-level opt-out
   optedOutAt   DateTime?
-  anonymizedAt DateTime?    // Set when patient data has been anonymized (GDPR right-to-be-forgotten)
-  anonymizedBy String?      // User ID who performed the anonymization
+  anonymizedAt DateTime?     // Set when patient data has been anonymized (GDPR right-to-be-forgotten)
+  anonymizedBy String?       // User ID who performed the anonymization
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -222,6 +225,7 @@ model Appointment {
   doctor          Doctor?           @relation(fields: [doctorId], references: [id])
   source          AppointmentSource @default(MANUAL)
   deletedAt       DateTime?         // Soft-delete column — added via raw SQL on startup
+  isTest          Boolean           @default(false)
   feedbacks       Feedback[]
   notifications   Notification[]
   missedCalls     MissedCall[]      // Reverse relation for recovered missed calls
@@ -332,6 +336,7 @@ model MissedCall {
   aiConversation    String?          // Stored JSON of SMS history
   lastSmsSentAt     DateTime?
   recoveredAt       DateTime?
+  isTest           Boolean          @default(false)
   // Smart SMS conversation
   conversationState String           @default("NEW") // NEW | BOOKING | QUESTION | CALLBACK | COMPLETED
   bookingStep       String?          // null | ASKED_NAME | ASKED_DAY | ASKED_TIME | CONFIRMING
