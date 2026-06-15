@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 
 async function main() {
     console.log('🌱 Start seeding SaaS data...');
