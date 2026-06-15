@@ -354,6 +354,7 @@ model MissedCall {
   @@index([createdAt])
   @@index([recoveredAt])
   @@index([appointmentId])
+  @@index([patientId])
 }
 
 enum MissedCallStatus {

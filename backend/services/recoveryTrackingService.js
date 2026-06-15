@@ -98,8 +98,9 @@ async function appendActivityEvent({
     messageId = null,
     type,
     metadata = null,
-}) {
-    return prisma.activityEvent.create({
+}, tx) {
+    const client = tx || prisma;
+    return client.activityEvent.create({
         data: {
             clinicId,
             recoveryCaseId,
@@ -536,8 +537,9 @@ async function handleProviderStatusCallback({
     };
 }
 
-async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = new Date() }) {
-    const recoveryCase = await prisma.recoveryCase.findUnique({
+async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = new Date() }, tx) {
+    const client = tx || prisma;
+    const recoveryCase = await client.recoveryCase.findUnique({
         where: { missedCallId },
         include: { conversation: true }
     });
@@ -550,7 +552,7 @@ async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = 
         return recoveryCase;
     }
 
-    const updated = await prisma.recoveryCase.update({
+    const updated = await client.recoveryCase.update({
         where: { id: recoveryCase.id },
         data: {
             state: 'RECOVERED',
@@ -566,7 +568,7 @@ async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = 
         conversationId: updated.conversation?.id || null,
         type: 'CASE_RECOVERED',
         metadata: { missedCallId }
-    });
+    }, tx);
 
     return updated;
 }

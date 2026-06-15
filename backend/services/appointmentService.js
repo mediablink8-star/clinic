@@ -55,9 +55,10 @@ async function listPatients(clinicId, page = 1, limit = 50, deleted = false, use
     return { success: true, data: decryptedData, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-async function createPatient({ clinicId, name, phone, email, amka }, actor) {
+async function createPatient({ clinicId, name, phone, email, amka }, actor, tx) {
     if (!name || !phone) throw new AppError('VALIDATION_ERROR', 'name and phone are required', 400);
 
+    const client = tx || prisma;
     // Normalize phone — strip spaces/dashes, ensure consistent format
     const normalizedPhone = normalizePhone(phone);
     const encryptedAmka = amka ? encrypt(amka) : null;
@@ -69,7 +70,7 @@ async function createPatient({ clinicId, name, phone, email, amka }, actor) {
     if (amka) createData.amka = encryptedAmka;
 
     // Upsert — if patient with same phone exists, update name/email/amka
-    const patient = await prisma.patient.upsert({
+    const patient = await client.patient.upsert({
         where: { clinicId_phone: { clinicId, phone: normalizedPhone } },
         update: updateData,
         create: createData,
@@ -83,7 +84,7 @@ async function createPatient({ clinicId, name, phone, email, amka }, actor) {
         entityId: patient.id,
         details: { name, phone },
         ipAddress: actor?.ip
-    });
+    }, tx);
 
     return { success: true, data: decryptAmka(patient, actor) };
 }

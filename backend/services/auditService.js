@@ -12,9 +12,10 @@ const logger = require('../utils/logger');
  * @param {Object} [params.details] - Additional details about the action.
  * @param {string} [params.ipAddress] - The IP address of the requester.
  */
-async function logAction({ clinicId, userId, action, entity, entityId, details, ipAddress }) {
+async function logAction({ clinicId, userId, action, entity, entityId, details, ipAddress }, tx) {
     try {
-        await prisma.auditLog.create({
+        const client = tx || prisma;
+        await client.auditLog.create({
             data: {
                 clinicId,
                 userId,

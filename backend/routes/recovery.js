@@ -371,43 +371,46 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
             logger.info('Batch Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
             const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Default 1h
 
-            // Create appointment (this will also trigger the confirmation SMS we added earlier)
-            const apt = await createAppointment({
-                clinicId,
-                patientId: mc.patientId || (await ensurePatient(mc, clinicId)).id,
-                reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
-                startTime,
-                endTime,
-                status: 'CONFIRMED',
-                source: 'SMS_BOOKING'
-            }, actor);
-
-            // Record feed event
-            prisma.feedEvent.create({
-                data: {
+            // Atomic transaction for all recovery confirm operations
+            await prisma.$transaction(async (tx) => {
+                // Create appointment
+                const apt = await createAppointment({
                     clinicId,
-                    type: 'APPOINTMENT_BOOKED_VIA_SMS',
-                    title: 'Ραντεβού από SMS ανάκτησης',
-                    patientName: mc.patientName || mc.patient?.name || null,
-                    phone: mc.fromNumber || null,
-                    appointmentId: apt.data.id,
-                    metadata: { estimatedRevenue: mc.estimatedRevenue || 80 },
-                }
-            }).catch(err => logger.warn('FeedEvent Failed', { error: err.message }));
+                    patientId: mc.patientId || (await ensurePatient(mc, clinicId, tx)).id,
+                    reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+                    startTime,
+                    endTime,
+                    status: 'CONFIRMED',
+                    source: 'SMS_BOOKING'
+                }, actor);
 
-            // Update missed call record
-            await prisma.missedCall.update({
-                where: { id: mc.id },
-                data: {
-                    status: 'RECOVERED',
-                    recoveredAt: new Date(),
-                    appointmentId: apt.data.id
-                }
+                // Record feed event
+                await tx.feedEvent.create({
+                    data: {
+                        clinicId,
+                        type: 'APPOINTMENT_BOOKED_VIA_SMS',
+                        title: 'Ραντεβού από SMS ανάκτησης',
+                        patientName: mc.patientName || mc.patient?.name || null,
+                        phone: mc.fromNumber || null,
+                        appointmentId: apt.data.id,
+                        metadata: { estimatedRevenue: mc.estimatedRevenue || 80 },
+                    }
+                });
+
+                // Update missed call record
+                await tx.missedCall.update({
+                    where: { id: mc.id },
+                    data: {
+                        status: 'RECOVERED',
+                        recoveredAt: new Date(),
+                        appointmentId: apt.data.id
+                    }
+                });
+
+                // Mark tracking case recovered
+                const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+                await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date(), tx });
             });
-
-            // Mark tracking case recovered
-            const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
-            await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date() });
 
             results.push({ id: mc.id, success: true, appointmentId: apt.data.id });
         } catch (err) {
@@ -466,55 +469,58 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     logger.info('Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
 
-    // Create appointment
-    const apt = await createAppointment({
-        clinicId,
-        patientId: mc.patientId || (await ensurePatient(mc, clinicId)).id,
-        reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
-        startTime,
-        endTime,
-        status: 'CONFIRMED',
-        source: 'SMS_BOOKING'
-    }, actor);
-
-    // Record feed event
-    prisma.feedEvent.create({
-        data: {
+    // Atomic transaction for all recovery confirm operations
+    await prisma.$transaction(async (tx) => {
+        // Create appointment
+        const apt = await createAppointment({
             clinicId,
-            type: 'APPOINTMENT_BOOKED_VIA_SMS',
-            title: 'Ραντεβού από SMS ανάκτησης',
-            patientName: mc.patientName || mc.patient?.name || null,
-            phone: mc.fromNumber || null,
-            appointmentId: apt.data.id,
-            metadata: { estimatedRevenue: mc.estimatedRevenue || 80 },
-        }
-    }).catch(err => logger.warn('FeedEvent Failed', { error: err.message }));
+            patientId: mc.patientId || (await ensurePatient(mc, clinicId, tx)).id,
+            reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+            startTime,
+            endTime,
+            status: 'CONFIRMED',
+            source: 'SMS_BOOKING'
+        }, actor);
 
-    // Update missed call record
-    await prisma.missedCall.update({
-        where: { id: mc.id },
-        data: {
-            status: 'RECOVERED',
-            recoveredAt: new Date(),
-            appointmentId: apt.data.id
-        }
+        // Record feed event
+        await tx.feedEvent.create({
+            data: {
+                clinicId,
+                type: 'APPOINTMENT_BOOKED_VIA_SMS',
+                title: 'Ραντεβού από SMS ανάκτησης',
+                patientName: mc.patientName || mc.patient?.name || null,
+                phone: mc.fromNumber || null,
+                appointmentId: apt.data.id,
+                metadata: { estimatedRevenue: mc.estimatedRevenue || 80 },
+            }
+        });
+
+        // Update missed call record
+        await tx.missedCall.update({
+            where: { id: mc.id },
+            data: {
+                status: 'RECOVERED',
+                recoveredAt: new Date(),
+                appointmentId: apt.data.id
+            }
+        });
+
+        // Mark tracking case recovered
+        const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
+        await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date(), tx });
     });
-
-    // Mark tracking case recovered
-    const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
-    await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date() });
 
     res.json({ success: true, appointmentId: apt.data.id });
 }));
 
-async function ensurePatient(mc, clinicId) {
+async function ensurePatient(mc, clinicId, tx) {
     if (mc.patientId) return { id: mc.patientId };
     const { createPatient } = require('../services/appointmentService');
     const res = await createPatient({
         clinicId,
         name: mc.bookingName || mc.fromNumber,
         phone: mc.fromNumber
-    }, { userId: 'SYSTEM', ip: '127.0.0.1' });
+    }, { userId: 'SYSTEM', ip: '127.0.0.1' }, tx);
     return res.data;
 }
 
