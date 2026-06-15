@@ -40,17 +40,18 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         }
     }
 
-    // ── Opt-out check ───────────────────────────────────────────────────────
+    // ── Opt-out check + link existing patient ──────────────────────────────
     const patient = await prisma.patient.findFirst({
         where: { clinicId, phone: normalizedPhone },
-        select: { optedOut: true }
+        select: { id: true, optedOut: true }
     });
+    const patientId = patient?.id || null;
     if (patient?.optedOut) {
         logger.info('Skipping opted-out patient', { phoneTail: normalizedPhone.slice(-4) });
         if (existing) {
             await prisma.missedCall.update({
                 where: { id: existing.id },
-                data: { smsStatus: 'skipped', smsError: 'opted_out' }
+                data: { smsStatus: 'skipped', smsError: 'opted_out', patientId }
             });
         }
         return { success: true, data: { skipped: true, reason: 'opted_out' } };
@@ -73,7 +74,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         if (existing) {
             await prisma.missedCall.update({
                 where: { id: existing.id },
-                data: { smsStatus: 'skipped', smsError: 'Cooldown — active case within 6h' }
+                data: { smsStatus: 'skipped', smsError: 'Cooldown — active case within 6h', patientId }
             });
             await ensureRecoveryCaseForMissedCall(existing.id);
             return { success: true, data: { missedCallId: existing.id, smsStatus: 'skipped', reason: 'cooldown' } };
@@ -92,6 +93,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                         return parseFloat(ai.avgAppointmentValue) || 80;
                     } catch { return 80; }
                 })(),
+                patientId,
             }
         });
         await ensureRecoveryCaseForMissedCall(missedCall.id);
@@ -127,6 +129,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 status: 'RECOVERING',
                 smsStatus: withinHours ? 'pending' : 'scheduled',
                 scheduledSmsAt: withinHours ? null : scheduledAt,
+                patientId,
             }
         });
     } else {
@@ -139,6 +142,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 smsStatus: withinHours ? 'pending' : 'scheduled',
                 scheduledSmsAt: withinHours ? null : scheduledAt,
                 estimatedRevenue,
+                patientId,
             }
         });
     }
