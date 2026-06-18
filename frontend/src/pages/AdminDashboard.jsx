@@ -405,11 +405,8 @@ const UserManagement = () => {
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>{filtered.length} χρήστες</span>
       </div>
 
-<div style={{ overflowX: 'auto' }} className="mobile-table-min">
+<div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }} className="mobile-table-min">
          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-           <thead>
-             <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
-               {handleSortTh('name', 'Όνομα')}
                {handleSortTh('email', 'Email')}
                {handleSortTh('role', 'Ρόλος')}
                {handleSortTh('isActive', 'Κατάσταση')}
@@ -645,7 +642,7 @@ const AuditLogs = () => {
             Σύνολο: {data?.total || 0} καταχωρήσεις · Εμφανίζονται {data?.data?.length || 0}
           </span>
         </div>
-<div style={{ overflowX: 'auto', maxHeight: '500px' }} className="mobile-table-min">
+<div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxHeight: '500px' }} className="mobile-table-min">
            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--primary-light)', borderBottom: '2px solid var(--border)' }}>
@@ -725,7 +722,7 @@ const AdminDashboard = () => {
   const handleTabChange = (tab) => setActiveTab(tab);
 
   return (
-<div className="admin-dashboard-container" style={{ padding: '1.25rem', maxWidth: '1400px', margin: '0 auto' }}>
+<div className="admin-dashboard-container" style={{ padding: '1.25rem', maxWidth: '1400px', margin: '0 auto', overflowX: 'hidden' }}>
 
        {/* ── MOBILE STYLES ── */}
        <style>{`
@@ -737,18 +734,40 @@ const AdminDashboard = () => {
            .toolbar-group { flex-direction: row !important; }
            .toolbar-search { width: 220px !important; }
            .bulk-bar { flex-direction: row !important; }
+           .admin-tab-label { display: inline !important; }
+           .golive-grid { grid-template-columns: 260px 1fr !important; }
          }
          @media (max-width: 767px) {
-           .admin-dashboard-container { padding: 0.75rem !important; }
-           .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; }
-           .kpi-grid-2 { grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem !important; font-size: 0.85rem !important; }
+           .admin-dashboard-container { padding: 0.6rem !important; }
+           .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0.4rem !important; }
+           .kpi-grid-2 { grid-template-columns: repeat(2, 1fr) !important; gap: 0.4rem !important; }
            .stats-grid { grid-template-columns: 1fr !important; }
            .toolbar-group { flex-direction: column !important; }
            .toolbar-search { width: 100% !important; }
            .bulk-bar { flex-direction: column !important; align-items: stretch !important; }
-           .mobile-table-min { min-width: 800px !important; }
-           .modal-responsive { max-width: 95vw !important; }
+           .mobile-table-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+           .mobile-table-min { min-width: 640px !important; }
+           .modal-responsive { 
+             max-width: 100vw !important; 
+             max-height: 100dvh !important;
+             border-radius: 20px 20px 0 0 !important;
+             margin-top: auto !important;
+           }
+           .modal-overlay-mobile {
+             align-items: flex-end !important;
+             padding: 0 !important;
+           }
            .filter-row { flex-direction: column !important; }
+           .admin-tab-label { display: none !important; }
+           .admin-tab-btn { padding: 10px 8px !important; }
+           .admin-header-title { font-size: 1.1rem !important; }
+           .admin-header-sub { display: none !important; }
+           .golive-grid { grid-template-columns: 1fr !important; }
+           .golive-clinic-picker { display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 8px !important; }
+           .golive-clinic-picker button { min-width: 140px !important; flex-shrink: 0 !important; }
+           .kpi-card-value { font-size: 1.25rem !important; }
+           .kpi-card-label { font-size: 0.6rem !important; }
+           .detail-modal { max-height: 90dvh !important; overflow-y: auto !important; }
          }
        `}</style>
 
@@ -767,7 +786,7 @@ const AdminDashboard = () => {
             }}>
               <Shield size={18} color="white" />
             </div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--secondary)', margin: 0, letterSpacing: '-0.03em' }}>
+            <h1 className="admin-header-title" style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--secondary)', margin: 0, letterSpacing: '-0.03em' }}>
               Πίνακας Ελέγχου Διαχειριστή
             </h1>
             {onboardingData?.completionRate > 0 && (
@@ -780,7 +799,7 @@ const AdminDashboard = () => {
               </span>
             )}
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', margin: 0 }}>
+          <p className="admin-header-sub" style={{ fontSize: '0.8rem', color: 'var(--text-light)', margin: 0 }}>
             Πλατφόρμα διαχείρισης · {onboardingData?.completionRate || 0}% ολοκλήρωση onboarding
           </p>
         </div>
@@ -828,7 +847,10 @@ const AdminDashboard = () => {
         border: '1px solid rgba(255,255,255,0.25)',
         borderRadius: '14px',
         padding: '0.35rem',
-        boxShadow: 'var(--shadow-sm)'
+        boxShadow: 'var(--shadow-sm)',
+        position: 'sticky',
+        top: '0.5rem',
+        zIndex: 40,
       }}>
         {TAB_CONFIG.map(tab => {
           const isActive = activeTab === tab.id;
@@ -836,10 +858,11 @@ const AdminDashboard = () => {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
+              className="admin-tab-btn"
               style={{
                 flex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                padding: '10px 16px', borderRadius: '11px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                padding: '10px 12px', borderRadius: '11px',
                 background: isActive ? 'linear-gradient(135deg, rgba(99,91,255,0.15) 0%, rgba(139,92,246,0.1) 100%)' : 'transparent',
                 border: isActive ? '1px solid rgba(99,91,255,0.25)' : '1px solid transparent',
                 color: isActive ? 'var(--primary)' : 'var(--text-light)',
@@ -854,7 +877,7 @@ const AdminDashboard = () => {
               onMouseOut={e => !isActive && (e.currentTarget.style.background = 'transparent')}
             >
               <tab.icon size={16} />
-              {tab.label}
+              <span className="admin-tab-label">{tab.label}</span>
             </button>
           );
         })}
@@ -1086,10 +1109,10 @@ const GoLiveTab = () => {
   }));
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+    <div className="golive-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'start' }}>
 
       {/* ── LEFT: Clinic picker ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div className="golive-clinic-picker" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
           Επιλογή Κλινικής
         </div>
@@ -1649,8 +1672,8 @@ const handleDeleteClinic = async (clinicId, name) => {
               color: card.accent
             }}>{card.icon}</div>
             <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{card.value}</div>
+              <div className="kpi-card-label" style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
+              <div className="kpi-card-value" style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{card.value}</div>
             </div>
           </div>
         ))}
@@ -1683,8 +1706,8 @@ const handleDeleteClinic = async (clinicId, name) => {
               color: card.accent
             }}>{card.icon}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{card.label}</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{card.value}</div>
+              <div className="kpi-card-label" style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{card.label}</div>
+              <div className="kpi-card-value" style={{ fontSize: '1.3rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{card.value}</div>
               {card.sub && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{card.sub}</div>}
             </div>
           </div>
@@ -1784,7 +1807,7 @@ const handleDeleteClinic = async (clinicId, name) => {
           </div>
         </div>
 
-<div style={{ overflowX: 'auto' }} className="mobile-table-min">
+<div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }} className="mobile-table-min">
          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
            <thead>
              <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
@@ -2016,7 +2039,7 @@ const handleDeleteClinic = async (clinicId, name) => {
 
       {/* CREATE CLINIC MODAL */}
       {showCreateModal && (
-<div onClick={() => setShowCreateModal(false)} style={{
+<div onClick={() => setShowCreateModal(false)} className="modal-overlay-mobile" style={{
            position: 'fixed', inset: 0, zIndex: 100,
            background: 'rgba(5,11,27,0.65)',
            backdropFilter: 'blur(10px) saturate(160%)',
@@ -2097,7 +2120,7 @@ backdropFilter: 'blur(10px) saturate(200%)',
 
       {/* CLINIC DETAIL MODAL */}
       {detailClinic && (
-<div onClick={() => setDetailClinic(null)} style={{
+<div onClick={() => setDetailClinic(null)} className="modal-overlay-mobile" style={{
            position: 'fixed', inset: 0, zIndex: 100,
            background: 'rgba(5,11,27,0.65)',
            backdropFilter: 'blur(10px) saturate(160%)',
@@ -2322,7 +2345,7 @@ backdropFilter: 'blur(10px) saturate(200%)',
 
       {/* TEST MISSED CALL MODAL */}
       {testCallClinic && (
-        <div onClick={closeTestCallModal} style={{
+        <div onClick={closeTestCallModal} className="modal-overlay-mobile" style={{
           position: 'fixed', inset: 0, zIndex: 110,
           background: 'rgba(5,11,27,0.65)',
           backdropFilter: 'blur(10px) saturate(160%)',
