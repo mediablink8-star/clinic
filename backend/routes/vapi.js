@@ -272,10 +272,10 @@ async function handleVoiceBooking(mc, input) {
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
     let booked = false;
+    let appointmentId = null;
     if (patient) {
         try {
-            // Use createAppointment to enforce working hours, conflict detection, and audit logging
-            await createAppointment(
+            const aptResult = await createAppointment(
                 {
                     clinicId: clinic.id,
                     patientId: patient.id,
@@ -288,21 +288,36 @@ async function handleVoiceBooking(mc, input) {
                 },
                 { userId: 'vapi-ai', ip: '127.0.0.1' }
             );
-            logger.info('Vapi appointment created');
+            const appointmentId = aptResult?.data?.id || null;
+            logger.info('Vapi appointment created', { appointmentId });
             booked = true;
 
-            // Record feed event
-            prisma.feedEvent.create({
-                data: {
-                    clinicId: clinic.id,
-                    type: 'AI_CALL_ANSWERED',
-                    title: 'AI κλήση απαντήθηκε — κλείστηκε ραντεβού',
-                    patientName: patient?.name || null,
-                    phone: mc?.fromNumber || null,
-                    appointmentId: null,
-                    metadata: { estimatedRevenue: mc?.estimatedRevenue || 80 },
-                }
-            }).catch(err => logger.warn('Vapi feed event failed', { err }));
+            // Record both event types so dashboard revenue + activity feed update
+            const revenue = mc?.estimatedRevenue > 0 ? mc.estimatedRevenue : 80;
+            await Promise.allSettled([
+                prisma.feedEvent.create({
+                    data: {
+                        clinicId: clinic.id,
+                        type: 'APPOINTMENT_BOOKED_VIA_CALL',
+                        title: 'Ραντεβού από AI φωνητική κλήση',
+                        patientName: patient?.name || null,
+                        phone: mc?.fromNumber || null,
+                        appointmentId,
+                        metadata: { estimatedRevenue: revenue },
+                    }
+                }),
+                prisma.feedEvent.create({
+                    data: {
+                        clinicId: clinic.id,
+                        type: 'AI_CALL_ANSWERED',
+                        title: 'AI κλήση απαντήθηκε — κλείστηκε ραντεβού',
+                        patientName: patient?.name || null,
+                        phone: mc?.fromNumber || null,
+                        appointmentId,
+                        metadata: { estimatedRevenue: revenue },
+                    }
+                }),
+            ]);
         } catch (err) {
             logger.warn('Vapi appointment create failed', { err });
             // Send SMS fallback with booking link so patient can self-book
@@ -316,6 +331,7 @@ async function handleVoiceBooking(mc, input) {
 
     if (booked) {
         const recoveredAt = new Date();
+        const revenue = mc.estimatedRevenue > 0 ? mc.estimatedRevenue : 80;
         await prisma.missedCall.update({
             where: { id: mc.id },
             data: {
@@ -324,7 +340,8 @@ async function handleVoiceBooking(mc, input) {
                 conversationState: 'COMPLETED',
                 smsStatus: 'sent',
                 patientId: patient?.id || null,
-                estimatedRevenue: mc.estimatedRevenue > 0 ? mc.estimatedRevenue : 80,
+                estimatedRevenue: revenue,
+                appointmentId: appointmentId || mc.appointmentId || null,
             }
         });
 
@@ -335,7 +352,7 @@ async function handleVoiceBooking(mc, input) {
             logger.warn('Vapi markRecoveryCaseRecovered failed', { err });
         }
 
-        logger.info('Vapi case RECOVERED', { missedCallId: mc.id });
+        logger.info('Vapi case RECOVERED', { missedCallId: mc.id, appointmentId, revenue });
         return;
     }
 
