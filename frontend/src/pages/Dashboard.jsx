@@ -313,10 +313,11 @@ const Dashboard = ({
                 </div>
             )}
 
-            {/* ── HERO SECTION: Big Revenue + 2 smaller cards ── */}
-            <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'stretch' }}>
-                {/* BIG Revenue Card - screams "YOU MADE €X" */}
-                {revenue > 0 && (() => {
+            {/* ── HERO SECTION ── */}
+            <div className="dashboard-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', flexShrink: 0 }}>
+
+                {/* HERO: Recovered Revenue */}
+                {(() => {
                     const days = 14, now = new Date();
                     const sparkData = [];
                     for (let i = days - 1; i >= 0; i--) {
@@ -327,110 +328,117 @@ const Dashboard = ({
                         ).length);
                     }
                     const max = Math.max(...sparkData, 1);
-                    const w = 120, h = 36, p = 2;
+                    const w = 90, h = 32, p = 2;
                     const pts = sparkData.map((v, i) => `${((i / (days - 1)) * (w - p * 2)) + p},${h - p - (v / max) * (h - p * 2)}`).join(' ');
                     return (
-                    <div style={{
-                        flex: '2 1 200px',
-                        background: 'linear-gradient(135deg, #635BFF 0%, #4338CA 100%)',
-                        borderRadius: '24px',
-                        padding: '1.25rem 1.5rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        boxShadow: '0 20px 40px -12px rgba(99, 91, 255, 0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        transition: 'transform 0.3s ease'
-                    }} className="revenue-card-hero">
-                        <div style={{
-                            position: 'absolute', top: '-40px', right: '-40px',
-                            width: '160px', height: '160px',
-                            borderRadius: '50%',
-                            background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-                            pointerEvents: 'none'
-                        }} />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <div style={{ padding: '4px', borderRadius: '6px', background: 'rgba(255,255,255,0.2)', display: 'flex' }}>
-                                <TrendingUp size={12} color="white" />
+                        <div className="revenue-card-hero" style={{
+                            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                            borderRadius: '20px',
+                            padding: '1.1rem 1.3rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            boxShadow: '0 16px 40px -12px rgba(99, 91, 255, 0.45), inset 0 1px 0 rgba(255,255,255,0.25)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                        }}>
+                            <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '130px', height: '130px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                    Revenue Monitor
+                                </span>
+                                <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ opacity: 0.7 }}>
+                                    <defs>
+                                        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="white" stopOpacity="0.25" />
+                                            <stop offset="100%" stopColor="white" stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon points={`${pts} ${w},${h} 0,${h}`} fill="url(#sg)" />
+                                    <polyline points={pts} fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
                             </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Συνολική Ανάκτηση AI
-                            </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem', flex: 1 }}>
-                            <div style={{ flexShrink: 0 }}>
-                                <span style={{ fontSize: '2.4rem', fontWeight: '950', color: 'white', letterSpacing: '-0.05em', lineHeight: 1 }}>
-                                    €{revenue.toLocaleString()}
+                            <div style={{ lineHeight: 1 }}>
+                                <span className="num-animate" style={{ fontSize: revenue > 0 ? '2.6rem' : '2rem', fontWeight: '950', color: 'white', letterSpacing: '-0.05em' }}>
+                                    {revenue > 0 ? `€${revenue.toLocaleString()}` : '€0'}
                                 </span>
                             </div>
-                            <svg width="120" height="36" viewBox={`0 0 ${w} ${h}`} style={{ flexShrink: 0 }}>
-                                <defs>
-                                    <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="white" stopOpacity="0.2" />
-                                        <stop offset="100%" stopColor="white" stopOpacity="0" />
-                                    </linearGradient>
-                                </defs>
-                                <polygon points={`${pts} ${w},${h} 0,${h}`} fill="url(#spark-grad)" />
-                                <polyline points={pts} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.95)', background: 'rgba(255,255,255,0.18)', padding: '2px 8px', borderRadius: '6px' }}>
+                                    {recovered} ραντεβού σώθηκαν
+                                </span>
+                                {weeklyRevenue > 0 && (
+                                    <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.7)', fontWeight: '600' }}>
+                                        +€{weeklyRevenue} αυτή την εβδομάδα
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'white', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '6px' }}>
-                                +€{weeklyRevenue || 0} <span style={{ opacity: 0.8, fontSize: '0.7rem' }}>7ημερο</span>
-                            </span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic' }}>
-                                {recovered} ασθενείς επανήλθαν
-                            </span>
-                        </div>
-                    </div>
                     );
                 })()}
 
-                {/* Stats display */}
-                <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 180px' }}>
-                    <div style={{
-                        background: 'var(--glass-surface-strong)',
-                        borderRadius: '24px',
-                        padding: '1.25rem',
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.75rem',
-                        boxShadow: 'var(--shadow-md)',
-                        border: '1px solid var(--border)',
-                        backdropFilter: 'var(--glass)',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            position: 'absolute', top: 0, right: 0,
-                            padding: '12px', opacity: 0.05, color: 'var(--primary)'
-                        }}>
-                            <Zap size={48} strokeWidth={2.5} />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                                Ρυθμός Ανάκτησης
-                            </span>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--secondary)' }}>
-                                    {recoveryRate}%
-                                </span>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#10b981' }}>
-                                    ↑ 4%
-                                </span>
-                            </div>
-                        </div>
-                        <div style={{ height: '1px', background: 'var(--border)', width: '40%' }} />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                            <div style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-light)' }}>
-                                <span style={{ color: 'var(--primary)' }}>{logsArray.length}</span> κλήσεις
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '500' }}>
-                                {todayAppointments?.length ?? 0} ραντεβού σήμερα
-                            </div>
-                        </div>
+                {/* Missed calls recovered */}
+                <div className="hero-stat-card" style={{
+                    background: 'var(--glass-surface-strong)',
+                    borderRadius: '20px',
+                    padding: '1.1rem 1.3rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    boxShadow: 'var(--shadow-md)',
+                    border: '1px solid var(--border)',
+                    backdropFilter: 'var(--glass)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}>
+                    <div style={{ position: 'absolute', bottom: '-12px', right: '-8px', opacity: 0.04 }}>
+                        <Activity size={72} strokeWidth={1.5} color="var(--primary)" />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        Ανακτημένες κλήσεις
+                    </span>
+                    <span className="num-animate" style={{ fontSize: '2.4rem', fontWeight: '950', color: 'var(--secondary)', letterSpacing: '-0.05em', lineHeight: 1 }}>
+                        {totalRecovered}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '700', background: 'rgba(16,185,129,0.1)', padding: '2px 7px', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                            από {totalMissed} αναπάντητες
+                        </span>
+                    </div>
+                </div>
+
+                {/* Recovery rate */}
+                <div className="hero-stat-card" style={{
+                    background: 'var(--glass-surface-strong)',
+                    borderRadius: '20px',
+                    padding: '1.1rem 1.3rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    boxShadow: 'var(--shadow-md)',
+                    border: '1px solid var(--border)',
+                    backdropFilter: 'var(--glass)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}>
+                    <div style={{ position: 'absolute', bottom: '-12px', right: '-8px', opacity: 0.04 }}>
+                        <TrendingUp size={72} strokeWidth={1.5} color="var(--primary)" />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        Ποσοστό Ανάκτησης
+                    </span>
+                    <span className="num-animate" style={{ fontSize: '2.4rem', fontWeight: '950', color: 'var(--secondary)', letterSpacing: '-0.05em', lineHeight: 1 }}>
+                        {recoveryRate}%
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                            {todayAppointments?.length ?? 0} ραντεβού σήμερα
+                        </span>
+                    </div>
+                    {/* progress bar */}
+                    <div style={{ height: '3px', background: 'var(--border)', borderRadius: '99px', marginTop: '6px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${recoveryRate}%`, background: 'linear-gradient(90deg, #4f46e5, #7c3aed)', borderRadius: '99px', transition: 'width 1s ease' }} />
                     </div>
                 </div>
             </div>
@@ -445,7 +453,7 @@ const Dashboard = ({
                     {/* Live feed — takes all remaining height */}
                     <div className="card-glass" style={{ borderRadius: '16px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                         <div style={{ padding: '0.4rem 0.7rem 0.15rem', flexShrink: 0 }}>
-                            <SectionHeader icon={Activity}>Live Δραστηριότητα</SectionHeader>
+                            <SectionHeader icon={Activity}>Recovery Timeline</SectionHeader>
                         </div>
                         <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                             <RecoveryFeed logs={activityFeed} muted={true} token={token} onNavigate={setCurrentTab} avgAppointmentValue={avgAppointmentValue} recoveryLog={logsArray} />
@@ -468,7 +476,7 @@ const Dashboard = ({
                         clinic={clinic}
                     />
                     <div className="card-glass" style={{ borderRadius: '20px', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <SectionHeader icon={Zap}>Γρήγορες Ενέργειες</SectionHeader>
+                        <SectionHeader icon={Zap}>AI Command Center</SectionHeader>
                         <QuickActions
                             onViewSchedule={() => setCurrentTab('appointments')}
                             onAddPatient={() => setCurrentTab('patients')}
