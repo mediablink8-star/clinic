@@ -109,10 +109,10 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
         } catch { return 80; }
     })();
 
-    const failedSmsCount = summary.failedCount ?? logs.filter(l => l?.smsStatus === 'failed').length;
-    const patientRepliedCount = summary.engagedCount ?? 0;
-    const staleCount = summary.staleCount ?? 0;
-    const callbackCount = summary.callbackCount ?? 0;
+    const failedSmsCount = summary.failedCount ?? failedInsights.length ?? logs.filter(l => l?.smsStatus === 'failed').length;
+    const patientRepliedCount = summary.engagedCount ?? patientEngaged.length ?? 0;
+    const staleCount = summary.staleCount ?? staleNoReply.length ?? 0;
+    const callbackCount = summary.callbackCount ?? callbackRequested.length ?? 0;
 
     // Pipeline stats — reset every Monday 00:00
     const now = new Date();
