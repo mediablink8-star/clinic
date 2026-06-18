@@ -11,18 +11,7 @@ const logger = require('./utils/logger');
 const Sentry = require("@sentry/node");
 let server = null;
 
-// Global uncaught exception / rejection handlers — prevents process crashes
-process.on('uncaughtException', (err) => {
-    logger.error('UNCAUGHT_EXCEPTION — Process will exit', { err });
-    if (process.env.SENTRY_BACKEND_DSN) {
-        Sentry.captureException(err, { level: 'fatal' });
-    }
-    gracefulShutdown('uncaughtException');
-});
-
-process.on('unhandledRejection', (reason) => {
-    logger.warn('UNHANDLED_REJECTION', { err: reason instanceof Error ? reason : new Error(String(reason)) });
-});
+// gracefulShutdown is defined at line ~600; handlers registered after it
 
 function checkProductionReadiness() {
     if (process.env.NODE_ENV !== 'production') return;
@@ -636,6 +625,19 @@ function gracefulShutdown(signal) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Global uncaught exception / rejection handlers — registered after gracefulShutdown is defined
+process.on('uncaughtException', (err) => {
+    logger.error('UNCAUGHT_EXCEPTION — Process will exit', { err });
+    if (process.env.SENTRY_BACKEND_DSN) {
+        Sentry.captureException(err, { level: 'fatal' });
+    }
+    gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason) => {
+    logger.warn('UNHANDLED_REJECTION', { err: reason instanceof Error ? reason : new Error(String(reason)) });
+});
 
 // Start background worker by default (disable with DISABLE_WORKER=true)
 if (process.env.DISABLE_WORKER !== 'true') {

@@ -13,23 +13,16 @@ const { authenticator } = require('otplib');
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const logger = require('../utils/logger');
-
-const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client();
-
-// Generate a random bcrypt hash that will never match any password
-// Used for social login users who have no password
-const SOCIAL_LOGIN_HASH = '$2b$10$' + crypto.randomBytes(32).toString('hex').slice(0, 53);
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // 20 attempts per IP+email combo — prevents brute force but won't lock out other accounts
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
-    // Key by IP + email so each account has its own counter
     keyGenerator: (req) => {
-        const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        const ip = ipKeyGenerator(req);
         const email = (req.body?.email || '').toLowerCase().trim();
         return `${ip}:${email}`;
     },
