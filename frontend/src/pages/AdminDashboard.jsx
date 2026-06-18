@@ -17,16 +17,18 @@ import { useConfirm } from '../hooks/useConfirm';
 /* ─── TABS ─── */
 const TABS = {
   CLINICS: 'clinics',
+  GOLIVE: 'golive',
   USERS: 'users',
   AUDIT: 'audit',
   STATS: 'stats'
 };
 
 const TAB_CONFIG = [
-  { id: TABS.CLINICS, label: 'Ιατρεία', icon: Building2 },
-  { id: TABS.USERS,   label: 'Χρήστες',  icon: Users },
-  { id: TABS.AUDIT,   label: 'Αυδίτο',   icon: FileText },
-  { id: TABS.STATS,   label: 'Στατιστικά', icon: BarChart2 }
+  { id: TABS.CLINICS, label: 'Ιατρεία',       icon: Building2 },
+  { id: TABS.GOLIVE,  label: 'Go-Live',        icon: ListChecks },
+  { id: TABS.USERS,   label: 'Χρήστες',        icon: Users },
+  { id: TABS.AUDIT,   label: 'Αυδίτο',         icon: FileText },
+  { id: TABS.STATS,   label: 'Στατιστικά',     icon: BarChart2 }
 ];
 
 /* ─── HELPERS ─── */
@@ -860,6 +862,7 @@ const AdminDashboard = () => {
 
       {/* ── TAB CONTENT ── */}
       {activeTab === TABS.CLINICS && <ClinicsTab />}
+      {activeTab === TABS.GOLIVE && <GoLiveTab />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
       {activeTab === TABS.STATS && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
@@ -877,6 +880,420 @@ const SortThClinic = ({ field, label, sortBy, sortDir, handleSort }) => (
       </div>
     </th>
   );
+
+/* ================================================================
+   GO-LIVE CHECKLIST TAB
+   ================================================================ */
+
+const CHECKLIST_ITEMS = [
+  {
+    key: 'zadarmaNumber',
+    label: 'Αριθμός Zadarma',
+    desc: 'Το SIP phone number της κλινικής για δρομολόγηση αναπάντητων κλήσεων.',
+    how: 'Ρυθμίσεις → Τηλεφωνία → Zadarma Phone Number',
+    passValues: ['configured'],
+    category: 'telephony',
+  },
+  {
+    key: 'zadarmaWebhookTest',
+    label: 'Zadarma Webhook Test',
+    desc: 'Συνθετική δοκιμή: NOTIFY_START + NOTIFY_END (missed) → SMS pipeline.',
+    how: 'Πατήστε "Run Test" στον πίνακα ελέγχου',
+    passValues: ['passed'],
+    warnValues: ['untested'],
+    category: 'telephony',
+    runnable: true,
+    runKey: 'zadarma',
+  },
+  {
+    key: 'twilioCreds',
+    label: 'Twilio Credentials',
+    desc: 'TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN στο backend environment.',
+    how: 'Backend env: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN',
+    passValues: ['configured'],
+    category: 'sms',
+  },
+  {
+    key: 'twilioSender',
+    label: 'Twilio Sender ID',
+    desc: 'Αλφαριθμητικό sender ID ή τηλέφωνο για αποστολή SMS.',
+    how: 'Backend env: TWILIO_ALPHA_SENDER_ID ή TWILIO_PHONE_NUMBER',
+    passValues: ['verified'],
+    warnValues: ['unverified'],
+    category: 'sms',
+  },
+  {
+    key: 'webhookUrls',
+    label: 'Webhook URLs (n8n)',
+    desc: 'URLs για αποστολή SMS μέσω n8n workflows.',
+    how: 'Ρυθμίσεις → Webhooks → Webhook Αναπάντητων / Άμεσου SMS',
+    passValues: ['configured'],
+    category: 'sms',
+  },
+  {
+    key: 'testMissedCall',
+    label: 'Test Missed Call → SMS',
+    desc: 'End-to-end δοκιμή: αναπάντητη κλήση → SMS εστάλη επιτυχώς.',
+    how: 'Πίνακας Ιατρείων → εικονίδιο φιάλης → Send Test',
+    passValues: ['passed'],
+    warnValues: ['untested'],
+    category: 'sms',
+    runnable: true,
+    runKey: 'testcall',
+  },
+  {
+    key: 'workingHours',
+    label: 'Ωράριο Λειτουργίας',
+    desc: 'Τουλάχιστον μία ημέρα με ορισμένες ώρες (δεν είναι "Closed").',
+    how: 'Onboarding Wizard → βήμα 2 ή Ρυθμίσεις → AI',
+    passValues: ['configured'],
+    category: 'config',
+  },
+  {
+    key: 'vapiSipTest',
+    label: 'Voice AI (Vapi)',
+    desc: 'Προαιρετικό. Εάν ενεργό, επιβεβαίωση ότι ο AI agent απαντά.',
+    how: 'Ρυθμίσεις → Voice AI → Vapi credentials',
+    passValues: ['passed'],
+    warnValues: ['untested'],
+    optional: true,
+    category: 'voice',
+  },
+  {
+    key: 'trialActive',
+    label: 'Δοκιμή / Πλάνο Ενεργό',
+    desc: 'Η κλινική έχει ενεργό trial ή πληρωμένο πλάνο.',
+    how: 'Admin → Κλινικές → Αλλαγή πλάνου',
+    passValues: [true],
+    category: 'billing',
+  },
+];
+
+const CATEGORY_META = {
+  telephony: { label: 'Τηλεφωνία',  color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
+  sms:       { label: 'SMS',        color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
+  config:    { label: 'Ρυθμίσεις', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+  voice:     { label: 'Voice AI',   color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
+  billing:   { label: 'Πλάνο',      color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+};
+
+function itemStatus(key, value, item) {
+  if (value === undefined || value === null) return 'unknown';
+  if (item.passValues?.includes(value)) return 'pass';
+  if (item.warnValues?.includes(value)) return 'warn';
+  return 'fail';
+}
+
+const STATUS_DOT = {
+  pass:    { color: '#10b981', label: '✓', glow: 'rgba(16,185,129,0.5)' },
+  warn:    { color: '#f59e0b', label: '?', glow: 'rgba(245,158,11,0.4)' },
+  fail:    { color: '#dc2626', label: '✗', glow: 'rgba(220,38,38,0.5)' },
+  unknown: { color: '#64748b', label: '–', glow: 'none' },
+};
+
+const GoLiveTab = () => {
+  const queryClient = useQueryClient();
+  const [selectedClinicId, setSelectedClinicId] = React.useState(null);
+  const [runningKey, setRunningKey] = React.useState(null);
+  const [testPhone, setTestPhone] = React.useState('+30');
+  const [showPhoneInput, setShowPhoneInput] = React.useState(false);
+
+  const { data: clinics = [], isLoading: loadingClinics } = useQuery({
+    queryKey: ['admin-clinics'],
+    queryFn: () => api.get('/admin/usage').then(r => r.data),
+    refetchInterval: 60000,
+  });
+
+  const selectedClinic = clinics.find(c => c.id === selectedClinicId) || null;
+
+  // Auto-select first clinic
+  React.useEffect(() => {
+    if (!selectedClinicId && clinics.length > 0) setSelectedClinicId(clinics[0].id);
+  }, [clinics, selectedClinicId]);
+
+  const { data: setup, isLoading: loadingSetup, refetch: refetchSetup } = useQuery({
+    queryKey: ['admin-setup-status', selectedClinicId],
+    queryFn: () => api.get(`/admin/clinics/${selectedClinicId}/setup-status`).then(r => r.data),
+    enabled: !!selectedClinicId,
+    refetchInterval: 30000,
+  });
+
+  const checklist = setup?.checklist || {};
+
+  // Score
+  const required = CHECKLIST_ITEMS.filter(i => !i.optional);
+  const optional = CHECKLIST_ITEMS.filter(i => i.optional);
+  const passCount = required.filter(i => itemStatus(i.key, checklist[i.key], i) === 'pass').length;
+  const isReady = passCount === required.length;
+
+  const handleRunZadarmaTest = async () => {
+    if (!selectedClinicId) return;
+    setRunningKey('zadarma');
+    try {
+      const res = await api.post(`/admin/clinics/${selectedClinicId}/test-zadarma-webhook`, {});
+      const sms = res.data?.end?.smsStatus;
+      if (sms === 'sent' || sms === 'scheduled') toast.success('Zadarma test: SMS ' + (sms === 'sent' ? 'εστάλη ✓' : 'προγραμματίστηκε ✓'));
+      else toast.error('Zadarma test: ' + (sms || 'αποτυχία'));
+    } catch (e) {
+      toast.error('Zadarma test σφάλμα: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setRunningKey(null);
+      refetchSetup();
+      queryClient.invalidateQueries({ queryKey: ['admin-test-calls-last'] });
+    }
+  };
+
+  const handleRunTestCall = async () => {
+    if (!selectedClinicId) return;
+    if (!testPhone || testPhone.replace(/\D/g, '').length < 8) {
+      toast.error('Εισάγετε έγκυρο αριθμό τηλεφώνου');
+      return;
+    }
+    setRunningKey('testcall');
+    setShowPhoneInput(false);
+    try {
+      const res = await api.post(`/admin/clinics/${selectedClinicId}/test-missed-call`, { phone: testPhone });
+      const sms = res.data?.smsStatus;
+      if (sms === 'sent') toast.success('Test missed call: SMS εστάλη ✓');
+      else if (sms === 'scheduled') toast.success('Test missed call: SMS προγραμματίστηκε ✓');
+      else toast.error('Test missed call: ' + (sms || 'αποτυχία'));
+    } catch (e) {
+      toast.error('Test call σφάλμα: ' + (e.response?.data?.error || e.message));
+    } finally {
+      setRunningKey(null);
+      refetchSetup();
+      queryClient.invalidateQueries({ queryKey: ['admin-test-calls-last'] });
+    }
+  };
+
+  const handleMarkGoLive = async () => {
+    if (!selectedClinicId) return;
+    try {
+      await api.post(`/admin/clinics/${selectedClinicId}/toggle-status`, { isActive: true });
+      toast.success('🚀 Κλινική ενεργοποιήθηκε — Go Live!');
+      queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+      refetchSetup();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Αποτυχία ενεργοποίησης');
+    }
+  };
+
+  if (loadingClinics) return <LoadingPlaceholder />;
+
+  const groupedItems = Object.entries(CATEGORY_META).map(([cat, meta]) => ({
+    cat, meta,
+    items: CHECKLIST_ITEMS.filter(i => i.category === cat),
+  }));
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+
+      {/* ── LEFT: Clinic picker ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
+          Επιλογή Κλινικής
+        </div>
+        {clinics.map(c => {
+          const cl = (setup?.clinicId === c.id ? setup?.checklist : null) || {};
+          const req = CHECKLIST_ITEMS.filter(i => !i.optional);
+          const passes = req.filter(i => itemStatus(i.key, cl[i.key], i) === 'pass').length;
+          const pct = Math.round((passes / req.length) * 100);
+          const isSelected = c.id === selectedClinicId;
+          const statusColor = pct === 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#dc2626';
+          return (
+            <button
+              key={c.id}
+              onClick={() => setSelectedClinicId(c.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 12px', borderRadius: '12px', textAlign: 'left', width: '100%',
+                background: isSelected ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))' : 'var(--glass-surface)',
+                border: `1.5px solid ${isSelected ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+            >
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+                background: isSelected ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Building2 size={15} color={isSelected ? '#6366f1' : 'var(--text-muted)'} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                  <div style={{ flex: 1, height: '3px', borderRadius: '99px', background: 'var(--border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: statusColor, borderRadius: '99px', transition: 'width 0.5s' }} />
+                  </div>
+                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: statusColor, flexShrink: 0 }}>{pct}%</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── RIGHT: Checklist ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {/* Header */}
+        {selectedClinic && (
+          <div style={{
+            background: isReady
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.08))'
+              : 'var(--glass-surface)',
+            border: `1.5px solid ${isReady ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
+            borderRadius: '16px', padding: '1.1rem 1.4rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Go-Live Status
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: '900', color: 'var(--secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {selectedClinic.name}
+                {isReady && <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '3px 10px', borderRadius: '99px', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>ΕΤΟΙΜΟ ✓</span>}
+                {!isReady && <span style={{ fontSize: '0.72rem', fontWeight: '800', padding: '3px 10px', borderRadius: '99px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}>{passCount}/{required.length} βήματα</span>}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button onClick={() => refetchSetup()} style={{ padding: '7px 12px', borderRadius: '9px', border: '1px solid var(--border)', background: 'var(--glass-control)', color: 'var(--text-light)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <RefreshCw size={12} /> Ανανέωση
+              </button>
+              {isReady && !selectedClinic.isActive && (
+                <button onClick={handleMarkGoLive} style={{ padding: '7px 18px', borderRadius: '9px', border: 'none', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 6px 18px -6px rgba(16,185,129,0.5)' }}>
+                  🚀 Ενεργοποίηση Go-Live
+                </button>
+              )}
+              {selectedClinic.isActive && (
+                <span style={{ padding: '7px 14px', borderRadius: '9px', background: 'rgba(16,185,129,0.12)', color: '#10b981', fontSize: '0.75rem', fontWeight: '800', border: '1px solid rgba(16,185,129,0.25)' }}>
+                  ● Ενεργό
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Phone input for test call */}
+        {showPhoneInput && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '10px 14px', borderRadius: '12px', background: 'rgba(6,182,212,0.06)', border: '1.5px solid rgba(6,182,212,0.2)' }}>
+            <Phone size={14} color="#06b6d4" />
+            <input
+              value={testPhone}
+              onChange={e => setTestPhone(e.target.value)}
+              placeholder="+306900000000"
+              style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit' }}
+            />
+            <button onClick={handleRunTestCall} disabled={runningKey === 'testcall'} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#06b6d4', color: 'white', fontWeight: '700', fontSize: '0.78rem', cursor: 'pointer' }}>
+              {runningKey === 'testcall' ? '…' : 'Εκτέλεση'}
+            </button>
+            <button onClick={() => setShowPhoneInput(false)} style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem' }}>Ακύρωση</button>
+          </div>
+        )}
+
+        {/* Checklist grouped by category */}
+        {loadingSetup && !setup ? (
+          <LoadingPlaceholder rows={3} />
+        ) : (
+          groupedItems.map(({ cat, meta, items }) => (
+            <div key={cat} style={{ background: 'var(--glass-surface)', borderRadius: '14px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+              {/* Category header */}
+              <div style={{ padding: '8px 14px', background: meta.bg, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
+                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: meta.color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{meta.label}</span>
+              </div>
+
+              {/* Items */}
+              {items.map((item, idx) => {
+                const raw = checklist[item.key];
+                const status = itemStatus(item.key, raw, item);
+                const dot = STATUS_DOT[status];
+                const isRunning = runningKey === item.runKey;
+                return (
+                  <div key={item.key} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '12px',
+                    padding: '12px 14px',
+                    borderBottom: idx < items.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: status === 'pass' ? 'rgba(16,185,129,0.03)' : status === 'fail' ? 'rgba(220,38,38,0.03)' : 'transparent',
+                    transition: 'background 0.2s',
+                  }}>
+                    {/* Status dot */}
+                    <div style={{
+                      width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0, marginTop: '1px',
+                      background: `${dot.color}18`,
+                      border: `1.5px solid ${dot.color}40`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: status !== 'unknown' ? `0 0 8px ${dot.glow}` : 'none',
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: '900', color: dot.color }}>{dot.label}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text)' }}>{item.label}</span>
+                        {item.optional && (
+                          <span style={{ fontSize: '0.62rem', fontWeight: '700', padding: '1px 6px', borderRadius: '99px', background: 'rgba(148,163,184,0.12)', color: 'var(--text-muted)', border: '1px solid rgba(148,163,184,0.2)' }}>optional</span>
+                        )}
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: '700', padding: '2px 7px', borderRadius: '99px',
+                          background: `${dot.color}14`, color: dot.color, border: `1px solid ${dot.color}30`,
+                          marginLeft: 'auto', flexShrink: 0,
+                        }}>
+                          {raw !== undefined && raw !== null ? String(raw) : 'unknown'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.5 }}>{item.desc}</div>
+                      {status !== 'pass' && (
+                        <div style={{ fontSize: '0.72rem', color: meta.color, marginTop: '4px', fontWeight: '600' }}>
+                          → {item.how}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Run button for testable items */}
+                    {item.runnable && (
+                      <div style={{ flexShrink: 0 }}>
+                        {item.runKey === 'zadarma' && (
+                          <button
+                            onClick={handleRunZadarmaTest}
+                            disabled={isRunning}
+                            style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: isRunning ? 'var(--border)' : `${meta.color}20`, color: isRunning ? 'var(--text-muted)' : meta.color, fontSize: '0.72rem', fontWeight: '700', cursor: isRunning ? 'not-allowed' : 'pointer', border: `1px solid ${meta.color}30`, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                          >
+                            {isRunning ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Εκτέλεση…</> : <><FlaskConical size={11} /> Run Test</>}
+                          </button>
+                        )}
+                        {item.runKey === 'testcall' && (
+                          <button
+                            onClick={() => setShowPhoneInput(true)}
+                            disabled={isRunning}
+                            style={{ padding: '5px 12px', borderRadius: '8px', border: `1px solid ${meta.color}30`, background: isRunning ? 'var(--border)' : `${meta.color}20`, color: isRunning ? 'var(--text-muted)' : meta.color, fontSize: '0.72rem', fontWeight: '700', cursor: isRunning ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                          >
+                            {isRunning ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Εκτέλεση…</> : <><Phone size={11} /> Run Test</>}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+
+        {/* Meta info from setup-status */}
+        {setup?.meta && (
+          <div style={{ background: 'var(--glass-surface)', borderRadius: '12px', border: '1px solid var(--border)', padding: '10px 14px', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            {setup.meta.testLastAt && <span>Τελευταίο test: <strong style={{ color: 'var(--text)' }}>{new Date(setup.meta.testLastAt).toLocaleString('el-GR')}</strong></span>}
+            {setup.meta.zadarmaTestLastAt && <span>Zadarma test: <strong style={{ color: 'var(--text)' }}>{new Date(setup.meta.zadarmaTestLastAt).toLocaleString('el-GR')}</strong></span>}
+            {setup.meta.vapiLastActivityAt && <span>Vapi activity: <strong style={{ color: '#10b981' }}>{new Date(setup.meta.vapiLastActivityAt).toLocaleString('el-GR')}</strong></span>}
+            <span style={{ marginLeft: 'auto' }}>Plan: <strong style={{ color: 'var(--primary)' }}>{setup.plan || '—'}</strong></span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 /* ================================================================
    CLINICS TAB (refactored as a subcomponent)
