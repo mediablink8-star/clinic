@@ -8,6 +8,7 @@ import { getBillingStatus } from '../lib/billing';
  * Stays out of the way for active paying customers.
  */
 const TrialBanner = ({ onUpgradeClick }) => {
+    const [dismissed, setDismissed] = React.useState(false);
     const { data: status, isLoading } = useQuery({
         queryKey: ['billing-status'],
         queryFn: getBillingStatus,
@@ -15,7 +16,7 @@ const TrialBanner = ({ onUpgradeClick }) => {
         retry: 1,
     });
 
-    if (isLoading || !status) return null;
+    if (isLoading || !status || dismissed) return null;
 
     // Active paying customer — nothing to nag about
     if (status.planStatus === 'active' && !status.cancelAtPeriodEnd) return null;
@@ -43,6 +44,7 @@ const TrialBanner = ({ onUpgradeClick }) => {
                     ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
                     : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                 color: 'white',
+                position: 'relative',
             }}>
                 <Clock size={14} />
                 <span>
@@ -51,6 +53,21 @@ const TrialBanner = ({ onUpgradeClick }) => {
                         : `Απομένουν ${status.daysUntilLock} ${status.daysUntilLock === 1 ? 'ημέρα' : 'ημέρες'} δωρεάν δοκιμής.`}
                 </span>
                 <button onClick={onUpgradeClick} style={upgradeBtn}>Επιλογή πλάνου</button>
+                <button
+                    onClick={() => setDismissed(true)}
+                    aria-label="Κλείσιμο"
+                    style={{
+                        position: 'absolute', right: '12px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.7)', padding: '4px', borderRadius: '6px',
+                        display: 'flex', alignItems: 'center',
+                        transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+                >
+                    <X size={15} />
+                </button>
             </div>
         );
     }
