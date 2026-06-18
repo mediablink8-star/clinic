@@ -24,9 +24,15 @@ const SOCIAL_LOGIN_HASH = '$2b$10$' + crypto.randomBytes(32).toString('hex').sli
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts
+    max: 20, // 20 attempts per IP+email combo — prevents brute force but won't lock out other accounts
     standardHeaders: true,
     legacyHeaders: false,
+    // Key by IP + email so each account has its own counter
+    keyGenerator: (req) => {
+        const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        const email = (req.body?.email || '').toLowerCase().trim();
+        return `${ip}:${email}`;
+    },
     message: { error: 'Too many login attempts. Please try again in 15 minutes.' }
 });
 
