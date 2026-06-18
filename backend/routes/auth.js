@@ -93,7 +93,7 @@ const csrfOriginGuard = (req, res, next) => {
 const isProduction = process.env.NODE_ENV === 'production';
 const refreshCookieMaxAge = 7 * 24 * 60 * 60 * 1000;
 const genericRegistrationError = 'Registration could not be completed with the provided details.';
-const maxFailedAttempts = 5;
+const maxFailedAttempts = 10;
 const lockoutMs = 15 * 60 * 1000;
 
 const getRefreshCookieOptions = () => ({
@@ -243,21 +243,24 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             throw new AppError('AUTH_FAILED', 'Invalid credentials', 401);
         }
 
-        // Check per-account lockout
-        if (user.lockedUntil && user.lockedUntil > new Date()) {
+        // Check per-account lockout — platform admins are exempt
+        if (!user.isPlatformAdmin && user.lockedUntil && user.lockedUntil > new Date()) {
             throw new AppError('ACCOUNT_LOCKED', 'Account locked due to too many failed attempts. Try again in 15 minutes.', 429);
         }
 
         const isMatch = await comparePassword(password, user.passwordHash);
 
         if (!isMatch) {
-            const failedAttempts = (user.failedAttempts || 0) + 1;
-            await prisma.user.update({
-                where: { id: user.id },
-                data: failedAttempts >= maxFailedAttempts
-                    ? { failedAttempts, lockedUntil: new Date(Date.now() + lockoutMs) }
-                    : { failedAttempts }
-            });
+            // Don't lock out platform admins — they manage the whole platform
+            if (!user.isPlatformAdmin) {
+                const failedAttempts = (user.failedAttempts || 0) + 1;
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: failedAttempts >= maxFailedAttempts
+                        ? { failedAttempts, lockedUntil: new Date(Date.now() + lockoutMs) }
+                        : { failedAttempts }
+                });
+            }
             throw new AppError('AUTH_FAILED', 'Invalid credentials', 401);
         }
 
