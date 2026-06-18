@@ -19,14 +19,14 @@ const STATUS_ICONS = {
 
 const NEW_EVENT_CONFIG = {
     APPOINTMENT_BOOKED_VIA_LINK: { icon: Link, label: 'Ραντεβού από δημόσιο σύνδεσμο', dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-    APPOINTMENT_BOOKED_VIA_SMS: { icon: MessageSquare, label: 'Ραντεβού από SMS', dot: '#635BFF', bg: 'rgba(99,91,255,0.08)', border: 'rgba(99,91,255,0.2)' },
-    APPOINTMENT_BOOKED_VIA_CALL: { icon: Phone, label: 'Ραντεβού από κλήση', dot: '#8B5CF6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+    APPOINTMENT_BOOKED_VIA_SMS: { icon: MessageSquare, label: 'Ραντεβού από SMS', dot: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.2)' },
+    APPOINTMENT_BOOKED_VIA_CALL: { icon: Phone, label: 'Ραντεβού από κλήση', dot: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)' },
     AI_CALL_ANSWERED: { icon: Bot, label: 'AI κλήση απαντήθηκε', dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-    MISSED_CALL_DETECTED: { icon: PhoneMissed, label: 'Αναπάντητη κλήση', dot: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
-    PATIENT_REPLIED: { icon: Reply, label: 'Ασθενής απάντησε', dot: '#635BFF', bg: 'rgba(99,91,255,0.08)', border: 'rgba(99,91,255,0.2)' },
-    INBOUND_SMS_RECEIVED: { icon: MessageSquare, label: 'Μήνυμα ασθενούς', dot: '#635BFF', bg: 'rgba(99,91,255,0.08)', border: 'rgba(99,91,255,0.2)' },
+    MISSED_CALL_DETECTED: { icon: PhoneMissed, label: 'Αναπάντητη κλήση', dot: '#dc2626', bg: 'rgba(220,38,38,0.06)', border: 'rgba(220,38,38,0.15)' },
+    PATIENT_REPLIED: { icon: Reply, label: 'Ασθενής απάντησε', dot: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.2)' },
+    INBOUND_SMS_RECEIVED: { icon: MessageSquare, label: 'Μήνυμα ασθενούς', dot: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.2)' },
     CASE_RECOVERED: { icon: CheckCircle, label: 'Ανάκτηση κλήσης', dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-    CASE_CLOSED: { icon: AlertCircle, label: 'Υπόθεση έκλεισε', dot: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
+    CASE_CLOSED: { icon: AlertCircle, label: 'Υπόθεση έκλεισε', dot: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
 };
 
 function normalizeItem(log) {
@@ -205,11 +205,11 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
         if (item.isNewFormat) {
             const typeBadges = {
                 APPOINTMENT_BOOKED_VIA_LINK: { text: 'Δημόσιος σύνδεσμος', bg: 'rgba(16,185,129,0.12)', color: '#059669', border: 'rgba(16,185,129,0.25)' },
-                APPOINTMENT_BOOKED_VIA_SMS: { text: 'Από SMS', bg: 'rgba(99,91,255,0.12)', color: '#635BFF', border: 'rgba(99,91,255,0.2)' },
-                APPOINTMENT_BOOKED_VIA_CALL: { text: 'Από κλήση', bg: 'rgba(139,92,246,0.12)', color: '#7c3aed', border: 'rgba(139,92,246,0.2)' },
+                APPOINTMENT_BOOKED_VIA_SMS: { text: 'Από SMS', bg: 'rgba(79,70,229,0.12)', color: '#4f46e5', border: 'rgba(79,70,229,0.2)' },
+                APPOINTMENT_BOOKED_VIA_CALL: { text: 'Από κλήση', bg: 'rgba(99,102,241,0.12)', color: '#6366f1', border: 'rgba(99,102,241,0.2)' },
                 AI_CALL_ANSWERED: { text: 'AI κλήση', bg: 'rgba(16,185,129,0.12)', color: '#059669', border: 'rgba(16,185,129,0.25)' },
-                MISSED_CALL_DETECTED: { text: 'Αναπάντητη', bg: 'rgba(239,68,68,0.12)', color: '#dc2626', border: 'rgba(239,68,68,0.2)' },
-                PATIENT_REPLIED: { text: 'Απάντησε', bg: 'rgba(99,91,255,0.12)', color: '#635BFF', border: 'rgba(99,91,255,0.2)' },
+                MISSED_CALL_DETECTED: { text: 'Αναπάντητη', bg: 'rgba(220,38,38,0.1)', color: '#dc2626', border: 'rgba(220,38,38,0.2)' },
+                PATIENT_REPLIED: { text: 'Απάντησε', bg: 'rgba(79,70,229,0.12)', color: '#4f46e5', border: 'rgba(79,70,229,0.2)' },
             };
             const badge = typeBadges[item.type];
             if (!badge) return null;
@@ -229,19 +229,19 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
     return (
         <div className="feed-container">
             <div className="feed-stats-row">
-                <div className="feed-stat" style={{ '--stat-color': '#10b981' }}>
+                <div className="feed-stat" style={{ '--stat-color': '#4f46e5' }}>
                     <span className="feed-stat-value">€{revenue}</span>
-                    <span className="feed-stat-label">Έσοδα booking link</span>
+                    <span className="feed-stat-label">Έσοδα ανάκτησης</span>
                 </div>
-                <div className="feed-stat" style={{ '--stat-color': '#ef4444' }}>
+                <div className="feed-stat" style={{ '--stat-color': '#dc2626' }}>
                     <span className="feed-stat-value">{missedCalls}</span>
-                    <span className="feed-stat-label">Αναπάντητες κλήσεις</span>
+                    <span className="feed-stat-label">Αναπάντητες</span>
                 </div>
-                <div className="feed-stat" style={{ '--stat-color': '#635BFF' }}>
+                <div className="feed-stat" style={{ '--stat-color': '#10b981' }}>
                     <span className="feed-stat-value">{smsEvents}</span>
                     <span className="feed-stat-label">Μηνύματα SMS</span>
                 </div>
-                <div className="feed-stat" style={{ '--stat-color': '#8B5CF6' }}>
+                <div className="feed-stat" style={{ '--stat-color': '#6366f1' }}>
                     <span className="feed-stat-value">{aiCalls}</span>
                     <span className="feed-stat-label">Κλήσεις AI</span>
                 </div>

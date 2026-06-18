@@ -204,21 +204,21 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
         }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: urgentCount > 0 ? '0.3rem' : '0' }}>
-                <h3 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <AlertCircle size={14} color={urgentCount > 0 ? '#f59e0b' : '#10b981'} />
-                    Κέντρο Δράσης
+                <h3 style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <AlertCircle size={13} color={urgentCount > 0 ? '#f59e0b' : '#10b981'} />
+                    Action Center
                 </h3>
                 <span style={{
-                    fontSize: urgentCount > 0 ? '0.82rem' : '0.72rem',
+                    fontSize: '0.72rem',
                     fontWeight: '900',
-                    padding: urgentCount > 0 ? '7px 14px' : '6px 12px',
+                    padding: '5px 12px',
                     borderRadius: '99px',
-                    background: urgentCount > 0 ? 'linear-gradient(135deg, rgba(220,38,38,0.22) 0%, rgba(185,28,28,0.18) 100%)' : 'rgba(16,185,129,0.1)',
-                    color: urgentCount > 0 ? '#b91c1c' : '#15803d',
-                    border: `2px solid ${urgentCount > 0 ? 'rgba(220,38,38,0.5)' : 'rgba(16,185,129,0.2)'}`,
-                    boxShadow: urgentCount > 0 ? '0 0 20px rgba(220,38,38,0.3), 0 2px 10px rgba(220,38,38,0.2)' : 'none',
-                    animation: urgentCount > 0 ? 'pulse-warning 2s ease-in-out infinite' : 'none',
-                    letterSpacing: urgentCount > 0 ? '-0.01em' : 'normal',
+                    background: urgentCount > 0
+                        ? 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(217,119,6,0.12) 100%)'
+                        : 'rgba(16,185,129,0.1)',
+                    color: urgentCount > 0 ? '#92400e' : '#15803d',
+                    border: `1.5px solid ${urgentCount > 0 ? 'rgba(245,158,11,0.35)' : 'rgba(16,185,129,0.2)'}`,
+                    animation: urgentCount > 0 ? 'pulse-warning 2.5s ease-in-out infinite' : 'none',
                 }}>
                     {urgentCount > 0 ? `${urgentCount} χρειάζονται δράση` : 'Όλα καλά'}
                 </span>
@@ -227,27 +227,26 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
             {/* Urgent banner when there are actions needed */}
             {urgentCount > 0 && (
                 <div style={{
-                    padding: '10px 14px',
+                    padding: '9px 14px',
                     borderRadius: '12px',
-                    background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(220,38,38,0.05) 100%)',
-                    border: '1.5px solid rgba(239,68,68,0.25)',
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(217,119,6,0.06) 100%)',
+                    border: '1.5px solid rgba(245,158,11,0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     marginBottom: '0.3rem',
-                    boxShadow: '0 0 20px rgba(239,68,68,0.1)',
                 }}>
                     <div style={{
-                        width: '10px',
-                        height: '10px',
+                        width: '8px',
+                        height: '8px',
                         borderRadius: '50%',
-                        background: '#dc2626',
-                        boxShadow: '0 0 12px rgba(220,38,38,0.6)',
+                        background: '#f59e0b',
+                        boxShadow: '0 0 10px rgba(245,158,11,0.6)',
                         animation: 'pulse-dot 2s ease-in-out infinite',
                         flexShrink: 0
                     }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#991b1b', flex: 1 }}>
-                        Υπάρχουν {urgentCount} ενέργει{urgentCount === 1 ? 'α' : 'ες'} που χρειάζ{urgentCount === 1 ? 'εται' : 'ονται'} την προσοχή σας
+                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#78350f', flex: 1 }}>
+                        {urgentCount} ενέργει{urgentCount === 1 ? 'α' : 'ες'} χρειάζ{urgentCount === 1 ? 'εται' : 'ονται'} την προσοχή σας
                     </span>
                 </div>
             )}
@@ -443,12 +442,10 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                 .action-row:hover .action-dismiss-btn { opacity: 1 !important; }
                 @keyframes pulse-warning {
                     0%, 100% { 
-                        box-shadow: 0 0 16px rgba(239,68,68,0.2), 0 2px 8px rgba(239,68,68,0.15);
-                        transform: scale(1);
+                        box-shadow: 0 0 12px rgba(245,158,11,0.15);
                     }
                     50% { 
-                        box-shadow: 0 0 24px rgba(239,68,68,0.35), 0 4px 12px rgba(239,68,68,0.25);
-                        transform: scale(1.02);
+                        box-shadow: 0 0 20px rgba(245,158,11,0.3);
                     }
                 }
                 

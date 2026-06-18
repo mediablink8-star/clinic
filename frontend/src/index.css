@@ -3028,3 +3028,71 @@ small, .text-small {
   color: var(--primary);
   font-weight: 700;
 }
+
+/* ── Design System: strict 5-color palette enforcement ── */
+/* Primary: #4f46e5 / #6366f1  Success: #10b981  Warning: #f59e0b  Danger: #dc2626  Neutral: #94a3b8 */
+
+/* ── Animated number counters ── */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.num-animate {
+  animation: count-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Hero stat cards: hover lift with glow ── */
+.hero-stat-card {
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.25s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.hero-stat-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 20px 48px -12px rgba(79,70,229,0.22), var(--shadow-md) !important;
+}
+
+/* ── Revenue hero card glow on hover ── */
+.revenue-card-hero {
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+}
+.revenue-card-hero:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 28px 56px -16px rgba(79,70,229,0.5), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+}
+
+/* ── Smoother glass card default ── */
+.card-glass {
+  transition: box-shadow 0.28s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.28s cubic-bezier(0.4,0,0.2,1),
+              transform 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+/* ── Feed item left border: primary system colors only ── */
+.feed-item[data-type="APPOINTMENT_BOOKED_VIA_LINK"]  { border-left-color: #10b981 !important; }
+.feed-item[data-type="APPOINTMENT_BOOKED_VIA_SMS"]   { border-left-color: #4f46e5 !important; }
+.feed-item[data-type="APPOINTMENT_BOOKED_VIA_CALL"]  { border-left-color: #6366f1 !important; }
+.feed-item[data-type="MISSED_CALL_DETECTED"]         { border-left-color: #dc2626 !important; }
+.feed-item[data-type="CASE_RECOVERED"]               { border-left-color: #10b981 !important; }
+.feed-item[data-type="AI_CALL_ANSWERED"]             { border-left-color: #10b981 !important; }
+.feed-item[data-type="PATIENT_REPLIED"]              { border-left-color: #4f46e5 !important; }
+
+/* ── Section header line tweak ── */
+.section-header-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+  margin-left: 6px;
+}
+
+/* ── Micro-interaction: button press ── */
+.btn:active {
+  transform: translateY(1px) scale(0.98) !important;
+}
+
+/* ── Dashboard hero grid: responsive ── */
+@media (max-width: 900px) {
+  .dashboard-hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
