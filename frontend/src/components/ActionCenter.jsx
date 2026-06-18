@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { API_BASE } from '../lib/constants';
 import {
     AlertCircle, Reply, Send, Clock, PhoneCall,
-    PhoneMissed, Zap, MessageCircle, ChevronRight, RefreshCw, X
+    ChevronRight, RefreshCw, X
 } from 'lucide-react';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import SendMessageModal from './SendMessageModal';
-import Tooltip from './Tooltip';
 
 
 // ─── Single action row ────────────────────────────────────────────────────────
@@ -328,103 +327,105 @@ const ActionCenter = ({ pendingCount = 0, recoveryLog = [], recoveryInsights = {
                 </div>
             )}
 
-            {/* Weekly overview */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <SectionLabel>Εβδομαδιαία Απόδοση</SectionLabel>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', gridAutoRows: '1fr' }}>
-                    {[
-                        { icon: PhoneMissed, color: '#ef4444', value: missedThisWeek, label: 'Χαμένες κλήσεις', tooltip: 'Αναπάντητες κλήσεις αυτή την εβδομάδα' },
-                        { icon: Zap, color: '#f59e0b', value: activeRecoveries, label: 'Σε εξέλιξη', tooltip: 'Προσπάθειες ανάκτησης σε εξέλιξη' },
-                        { icon: MessageCircle, color: '#6366f1', value: awaitingReply, label: 'Αναμονή', tooltip: 'Αναμένουν απάντηση από τον ασθενή' },
-                    ].map(({ icon: Icon, color, value, label, tooltip }) => (
-                        <Tooltip key={label} text={tooltip} position="top" style={{ height: '100%' }}>
-                            <button
-                            onClick={() => onNavigate && onNavigate('analytics')}
-                            style={{ 
-                                padding: '14px 10px', 
-                                borderRadius: '14px', 
-                                background: `linear-gradient(135deg, ${color}10 0%, ${color}08 100%)`, 
-                                border: `1.5px solid ${color}25`, 
-                                cursor: 'pointer', 
-                                textAlign: 'center',
-                                transition: 'all 0.2s ease',
-                                position: 'relative',
-                                overflow: 'hidden',
-                                height: '100%',
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = `0 8px 24px ${color}25`;
-                                e.currentTarget.style.borderColor = `${color}40`;
-                                e.currentTarget.style.background = `linear-gradient(135deg, ${color}15 0%, ${color}10 100%)`;
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                e.currentTarget.style.boxShadow = 'none';
-                                e.currentTarget.style.borderColor = `${color}25`;
-                                e.currentTarget.style.background = `linear-gradient(135deg, ${color}10 0%, ${color}08 100%)`;
-                            }}
-                        >
-                            {/* Background glow effect */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '-50%',
-                                right: '-50%',
-                                width: '100%',
-                                height: '100%',
-                                background: color,
-                                borderRadius: '50%',
-                                filter: 'blur(10px)',
-                                opacity: 0.08,
-                                pointerEvents: 'none'
-                            }} />
-                            
-                            {/* Content */}
-                            <div style={{ position: 'relative', zIndex: 1 }}>
-                                <div style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    margin: '0 auto 8px',
-                                    borderRadius: '10px',
-                                    background: `${color}18`,
-                                    border: `1px solid ${color}30`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    transition: 'transform 0.2s ease'
-                                }}>
-                                    <Icon size={18} color={color} strokeWidth={2.5} />
-                                </div>
-                                <p style={{ 
-                                    fontSize: '1.4rem', 
-                                    fontWeight: '900', 
-                                    color: 'var(--secondary)', 
-                                    margin: '4px 0 2px', 
-                                    letterSpacing: '-0.04em',
-                                    lineHeight: 1
-                                }}>{value}</p>
-                                <p style={{ 
-                                    fontSize: '0.74rem', 
-                                    fontWeight: '700', 
-                                    color: 'var(--text-light)', 
-                                    margin: 0,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.02em',
-                                    minHeight: '2.2em',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>{label}</p>
-                            </div>
-                        </button>
-                        </Tooltip>
-                    ))}
-                </div>
-            </div>
+            {/* Patient Recovery funnel */}
+            {(() => {
+                const atRisk = staleCount + failedSmsCount; // no reply 24h+ or SMS failed
+                const inProgress = activeRecoveries;        // status RECOVERING
+                const recovered = logs.filter(l => l && l.status === 'RECOVERED').length;
+
+                const total = atRisk + inProgress + recovered || 1;
+                const rows = [
+                    {
+                        dot: '#dc2626',
+                        dotGlow: 'rgba(220,38,38,0.5)',
+                        bg: 'rgba(220,38,38,0.06)',
+                        border: 'rgba(220,38,38,0.15)',
+                        label: 'Ασθενείς σε κίνδυνο',
+                        sublabel: 'Χωρίς απάντηση / SMS απέτυχε',
+                        value: atRisk,
+                        pct: Math.round((atRisk / total) * 100),
+                        barColor: '#dc2626',
+                        onClick: () => onNavigate && onNavigate('analytics'),
+                    },
+                    {
+                        dot: '#f59e0b',
+                        dotGlow: 'rgba(245,158,11,0.5)',
+                        bg: 'rgba(245,158,11,0.06)',
+                        border: 'rgba(245,158,11,0.15)',
+                        label: 'Ανάκτηση σε εξέλιξη',
+                        sublabel: 'SMS εστάλη, αναμένεται απάντηση',
+                        value: inProgress,
+                        pct: Math.round((inProgress / total) * 100),
+                        barColor: '#f59e0b',
+                        onClick: () => onNavigate && onNavigate('analytics'),
+                    },
+                    {
+                        dot: '#10b981',
+                        dotGlow: 'rgba(16,185,129,0.5)',
+                        bg: 'rgba(16,185,129,0.06)',
+                        border: 'rgba(16,185,129,0.18)',
+                        label: 'Ραντεβού ανακτήθηκαν',
+                        sublabel: `€${(recovered * avgAppointmentValue).toLocaleString()} συνολικά έσοδα`,
+                        value: recovered,
+                        pct: Math.round((recovered / total) * 100),
+                        barColor: '#10b981',
+                        onClick: () => onNavigate && onNavigate('appointments'),
+                    },
+                ];
+
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <SectionLabel>Patient Recovery</SectionLabel>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {rows.map(({ dot, dotGlow, bg, border, label, sublabel, value, pct, barColor, onClick }) => (
+                                <button
+                                    key={label}
+                                    onClick={onClick}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                        padding: '11px 14px', borderRadius: '14px',
+                                        background: bg, border: `1.5px solid ${border}`,
+                                        cursor: 'pointer', textAlign: 'left', width: '100%',
+                                        transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.transform = 'translateX(3px)';
+                                        e.currentTarget.style.boxShadow = `0 6px 18px ${border}`;
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.transform = 'translateX(0)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                >
+                                    {/* Status dot */}
+                                    <div style={{
+                                        width: '9px', height: '9px', borderRadius: '50%',
+                                        background: dot, flexShrink: 0,
+                                        boxShadow: `0 0 8px ${dotGlow}`,
+                                    }} />
+
+                                    {/* Labels + bar */}
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--secondary)' }}>{label}</span>
+                                            <span style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--secondary)', letterSpacing: '-0.03em', flexShrink: 0, marginLeft: '8px' }}>{value}</span>
+                                        </div>
+                                        {/* Progress bar */}
+                                        <div style={{ height: '3px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden', marginBottom: '3px' }}>
+                                            <div style={{
+                                                height: '100%', width: `${pct}%`,
+                                                background: barColor, borderRadius: '99px',
+                                                transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
+                                            }} />
+                                        </div>
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: '600' }}>{sublabel}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {showReply && patientEngaged.length > 0 && (
                 <SendMessageModal 
