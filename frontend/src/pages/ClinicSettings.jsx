@@ -703,13 +703,28 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTestingVapi(true);
         setVapiStatus(null);
         try {
-            const res = await api.get('/system/status');
-            setVapiStatus(res.data?.voiceEnabled ? 'connected' : 'not_configured');
-            showToast('Voice AI connected!', 'success');
+            // Fire the real Zadarma test webhook (NOTIFY_START + NOTIFY_END with disposition=answered)
+            // This exercises the full path: Zadarma → Vapi routing, not just a flag check.
+            const res = await api.post(`/admin/clinics/${clinic?.id}/test-zadarma-webhook`, {});
+            const endStatus = res.data?.end?.smsStatus;
+            const skipped = res.data?.end?.skipped;
+
+            if (endStatus === 'sent' || endStatus === 'scheduled' || skipped) {
+                // "answered" path: Vapi would handle the call, no SMS expected
+                setVapiStatus('connected');
+                showToast('Voice AI pipeline OK — Zadarma → Vapi routing επιβεβαιώθηκε ✓', 'success');
+            } else {
+                setVapiStatus('not_configured');
+                const reason = res.data?.end?.reason || endStatus || 'Άγνωστο';
+                showToast(`Voice test: ${reason} — ελέγξτε Zadarma phone number`, 'error');
+            }
         } catch (err) {
             setVapiStatus('error');
-            showToast('Σφάλμα σύνδεσης', 'error');
-        } finally { setTestingVapi(false); }
+            const msg = err.response?.data?.error || err.message || 'Σφάλμα σύνδεσης';
+            showToast(`Σφάλμα Voice test: ${msg}`, 'error');
+        } finally {
+            setTestingVapi(false);
+        }
     };
 
     return (
