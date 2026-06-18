@@ -407,6 +407,8 @@ const UserManagement = () => {
 
 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }} className="mobile-table-min">
          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+           <thead>
+             <tr style={{ background: 'rgba(99,91,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                {handleSortTh('email', 'Email')}
                {handleSortTh('role', 'Ρόλος')}
                {handleSortTh('isActive', 'Κατάσταση')}
