@@ -140,10 +140,10 @@ const Dashboard = ({
         ? recoveryStats.trend.thisWeek.recovered * avgAppointmentValue
         : logsArray.filter(l => l?.status === 'RECOVERED' && l?.recoveredAt && new Date(l.recoveredAt) >= weekStart).length * avgAppointmentValue;
 
-    // Emotional stats
+    // Hero stats — all scoped to this month via systemStats.
+    // If systemStats hasn't loaded yet (null), fall back to all-time recovered count.
     const totalMissed = totalMissedForRate || 0;
-    const totalRecovered = recoveredThisMonth || recovered;
-    const missedNotRecovered = totalMissed - totalRecovered;
+    const totalRecovered = systemTotalMissed !== null ? recoveredThisMonth : recovered;
 
     const isDndActive = (() => {
         try {
@@ -396,15 +396,21 @@ const Dashboard = ({
                         <Activity size={72} strokeWidth={1.5} color="var(--primary)" />
                     </div>
                     <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        Ανακτημένες κλήσεις
+                        Ανακτημένες κλήσεις <span style={{ opacity: 0.55, fontWeight: 600 }}>· μήνας</span>
                     </span>
                     <span className="num-animate" style={{ fontSize: '2.4rem', fontWeight: '950', color: 'var(--secondary)', letterSpacing: '-0.05em', lineHeight: 1 }}>
                         {totalRecovered}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '700', background: 'rgba(16,185,129,0.1)', padding: '2px 7px', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                            από {totalMissed} αναπάντητες
-                        </span>
+                        {totalMissed > 0 ? (
+                            <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '700', background: 'rgba(16,185,129,0.1)', padding: '2px 7px', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                                από {totalMissed} αναπάντητες
+                            </span>
+                        ) : (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+                                καμία αναπάντητη αυτόν τον μήνα
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -426,7 +432,7 @@ const Dashboard = ({
                         <TrendingUp size={72} strokeWidth={1.5} color="var(--primary)" />
                     </div>
                     <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        Ποσοστό Ανάκτησης
+                        Ποσοστό Ανάκτησης <span style={{ opacity: 0.55, fontWeight: 600 }}>· μήνας</span>
                     </span>
                     <span className="num-animate" style={{ fontSize: '2.4rem', fontWeight: '950', color: 'var(--secondary)', letterSpacing: '-0.05em', lineHeight: 1 }}>
                         {recoveryRate}%
