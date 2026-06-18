@@ -113,7 +113,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         clinic.timezone || DEFAULT_TIMEZONE
     );
 
-    // ── Create or update MissedCall record ──────────────────────────────────
+    // ── Create or update MissedCall record (atomic upsert) ───────────────────
     const estimatedRevenue = (() => {
         try {
             const ai = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {});
@@ -121,31 +121,27 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         } catch { return 80; }
     })();
 
-    let missedCall;
-    if (existing) {
-        missedCall = await prisma.missedCall.update({
-            where: { id: existing.id },
-            data: {
-                status: 'RECOVERING',
-                smsStatus: withinHours ? 'pending' : 'scheduled',
-                scheduledSmsAt: withinHours ? null : scheduledAt,
-                patientId,
-            }
-        });
-    } else {
-        missedCall = await prisma.missedCall.create({
-            data: {
-                clinicId,
-                fromNumber: normalizedPhone,
-                callSid: callSid || null,
-                status: 'RECOVERING',
-                smsStatus: withinHours ? 'pending' : 'scheduled',
-                scheduledSmsAt: withinHours ? null : scheduledAt,
-                estimatedRevenue,
-                patientId,
-            }
-        });
-    }
+    const upsertKey = callSid || `nocalldup:${clinicId}:${normalizedPhone}:${Date.now()}`;
+
+    const missedCall = await prisma.missedCall.upsert({
+        where: { callSid: upsertKey },
+        update: {
+            status: 'RECOVERING',
+            smsStatus: withinHours ? 'pending' : 'scheduled',
+            scheduledSmsAt: withinHours ? null : scheduledAt,
+            patientId,
+        },
+        create: {
+            clinicId,
+            fromNumber: normalizedPhone,
+            callSid: callSid || null,
+            status: 'RECOVERING',
+            smsStatus: withinHours ? 'pending' : 'scheduled',
+            scheduledSmsAt: withinHours ? null : scheduledAt,
+            estimatedRevenue,
+            patientId,
+        },
+    });
 
     await ensureRecoveryCaseForMissedCall(missedCall.id);
 

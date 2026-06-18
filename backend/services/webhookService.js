@@ -1,19 +1,7 @@
 const crypto = require('crypto');
+const { decryptSafe } = require('../utils/cryptoUtils');
 const logger = require('../utils/logger');
-const { decrypt } = require('./encryptionService');
-const prisma = require('./prisma');
-
-const decryptSafe = (val) => {
-    if (!val) return null;
-    try {
-        if (val.includes(':')) {
-            return decrypt(val);
-        }
-        return val;
-    } catch (e) {
-        return val;
-    }
-};
+const prisma = require('../services/prisma');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 

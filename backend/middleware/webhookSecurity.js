@@ -1,5 +1,5 @@
 const prisma = require('../services/prisma');
-const { decrypt } = require('../services/encryptionService');
+const { decryptSafe } = require('../utils/cryptoUtils');
 const AppError = require('../errors/AppError');
 const crypto = require('crypto');
 
@@ -24,14 +24,6 @@ const validateWebhookSecret = async (req, res, next) => {
         if (!clinic) {
             return next(new AppError('NOT_FOUND', 'Clinic not found', 404));
         }
-
-        const decryptSafe = (val) => {
-            if (!val) return null;
-            try {
-                if (val.includes(':')) return decrypt(val);
-                return val;
-            } catch (e) { return val; }
-        };
 
         const actualSecret = decryptSafe(clinic.webhookSecret);
 
@@ -73,7 +65,10 @@ const validateSystemSecret = (req, res, next) => {
         return next(new AppError('CONFIGURATION_ERROR', 'System secret not configured. Set MBAS_SYSTEM_SECRET.', 500));
     }
 
-    if (!incomingSecret || incomingSecret !== systemSecret) {
+    if (!incomingSecret || !crypto.timingSafeEqual(
+        Buffer.from(String(incomingSecret), 'utf8'),
+        Buffer.from(String(systemSecret), 'utf8')
+    )) {
         console.warn('[Security] Unauthorized global automation attempt');
         return next(new AppError('UNAUTHORIZED', 'Invalid system secret', 401));
     }

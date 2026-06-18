@@ -57,6 +57,17 @@ async function zadarmaHandler(req, res) {
         const isMissed = disposition && disposition !== 'answered';
         if (isMissed) {
             // force:true so the NOTIFY_END recovery runs even though NOTIFY_START pre-tracked the call
+            const { enqueueRecovery } = require('../services/recoveryQueue');
+            const enqueued = await enqueueRecovery({ phone, clinicId: clinic.id, callSid: sid, force: true });
+
+            if (enqueued.queued) {
+                if (enqueued.duplicate) {
+                    return res.json({ success: true, event: 'recovery_duplicate', callSid: sid });
+                }
+                return res.json({ success: true, event: 'recovery_queued', jobId: enqueued.jobId });
+            }
+
+            // Fallback: run inline when Redis is unavailable
             const { data } = await handleMissedCall({ phone, clinicId: clinic.id, callSid: sid, bypassCooldown: true, force: true });
             return res.json({ success: true, ...data, event: 'vapi_missed_sms_sent' });
         }

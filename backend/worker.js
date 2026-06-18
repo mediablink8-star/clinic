@@ -1,5 +1,7 @@
 require('dotenv').config();
 const { startNotificationWorker } = require('./services/notificationWorker');
+const { startRecoveryWorker } = require('./services/recoveryWorker');
+const { connection: recoveryConnection } = require('./services/recoveryQueue');
 const logger = require('./utils/logger');
 
 logger.info('Background worker process starting...');
@@ -7,10 +9,19 @@ logger.info('Background worker process starting...');
 const worker = startNotificationWorker();
 logger.info('Worker Background worker started', { mode: worker?.mode || 'unknown' });
 
-function stop() {
+// Start recovery worker if Redis is available
+const recoveryWorker = startRecoveryWorker(recoveryConnection);
+if (recoveryWorker) {
+    logger.info('Recovery worker started');
+}
+
+async function stop() {
     logger.info('Worker Stopping background worker...');
     if (worker && worker.close) {
-        return worker.close().catch(err => logger.error('Worker Close failed', { error: err.message }));
+        await worker.close().catch(err => logger.error('Worker Close failed', { error: err.message }));
+    }
+    if (recoveryWorker && recoveryWorker.close) {
+        await recoveryWorker.close().catch(err => logger.error('RecoveryWorker Close failed', { error: err.message }));
     }
     return Promise.resolve();
 }

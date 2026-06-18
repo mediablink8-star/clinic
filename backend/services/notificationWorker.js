@@ -8,18 +8,30 @@ let schedulerWorker = null;
 let reminderWorker = null;
 let fallbackTimer = null;
 let fallbackRunning = false;
+let fallbackStartedAt = null;
 let workersRunning = false;
 let workerMode = 'stopped';
 
 const POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_INTERVAL_MS || 60000);
 
+const STUCK_FLAG_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+
 async function runDbFallbackTick() {
     if (fallbackRunning) {
-        logger.warn('DB fallback worker tick skipped because previous tick is still running');
-        return;
+        // Check if flag has been stuck for too long
+        if (fallbackStartedAt && Date.now() - fallbackStartedAt > STUCK_FLAG_THRESHOLD_MS) {
+            logger.error('DB fallback worker flag stuck for >5min — force resetting. Possible unhandled error.');
+            fallbackRunning = false;
+            fallbackStartedAt = null;
+            // Fall through to re-run
+        } else {
+            logger.warn('DB fallback worker tick skipped because previous tick is still running');
+            return;
+        }
     }
 
     fallbackRunning = true;
+    fallbackStartedAt = Date.now();
     try {
         const pending = await getDueNotifications();
         let sentNotifications = 0;
@@ -42,6 +54,7 @@ async function runDbFallbackTick() {
         logger.error('DB fallback worker tick failed', { err });
     } finally {
         fallbackRunning = false;
+        fallbackStartedAt = null;
     }
 }
 
@@ -61,6 +74,25 @@ function startDbFallbackWorker(reason) {
     }, POLL_INTERVAL_MS);
 
     return { close: stopNotificationWorker, mode: 'db-fallback' };
+}
+
+/**
+ * Archive webhook delivery records older than 90 days.
+ * Called once daily via cron in the worker process.
+ */
+async function archiveOldWebhookDeliveries() {
+    const RETENTION_DAYS = Number(process.env.WEBHOOK_DELIVERY_RETENTION_DAYS || 90);
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    try {
+        const result = await require('./prisma').webhookDelivery.deleteMany({
+            where: { createdAt: { lt: cutoff } },
+        });
+        if (result.count > 0) {
+            logger.info('Archived old webhook deliveries', { deleted: result.count, olderThanDays: RETENTION_DAYS });
+        }
+    } catch (err) {
+        logger.warn('Webhook delivery archival failed', { error: err.message });
+    }
 }
 
 function startNotificationWorker() {
@@ -161,6 +193,14 @@ function startNotificationWorker() {
     });
 
     logger.info('BullMQ background workers started');
+
+    // Schedule daily webhook delivery archival (runs at 3 AM server time)
+    const cron = require('node-cron');
+    cron.schedule('0 3 * * *', () => {
+        archiveOldWebhookDeliveries().catch(err => logger.error('Archival cron failed', { error: err.message }));
+    });
+    logger.info('Webhook delivery archival cron scheduled (daily 3AM)');
+
     return { close: stopNotificationWorker, mode: 'bullmq' };
 }
 
@@ -187,6 +227,7 @@ async function stopNotificationWorker() {
 module.exports = {
     startNotificationWorker,
     stopNotificationWorker,
+    archiveOldWebhookDeliveries,
     get schedulerWorker() { return schedulerWorker; },
     get reminderWorker() { return reminderWorker; },
     get isRunning() { return workersRunning; },

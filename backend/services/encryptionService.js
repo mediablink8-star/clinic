@@ -1,51 +1,62 @@
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 
-// Derive a 32-byte key from the ENCRYPTION_KEY string
-const encryptionSecret = process.env.DB_ENCRYPTION_KEY;
+// Derive 32-byte keys from env strings
+const CURRENT_VERSION = process.env.DB_ENCRYPTION_KEY_VERSION || 'v1';
 
-if (!encryptionSecret) {
-    throw new Error('CRITICAL SECURITY ERROR: DB_ENCRYPTION_KEY must be set!');
-}
+const KEY_V1 = (() => {
+    const secret = process.env.DB_ENCRYPTION_KEY;
+    if (!secret) throw new Error('CRITICAL SECURITY ERROR: DB_ENCRYPTION_KEY must be set!');
+    return crypto.createHash('sha256').update(secret).digest();
+})();
 
-const KEY = crypto.createHash('sha256').update(encryptionSecret).digest();
+const KEY_V2 = process.env.DB_ENCRYPTION_KEY_V2
+    ? crypto.createHash('sha256').update(process.env.DB_ENCRYPTION_KEY_V2).digest()
+    : null;
+
+const KEYS = { v1: KEY_V1, ...(KEY_V2 ? { v2: KEY_V2 } : {}) };
 const ALGORITHM = 'aes-256-gcm';
 
 /**
  * Encrypts a string using AES-256-GCM.
- * @param {string} text - The text to encrypt.
- * @returns {string} - Combined IV, Auth Tag, and Ciphertext in Hex.
+ * Format: version:iv:authTag:ciphertext (all hex)
  */
 function encrypt(text) {
     if (!text) return '';
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
+    const key = KEYS[CURRENT_VERSION];
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
     const authTag = cipher.getAuthTag().toString('hex');
-
-    // Return iv:authTag:encrypted
-    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+    return `${CURRENT_VERSION}:${iv.toString('hex')}:${authTag}:${encrypted}`;
 }
 
 /**
- * Decrypts a string encrypted with the above encrypt function.
- * @param {string} encryptedText - Combined IV, Auth Tag, and Ciphertext.
- * @returns {string} - Decrypted text.
+ * Decrypts a string encrypted with the encrypt function.
+ * Reads the version prefix to select the correct key.
  */
 function decrypt(encryptedText) {
     if (!encryptedText) return null;
     try {
-        const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
-        if (!ivHex || !authTagHex || !encrypted) {
-            throw new Error('Invalid encrypted data format');
+        const parts = encryptedText.split(':');
+        // Legacy format (v1, no version prefix): iv:authTag:ciphertext
+        let version, ivHex, authTagHex, encrypted;
+        if (parts.length === 3) {
+            version = 'v1';
+            [ivHex, authTagHex, encrypted] = parts;
+        } else {
+            [version, ivHex, authTagHex, encrypted] = parts;
         }
+
+        const key = KEYS[version];
+        if (!key) throw new Error(`Unknown key version: ${version}`);
 
         const iv = Buffer.from(ivHex, 'hex');
         const authTag = Buffer.from(authTagHex, 'hex');
-        const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
+        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
 
         decipher.setAuthTag(authTag);
 
@@ -54,9 +65,9 @@ function decrypt(encryptedText) {
 
         return decrypted;
     } catch (error) {
-        logger.error('Decryption failed', { err: error });
+        logger.error('Decryption failed', { error: error.message });
         throw new Error(`Decryption failed: ${error.message}`);
     }
 }
 
-module.exports = { encrypt, decrypt };
+module.exports = { encrypt, decrypt, CURRENT_VERSION };

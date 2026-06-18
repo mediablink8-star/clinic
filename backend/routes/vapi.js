@@ -46,19 +46,19 @@ function parseAppointmentDay(dayStr) {
 
 // Shared secret check for Vapi webhooks
 function vapiAuth(req, res, next) {
-    const vapiSecret = process.env.VAPI_WEBHOOK_SECRET || process.env.VAPI_API_KEY;
+    const vapiSecret = process.env.VAPI_WEBHOOK_SECRET;
     if (!vapiSecret) {
-        // No secret configured — allow through but log a warning.
-        // This is insecure but prevents a misconfiguration from silently
-        // dropping all bookings. Set VAPI_WEBHOOK_SECRET to secure this endpoint.
-        logger.warn('[Vapi] VAPI_WEBHOOK_SECRET not set — webhook is unauthenticated. Set this env var.');
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('[Vapi] VAPI_WEBHOOK_SECRET not set — refusing all webhook requests in production');
+            throw new AppError('CONFIGURATION_ERROR', 'Webhook secret not configured', 500);
+        }
+        logger.warn('[Vapi] VAPI_WEBHOOK_SECRET not set — webhook is unauthenticated (dev only).');
         return next();
     }
     const provided = req.headers['x-vapi-secret'] || req.headers['authorization']?.replace('Bearer ', '');
     if (!provided) {
-        // Vapi sometimes omits the secret header on tool calls — allow through with a warn
-        logger.warn('[Vapi] No secret header on incoming webhook — allowing through');
-        return next();
+        logger.warn('[Vapi] No secret header on incoming webhook — rejecting');
+        throw new AppError('UNAUTHORIZED', 'Missing webhook secret', 401);
     }
     // Timing-safe comparison to prevent timing attacks
     const providedBuffer = Buffer.from(provided, 'utf8');
