@@ -153,12 +153,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         return { success: true, data: { missedCallId: missedCall.id, status: 'SILENT_TRACKING' } };
     }
 
-    // ── Voice call (Vapi) — REMOVED ─────────────────────────────────────────
-    // Vapi is now triggered externally by Zadarma via SIP trunk. Our backend
-    // does not call Vapi directly. Vapi's webhook (POST /api/vapi/tool) updates
-    // the MissedCall when the AI books an appointment.
-
-    // ── Outside hours → schedule SMS ────────────────────────────────────────
+    // ── Outside hours → schedule SMS (voice only during working hours) ──────
     if (!withinHours) {
         const reasonNote = availReason === 'holiday' && holiday
             ? `holiday:${holiday.name}`
@@ -172,6 +167,63 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 reason: reasonNote
             }
         };
+    }
+
+    // ── Try Vapi outbound call FIRST ─────────────────────────────────────────
+    // If voice is configured, attempt a callback call via Vapi.
+    // On success: return early — Vapi's webhook handles the rest (book or SMS fallback).
+    // On failure: fall through to SMS.
+    const vapiConfigured = !!(
+        clinic.voiceEnabled &&
+        clinic.vapiPhoneNumberId &&
+        clinic.vapiAssistantId &&
+        process.env.VAPI_API_KEY
+    );
+
+    if (vapiConfigured) {
+        try {
+            const { triggerOutboundCall } = require('./vapiService');
+            const patient = patientId
+                ? await prisma.patient.findUnique({ where: { id: patientId }, select: { name: true } })
+                : null;
+
+            const vapiResult = await triggerOutboundCall({
+                clinic,
+                phone: normalizedPhone,
+                missedCallId: missedCall.id,
+                patientName: patient?.name || null,
+            });
+
+            if (vapiResult.success) {
+                logger.info('Vapi outbound call triggered — awaiting Vapi webhook for outcome', {
+                    missedCallId: missedCall.id,
+                    vapiCallId: vapiResult.callId,
+                });
+                // Update callSid to Vapi call ID so webhook can find this record
+                await prisma.missedCall.update({
+                    where: { id: missedCall.id },
+                    data: { callSid: vapiResult.callId, smsStatus: 'pending' }
+                });
+                return {
+                    success: true,
+                    data: {
+                        missedCallId: missedCall.id,
+                        smsStatus: 'voice_call_initiated',
+                        vapiCallId: vapiResult.callId,
+                    }
+                };
+            }
+
+            logger.warn('Vapi outbound call failed — falling back to SMS', {
+                missedCallId: missedCall.id,
+                reason: vapiResult.reason,
+            });
+        } catch (vapiErr) {
+            logger.warn('Vapi trigger threw — falling back to SMS', {
+                missedCallId: missedCall.id,
+                error: vapiErr.message,
+            });
+        }
     }
 
     // ── Build SMS body ──────────────────────────────────────────────────────
