@@ -7,9 +7,11 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Base URLs
 const API_BASE = process.env.BACKEND_API_URL || (IS_PRODUCTION ? null : 'http://localhost:4000/api');
-const FRONTEND_URL = process.env.FRONTEND_URL || (IS_PRODUCTION ? null : 'http://localhost:5173');
 if (IS_PRODUCTION && !API_BASE) throw new Error('BACKEND_API_URL is required in production');
-if (IS_PRODUCTION && !FRONTEND_URL) throw new Error('FRONTEND_URL is required in production');
+
+// FRONTEND_URL: required by the web server (CORS, email links), but not by the worker.
+// Stored as a lazy getter on the exports object — only throws when accessed, not on import.
+const _frontendUrl = process.env.FRONTEND_URL || (IS_PRODUCTION ? undefined : 'http://localhost:5173');
 
 // SMS / Communication
 const SMS_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || process.env.SMS_WEBHOOK_URL || process.env.WEBHOOK_URL || '';
@@ -58,10 +60,9 @@ function validateConfig() {
   }
 }
 
-module.exports = {
+const _config = {
   IS_PRODUCTION,
   API_BASE,
-  FRONTEND_URL,
   SMS_WEBHOOK_URL,
   SMS_MONTHLY_LIMIT,
   AI_MONTHLY_LIMIT,
@@ -82,3 +83,16 @@ module.exports = {
   REDIS_DISABLED,
   validateConfig,
 };
+
+// FRONTEND_URL as lazy getter: worker process doesn't need it, web server does
+Object.defineProperty(_config, 'FRONTEND_URL', {
+  get() {
+    if (IS_PRODUCTION && !_frontendUrl) {
+      throw new Error('FRONTEND_URL is required in production. Set it in your environment variables.');
+    }
+    return _frontendUrl;
+  },
+  enumerable: true,
+});
+
+module.exports = _config;
