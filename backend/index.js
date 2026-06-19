@@ -1,4 +1,21 @@
 require('dotenv').config();
+
+// ── Critical startup safety checks ──────────────────────────────────────────
+// ZADARMA_WEBHOOK_SECRET: if unset, webhookAuth.js auto-generates a random value
+// that changes on every restart, silently breaking Zadarma webhook delivery.
+if (process.env.NODE_ENV === 'production' && !process.env.ZADARMA_WEBHOOK_SECRET) {
+    // Use stderr so this is visible in Render logs even if the structured logger
+    // hasn't been configured yet. This MUST be impossible to miss.
+    process.stderr.write(
+        '\n🔴 CRITICAL: ZADARMA_WEBHOOK_SECRET is not set in production.\n' +
+        '   A random secret has been auto-generated for this process only and will\n' +
+        '   change on every restart, silently breaking Zadarma webhook delivery.\n' +
+        '   Set ZADARMA_WEBHOOK_SECRET in Render environment variables NOW and update\n' +
+        '   the Zadarma panel webhook URL to match.\n' +
+        '   Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"\n\n'
+    );
+}
+
 const { validateEnv } = require('./utils/envValidator');
 
 // Fail fast if critical environment variables are missing

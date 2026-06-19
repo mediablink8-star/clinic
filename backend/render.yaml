@@ -64,3 +64,42 @@ services:
         sync: false
       - key: SENTRY_BACKEND_DSN
         sync: false
+
+  - type: worker
+    name: clinic-backend-worker
+    env: node
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: node worker.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DB_ENCRYPTION_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_ALPHA_SENDER_ID
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: BACKEND_API_URL
+        sync: false
