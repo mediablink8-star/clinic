@@ -41,7 +41,9 @@ const SortArrow = ({ field, sortBy, sortDir }) => {
 
 const formatTimeAgo = (date) => {
   if (!date) return '—';
-  const diffMs = Date.now() - new Date(date).getTime();
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  const diffMs = Date.now() - d.getTime();
   const sec = Math.floor(diffMs / 1000);
   if (sec < 60) return 'μόλις τώρα';
   const min = Math.floor(sec / 60);
