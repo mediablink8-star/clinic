@@ -41,18 +41,23 @@ const SortArrow = ({ field, sortBy, sortDir }) => {
 
 const formatTimeAgo = (date) => {
   if (!date) return '—';
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '—';
-  const diffMs = Date.now() - d.getTime();
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return 'μόλις τώρα';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `πριν ${min}λ`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `πριν ${hr}ω`;
-  const days = Math.floor(hr / 24);
-  if (days < 7) return `πριν ${days}μ`;
-  return new Date(date).toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
+    const diffMs = Date.now() - d.getTime();
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 60) return 'μόλις τώρα';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `πριν ${min}λ`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `πριν ${hr}ω`;
+    const days = Math.floor(hr / 24);
+    if (days < 7) return `πριν ${days}μ`;
+    return d.toLocaleDateString('el-GR', { day: 'numeric', month: 'short' });
+  } catch (e) {
+    console.error('[formatTimeAgo] crash:', e, 'date:', date);
+    return '—';
+  }
 };
 
 const thBase = {

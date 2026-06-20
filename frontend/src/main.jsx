@@ -47,6 +47,17 @@ const queryClient = new QueryClient({
   },
 });
 
+// Global error handler — catches uncaught JS errors and logs them
+window.onerror = function(message, source, lineno, colno, error) {
+  console.error('[GLOBAL_ERROR]', { message, source, lineno, colno, stack: error?.stack });
+  return false;
+};
+
+// Catch unhandled promise rejections too
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('[UNHANDLED_REJECTION]', event.reason);
+});
+
 const appTree = hasGoogleClientId ? (
   <GoogleOAuthProvider clientId={rawGoogleClientId}>
     <App />
