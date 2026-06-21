@@ -710,6 +710,7 @@ const AuditLogs = () => {
    MAIN ADMIN DASHBOARD
    ================================================================ */
 const AdminDashboard = () => {
+  console.log('[AdminDashboard] rendering');
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState(TABS.CLINICS);
 
