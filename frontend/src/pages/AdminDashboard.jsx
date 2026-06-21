@@ -2505,4 +2505,27 @@ const inputBase = {
   transition: 'border-color 0.2s', boxSizing: 'border-box'
 };
 
-export default AdminDashboard;
+// Safe wrapper — catches any render crash and shows error message
+let AdminDashboardSafe;
+try {
+  AdminDashboardSafe = () => {
+    try {
+      return <AdminDashboard />;
+    } catch (err) {
+      console.error('[AdminDashboard] render crash:', err);
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h2>⚠️ Σφάλμα εμφάνισης</h2>
+          <p style={{ color: '#64748b', marginTop: '1rem' }}>{err?.message || 'Unknown error'}</p>
+          <button onClick={() => window.location.reload()} style={{ marginTop: '1rem', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#635bff', color: 'white', cursor: 'pointer' }}>
+            Επαναφόρτωση
+          </button>
+        </div>
+      );
+    }
+  };
+} catch (e) {
+  AdminDashboardSafe = () => <div>Admin dashboard failed to load</div>;
+}
+
+export default AdminDashboardSafe;
