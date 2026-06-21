@@ -1043,7 +1043,13 @@ const App = () => {
           setCurrentTab('dashboard');
           return null;
         }
-        return <Suspense fallback={<PageLoader />}><LazyAdminDashboard /></Suspense>;
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <LazyAdminDashboard />
+            </Suspense>
+          </ErrorBoundary>
+        );
       case 'billing':
         if (clinic?.role !== 'OWNER' && clinic?.role !== 'ADMIN') {
           setCurrentTab('dashboard');

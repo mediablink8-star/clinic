@@ -121,8 +121,10 @@ const Appointments = ({ appointments, token, onConfirm, onCancel, onNewAppointme
         const matchDoctor = !doctorFilter || a.doctorId === doctorFilter;
         return matchSearch && matchStatus && matchDoctor;
     }).sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const tsA = a.createdAt ? new Date(a.createdAt) : null;
+        const tsB = b.createdAt ? new Date(b.createdAt) : null;
+        const dateA = tsA && !isNaN(tsA.getTime()) ? tsA.getTime() : 0;
+        const dateB = tsB && !isNaN(tsB.getTime()) ? tsB.getTime() : 0;
         
         if (dateA !== dateB) return dateB - dateA;
         return (b.id || "").localeCompare(a.id || "");

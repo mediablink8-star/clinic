@@ -66,6 +66,7 @@ const NewAppointmentModal = ({
                 if (newAppt.doctorId && apt.doctorId && newAppt.doctorId !== apt.doctorId) return false;
                 
                 const start = new Date(apt.startTime);
+                if (isNaN(start.getTime())) return false;
                 const end = apt.endTime ? new Date(apt.endTime) : new Date(start.getTime() + 30 * 60 * 1000);
                 
                 return requestedStart < end && requestedEnd > start;

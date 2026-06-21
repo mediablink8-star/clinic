@@ -308,9 +308,12 @@ const copyToClipboard = (text, label = 'Αντιγράφηκε') => {
 
 const getLastVisit = (patient) => {
     if (!patient.appointments?.length) return null;
-    const sorted = [...patient.appointments].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+    const sorted = [...(patient.appointments || [])].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
     const last = sorted[0];
-    const ms = Date.now() - new Date(last.startTime).getTime();
+    if (!last) return '—';
+    const lastDate = new Date(last.startTime);
+    if (isNaN(lastDate.getTime())) return '—';
+    const ms = Date.now() - lastDate.getTime();
     const days = Math.floor(ms / 86400000);
     if (days === 0) return 'Σήμερα';
     if (days === 1) return 'Χθες';
