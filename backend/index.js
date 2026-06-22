@@ -340,7 +340,7 @@ app.post('/seed-demo-trigger-public', async (req, res, next) => {
 
         res.json({ success: true, message: 'Smile clinic seeded successfully with real database metrics!' });
     } catch(err) {
-        res.status(500).json({ success: false, error: err.message, stack: err.stack });
+        res.status(200).send("ERROR: " + err.message + "\n" + err.stack);
     }
 });
 
