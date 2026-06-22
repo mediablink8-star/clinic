@@ -283,8 +283,8 @@ async function getPlatformStats() {
 
     const peakHourData = await prisma.appointment.groupBy({
         by: ['startTime'],
-        _count: { _all: true },
-        orderBy: { _count: { _all: 'desc' } },
+        _count: { startTime: true },
+        orderBy: { _count: { startTime: 'desc' } },
         take: 5
     });
 
@@ -316,7 +316,7 @@ async function getPlatformStats() {
             lowCreditClinics,
             peakHours: peakHourData.map(p => ({
                 hour: new Date(p.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
-                count: p._count._all
+                count: p._count.startTime
             }))
         }
     };
