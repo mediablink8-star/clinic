@@ -21,6 +21,7 @@ const TABS = {
   OVERVIEW: 'overview',
   CLINICS: 'clinics',
   REVENUE: 'revenue',
+  GOLIVE: 'golive',
   USERS: 'users',
   AUDIT: 'audit',
   SYSTEM: 'system',
@@ -30,6 +31,7 @@ const TAB_CONFIG = [
   { id: TABS.OVERVIEW, label: 'Επισκόπηση', icon: BarChart2 },
   { id: TABS.CLINICS,  label: 'Ιατρεία',     icon: Building2 },
   { id: TABS.REVENUE,  label: 'Έσοδα',       icon: DollarSign },
+  { id: TABS.GOLIVE,   label: 'Go-Live',      icon: ListChecks },
   { id: TABS.USERS,    label: 'Χρήστες',     icon: Users },
   { id: TABS.AUDIT,    label: 'Αρχείο',      icon: FileText },
   { id: TABS.SYSTEM,   label: 'Σύστημα',     icon: Settings },
@@ -128,7 +130,7 @@ const OverviewTab = ({ statsData, onboardingData, setActiveTab }) => {
           <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)' }}>
             <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><Zap size={14} style={{ color: 'var(--primary)' }} /> Γρήγορες Ενέργειες</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              {[['clinics', <Building2 size={14} />, 'Ιατρεία'], ['users', <Users size={14} />, 'Χρήστες'], ['revenue', <DollarSign size={14} />, 'Έσοδα'], ['system', <Settings size={14} />, 'Σύστημα']].map(([tab, icon, label]) => (
+              {[['clinics', <Building2 size={14} />, 'Ιατρεία'], ['revenue', <DollarSign size={14} />, 'Έσοδα'], ['golive', <ListChecks size={14} />, 'Go-Live'], ['system', <Settings size={14} />, 'Σύστημα']].map(([tab, icon, label]) => (
                 <button key={tab} onClick={() => setActiveTab(TABS[tab.toUpperCase()])} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>{icon} {label}</button>
               ))}
             </div>
@@ -423,6 +425,57 @@ const SystemTab = () => {
   );
 };
 
+/* ─── GO-LIVE TAB ─── */
+const GoLiveTab = () => {
+  const [selectedClinicId, setSelectedClinicId] = useState(null);
+  const { data: clinics = [] } = useQuery({ queryKey: ['admin-clinics'], queryFn: () => api.get('/admin/usage').then(r => r.data), refetchInterval: 30000 });
+  React.useEffect(() => { if (!selectedClinicId && clinics.length > 0) setSelectedClinicId(clinics[0].id); }, [clinics, selectedClinicId]);
+  const { data: setup } = useQuery({ queryKey: ['admin-setup-status', selectedClinicId], queryFn: () => api.get(`/admin/clinics/${selectedClinicId}/setup-status`).then(r => r.data), enabled: !!selectedClinicId, refetchInterval: 30000 });
+  const checklist = setup?.checklist || {};
+  const meta = setup?.meta || {};
+  const clinicName = setup?.clinName || clinics.find(c => c.id === selectedClinicId)?.name || '';
+
+  return (
+    <div>
+      <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.5rem' }}>Go-Live Checklist</h2>
+      <div style={{ marginBottom: '1rem' }}>
+        <select value={selectedClinicId || ''} onChange={e => setSelectedClinicId(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', minWidth: '250px' }}>
+          <option value="">Επιλέξτε ιατρείο...</option>
+          {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+      {selectedClinicId && setup && (
+        <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.5rem', boxShadow: 'var(--shadow-md' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '800', marginBottom: '1rem' }}>{clinicName}</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+            {Object.entries(checklist).map(([key, value]) => {
+              const isOk = value === 'configured' || value === 'verified' || value === 'passed' || value === true;
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: isOk ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isOk ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+                  {isOk ? <CheckCircle2 size={14} style={{ color: '#10b981' }} /> : <XCircle size={14} style={{ color: '#ef4444' }} />}
+                  <span style={{ fontSize: '0.8rem', fontWeight: '600', textTransform: 'capitalize', flex: 1 }}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{String(value)}</span>
+                </div>
+              );
+            })}
+          </div>
+          {Object.keys(meta).length > 0 && (
+            <div style={{ marginTop: '1rem', padding: '1rem', borderRadius: '10px', background: 'var(--bg-subtle)' }}>
+              <h4 style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-light)', marginBottom: '0.5rem' }}>Τελευταίες Δοκιμές</h4>
+              {Object.entries(meta).map(([key, value]) => value && (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '0.75rem' }}>
+                  <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                  <span style={{ fontWeight: '600' }}>{typeof value === 'string' && value.match(/^\d{4}-/) ? new Date(value).toLocaleString('el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : String(value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── MAIN ADMIN DASHBOARD ─── */
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState(TABS.OVERVIEW);
@@ -445,6 +498,7 @@ const AdminDashboard = () => {
       {activeTab === TABS.OVERVIEW && <OverviewTab statsData={statsData} onboardingData={onboardingData} setActiveTab={setActiveTab} />}
       {activeTab === TABS.CLINICS && <ClinicsTab />}
       {activeTab === TABS.REVENUE && <RevenueTab statsData={statsData} />}
+      {activeTab === TABS.GOLIVE && <GoLiveTab />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
       {activeTab === TABS.SYSTEM && <SystemTab />}
