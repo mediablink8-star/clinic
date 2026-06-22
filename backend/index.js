@@ -182,10 +182,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 
-    } catch(err) {
-        res.status(200).send("ERROR: " + err.message + "\n" + err.stack);
-    }
-});
+
 
 
 
