@@ -423,10 +423,10 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             <Clock size={14} style={{ color: 'var(--primary)' }} />
             Πρόσφατες Εισόδοι
           </h3>
-          {data.recentLogins?.length === 0 ? (
+          {((data.recentLogins || [])).length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Δεν υπάρχουν πρόσφατες εισόδοι</p>
           ) : (
-            (data.recentLogins || []).map((u) => (
+            ((data.recentLogins || [])).map((u) => (
               <div key={u.email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{u.name || u.email}</div>
@@ -454,10 +454,10 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
             Ιατρεία Χαμηλών Credits
           </h3>
-          {(data.lowCreditClinics || []).length === 0 ? (
+          {((data.lowCreditClinics || [])).length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Όλα τα ιατρεία έχουν επαρκή credits</p>
           ) : (
-            (data.lowCreditClinics || []).map((c) => (
+            ((data.lowCreditClinics || [])).map((c) => (
               <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{c.name}</div>
@@ -475,7 +475,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
       </div>
 
       {/* Peak Hours */}
-      {data.peakHours && data.peakHours.length > 0 && (
+      {(data.peakHours || []).length > 0 && (
         <div style={{
           background: 'var(--glass-surface)',
           backdropFilter: 'var(--glass-strong)',
@@ -491,7 +491,7 @@ const PlatformStats = ({ data, loading, error, onRetry }) => {
             Πικ Ώρες Ραντεβού
           </h3>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {data.peakHours.map((h) => (
+            {(data.peakHours || []).map((h) => (
               <div key={h.hour} style={{
                 padding: '8px 16px', borderRadius: '10px',
                 background: 'var(--primary-light)',
