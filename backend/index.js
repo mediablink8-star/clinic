@@ -182,7 +182,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // PUBLIC DEMO SEED TRIGGER FOR LIVE CLINIC PRESENTATION
-app.get('/seed-demo-trigger-public', async (req, res, next) => {
+app.get('/api/public/seed-demo-trigger', async (req, res, next) => {
 
     const clinicId = 'cmo05psic0000ef1y9lmgbn9q';
     const now = new Date();
