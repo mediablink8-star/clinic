@@ -30,7 +30,7 @@ if (sentryDsn) {
   });
 }
 
-import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 axios.defaults.withCredentials = true;
@@ -43,14 +43,16 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       staleTime: 30000,
-      cacheTime: 0,  // DISABLE CACHE — test if React Query cache causes .getTime crash
-      structuralSharing: false,  // Disable structural sharing — prevents date serialization issues
+      cacheTime: 0,
+      structuralSharing: false,
+      retry: false,
     },
   },
-  // Disable query persistence/broadcast
   queryCache: new QueryCache({
     onError: (error) => console.error('[QueryCache Error]', error),
   }),
+  // Disable mutations cache too
+  mutationCache: new MutationCache(),
 });
 
 // SAFETY NET: Override Date.prototype.getTime to never crash
