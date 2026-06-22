@@ -392,6 +392,30 @@ const KpiCard = ({ label, value, icon, accent, bg, sub }) => (
   </div>
 );
 
+/* ─── STATUS BADGE COMPONENT ─── */
+const StatusBadge = ({ status }) => {
+  const config = {
+    healthy: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Υγιές' },
+    degraded: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Επικίνδυνο' },
+    failing: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', label: 'Αποτυχία' },
+    unknown: { color: '#64748b', bg: 'rgba(100,116,139,0.12)', label: 'Άγνωστο' }
+  };
+  const c = config[status] || config.unknown;
+  return (
+    <span style={{
+      fontSize: '0.65rem',
+      fontWeight: '700',
+      padding: '2px 8px',
+      borderRadius: '99px',
+      background: c.bg,
+      color: c.color,
+      border: `1px solid ${c.color}30`
+    }}>
+      {c.label}
+    </span>
+  );
+};
+
 const PlatformStats = ({ data, loading, error, onRetry }) => {
   if (loading) return <LoadingPlaceholder rows={3} />;
   if (error) return <ErrorState onRetry={onRetry} />;
