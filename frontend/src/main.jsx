@@ -47,9 +47,24 @@ const queryClient = new QueryClient({
   },
 });
 
-// Global error handler — catches uncaught JS errors and logs them
+// Global error handler — catches uncaught JS errors and shows visible error
 window.onerror = function(message, source, lineno, colno, error) {
-  console.error('[GLOBAL_ERROR]', { message, source, lineno, colno, stack: error?.stack });
+  console.error('[GLOBAL_ERROR]', message, '\nStack:', error?.stack || 'no stack');
+  // Show visible error on screen
+  const root = document.getElementById('root');
+  if (root && !root.querySelector('.global-error-fallback')) {
+    const div = document.createElement('div');
+    div.className = 'global-error-fallback';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;color:#e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;z-index:99999;font-family:system-ui,sans-serif;';
+    div.innerHTML = `
+      <div style="font-size:3rem;margin-bottom:1rem">⚠️</div>
+      <h1 style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem">Σφάλμα εφαρμογής</h1>
+      <p style="color:#94a3b8;max-width:400px;margin-bottom:1.5rem">${message}</p>
+      <button onclick="window.location.reload()" style="padding:10px 24px;border-radius:8px;border:none;background:#635bff;color:white;font-weight:700;cursor:pointer;font-size:0.9rem">Επαναφόρτωση</button>
+      ${error?.stack ? `<pre style="margin-top:2rem;color:#64748b;font-size:0.7rem;text-align:left;max-width:600px;overflow:auto;max-height:200px">${error.stack}</pre>` : ''}
+    `;
+    root.appendChild(div);
+  }
   return false;
 };
 
