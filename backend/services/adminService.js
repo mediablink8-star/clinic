@@ -294,6 +294,46 @@ async function getPlatformStats() {
         _avg: { estimatedRevenue: true }
     });
 
+    // Fetch all missed calls to calculate real funnel and weekly trends
+    const missedCalls = await prisma.missedCall.findMany({
+        select: {
+            status: true,
+            smsStatus: true,
+            conversationState: true,
+            estimatedRevenue: true,
+            createdAt: true
+        }
+    });
+
+    // 1. Calculate Real Funnel
+    const funnel = {
+        total: missedCalls.length,
+        smsSent: missedCalls.filter(m => m.smsStatus === 'sent').length,
+        replied: missedCalls.filter(m => m.conversationState !== 'NEW').length,
+        booked: missedCalls.filter(m => m.status === 'RECOVERED').length
+    };
+
+    // 2. Calculate Real Weekly Revenue Breakdown (last 4 weeks)
+    const weekly = [];
+    for (let i = 0; i < 4; i++) {
+        const start = new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const end = new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000);
+        const rangeCalls = missedCalls.filter(m => {
+            const date = new Date(m.createdAt);
+            return date >= start && date < end;
+        });
+        const recovered = rangeCalls.filter(m => m.status === 'RECOVERED');
+        const lost = rangeCalls.filter(m => m.status === 'LOST');
+        const revenue = recovered.reduce((sum, m) => sum + (m.estimatedRevenue || 80), 0);
+
+        weekly.unshift({
+            week: i === 0 ? 'Εβδ 2 (Τρέχουσα)' : i === 1 ? 'Εβδομάδα 1' : `Εβδ -${i}`,
+            recovered: recovered.length,
+            lost: lost.length,
+            revenue: Math.round(revenue)
+        });
+    }
+
     // Proxy lastLoginAt to createdAt since User doesn't have lastLoginAt column
     const recentLoginsWithProxy = recentLogins.map(u => ({
         ...u,
@@ -317,7 +357,9 @@ async function getPlatformStats() {
             peakHours: peakHourData.map(p => ({
                 hour: new Date(p.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
                 count: p._count.startTime
-            }))
+            })),
+            weekly,
+            funnel
         }
     };
 }

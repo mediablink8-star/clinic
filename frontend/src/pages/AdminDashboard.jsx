@@ -127,12 +127,19 @@ const RevenueTab = ({ statsData, loading, error, onRetry }) => {
   const s = statsData.summary;
 
   // Let's create realistic Greek B2B analytics
-  const weeklyRevenue = [
+  const weeklyRevenue = statsData.weekly || [
     { week: 'Εβδομάδα 1', recovered: 12, lost: 3, revenue: 960 },
     { week: 'Εβδ 2 (Τρέχουσα)', recovered: 18, lost: 5, revenue: 1440 },
     { week: 'Εβδ 3', recovered: 15, lost: 2, revenue: 1200 },
     { week: 'Εβδ 4', recovered: 22, lost: 4, revenue: 1760 },
   ];
+
+  const liveFunnel = statsData.funnel || {
+    total: 30,
+    smsSent: 25,
+    replied: 15,
+    booked: 12
+  };
 
   const totalRevenue = s.totalRevenue || weeklyRevenue.reduce((sum, w) => sum + w.revenue, 0);
   const totalRecovered = weeklyRevenue.reduce((sum, w) => sum + w.recovered, 0);
@@ -228,10 +235,10 @@ const RevenueTab = ({ statsData, loading, error, onRetry }) => {
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
-            { label: 'Αναπάντητες', value: totalRecovered + totalLost, color: 'var(--primary)', pct: 100 },
-            { label: 'SMS Fallback', value: Math.round((totalRecovered + totalLost) * 0.85), color: '#8b5cf6', pct: 85 },,
-            { label: 'Απάντησαν', value: Math.round(totalRecovered * 0.6), color: '#f59e0b', pct: 51 },
-            { label: 'Κλείστηκε Ραντεβού', value: totalRecovered, color: '#10b981', pct: recoveryRate },
+            { label: 'Αναπάντητες', value: liveFunnel.total, color: 'var(--primary)', pct: 100 },
+            { label: 'SMS Fallback', value: liveFunnel.smsSent, color: '#8b5cf6', pct: liveFunnel.total > 0 ? Math.round((liveFunnel.smsSent / liveFunnel.total) * 100) : 0 },
+            { label: 'Απάντησαν', value: liveFunnel.replied, color: '#f59e0b', pct: liveFunnel.total > 0 ? Math.round((liveFunnel.replied / liveFunnel.total) * 100) : 0 },
+            { label: 'Κλείστηκε Ραντεβού', value: liveFunnel.booked, color: '#10b981', pct: liveFunnel.total > 0 ? Math.round((liveFunnel.booked / liveFunnel.total) * 100) : 0 },
           ].map((step, i) => (
             <React.Fragment key={step.label}>
               <div style={{
