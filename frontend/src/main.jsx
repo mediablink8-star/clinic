@@ -11,7 +11,7 @@ const sentryDsn = (import.meta.env.VITE_SENTRY_DSN || '').trim();
 if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
-    enabled: true,
+    enabled: false,  // DISABLED — suspected cause of i.getTime crash in Web Worker
     environment: import.meta.env.MODE || 'development',
     release: `clinicflow-frontend@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
     integrations: [
