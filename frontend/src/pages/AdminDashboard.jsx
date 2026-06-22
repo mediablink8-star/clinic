@@ -345,7 +345,7 @@ const SystemTab = () => {
         }}>
           <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem' }}>Διαθέσιμα Πλάνα Συνδρομής</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }} className="stats-grid">
-            {Object.entries(plans).map(([key, plan]) => (
+            {Object.entries(plans || {}).map(([key, plan]) => (
               <div key={key} style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '0.4rem' }}>{plan.name || key}</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '0.6rem' }}>€{plan.price || 0}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>/μήνα</span></div>
