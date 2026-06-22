@@ -181,6 +181,117 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+
+    } catch(err) {
+        res.status(200).send("ERROR: " + err.message + "\n" + err.stack);
+    }
+});
+
+
+
+// Trust Render/proxy headers for rate limiting
+app.set('trust proxy', 1);
+
+
+
+
+const { verifyToken } = require('./services/authService');
+const asyncHandler = require('./middleware/asyncHandler');
+const redact = require('./middleware/redact');
+const { requireAuth: requireAuthMiddleware } = require('./middleware/requireAuth');
+const { attachBilling, trialGuard } = require('./middleware/planGate');
+
+// --- SAAS MIDDLEWARE ---
+
+// Use the extracted requireAuth from middleware/requireAuth.js
+const requireAuth = requireAuthMiddleware;
+
+const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'DOCTOR', 'ADMIN', 'OWNER'];
+const AUTOMATION_ROLE = 'AUTOMATION'; // Special role for API-key authenticated requests
+
+const requireRole = (role) => {
+    return (req, res, next) => {
+        // Automation role bypasses role checks (it's a machine account)
+        if (req.user?.role === AUTOMATION_ROLE) return next();
+
+        const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
+        const requiredRoleIndex = ROLE_HIERARCHY.indexOf(role);
+        if (userRoleIndex < requiredRoleIndex) {
+            throw new AppError('FORBIDDEN', 'Forbidden: Insufficient permissions', 403);
+        }
+        next();
+    };
+};
+
+// Admin middleware for global control
+const requireAdmin = [requireAuth, requireRole('ADMIN')];
+
+
+
+// --- ROUTES ---
+
+// Public / Health — returns minimal info to unauthenticated callers
+app.get('/api/health', async (req, res) => {
+    const checks = {
+        status: 'ok',
+        uptime: process.uptime(),
+        db: 'unknown',
+        redis: 'unknown',
+        timestamp: new Date().toISOString()
+    };
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        checks.db = 'ok';
+    } catch (e) {
+        checks.db = 'error';
+        checks.status = 'degraded';
+    }
+    try {
+        const { connection } = require('./services/queueService');
+        checks.redis = connection && connection.status === 'ready' ? 'ok' : 'disabled';
+    } catch {
+        checks.redis = 'disabled';
+    }
+    res.status(checks.status === 'ok' ? 200 : 503).json(checks);
+});
+
+// Detailed health — requires platform admin auth, returns service config status
+app.get('/api/health/detailed', requireAdmin, async (req, res) => {
+    const checks = {
+        status: 'ok',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        db: 'unknown',
+        redis: 'unknown',
+        env: process.env.NODE_ENV || 'development',
+        version: process.env.npm_package_version || '1.0.0',
+        services: {
+            stripe: Boolean(process.env.STRIPE_SECRET_KEY),
+            twilio: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+            vapi: Boolean(process.env.VAPI_API_KEY || process.env.VAPI_WEBHOOK_SECRET),
+            gemini: Boolean(process.env.GEMINI_API_KEY),
+            sentry: Boolean(process.env.SENTRY_BACKEND_DSN)
+        },
+        timestamp: new Date().toISOString()
+    };
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        checks.db = 'ok';
+    } catch (e) {
+        checks.db = 'error';
+        checks.dbError = e.message;
+        checks.status = 'degraded';
+    }
+    try {
+        const { connection } = require('./services/queueService');
+        checks.redis = connection && connection.status === 'ready' ? 'ok' : 'disabled';
+    } catch {
+        checks.redis = 'disabled';
+    }
+    res.status(checks.status === 'ok' ? 200 : 503).json(checks);
+});
+
+// Apply general rate limit to all /api routes
 app.use('/api', apiLimiter);
 
 // Auth - rate limited
