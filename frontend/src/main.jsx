@@ -16,11 +16,11 @@ if (sentryDsn) {
     release: `clinicflow-frontend@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-        mask: ['input[type="password"]', '[data-sentry-mask]']
-      }),
+      // Sentry.replayIntegration({  // DISABLED — causes i.getTime crash in Web Worker
+      //   maskAllText: true,
+      //   blockAllMedia: true,
+      //   mask: ['input[type="password"]', '[data-sentry-mask]']
+      // }),
     ],
     tracesSampleRate: parseFloat(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE) || 0.1,
     replaysSessionSampleRate: 0.05,
