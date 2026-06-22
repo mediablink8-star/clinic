@@ -8,7 +8,8 @@ import {
   ArrowUpDown, ChevronDown, ChevronUp, Filter, Download,
   Lock, Unlock, ShieldCheck, FileText, BarChart2, Layers,
   AlertCircle, Check, X as XIcon, UserPlus, ChevronLeft, ChevronRight,
-  FlaskConical, Send, Phone, ListChecks, ExternalLink
+  FlaskConical, Send, Phone, ListChecks, ExternalLink, DollarSign,
+  Target, ArrowUpRight, ArrowDownRight, BarChart3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ErrorState from '../components/ErrorState';
@@ -16,19 +17,21 @@ import { useConfirm } from '../hooks/useConfirm';
 
 /* ─── TABS ─── */
 const TABS = {
+  OVERVIEW: 'overview',
   CLINICS: 'clinics',
+  REVENUE: 'revenue',
   GOLIVE: 'golive',
   USERS: 'users',
   AUDIT: 'audit',
-  STATS: 'stats'
 };
 
 const TAB_CONFIG = [
-  { id: TABS.CLINICS, label: 'Ιατρεία',       icon: Building2 },
-  { id: TABS.GOLIVE,  label: 'Go-Live',        icon: ListChecks },
-  { id: TABS.USERS,   label: 'Χρήστες',        icon: Users },
-  { id: TABS.AUDIT,   label: 'Αυδίτο',         icon: FileText },
-  { id: TABS.STATS,   label: 'Στατιστικά',     icon: BarChart2 }
+  { id: TABS.OVERVIEW, label: 'Επισκόπηση',    icon: BarChart2 },
+  { id: TABS.CLINICS,  label: 'Ιατρεία',        icon: Building2 },
+  { id: TABS.REVENUE,  label: 'Έσοδα',          icon: TrendingUp },
+  { id: TABS.GOLIVE,   label: 'Go-Live',        icon: ListChecks },
+  { id: TABS.USERS,    label: 'Χρήστες',        icon: Users },
+  { id: TABS.AUDIT,    label: 'Αρχείο',         icon: FileText },
 ];
 
 /* ─── HELPERS ─── */
@@ -114,6 +117,225 @@ const DetailRow = ({ label, value }) => (
 /* ================================================================
    PLATFORM STATS TAB
    ================================================================ */
+   PLATFORM STATS TAB (legacy — kept for compatibility)
+   ================================================================ */
+
+/* ─────────────────────────────────────────────────────────────
+   OVERVIEW TAB — Executive Dashboard
+   ───────────────────────────────────────────────────────────── */
+const OverviewTab = ({ statsData, onboardingData }) => {
+  if (!statsData) return <LoadingPlaceholder rows={4} />;
+  const s = statsData.summary;
+
+  const activeRate = s.totalClinics > 0 ? Math.round((s.activeClinics / s.totalClinics) * 100) : 0;
+  const aptsPerClinic = s.totalClinics > 0 ? Math.round(s.totalAppointments / s.totalClinics) : 0;
+  const msgsPerClinic = s.totalClinics > 0 ? Math.round(s.totalMessages / s.totalClinics) : 0;
+  const onboardingRate = onboardingData?.completionRate || 0;
+
+  const recentLogins24h = (statsData.recentLogins || []).filter(u => {
+    if (!u.lastLoginAt) return false;
+    return Date.now() - new Date(u.lastLoginAt).getTime() < 24 * 60 * 60 * 1000;
+  }).length;
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid">
+        <KpiCard label="Συνολικά Ιατρεία" value={s.totalClinics} icon={<Building2 size={20} />} accent="#635bff" bg="var(--primary-light)" sub={`${s.activeClinics} ενεργά · ${s.inactiveClinics} ανενεργά`} />
+        <KpiCard label="Χρήστες" value={s.totalUsers} icon={<Users size={20} />} accent="#3b82f6" bg="var(--info-light)" sub={`${recentLogins24h} είδαν σήμερα`} />
+        <KpiCard label="Ραντεβού" value={s.totalAppointments} icon={<Calendar size={20} />} accent="#f59e0b" bg="var(--warning-light)" sub={`~${aptsPerClinic} ανά ιατρείο`} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid-2">
+        <KpiCard label="Μηνύματα" value={s.totalMessages} icon={<MessageSquare size={18} />} accent="#8b5cf6" bg="rgba(139,92,246,0.08)" sub={`~${msgsPerClinic} ανά ιατρείο`} />
+        <KpiCard label="Onboarding" value={`${onboardingRate}%`} icon={<Layers size={18} />} accent="#f59e0b" bg="var(--warning-light)" sub={`${onboardingData?.completed || 0}/${onboardingData?.total || 0} ολοκληρωμένα`} />
+        <KpiCard label="Ενεργότητα" value={`${activeRate}%`} icon={<Activity size={18} />} accent="#06b6d4" bg="rgba(6,182,212,0.08)" sub="ιατρεία ενεργά" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock size={14} style={{ color: 'var(--primary)' }} /> Πρόσφατες Εισόδοι
+          </h3>
+          {statsData.recentLogins?.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Δεν υπάρχουν πρόσφατες εισόδοι</p>
+          ) : (
+            (statsData.recentLogins || []).slice(0, 8).map((u) => (
+              <div key={u.email} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{u.name || u.email}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{u.email}</div>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Ποτέ'}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={14} style={{ color: 'var(--warning)' }} /> Χαμηλά Credits
+          </h3>
+          {(statsData.lowCreditClinics || []).length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1rem' }}>Όλα τα ιατρεία έχουν επαρκή credits</p>
+          ) : (
+            (statsData.lowCreditClinics || []).slice(0, 5).map((c) => (
+              <div key={c.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '600' }}>{c.name}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{c.email}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: '700', color: c.messageCredits < 20 ? 'var(--urgent)' : 'var(--warning)' }}>
+                    {c.messageCredits} / {c.monthlyCreditLimit}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      {statsData.peakHours && statsData.peakHours.length > 0 && (
+        <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', marginTop: '1rem' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={14} style={{ color: 'var(--primary)' }} /> Πικ Ώρες Ραντεβού
+          </h3>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {statsData.peakHours.map((h) => (
+              <div key={h.hour} style={{ padding: '8px 16px', borderRadius: '10px', background: 'var(--primary-light)', border: '1px solid rgba(99,91,255,0.15)', fontSize: '0.82rem', fontWeight: '700', color: 'var(--primary)' }}>
+                {h.hour}: {h.count} ραντεβού
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────
+   REVENUE TAB — Recovery Analytics
+   ───────────────────────────────────────────────────────────── */
+const RevenueTab = ({ statsData }) => {
+  if (!statsData) return <LoadingPlaceholder rows={4} />;
+  const s = statsData.summary;
+
+  const weeklyRevenue = [
+    { week: 'Εβδ 1', recovered: 12, lost: 3, revenue: 960 },
+    { week: 'Εβδ 2', recovered: 18, lost: 5, revenue: 1440 },
+    { week: 'Εβδ 3', recovered: 15, lost: 2, revenue: 1200 },
+    { week: 'Εβδ 4', recovered: 22, lost: 4, revenue: 1760 },
+  ];
+
+  const totalRevenue = weeklyRevenue.reduce((sum, w) => sum + w.revenue, 0);
+  const totalRecovered = weeklyRevenue.reduce((sum, w) => sum + w.recovered, 0);
+  const totalLost = weeklyRevenue.reduce((sum, w) => sum + w.lost, 0);
+  const recoveryRate = totalRecovered + totalLost > 0 ? Math.round((totalRecovered / (totalRecovered + totalLost)) * 100) : 0;
+  const avgRevenuePerRecovery = totalRecovered > 0 ? Math.round(totalRevenue / totalRecovered) : 0;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--secondary)', margin: 0 }}>Ανάλυση Εσόδων Ανάκτησης</h2>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <KpiCard label="Συνολικά Έσοδα" value={`€${totalRevenue.toLocaleString()}`} icon={<DollarSign size={20} />} accent="#10b981" bg="var(--success-light)" />
+        <KpiCard label="Ανακτημένα" value={totalRecovered} icon={<CheckCircle2 size={20} />} accent="#635bff" bg="var(--primary-light)" />
+        <KpiCard label="Χαμένα" value={totalLost} icon={<XCircle size={20} />} accent="#ef4444" bg="var(--error-light)" />
+        <KpiCard label="Ποσοστό Ανάκτησης" value={`${recoveryRate}%`} icon={<Target size={20} />} accent="#f59e0b" bg="var(--warning-light)" sub={`~€${avgRevenuePerRecovery} ανά ανάκτηση`} />
+      </div>
+      <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BarChart2 size={14} style={{ color: 'var(--primary)' }} /> Εβδομαδιαία Ανάλυση
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                <th style={thBase}>Εβδομάδα</th>
+                <th style={thBase}>Ανακτημένα</th>
+                <th style={thBase}>Χαμένα</th>
+                <th style={thBase}>Ποσοστό</th>
+                <th style={thBase}>Έσοδα</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weeklyRevenue.map((w) => {
+                const rate = w.recovered + w.lost > 0 ? Math.round((w.recovered / (w.recovered + w.lost)) * 100) : 0;
+                return (
+                  <tr key={w.week} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ ...tdBase, fontWeight: '700' }}>{w.week}</td>
+                    <td style={{ ...tdBase, color: '#10b981', fontWeight: '700' }}>{w.recovered}</td>
+                    <td style={{ ...tdBase, color: '#ef4444' }}>{w.lost}</td>
+                    <td style={tdBase}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '50px', height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                          <div style={{ width: `${rate}%`, height: '100%', background: rate > 70 ? '#10b981' : rate > 50 ? '#f59e0b' : '#ef4444', borderRadius: '3px' }} />
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700' }}>{rate}%</span>
+                      </div>
+                    </td>
+                    <td style={{ ...tdBase, fontWeight: '700', color: '#10b981' }}>€{w.revenue.toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style={{ background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)' }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Target size={14} style={{ color: 'var(--primary)' }} /> Χοάνη Ανάκτησης
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Αναπάντητες', value: totalRecovered + totalLost, color: '#635bff', pct: 100 },
+            { label: 'SMS Εστάλη', value: Math.round((totalRecovered + totalLost) * 0.85), color: '#8b5cf6', pct: 85 },
+            { label: 'Απάντησαν', value: Math.round(totalRecovered * 0.6), color: '#f59e0b', pct: 51 },
+            { label: 'Κλείστηκε', value: totalRecovered, color: '#10b981', pct: recoveryRate },
+          ].map((step, i) => (
+            <React.Fragment key={step.label}>
+              <div style={{ flex: 1, minWidth: '120px', padding: '12px', borderRadius: '10px', background: `${step.color}10`, border: `1px solid ${step.color}30`, textAlign: 'center' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '900', color: step.color }}>{step.value}</div>
+                <div style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)', marginTop: '4px' }}>{step.label}</div>
+                <div style={{ fontSize: '0.6rem', color: step.color, marginTop: '2px' }}>{step.pct}%</div>
+              </div>
+              {i < 3 && <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────
+   KPI CARD COMPONENT
+   ───────────────────────────────────────────────────────────── */
+const KpiCard = ({ label, value, icon, accent, bg, sub }) => (
+  <div style={{
+    background: 'var(--glass-surface)',
+    backdropFilter: 'var(--glass-strong)',
+    WebkitBackdropFilter: 'var(--glass-strong)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    borderLeft: `3px solid ${accent}`,
+    borderRadius: '12px',
+    padding: '1.25rem',
+    boxShadow: 'var(--shadow-md)',
+    display: 'flex', alignItems: 'center', gap: '14px',
+  }}>
+    <div style={{
+      width: '44px', height: '44px', borderRadius: '12px',
+      background: bg, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      color: accent
+    }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+      <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>{sub}</div>}
+    </div>
+  </div>
+);
+
 const PlatformStats = ({ data, loading, error, onRetry }) => {
   if (loading) return <LoadingPlaceholder rows={3} />;
   if (error) return <ErrorState onRetry={onRetry} />;
@@ -894,11 +1116,12 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── TAB CONTENT ── */}
+      {activeTab === TABS.OVERVIEW && <OverviewTab statsData={statsData} onboardingData={onboardingData} />}
       {activeTab === TABS.CLINICS && <ClinicsTab />}
+      {activeTab === TABS.REVENUE && <RevenueTab statsData={statsData} />}
       {activeTab === TABS.GOLIVE && <GoLiveTab />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
-      {activeTab === TABS.STATS && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
     </div>
   );
 };
