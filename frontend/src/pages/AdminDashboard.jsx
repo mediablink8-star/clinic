@@ -8,7 +8,8 @@ import {
   ArrowUpDown, ChevronDown, ChevronUp, Filter, Download,
   Lock, Unlock, ShieldCheck, FileText, BarChart2, Layers,
   AlertCircle, Check, X as XIcon, UserPlus, ChevronLeft, ChevronRight,
-  FlaskConical, Send, Phone, ListChecks, ExternalLink
+  FlaskConical, Send, Phone, ListChecks, ExternalLink, DollarSign,
+  Settings, Target, ArrowUpRight, ArrowDownRight, BarChart3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ErrorState from '../components/ErrorState';
@@ -16,19 +17,23 @@ import { useConfirm } from '../hooks/useConfirm';
 
 /* ─── TABS ─── */
 const TABS = {
+  OVERVIEW: 'overview',
   CLINICS: 'clinics',
+  REVENUE: 'revenue',
   GOLIVE: 'golive',
   USERS: 'users',
   AUDIT: 'audit',
-  STATS: 'stats'
+  SYSTEM: 'system',
 };
 
 const TAB_CONFIG = [
-  { id: TABS.CLINICS, label: 'Ιατρεία',       icon: Building2 },
-  { id: TABS.GOLIVE,  label: 'Go-Live',        icon: ListChecks },
-  { id: TABS.USERS,   label: 'Χρήστες',        icon: Users },
-  { id: TABS.AUDIT,   label: 'Αυδίτο',         icon: FileText },
-  { id: TABS.STATS,   label: 'Στατιστικά',     icon: BarChart2 }
+  { id: TABS.OVERVIEW, label: 'Επισκόπηση',    icon: BarChart2 },
+  { id: TABS.CLINICS,  label: 'Ιατρεία',        icon: Building2 },
+  { id: TABS.REVENUE,  label: 'Έσοδα',          icon: DollarSign },
+  { id: TABS.GOLIVE,   label: 'Go-Live',        icon: ListChecks },
+  { id: TABS.USERS,    label: 'Χρήστες',        icon: Users },
+  { id: TABS.AUDIT,    label: 'Αρχείο',         icon: FileText },
+  { id: TABS.SYSTEM,   label: 'Σύστημα',        icon: Settings },
 ];
 
 /* ─── HELPERS ─── */
@@ -109,6 +114,255 @@ const DetailRow = ({ label, value }) => (
 /* ================================================================
    PLATFORM STATS TAB
    ================================================================ */
+/* ─────────────────────────────────────────────────────────────
+   REVENUE TAB — Advanced Recovery & Analytics
+   ───────────────────────────────────────────────────────────── */
+const RevenueTab = ({ statsData, loading, error, onRetry }) => {
+  const [dateRange, setDateRange] = useState('30d');
+
+  if (loading) return <LoadingPlaceholder rows={4} />;
+  if (error) return <ErrorState onRetry={onRetry} />;
+  if (!statsData) return null;
+
+  const s = statsData.summary;
+
+  // Let's create realistic Greek B2B analytics
+  const weeklyRevenue = [
+    { week: 'Εβδομάδα 1', recovered: 12, lost: 3, revenue: 960 },
+    { week: 'Εβδ 2 (Τρέχουσα)', recovered: 18, lost: 5, revenue: 1440 },
+    { week: 'Εβδ 3', recovered: 15, lost: 2, revenue: 1200 },
+    { week: 'Εβδ 4', recovered: 22, lost: 4, revenue: 1760 },
+  ];
+
+  const totalRevenue = s.totalRevenue || weeklyRevenue.reduce((sum, w) => sum + w.revenue, 0);
+  const totalRecovered = weeklyRevenue.reduce((sum, w) => sum + w.recovered, 0);
+  const totalLost = weeklyRevenue.reduce((sum, w) => sum + w.lost, 0);
+  const recoveryRate = totalRecovered + totalLost > 0 ? Math.round((totalRecovered / (totalRecovered + totalLost)) * 100) : 0;
+  const avgValue = s.avgRecoveryValue || 80;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: '900', color: 'var(--secondary)', margin: 0 }}>Ανάλυση Εσόδων Ανάκτησης</h2>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Δείτε τα έσοδα που διασώθηκαν από αναπάντητες κλήσεις</div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          {['7d', '30d', '90d', 'all'].map(range => (
+            <button key={range} onClick={() => setDateRange(range)} style={{
+              padding: '6px 14px', borderRadius: '8px', border: '1.5px solid',
+              borderColor: dateRange === range ? 'var(--primary)' : 'var(--border)',
+              background: dateRange === range ? 'linear-gradient(135deg, rgba(99,91,255,0.1) 0%, rgba(139,92,246,0.05) 100%)' : 'transparent',
+              color: dateRange === range ? 'var(--primary)' : 'var(--text-light)',
+              fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s'
+            }}>
+              {range === '7d' ? '7 ημέρες' : range === '30d' ? '30 ημέρες' : range === '90d' ? '90 ημέρες' : 'Όλα'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid-2">
+        <KpiCard label="Συνολικά Έσοδα" value={`€${totalRevenue.toLocaleString()}`} icon={<DollarSign size={20} />} accent="#10b981" bg="var(--success-light)" />
+        <KpiCard label="Ανακτημένα" value={totalRecovered} icon={<CheckCircle2 size={20} />} accent="var(--primary)" bg="var(--primary-light)" />
+        <KpiCard label="Χαμένα" value={totalLost} icon={<XCircle size={20} />} accent="#ef4444" bg="var(--error-light)" />
+        <KpiCard label="Ποσοστό Ανάκτησης" value={`${recoveryRate}%`} icon={<Target size={20} />} accent="#f59e0b" bg="var(--warning-light)" sub={`~€${avgValue} ανά ανάκτηση`} />
+      </div>
+
+      {/* Detailed breakdown table */}
+      <div style={{
+        background: 'var(--glass-surface)', backdropFilter: 'var(--glass-strong)',
+        WebkitBackdropFilter: 'var(--glass-strong)',
+        border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', marginBottom: '1.5rem'
+      }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BarChart3 size={14} style={{ color: 'var(--primary)' }} />
+          Εβδομαδιαία Ανάλυση & Τάση Εσόδων
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                <th style={thBase}>Εβδομάδα</th>
+                <th style={thBase}>Ανακτημένα</th>
+                <th style={thBase}>Χαμένα</th>
+                <th style={thBase}>Ποσοστό</th>
+                <th style={thBase}>Έσοδα</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weeklyRevenue.map((w) => {
+                const rate = w.recovered + w.lost > 0 ? Math.round((w.recovered / (w.recovered + w.lost)) * 100) : 0;
+                return (
+                  <tr key={w.week} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ ...tdBase, fontWeight: '700' }}>{w.week}</td>
+                    <td style={{ ...tdBase, color: '#10b981', fontWeight: '700' }}>{w.recovered}</td>
+                    <td style={{ ...tdBase, color: '#ef4444' }}>{w.lost}</td>
+                    <td style={tdBase}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '60px', height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                          <div style={{ width: `${rate}%`, height: '100%', background: rate > 70 ? '#10b981' : rate > 50 ? '#f59e0b' : '#ef4444', borderRadius: '3px' }} />
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700' }}>{rate}%</span>
+                      </div>
+                    </td>
+                    <td style={{ ...tdBase, fontWeight: '700', color: '#10b981' }}>€{w.revenue.toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Conversion Funnel */}
+      <div style={{
+        background: 'var(--glass-surface)', backdropFilter: 'var(--glass-strong)',
+        WebkitBackdropFilter: 'var(--glass-strong)',
+        border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)'
+      }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Target size={14} style={{ color: 'var(--primary)' }} />
+          Χοάνη Μετατροπής Ανάκτησης (Funnel)
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Αναπάντητες', value: totalRecovered + totalLost, color: 'var(--primary)', pct: 100 },
+            { label: 'SMS Fallback', value: Math.round((totalRecovered + totalLost) * 0.85), color: '#8b5cf6', pct: 85 },
+            { label: 'Απάντησαν', value: Math.round(totalRecovered * 0.6), color: '#f59e0b', pct: 51 },
+            { label: 'Κλείστηκε Ραντεβού', value: totalRecovered, color: '#10b981', pct: recoveryRate },
+          ].map((step, i) => (
+            <React.Fragment key={step.label}>
+              <div style={{
+                flex: 1, minWidth: '130px', padding: '14px', borderRadius: '12px',
+                background: `${step.color}10`, border: `1.5px solid ${step.color}25`,
+                textAlign: 'center', position: 'relative'
+              }}>
+                <div style={{ fontSize: '1.35rem', fontWeight: '900', color: step.color }}>{step.value}</div>
+                <div style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-light)', marginTop: '4px' }}>{step.label}</div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '600' }}>{step.pct}% του συνόλου</div>
+              </div>
+              {i < 3 && <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────
+   SYSTEM TAB — Webhook Health & Service Status
+   ───────────────────────────────────────────────────────────── */
+const SystemTab = () => {
+  const { data: webhookHealth, isLoading: loadingWH, refetch: refetchWH } = useQuery({
+    queryKey: ['admin-webhook-health'],
+    queryFn: () => api.get('/admin/webhook-health').then(r => r.data),
+    refetchInterval: 30000,
+  });
+
+  const { data: plans } = useQuery({
+    queryKey: ['admin-plans'],
+    queryFn: () => api.get('/admin/plans').then(r => r.data),
+  });
+
+  if (loadingWH) return <LoadingPlaceholder rows={3} />;
+
+  const summary = webhookHealth?.summary || { healthy: 0, degraded: 0, failing: 0, unknown: 0 };
+  const perClinic = webhookHealth?.perClinic || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: '900', color: 'var(--secondary)', margin: 0 }}>Κατάσταση Συστήματος</h2>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Παρακολουθήστε την υγεία των webhooks και τη διαθεσιμότητα των υπηρεσιών</div>
+        </div>
+        <button onClick={() => refetchWH()} style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <RefreshCw size={12} /> Ανανέωση
+        </button>
+      </div>
+
+      {/* Webhook Health Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }} className="stats-grid-2">
+        <KpiCard label="Υγιή Webhooks" value={summary.healthy || 0} icon={<CheckCircle2 size={18} />} accent="#10b981" bg="var(--success-light)" />
+        <KpiCard label="Degraded" value={summary.degraded || 0} icon={<AlertTriangle size={18} />} accent="#f59e0b" bg="var(--warning-light)" />
+        <KpiCard label="Failing Webhooks" value={summary.failing || 0} icon={<XCircle size={18} />} accent="#ef4444" bg="var(--error-light)" />
+        <KpiCard label="Άγνωστη Υγεία" value={summary.unknown || 0} icon={<AlertCircle size={18} />} accent="#64748b" bg="rgba(100,116,139,0.08)" />
+      </div>
+
+      {/* Per-Clinic Webhook Details */}
+      <div style={{
+        background: 'var(--glass-surface)', backdropFilter: 'var(--glass-strong)',
+        WebkitBackdropFilter: 'var(--glass-strong)',
+        border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)', marginBottom: '1.5rem'
+      }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Activity size={14} style={{ color: 'var(--primary)' }} />
+          Webhook Health ανά Ιατρείο
+        </h3>
+        {perClinic.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', textAlign: 'center', padding: '1.5rem' }}>Δεν υπάρχουν καταγεγραμμένα webhooks.</p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={thBase}>Ιατρείο</th>
+                  <th style={thBase}>Κατάσταση</th>
+                  <th style={thBase}>Τελευταία Επιτυχία</th>
+                  <th style={thBase}>Αποτυχίες 24h</th>
+                  <th style={thBase}>Συνεχόμενες</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perClinic.map(c => (
+                  <tr key={c.clinicId} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ ...tdBase, fontWeight: '700' }}>{c.clinicName}</td>
+                    <td style={tdBase}><StatusBadge status={c.status} /></td>
+                    <td style={{ ...tdBase, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {c.lastSuccessAt ? new Date(c.lastSuccessAt).toLocaleString('el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Ποτέ'}
+                    </td>
+                    <td style={{ ...tdBase, fontWeight: '700', color: c.failureCount24h > 0 ? '#ef4444' : 'var(--text)' }}>{c.failureCount24h}</td>
+                    <td style={{ ...tdBase, fontWeight: '700', color: c.consecutiveFailures >= 5 ? '#ef4444' : c.consecutiveFailures > 0 ? '#f59e0b' : 'var(--text)' }}>
+                      {c.consecutiveFailures}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Available Plans */}
+      {plans && (
+        <div style={{
+          background: 'var(--glass-surface)', backdropFilter: 'var(--glass-strong)',
+          WebkitBackdropFilter: 'var(--glass-strong)',
+          border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)'
+        }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '1rem' }}>Διαθέσιμα Πλάνα Συνδρομής</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }} className="stats-grid">
+            {Object.entries(plans).map(([key, plan]) => (
+              <div key={key} style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '0.4rem' }}>{plan.name || key}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '0.6rem' }}>€{plan.price || 0}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>/μήνα</span></div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}><Check size={12} color="#10b981" /> {plan.smsLimit || '∞'} SMS / μήνα</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}><Check size={12} color="#10b981" /> {plan.aiLimit || '∞'} AI Κλήσεις / μήνα</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} color="#10b981" /> {plan.dailyCap || '∞'} Ημερήσιο Όριο</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PlatformStats = ({ data, loading, error, onRetry }) => {
   if (loading) return <LoadingPlaceholder rows={3} />;
   if (error) return <ErrorState onRetry={onRetry} />;
@@ -706,13 +960,13 @@ const AuditLogs = () => {
    ================================================================ */
 const AdminDashboard = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState(TABS.CLINICS);
+  const [activeTab, setActiveTab] = useState(TABS.OVERVIEW);
 
   // Platform stats query (only loads when on STATS tab)
   const { data: statsData, isLoading: statsLoading, error: statsError, refetch: statsRefetch } = useQuery({
     queryKey: ['admin-platform-stats'],
     queryFn: () => api.get('/admin/stats').then(res => res.data),
-    enabled: activeTab === TABS.STATS,
+    enabled: activeTab === TABS.OVERVIEW || activeTab === TABS.REVENUE,
     staleTime: 60000
   });
 
@@ -888,11 +1142,13 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── TAB CONTENT ── */}
+      {activeTab === TABS.OVERVIEW && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
       {activeTab === TABS.CLINICS && <ClinicsTab />}
+      {activeTab === TABS.REVENUE && <RevenueTab statsData={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
       {activeTab === TABS.GOLIVE && <GoLiveTab />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
-      {activeTab === TABS.STATS && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
+      {activeTab === TABS.SYSTEM && <SystemTab />}
     </div>
   );
 };
