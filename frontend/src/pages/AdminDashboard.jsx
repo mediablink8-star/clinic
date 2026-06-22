@@ -365,6 +365,33 @@ const SystemTab = () => {
   );
 };
 
+/* ─── KPI CARD COMPONENT ─── */
+const KpiCard = ({ label, value, icon, accent, bg, sub }) => (
+  <div style={{
+    background: 'var(--glass-surface)',
+    backdropFilter: 'var(--glass-strong)',
+    WebkitBackdropFilter: 'var(--glass-strong)',
+    border: '1px solid rgba(255,255,255,0.25)',
+    borderLeft: `3px solid ${accent}`,
+    borderRadius: '12px',
+    padding: '1.25rem',
+    boxShadow: 'var(--shadow-md)',
+    display: 'flex', alignItems: 'center', gap: '14px',
+  }}>
+    <div style={{
+      width: '44px', height: '44px', borderRadius: '12px',
+      background: bg, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      color: accent
+    }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+      <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--secondary)', lineHeight: 1.1, marginTop: '2px' }}>{value}</div>
+      {sub && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+    </div>
+  </div>
+);
+
 const PlatformStats = ({ data, loading, error, onRetry }) => {
   if (loading) return <LoadingPlaceholder rows={3} />;
   if (error) return <ErrorState onRetry={onRetry} />;
