@@ -229,7 +229,7 @@ const RevenueTab = ({ statsData, loading, error, onRetry }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
             { label: 'Αναπάντητες', value: totalRecovered + totalLost, color: 'var(--primary)', pct: 100 },
-            { label: 'SMS Fallback', value: Math.round((totalRecovered + totalLost) * 0.85), color: '#8b5cf6', pct: 85 },
+            { label: 'SMS Fallback', value: Math.round((totalRecovered + totalLost) * 0.85), color: '#8b5cf6', pct: 85 },,
             { label: 'Απάντησαν', value: Math.round(totalRecovered * 0.6), color: '#f59e0b', pct: 51 },
             { label: 'Κλείστηκε Ραντεβού', value: totalRecovered, color: '#10b981', pct: recoveryRate },
           ].map((step, i) => (
@@ -324,7 +324,9 @@ const SystemTab = () => {
                     <td style={{ ...tdBase, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {c.lastSuccessAt ? new Date(c.lastSuccessAt).toLocaleString('el-GR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Ποτέ'}
                     </td>
-                    <td style={{ ...tdBase, fontWeight: '700', color: c.failureCount24h > 0 ? '#ef4444' : 'var(--text)' }}>{c.failureCount24h}</td>
+                    <td style={{ ...tdBase, fontWeight: '700', color: c.failureCount24h > 0 ? '#ef4444' : 'var(--text)' }}>
+                      {c.failureCount24h}
+                    </td>
                     <td style={{ ...tdBase, fontWeight: '700', color: c.consecutiveFailures >= 5 ? '#ef4444' : c.consecutiveFailures > 0 ? '#f59e0b' : 'var(--text)' }}>
                       {c.consecutiveFailures}
                     </td>
