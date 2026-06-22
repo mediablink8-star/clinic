@@ -13,7 +13,7 @@ import { DEFAULT_TIMEZONE } from '../lib/constants';
  */
 export function formatInClinicTimezone(date, timezone = DEFAULT_TIMEZONE, options = {}) {
     if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
+    const d = date instanceof Date ? date : new Date(date);
     if (isNaN(d.getTime())) return '';
 
     return new Intl.DateTimeFormat('el-GR', {
@@ -30,7 +30,7 @@ export function formatInClinicTimezone(date, timezone = DEFAULT_TIMEZONE, option
  */
 export function getClinicDateKey(date, timezone = DEFAULT_TIMEZONE) {
     if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
+    const d = date instanceof Date ? date : new Date(date);
     if (isNaN(d.getTime())) return '';
 
     // en-CA is a reliable locale for YYYY-MM-DD
@@ -52,7 +52,7 @@ export function getClinicDateKey(date, timezone = DEFAULT_TIMEZONE) {
  */
 export function getClinicTimePart(date, timezone = DEFAULT_TIMEZONE) {
     if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
+    const d = date instanceof Date ? date : new Date(date);
     if (isNaN(d.getTime())) return '';
 
     const formatter = new Intl.DateTimeFormat('el-GR', {
