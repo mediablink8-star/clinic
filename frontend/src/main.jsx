@@ -47,6 +47,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// SAFETY NET: Override Date.prototype.getTime to never crash
+// If .getTime() is called on a non-Date object, log the error and return NaN
+const originalGetTime = Date.prototype.getTime;
+Date.prototype.getTime = function() {
+  if (!(this instanceof Date)) {
+    console.error('[SAFETY] .getTime() called on non-Date:', typeof this, this, new Error().stack);
+    return NaN;
+  }
+  try {
+    return originalGetTime.call(this);
+  } catch (e) {
+    console.error('[SAFETY] .getTime() threw:', e);
+    return NaN;
+  }
+};
+
 // Global error handler — catches uncaught JS errors and shows visible error
 window.onerror = function(message, source, lineno, colno, error) {
   console.error('[GLOBAL_ERROR]', message, '\nStack:', error?.stack || 'no stack');
