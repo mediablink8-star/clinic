@@ -23,6 +23,163 @@ const { normalizePhone } = require('../utils/phone');
 const logger = require('../utils/logger');
 const { fromZonedTime } = require('date-fns-tz');
 
+// TEMPORARY PUBLIC SEED TRIGGER FOR LIVE MEETING
+router.post('/trigger-demo-seed', asyncHandler(async (req, res) => {
+    const clinicId = 'cmo05psic0000ef1y9lmgbn9q';
+    const now = new Date();
+
+    // 1. Update clinic
+    await prisma.clinic.update({
+        where: { id: clinicId },
+        data: {
+            name: 'Οδοντιατρικό Κέντρο Smile',
+            location: 'Αθήνα, Εξάρχεια',
+            phone: '210 555 0100',
+            workingHours: JSON.stringify({ weekdays: '09:00 - 20:00', saturday: '10:00 - 14:00' }),
+            services: JSON.stringify([
+                { name: 'Καθαρισμός', price: '60€' },
+                { name: 'Λεύκανση', price: '250€' },
+                { name: 'Εμφύτευμα', price: '900€' },
+                { name: 'Ορθοδοντική', price: '1200€' },
+                { name: 'Επείγον', price: '80€' },
+            ]),
+            onboardingCompleted: true,
+            messageCredits: 500,
+            monthlyCreditLimit: 500,
+            smsMonthlyLimit: 500,
+            dailyMessageCap: 200,
+            timezone: 'Europe/Athens',
+        },
+    });
+
+    // 2. Patients
+    const patientsData = [
+        { name: 'Γιώργος Παπαδόπουλος', phone: '6971234567' },
+        { name: 'Μαρία Κωνσταντίνου', phone: '6982345678' },
+        { name: 'Νίκος Αλεξίου', phone: '6933456789' },
+        { name: 'Ελένη Δημητρίου', phone: '6944567890' },
+        { name: 'Κώστας Γεωργίου', phone: '6955678901' },
+        { name: 'Σοφία Νικολάου', phone: '6966789012' },
+        { name: 'Αλέξανδρος Μιχαήλ', phone: '6977890123' },
+        { name: 'Χριστίνα Βασιλείου', phone: '6988901234' },
+        { name: 'Πέτρος Ιωάννου', phone: '6999012345' },
+        { name: 'Αναστασία Χρήστου', phone: '6910123456' },
+        { name: 'Δημήτρης Σπυρίδων', phone: '6921234567' },
+        { name: 'Κατερίνα Παναγιώτου', phone: '6932345678' },
+    ];
+    const patients = [];
+    for (const p of patientsData) {
+        const patient = await prisma.patient.upsert({
+            where: { clinicId_phone: { clinicId, phone: p.phone } },
+            update: {},
+            create: { clinicId, name: p.name, phone: p.phone },
+        });
+        patients.push(patient);
+    }
+
+    // 3. Doctors
+    await prisma.doctor.upsert({
+        where: { id: 'demo-doc-antonis' },
+        update: {},
+        create: { id: 'demo-doc-antonis', clinicId, name: 'Δρ. Αντώνης Παπαδόπουλος', specialty: 'Οδοντίατρος', isActive: true },
+    });
+    await prisma.doctor.upsert({
+        where: { id: 'demo-doc-eleni' },
+        update: {},
+        create: { id: 'demo-doc-eleni', clinicId, name: 'Δρ. Ελένη Μαρκάντωνα', specialty: 'Ορθοδοντικός', isActive: true },
+    });
+
+    // 4. Clean existing to prevent piling up
+    await prisma.appointment.deleteMany({ where: { clinicId } });
+    await prisma.missedCall.deleteMany({ where: { clinicId } });
+    await prisma.feedEvent.deleteMany({ where: { clinicId } });
+
+    // 5. Appointments — 45 past + 18 future
+    const appointmentsData = [];
+    for (let i = 0; i < 45; i++) {
+        const daysAgo = Math.floor(Math.random() * 90) + 1;
+        const hour = 9 + Math.floor(Math.random() * 10);
+        const start = new Date(now); start.setDate(start.getDate() - daysAgo); start.setHours(hour, [0,30][Math.floor(Math.random()*2)], 0, 0);
+        const end = new Date(start.getTime() + 3600000);
+        const statuses = ['COMPLETED','COMPLETED','COMPLETED','COMPLETED','CANCELLED','NO_SHOW'];
+        const sources = ['MANUAL','MANUAL','PUBLIC_LINK','AI_VOICE','SMS_BOOKING'];
+        appointmentsData.push({
+            clinicId, patientId: patients[Math.floor(Math.random() * patients.length)].id,
+            startTime: start, endTime: end,
+            status: statuses[Math.floor(Math.random() * statuses.length)],
+            source: sources[Math.floor(Math.random() * sources.length)],
+            priority: Math.random() > 0.8 ? 'URGENT' : 'NORMAL',
+            reason: ['Καθαρισμός','Έλεγχος','Λεύκανση','Εμφύτευμα','Επείγον','Ορθοδοντική'][Math.floor(Math.random()*6)],
+            createdAt: new Date(start.getTime() - 172800000),
+        });
+    }
+    for (let i = 0; i < 18; i++) {
+        const daysAhead = Math.floor(Math.random() * 14) + 1;
+        const hour = 9 + Math.floor(Math.random() * 10);
+        const start = new Date(now); start.setDate(start.getDate() + daysAhead); start.setHours(hour, [0,30][Math.floor(Math.random()*2)], 0, 0);
+        const end = new Date(start.getTime() + 3600000);
+        appointmentsData.push({
+            clinicId, patientId: patients[Math.floor(Math.random() * patients.length)].id,
+            startTime: start, endTime: end,
+            status: 'CONFIRMED',
+            source: ['MANUAL','PUBLIC_LINK','SMS_BOOKING'][Math.floor(Math.random()*3)],
+            priority: Math.random() > 0.85 ? 'URGENT' : 'NORMAL',
+            reason: ['Καθαρισμός','Έλεγχος','Λεύκανση','Εμφύτευμα','Ορθοδοντική'][Math.floor(Math.random()*5)],
+            createdAt: new Date(),
+        });
+    }
+    await prisma.appointment.createMany({ data: appointmentsData, skipDuplicates: true });
+
+    // 6. Missed calls
+    const missedCallsData = [];
+    for (let i = 0; i < 35; i++) {
+        const daysAgo = Math.floor(Math.random() * 60) + 1;
+        const createdAt = new Date(now); createdAt.setDate(createdAt.getDate() - daysAgo);
+        createdAt.setHours(9 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60), 0, 0);
+        const isRecovered = Math.random() < 0.72;
+        const recoveredAt = isRecovered ? new Date(createdAt.getTime() + Math.random() * 14400000) : null;
+        missedCallsData.push({
+            clinicId,
+            fromNumber: patients[Math.floor(Math.random() * patients.length)].phone,
+            callSid: `demo-mc-${Date.now()}-${i}`,
+            patientId: patients[Math.floor(Math.random() * patients.length)].id,
+            status: isRecovered ? 'RECOVERED' : (Math.random() > 0.5 ? 'RECOVERING' : 'LOST'),
+            smsStatus: isRecovered ? 'sent' : (Math.random() > 0.3 ? 'sent' : 'failed'),
+            smsError: null,
+            estimatedRevenue: [60, 80, 200, 250, 800, 900, 1200][Math.floor(Math.random() * 7)],
+            recoveredAt,
+            lastSmsSentAt: new Date(createdAt.getTime() + 300000),
+            createdAt,
+            updatedAt: recoveredAt || createdAt,
+        });
+    }
+    await prisma.missedCall.createMany({ data: missedCallsData, skipDuplicates: true });
+
+    // 7. Feed events
+    const feedEvents = [];
+    const feedTypes = [
+        { type: 'APPOINTMENT_BOOKED_VIA_CALL', title: 'Ραντεβού από AI φωνητική κλήση' },
+        { type: 'APPOINTMENT_BOOKED_VIA_SMS', title: 'Ραντεβού από SMS ανάκτησης' },
+        { type: 'APPOINTMENT_BOOKED_LINK', title: 'Ραντεβού μέσω συνδέσμου' },
+        { type: 'AI_CALL_ANSWERED', title: 'AI κλήση απαντήθηκε' },
+    ];
+    for (let i = 0; i < 20; i++) {
+        const daysAgo = Math.floor(Math.random() * 30);
+        const createdAt = new Date(now); createdAt.setDate(createdAt.getDate() - daysAgo);
+        const ft = feedTypes[Math.floor(Math.random() * feedTypes.length)];
+        feedEvents.push({
+            clinicId, type: ft.type, title: ft.title,
+            patientName: patients[Math.floor(Math.random() * patients.length)].name,
+            phone: patients[Math.floor(Math.random() * patients.length)].phone,
+            metadata: { estimatedRevenue: [60, 80, 200, 250, 800][Math.floor(Math.random() * 5)] },
+            createdAt,
+        });
+    }
+    await prisma.feedEvent.createMany({ data: feedEvents, skipDuplicates: true });
+
+    res.json({ success: true, message: 'Οδοντιατρικό Κέντρο Smile seeded successfully!' });
+}));
+
 function parseAppointmentDay(dayStr) {
     const now = new Date();
     const lower = (dayStr || '').toLowerCase().trim();
