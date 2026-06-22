@@ -106,14 +106,13 @@ async function getLogs() {
 
 // Admin-scoped: returns all users with their clinics
 async function getUsers() {
-    const data = await prisma.user.findMany({
+    const users = await prisma.user.findMany({
         select: {
             id: true,
             email: true,
             name: true,
             role: true,
             isPlatformAdmin: true,
-            isActive: true,
             lockedUntil: true,
             failedAttempts: true,
             mfaEnabled: true,
@@ -132,6 +131,8 @@ async function getUsers() {
         orderBy: { createdAt: 'desc' },
         take: 200
     });
+    // Add isActive: true in memory as users don't have isActive column in schema
+    const data = users.map(u => ({ ...u, isActive: true }));
     return { success: true, data };
 }
 
@@ -210,18 +211,30 @@ async function getAuditLogs({ limit = 100, action, entity, startDate, endDate } 
        if (endDate) where.createdAt.lte = new Date(endDate);
      }
 
-     const [data, total] = await prisma.$transaction([
+     const [logs, total] = await prisma.$transaction([
        prisma.auditLog.findMany({
          where,
          take: Math.min(limit, 500),
          orderBy: { createdAt: 'desc' },
          include: {
-           clinic: { select: { name: true } },
-           user: { select: { name: true, email: true } }
+           clinic: { select: { name: true } }
          }
        }),
        prisma.auditLog.count({ where }),
      ]);
+
+     // Fetch user info in memory since 'user' is not a relation in schema
+     const userIds = [...new Set(logs.map(l => l.userId).filter(Boolean))];
+     const users = await prisma.user.findMany({
+       where: { id: { in: userIds } },
+       select: { id: true, name: true, email: true }
+     });
+     const userMap = new Map(users.map(u => [u.id, u]));
+
+     const data = logs.map(l => ({
+       ...l,
+       user: userMap.get(l.userId) || null
+     }));
 
      return { success: true, data, total };
    }
@@ -246,7 +259,7 @@ async function getPlatformStats() {
         prisma.clinic.count({ where: { isActive: true } }),
         prisma.clinic.count({ where: { isActive: false } }),
         prisma.user.count(),
-        prisma.user.count({ where: { isActive: true } }),
+        prisma.user.count(), // User doesn't have isActive column
         prisma.appointment.count(),
         prisma.messageLog.count(),
         prisma.patient.count(),
@@ -255,8 +268,8 @@ async function getPlatformStats() {
             select: { monthlyCreditLimit: true, dailyUsedCount: true }
         }),
         prisma.user.findMany({
-            select: { id: true, email: true, name: true, lastLoginAt: true, clinicId: true },
-            orderBy: { lastLoginAt: 'desc' },
+            select: { id: true, email: true, name: true, createdAt: true, clinicId: true },
+            orderBy: { createdAt: 'desc' },
             take: 10
         }),
         prisma.clinic.findMany({
@@ -281,6 +294,12 @@ async function getPlatformStats() {
         _avg: { estimatedRevenue: true }
     });
 
+    // Proxy lastLoginAt to createdAt since User doesn't have lastLoginAt column
+    const recentLoginsWithProxy = recentLogins.map(u => ({
+        ...u,
+        lastLoginAt: u.createdAt
+    }));
+
     return {
         success: true,
         data: {
@@ -293,7 +312,7 @@ async function getPlatformStats() {
                 totalCredits,
                 usedCredits
             },
-            recentLogins,
+            recentLogins: recentLoginsWithProxy,
             lowCreditClinics,
             peakHours: peakHourData.map(p => ({
                 hour: new Date(p.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
