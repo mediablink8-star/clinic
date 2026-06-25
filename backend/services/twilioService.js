@@ -27,6 +27,8 @@ function isAlphanumericSender(sender) {
     return sender && !sender.startsWith('+') && !/^\d+$/.test(sender);
 }
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 async function sendSms({ to, body }) {
     const client = getClient();
     if (!client) {
@@ -40,33 +42,44 @@ async function sendSms({ to, body }) {
         return { success: false, error: 'No Twilio sender configured. Set TWILIO_PHONE_NUMBER or TWILIO_ALPHA_SENDER_ID.' };
     }
 
-    try {
-        if (isAlphanumericSender(sender) && !process.env.TWILIO_MESSAGING_SERVICE_SID) {
-            // Direct alpha sender (works in supported countries like Greece)
-            const message = await client.messages.create({
-                to,
-                from: sender,
-                body,
-                statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status`,
-            });
-            logger.info('Twilio SMS sent (alpha)', { sid: message.sid, phoneTail: to.slice(-4), sender });
+    // Retry up to 3 times on transient errors (network, 5xx, timeouts)
+    const MAX_ATTEMPTS = 3;
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+            let message;
+            if (isAlphanumericSender(sender) && !process.env.TWILIO_MESSAGING_SERVICE_SID) {
+                message = await client.messages.create({
+                    to,
+                    from: sender,
+                    body,
+                    statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status`,
+                });
+            } else {
+                message = await client.messages.create({
+                    to,
+                    from: isAlphanumericSender(sender) ? undefined : sender,
+                    messagingServiceSid: isAlphanumericSender(sender) ? process.env.TWILIO_MESSAGING_SERVICE_SID : undefined,
+                    body,
+                    ...(isAlphanumericSender(sender) && { statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status` }),
+                });
+            }
+            logger.info('Twilio SMS sent', { sid: message.sid, phoneTail: to.slice(-4), sender, attempt });
             return { success: true, sid: message.sid };
+        } catch (err) {
+            lastError = err;
+            const code = err.code || 0;
+            // Don't retry on permanent errors: invalid number (21211), unsubscribed (21610), etc.
+            const permanent = [21211, 21214, 21610, 21408, 21606, 30007, 30008].includes(code);
+            if (permanent || attempt === MAX_ATTEMPTS) {
+                logger.warn('Twilio SMS failed', { err: err.message, code, to: to.slice(-4), attempt });
+                return { success: false, error: err.message, code };
+            }
+            logger.warn(`Twilio SMS attempt ${attempt} failed — retrying`, { err: err.message, code });
+            await sleep(500 * Math.pow(2, attempt - 1)); // 500ms, 1s
         }
-
-        const message = await client.messages.create({
-            to,
-            from: isAlphanumericSender(sender) ? undefined : sender,
-            messagingServiceSid: isAlphanumericSender(sender) ? process.env.TWILIO_MESSAGING_SERVICE_SID : undefined,
-            body,
-            ...(isAlphanumericSender(sender) && { statusCallback: `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status` }),
-        });
-
-        logger.info('Twilio SMS sent', { sid: message.sid, phoneTail: to.slice(-4) });
-        return { success: true, sid: message.sid };
-    } catch (err) {
-        logger.warn(`SMS send failed`, { err, to });
-        return { success: false, error: err.message };
     }
+    return { success: false, error: lastError?.message || 'Unknown error' };
 }
 
 async function sendSmsWithTracking({ to, body, clinicId }) {

@@ -167,8 +167,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // ── Try Vapi outbound call FIRST ─────────────────────────────────────────
     // If voice is configured, attempt a callback call via Vapi.
-    // On success: return early — Vapi's webhook handles the rest (book or SMS fallback).
-    // On failure: fall through to SMS.
+    // Circuit breaker: after 5 consecutive failures within 10 minutes,
+    // skip Vapi and go straight to SMS to avoid delaying patient recovery.
     const vapiConfigured = !!(
         clinic.voiceEnabled &&
         clinic.vapiPhoneNumberId &&
@@ -176,7 +176,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         process.env.VAPI_API_KEY
     );
 
-    if (vapiConfigured) {
+    // Simple in-process circuit breaker state (resets on deploy, acceptable)
+    if (!global._vapiCircuit) global._vapiCircuit = { failures: 0, openUntil: 0 };
+    const circuit = global._vapiCircuit;
+    const circuitOpen = circuit.openUntil > Date.now();
+
+    if (vapiConfigured && !circuitOpen) {
         try {
             const { triggerOutboundCall } = require('./vapiService');
             const patient = patientId
@@ -191,11 +196,12 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             });
 
             if (vapiResult.success) {
+                // Reset circuit on success
+                circuit.failures = 0;
                 logger.info('Vapi outbound call triggered — awaiting Vapi webhook for outcome', {
                     missedCallId: missedCall.id,
                     vapiCallId: vapiResult.callId,
                 });
-                // Update callSid to Vapi call ID so webhook can find this record
                 await prisma.missedCall.update({
                     where: { id: missedCall.id },
                     data: { callSid: vapiResult.callId, smsStatus: 'pending' }
@@ -210,16 +216,38 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 };
             }
 
-            logger.warn('Vapi outbound call failed — falling back to SMS', {
-                missedCallId: missedCall.id,
-                reason: vapiResult.reason,
-            });
+            // Vapi returned failure — increment circuit breaker
+            circuit.failures += 1;
+            if (circuit.failures >= 5) {
+                circuit.openUntil = Date.now() + 10 * 60 * 1000; // open for 10 min
+                logger.warn('Vapi circuit breaker OPEN — falling back to SMS for 10 minutes', {
+                    failures: circuit.failures,
+                });
+            } else {
+                logger.warn('Vapi outbound call failed — falling back to SMS', {
+                    missedCallId: missedCall.id,
+                    reason: vapiResult.reason,
+                    consecutiveFailures: circuit.failures,
+                });
+            }
         } catch (vapiErr) {
-            logger.warn('Vapi trigger threw — falling back to SMS', {
-                missedCallId: missedCall.id,
-                error: vapiErr.message,
-            });
+            circuit.failures += 1;
+            if (circuit.failures >= 5) {
+                circuit.openUntil = Date.now() + 10 * 60 * 1000;
+                logger.warn('Vapi circuit breaker OPEN after exception', { failures: circuit.failures });
+            } else {
+                logger.warn('Vapi trigger threw — falling back to SMS', {
+                    missedCallId: missedCall.id,
+                    error: vapiErr.message,
+                    consecutiveFailures: circuit.failures,
+                });
+            }
         }
+    } else if (vapiConfigured && circuitOpen) {
+        logger.info('Vapi circuit breaker open — skipping voice call, sending SMS directly', {
+            missedCallId: missedCall.id,
+            openUntilMs: circuit.openUntil - Date.now(),
+        });
     }
 
     // ── Build SMS body ──────────────────────────────────────────────────────

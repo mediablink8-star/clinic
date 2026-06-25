@@ -4,8 +4,6 @@ require('dotenv').config();
 // ZADARMA_WEBHOOK_SECRET: if unset, webhookAuth.js auto-generates a random value
 // that changes on every restart, silently breaking Zadarma webhook delivery.
 if (process.env.NODE_ENV === 'production' && !process.env.ZADARMA_WEBHOOK_SECRET) {
-    // Use stderr so this is visible in Render logs even if the structured logger
-    // hasn't been configured yet. This MUST be impossible to miss.
     process.stderr.write(
         '\n🔴 CRITICAL: ZADARMA_WEBHOOK_SECRET is not set in production.\n' +
         '   A random secret has been auto-generated for this process only and will\n' +
@@ -14,6 +12,31 @@ if (process.env.NODE_ENV === 'production' && !process.env.ZADARMA_WEBHOOK_SECRET
         '   the Zadarma panel webhook URL to match.\n' +
         '   Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"\n\n'
     );
+}
+
+// VAPI_WEBHOOK_SECRET: if unset, all Vapi tool calls (book_appointment) return 401
+// and appointments booked via voice are never recorded.
+if (process.env.NODE_ENV === 'production' && !process.env.VAPI_WEBHOOK_SECRET) {
+    process.stderr.write(
+        '\n🟡 WARNING: VAPI_WEBHOOK_SECRET is not set.\n' +
+        '   Vapi tool calls (book_appointment) will be allowed through without auth.\n' +
+        '   Set VAPI_WEBHOOK_SECRET to the same value as your Vapi assistant Server URL Secret.\n\n'
+    );
+}
+
+// SMS pipeline check
+if (process.env.NODE_ENV === 'production') {
+    const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+    const hasSender = !!(process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID);
+    if (!hasTwilio || !hasSender) {
+        process.stderr.write(
+            '\n🟡 WARNING: Twilio SMS is not fully configured.\n' +
+            `   TWILIO_ACCOUNT_SID: ${process.env.TWILIO_ACCOUNT_SID ? '✓' : '✗ MISSING'}\n` +
+            `   TWILIO_AUTH_TOKEN:  ${process.env.TWILIO_AUTH_TOKEN ? '✓' : '✗ MISSING'}\n` +
+            `   TWILIO_PHONE_NUMBER / TWILIO_ALPHA_SENDER_ID: ${hasSender ? '✓' : '✗ MISSING'}\n` +
+            '   SMS recovery will fail until these are set.\n\n'
+        );
+    }
 }
 
 const { validateEnv } = require('./utils/envValidator');
