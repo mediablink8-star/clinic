@@ -98,6 +98,13 @@ router.post('/missed-call', validateWebhookSecret, asyncHandler(async (req, res)
 
 // New secure Zadarma route — secret lives in the URL path.
 // Configure Zadarma panel to POST to: ${BACKEND_URL}/api/webhook/zadarma/${ZADARMA_WEBHOOK_SECRET}
+
+// GET handler: Zadarma verification — responds to ?zd_echo=xxx with the value
+router.get('/zadarma/:secret', (req, res) => {
+    if (req.query.zd_echo) return res.send(req.query.zd_echo);
+    res.json({ ok: true });
+});
+
 router.post('/zadarma/:secret', validateZadarmaSecret, asyncHandler(zadarmaHandler));
 
 // Legacy route — kept for backward compat. Refuses in production without WEBHOOK_SECRET.
