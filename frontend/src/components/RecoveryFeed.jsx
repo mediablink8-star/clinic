@@ -1,7 +1,7 @@
 import React from 'react';
 import { API_BASE } from '../lib/constants';
 import toast from 'react-hot-toast';
-import { PhoneMissed, RefreshCw, Phone, PhoneCall, MessageSquare, AlertCircle, CheckCircle, Reply, Clock, Link, Calendar, Bot, UserCheck } from 'lucide-react';
+import { PhoneMissed, RefreshCw, Phone, PhoneCall, MessageSquare, AlertCircle, CheckCircle, Reply, Clock, Link, Calendar, Bot, UserCheck, MoreHorizontal, Check, MessageSquare as MessageSquareIcon, Phone as PhoneIcon, Eye } from 'lucide-react';
 import ActionPanel from './ActionPanel';
 import { getEvent, getPatientLabel, formatTime, getReplyPreview, getRevenue, getInitials, EVENT_TYPES } from '../lib/recoveryUtils';
 
@@ -89,6 +89,13 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
         } catch { return new Set(); }
     });
 
+    // Swipe actions state
+    const [swipeOffset, setSwipeOffset] = React.useState({});
+    const [swipingId, setSwipingId] = React.useState(null);
+
+    const SWIPE_THRESHOLD = 80;
+    const SWIPE_MAX = 180;
+
     const handleItemClick = React.useCallback(async (item) => {
         if (!item.isNewFormat && item.raw) {
             setSelected(item.raw);
@@ -153,6 +160,80 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
             toast.error('Σφάλμα σύνδεσης');
         } finally {
             setTimeout(() => setRetrying(r => { const n = { ...r }; delete n[logId]; return n; }), 3000);
+        }
+    };
+
+    // Swipe actions state
+    const [swipeOffset, setSwipeOffset] = React.useState({});
+    const [swipingId, setSwipingId] = React.useState(null);
+
+    const handleTouchStart = (e, itemId) => {
+        setSwipingId(itemId);
+        setSwipeOffset(prev => ({ ...prev, [itemId]: { startX: e.touches?.[0].clientX ?? e.clientX, currentX: 0 } }));
+    };
+
+    const handleTouchMove = (e, itemId) => {
+        if (swipingId !== itemId) return;
+        const clientX = e.touches?.[0].clientX ?? e.clientX;
+        const startX = swipeOffset[itemId]?.startX ?? clientX;
+        const deltaX = clientX - startX;
+        const clamped = Math.max(-SWIPE_MAX, Math.min(SWIPE_MAX, deltaX));
+        setSwipeOffset(prev => ({ ...prev, [itemId]: { startX, currentX: clamped } }));
+    };
+
+    const handleTouchEnd = (itemId, item) => {
+        if (swipingId !== itemId) return;
+        const offset = swipeOffset[itemId]?.currentX ?? 0;
+        
+        if (offset > SWIPE_THRESHOLD) {
+            // Swipe right - Call / View
+            handleSwipeAction('right', item);
+        } else if (offset < -SWIPE_THRESHOLD) {
+            // Swipe left - Mark Recovered / Follow-up
+            handleSwipeAction('left', item);
+        }
+        
+        // Animate back to 0
+        setSwipeOffset(prev => ({ ...prev, [itemId]: { ...prev[itemId], currentX: 0 } }));
+        setTimeout(() => {
+            setSwipeOffset(prev => { const n = { ...prev }; delete n[itemId]; return n; });
+            setSwipingId(null);
+        }, 300);
+    };
+
+    const handleSwipeAction = (direction, item) => {
+        if (!item.isNewFormat && item.raw) {
+            const log = item.raw;
+            if (direction === 'right') {
+                // Call patient
+                if (log.phone && token) {
+                    fetch(`${API_BASE}/recovery/call`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ missedCallId: log.id, phone: log.phone })
+                    }).then(r => r.json()).then(d => {
+                        if (d.success) toast.success('Κλήση ξεκίνησε!');
+                        else toast.error('Αποτυχία κλήσης');
+                    }).catch(() => toast.error('Σφάλμα κλήσης'));
+                }
+            } else if (direction === 'left') {
+                // Mark recovered + follow-up
+                if (log.id && token) {
+                    fetch(`${API_BASE}/recovery/${log.id}/mark-recovered`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                    }).then(r => r.json()).then(d => {
+                        if (d.success) {
+                            toast.success('Σημαντεύτηκε ως ανακτημένη!');
+                            // Trigger follow-up SMS
+                            fetch(`${API_BASE}/recovery/${log.id}/followup`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+                            });
+                        } else toast.error('Αποτυχία');
+                    }).catch(() => toast.error('Σφάλμα'));
+                }
+            }
         }
     };
 
@@ -247,19 +328,145 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
                 </div>
             </div>
             <div className="feed-list">
-                {filtered.map((item) => (
-                    <div
-                        key={item.id}
-                        className="feed-item"
-                        style={{
-                            borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
-                            backgroundColor: getActionBackground(item)
-                        }}
-                        onClick={() => handleItemClick(item)}
-                    >
-                        <div className="feed-icon" style={{ background: item.cfg?.bg || 'var(--glass-surface)', borderColor: item.cfg?.border || 'rgba(255,255,255,0.1)' }}>
-                            <item.IconComponent size={18} color={item.cfg?.dot || 'var(--primary)'} />
-                        </div>
+                {filtered.map((item) => {
+        const offset = swipeOffset[item.id]?.currentX ?? 0;
+        const isSwiping = swipingId === item.id;
+        const showLeftActions = offset < -SWIPE_THRESHOLD;
+        const showRightActions = offset > SWIPE_THRESHOLD;
+
+        return (
+            <div
+                key={item.id}
+                className="feed-item"
+                style={{
+                    borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
+                    backgroundColor: getActionBackground(item),
+                    transform: isSwiping ? `translateX(${offset}px)` : undefined,
+                    transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    zIndex: isSwiping ? 10 : 1,
+                }}
+                onTouchStart={(e) => handleTouchStart(e, item.id)}
+                onTouchMove={(e) => handleTouchMove(e, item.id)}
+                onTouchEnd={() => handleTouchEnd(item.id, item)}
+                onMouseDown={(e) => handleTouchStart(e, item.id)}
+                onMouseMove={(e) => {
+                    if (swipingId === item.id) handleTouchMove(e, item.id);
+                }}
+                onMouseUp={() => handleTouchEnd(item.id, item)}
+                onMouseLeave={() => handleTouchEnd(item.id, item)}
+                onClick={() => !isSwiping && handleItemClick(item)}
+            >
+                {/* Swipe Left Actions (Mark Recovered / Follow-up) */}
+                <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: SWIPE_MAX,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    paddingLeft: '16px',
+                    background: 'linear-gradient(90deg, var(--success) 0%, var(--success) 100%)',
+                    borderRadius: '12px 0 0 12px',
+                    opacity: offset < 0 ? Math.min(1, Math.abs(offset) / SWIPE_THRESHOLD) : 0,
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('left', item); }}
+                            style={{
+                                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                                background: 'rgba(255,255,255,0.2)', color: 'white',
+                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                backdropFilter: 'blur(4px)',
+                            }}
+                        >
+                            <Check size={12} /> <span style={{fontSize:'0.65rem'}}>Ανακτήθηκε</span>
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('left', item); }}
+                            style={{
+                                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                                background: 'rgba(255,255,255,0.2)', color: 'white',
+                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                backdropFilter: 'blur(4px)',
+                            }}
+                        >
+                            <MessageSquareIcon size={12} /> <span style={{fontSize:'0.65rem'}}>Follow-up</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Swipe Right Actions (Call / View) */}
+                <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: SWIPE_MAX,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    paddingRight: '16px',
+                    background: 'linear-gradient(270deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
+                    borderRadius: '0 12px 12px 0',
+                    opacity: offset > 0 ? Math.min(1, offset / SWIPE_THRESHOLD) : 0,
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                }}>
+                    <div style={{ display: 'flex', gap: '8px', flexDirection: 'row-reverse' }}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('right', item); }}
+                            style={{
+                                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                                background: 'rgba(255,255,255,0.2)', color: 'white',
+                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                backdropFilter: 'blur(4px)',
+                            }}
+                        >
+                            <PhoneIcon size={12} /> <span style={{fontSize:'0.65rem'}}>Καλέστε</span>
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('right', item); }}
+                            style={{
+                                padding: '8px 12px', borderRadius: '8px', border: 'none',
+                                background: 'rgba(255,255,255,0.2)', color: 'white',
+                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                backdropFilter: 'blur(4px)',
+                            }}
+                        >
+                            <Eye size={12} /> <span style={{fontSize:'0.65rem'}}>Δείτε</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    key={item.id}
+                    className="feed-item"
+                    style={{
+                        borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
+                        backgroundColor: getActionBackground(item),
+                        transform: isSwiping ? `translateX(${offset}px)` : undefined,
+                        transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        zIndex: isSwiping ? 10 : 1,
+                    }}
+                    onTouchStart={(e) => handleTouchStart(e, item.id)}
+                    onTouchMove={(e) => handleTouchMove(e, item.id)}
+                    onTouchEnd={() => handleTouchEnd(item.id, item)}
+                    onMouseDown={(e) => handleTouchStart(e, item.id)}
+                    onMouseMove={(e) => {
+                        if (swipingId === item.id) handleTouchMove(e, item.id);
+                    }}
+                    onMouseUp={() => handleTouchEnd(item.id, item)}
+                    onMouseLeave={() => handleTouchEnd(item.id, item)}
+                    onClick={() => !isSwiping && handleItemClick(item)}
+                >
                         <div className="feed-content">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                                 <div className="feed-name">{item.name}</div>
