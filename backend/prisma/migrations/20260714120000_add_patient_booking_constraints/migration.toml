@@ -1,0 +1,5 @@
+migration_name = "add_patient_booking_constraints"
+started_at = "2026-07-14T12:00:00.000Z"
+finished_at = "2026-07-14T12:00:01.000Z"
+applied_steps_count = 1
+dataprovider = { provider = "postgresql" }

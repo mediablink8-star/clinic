@@ -24,6 +24,7 @@
     "test:ci": "jest --ci --coverage --maxWorkers=1 --runInBand --forceExit",
     "test:integration": "jest --testPathPattern=integration --runInBand --forceExit",
     "test:unit": "jest --testPathPattern=unit --runInBand --forceExit",
+    "lint": "eslint . --ext .js",
     "deploy": "npm run migrate:deploy && npm start",
     "health": "node -e \"fetch('http://localhost:4000/api/health').then(r=>r.json()).then(console.log)\""
   },
@@ -93,6 +94,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
+    "eslint": "^10.7.0",
     "fast-check": "^4.6.0",
     "jest": "^30.3.0",
     "nodemon": "^3.1.11",
