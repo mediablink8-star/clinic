@@ -351,5 +351,51 @@ describe('Webhooks Integration', () => {
 
       expect(res.body).toHaveProperty('result');
     });
+
+    it('should be idempotent for duplicate function-call with same call ID', async () => {
+      const vapiSecret = process.env.VAPI_WEBHOOK_SECRET || 'test-vapi-secret';
+      const callId = `vapi-idempotency-${Date.now()}`;
+      
+      const payload = {
+        message: {
+          type: 'function-call',
+          call: { id: callId, metadata: { clinicId: clinic.id } },
+          functionCall: {
+            name: 'book_appointment',
+            parameters: {
+              patientName: 'Idempotent Patient',
+              phone: '+306900000001',
+              date: '2026-01-25',
+              time: '11:00',
+              duration: 30,
+              reason: 'Idempotency test',
+            },
+          },
+        },
+      };
+
+      // First call
+      await request(app)
+        .post('/api/vapi/function-call')
+        .send(payload)
+        .set('Authorization', `Bearer ${vapiSecret}`)
+        .expect(200);
+
+      // Second call with same call ID
+      const res2 = await request(app)
+        .post('/api/vapi/function-call')
+        .send(payload)
+        .set('Authorization', `Bearer ${vapiSecret}`)
+        .expect(200);
+
+      // Should return same result (idempotent)
+      expect(res2.body.result).toBeDefined();
+      
+      // Verify only one appointment was created
+      const appointments = await testPrisma.appointment.findMany({
+        where: { clinicId: clinic.id, patient: { phone: '+306900000001' } },
+      });
+      expect(appointments.length).toBe(1);
+    });
   });
 });

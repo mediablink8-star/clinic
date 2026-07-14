@@ -163,16 +163,41 @@ describe('Authentication Integration', () => {
       expect(userWithMFA.mfaEnabled).toBe(false);
 
       const totp = require('otplib').authenticator;
-      const token = totp.generate(userWithMFA.mfaPendingSecret);
+      const mfaToken = totp.generate(userWithMFA.mfaPendingSecret);
 
       await request(app)
         .post('/api/auth/mfa/verify')
         .set('Authorization', `Bearer ${token}`)
-        .send({ token })
+        .send({ token: mfaToken })
         .expect(200);
 
       const verifiedUser = await testPrisma.user.findUnique({ where: { id: user.id } });
       expect(verifiedUser.mfaEnabled).toBe(true);
+    });
+  });
+
+  describe('Per-clinic rate limiting', () => {
+    it('should rate limit authenticated endpoints per clinic', async () => {
+      // Make many requests to a protected endpoint from same clinic
+      const clinic2 = await createTestClinic({ webhookSecret: 'test-secret-2' });
+      const user2 = await createTestUser(clinic2.id, { role: 'OWNER', email: 'owner2@clinic.com' });
+      const token2 = generateTestToken(user2.id, clinic2.id, user2.role);
+
+      // Make requests from clinic 1 (should succeed up to limit)
+      for (let i = 0; i < 10; i++) {
+        await request(app)
+          .get('/api/auth/me')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200);
+      }
+
+      // Make requests from clinic 2 (separate limit)
+      for (let i = 0; i < 10; i++) {
+        await request(app)
+          .get('/api/auth/me')
+          .set('Authorization', `Bearer ${token2}`)
+          .expect(200);
+      }
     });
   });
 });

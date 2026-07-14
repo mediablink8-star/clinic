@@ -234,6 +234,7 @@ model Appointment {
   @@index([clinicId, doctorId, startTime, endTime, status])
   @@index([clinicId, source, createdAt])
   @@unique([clinicId, doctorId, startTime, status], name: "unique_doctor_slot")
+  @@unique([clinicId, patientId, startTime, status], name: "unique_patient_slot", where: "status NOT IN ('CANCELLED', 'NO_SHOW')")
 }
 
 model FeedEvent {

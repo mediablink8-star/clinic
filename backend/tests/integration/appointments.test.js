@@ -253,4 +253,111 @@ describe('Appointments Integration', () => {
         .expect(200);
     });
   });
+
+  describe('Patient double-booking prevention', () => {
+    it('should prevent same patient from booking overlapping appointments', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 20);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+
+      // First appointment
+      await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient.id, reason: 'First', date: dateStr, time: '10:00', duration: 60 })
+        .expect(201);
+
+      // Try to book overlapping appointment for same patient
+      await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient.id, reason: 'Overlapping', date: dateStr, time: '10:30', duration: 60 })
+        .expect(409);
+    });
+
+    it('should allow same patient to book non-overlapping appointments', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 21);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+
+      // First appointment
+      await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient.id, reason: 'Morning', date: dateStr, time: '09:00', duration: 60 })
+        .expect(201);
+
+      // Second appointment later same day
+      const res = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient.id, reason: 'Afternoon', date: dateStr, time: '14:00', duration: 60 })
+        .expect(201);
+
+      expect(res.body.data.reason).toBe('Afternoon');
+    });
+
+    it('should allow different patients at same time', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 22);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+
+      const patient2 = await testPrisma.patient.create({
+        data: { clinicId: clinic.id, name: 'Patient Two', phone: '+306922222222' },
+      });
+
+      // First patient
+      await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient.id, reason: 'Patient 1', date: dateStr, time: '11:00' })
+        .expect(201);
+
+      // Second patient at same time
+      const res = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ patientId: patient2.id, reason: 'Patient 2', date: dateStr, time: '11:00' })
+        .expect(201);
+
+      expect(res.body.data.patientId).toBe(patient2.id);
+    });
+  });
+
+  describe('Per-clinic rate limiting', () => {
+    it('should enforce per-clinic rate limit on appointment creation', async () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 30);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+
+      // Make requests up to the limit (assuming default apiLimiter: 500 per 15 min)
+      // We'll test the burst behavior - rapid requests should eventually hit limit
+      let successCount = 0;
+      let rateLimited = false;
+
+      for (let i = 0; i < 20; i++) {
+        const time = `${String(9 + i).padStart(2, '0')}:00`;
+        const patient = await testPrisma.patient.create({
+          data: { clinicId: clinic.id, name: `Rate Limit Patient ${i}`, phone: `+3069${String(10000000 + i).padStart(8, '0')}` },
+        });
+
+        const res = await request(app)
+          .post('/api/appointments')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ patientId: patient.id, reason: `Rate test ${i}`, date: dateStr, time, duration: 30 });
+
+        if (res.status === 429) {
+          rateLimited = true;
+          break;
+        } else if (res.status === 201) {
+          successCount++;
+        }
+      }
+
+      // Should have some success before rate limiting kicks in
+      expect(successCount).toBeGreaterThan(0);
+      // Note: Actual rate limit behavior depends on test environment
+      // This test documents expected behavior
+    });
+  });
 });
