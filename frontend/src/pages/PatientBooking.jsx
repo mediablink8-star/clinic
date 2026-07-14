@@ -1,50 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE } from '../lib/constants';
 import axios from 'axios';
-import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin, ChevronRight, ChevronLeft, Mail, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin, ChevronRight, ChevronLeft, Mail, FileText, Loader2, Shield, Download, Globe } from 'lucide-react';
 
 const PatientBooking = () => {
-    const clinicId = new URLSearchParams(window.location.search).get('clinicId');
-    const missedCallId = new URLSearchParams(window.location.search).get('missedCallId'); 
+    const { t, i18n } = useTranslation();
+    const searchParams = new URLSearchParams(window.location.search);
+    const clinicId = searchParams.get('clinicId');
+    const missedCallId = searchParams.get('missedCallId');
+    const lang = searchParams.get('lang') || 'el';
+
+    useEffect(() => {
+        i18n.changeLanguage(lang);
+    }, [lang]);
+
     const [clinic, setClinic] = useState(null);
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState({ name: '', phone: '', email: '', reason: '', date: '', time: '', doctorId: '' });
+    const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        email: '',
+        reason: '',
+        date: '',
+        time: '',
+        doctorId: '',
+    });
     const [availableSlots, setAvailableSlots] = useState([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [minDate, setMinDate] = useState('');
+    const [recaptchaToken, setRecaptchaToken] = useState(null);
+    const [recaptchaLoading, setRecaptchaLoading] = useState(false);
+    const [pollingInterval, setPollingInterval] = useState(null);
+    const [mounted, setMounted] = useState(false);
+
+    const executeRecaptcha = useCallback(async () => {
+        if (!window.grecaptcha || recaptchaToken) return;
+        setRecaptchaLoading(true);
+        try {
+            const token = await window.grecaptcha.execute('6Lc...', { action: 'booking' });
+            setRecaptchaToken(token);
+        } catch (err) {
+            console.error('reCAPTCHA error:', err);
+        } finally {
+            setRecaptchaLoading(false);
+        }
+    }, [recaptchaToken]);
 
     useEffect(() => {
+        if (window.grecaptcha && !recaptchaToken) {
+            executeRecaptcha();
+        }
+    }, [executeRecaptcha, recaptchaToken]);
+
+    useEffect(() => {
+        setMounted(true);
         setMinDate(new Date().toISOString().split('T')[0]);
     }, []);
 
-    
-    useEffect(() => {
-        const fetchSlots = async () => {
-            if (!formData.date || !clinicId) return;
-            setSlotsLoading(true);
-            try {
-                const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
-                const resp = await axios.get(url);
-                setAvailableSlots(resp.data.data);
-            } catch (err) {
-                console.error("Failed to fetch slots:", err);
-            } finally {
-                setSlotsLoading(false);
-            }
-        };
-        fetchSlots();
+    const fetchSlots = useCallback(async () => {
+        if (!formData.date || !clinicId) return;
+        setSlotsLoading(true);
+        try {
+            const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
+            const resp = await axios.get(url);
+            setAvailableSlots(resp.data.data || []);
+        } catch (err) {
+            console.error('Failed to fetch slots:', err);
+            setAvailableSlots([]);
+        } finally {
+            setSlotsLoading(false);
+        }
     }, [formData.date, formData.doctorId, clinicId]);
 
     useEffect(() => {
+        fetchSlots();
+    }, [fetchSlots]);
+
+    useEffect(() => {
+        if (formData.date && formData.time && clinicId) {
+            const interval = setInterval(() => {
+                fetchSlots();
+            }, 30000);
+            setPollingInterval(interval);
+            return () => clearInterval(interval);
+        }
+    }, [formData.date, formData.time, clinicId, fetchSlots]);
+
+    useEffect(() => {
+        if (!clinicId) {
+            setError(t('noClinicId'));
+            return;
+        }
         const fetchClinic = async () => {
             try {
                 const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}`);
                 setClinic(resp.data.data);
             } catch (err) {
-                setError("Το ιατρείο δεν βρέθηκε.");
+                setError(t('clinicNotFound'));
             }
         };
         const fetchDoctors = async () => {
@@ -56,24 +112,49 @@ const PatientBooking = () => {
                 }
             } catch (err) { }
         };
-        
-        if (clinicId) {
-            fetchClinic();
-            fetchDoctors();
-        }
-        else setError("Δεν βρέθηκε αναγνωριστικό ιατρείου. Παρακαλώ χρησιμοποιήστε τον σύνδεσμο που σας δόθηκε.");
+        fetchClinic();
+        fetchDoctors();
     }, [clinicId]);
+
+    const executeRecaptcha = useCallback(async () => {
+        if (!window.grecaptcha || recaptchaToken) return;
+        setRecaptchaLoading(true);
+        try {
+            const token = await window.grecaptcha.execute('6Lc...', { action: 'booking' });
+            setRecaptchaToken(token);
+        } catch (err) {
+            console.error('reCAPTCHA error:', err);
+        } finally {
+            setRecaptchaLoading(false);
+        }
+    }, [recaptchaToken]);
+
+    useEffect(() => {
+        if (window.grecaptcha && !recaptchaToken) {
+            executeRecaptcha();
+        }
+    }, [executeRecaptcha, recaptchaToken]);
 
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
-        
+
         if (!formData.date || !formData.time) {
-            setError("Παρακαλώ επιλέξτε ημερομηνία και ώρα.");
+            setError(t('selectDateTime'));
             setLoading(false);
             return;
         }
-        
+        if (!recaptchaToken) {
+            try {
+                const token = await window.grecaptcha.execute('6Lc...', { action: 'booking_submit' });
+                setRecaptchaToken(token);
+            } catch (err) {
+                setError('Security verification failed. Please refresh and try again.');
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             await axios.post(`${API_BASE}/public/book`, {
                 clinicId,
@@ -85,25 +166,64 @@ const PatientBooking = () => {
                 time: formData.time,
                 doctorId: formData.doctorId || undefined,
                 missedCallId: missedCallId || undefined,
+                recaptchaToken,
             });
             setStep(3);
         } catch (err) {
             if (err.response?.status === 409) {
-                setError("Η συγκεκριμένη ώρα μόλις κλείστηκε από άλλον ασθενή. Παρακαλώ επιλέξτε μια άλλη ώρα.");
+                setError(t('slotTaken'));
                 try {
-                    const url = `${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`;
-                    const resp = await axios.get(url);
-                    setAvailableSlots(resp.data.data);
+                    const resp = await axios.get(`${API_BASE}/public/clinic/${clinicId}/slots?date=${formData.date}${formData.doctorId ? `&doctorId=${formData.doctorId}` : ''}`);
+                    setAvailableSlots(resp.data.data || []);
                     setFormData(prev => ({ ...prev, time: '' }));
                 } catch (refreshErr) {}
             } else if (err.response?.status === 400) {
-                setError(err.response.data?.error || "Παρακαλώ ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.");
+                setError(err.response.data?.error || t('validationError'));
             } else {
-                setError("Η κράτηση απέτυχε. Παρακαλώ δοκιμάστε ξανά.");
+                setError(t('bookingFailed'));
             }
         } finally {
             setLoading(false);
         }
+    };
+
+    const downloadICS = useCallback(() => {
+        if (!formData.date || !formData.time || !clinic) return;
+        const start = new Date(`${formData.date}T${formData.time}:00`);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@clinicflow`;
+        const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ClinicFlow//Appointment//EN
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTSTART:${start.toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTEND:${end.toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+SUMMARY:Ραντεβού στο ${clinic.name}
+DESCRIPTION:Λόγος: ${formData.reason || 'Γενικός έλεγχος'}\\nΤοποθεσία: ${clinic.location}\\nΤηλέφωνο: ${clinic.phone}
+LOCATION:${clinic.location}
+ORGANIZER;CN=${clinic.name}:mailto:${clinic.email}
+ATTENDEE;CN=${formData.name}:mailto:${formData.email || ''}
+STATUS:CONFIRMED
+SEQUENCE:0
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR`;
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `appointment-${formData.date}-${formData.time}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [formData, clinic]);
+
+    const formatDateGR = (dateStr) => {
+        const [y, m, d] = dateStr.split('-');
+        return new Date(y, m - 1, d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
     };
 
     const StepIndicator = ({ currentStep }) => (
@@ -127,31 +247,32 @@ const PatientBooking = () => {
         </div>
     );
 
+    if (!mounted) return null;
+
     if (error && step !== 2) return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '2rem' }}>
-            <div className="booking-glass" style={{ textAlign: 'center', maxWidth: '400px', background: '#fff5f5', borderColor: '#feb2b2' }}>
-                <AlertCircle size={48} color="#f56565" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c53030', marginBottom: '0.75rem' }}>Σφάλμα</h2>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '2rem' }}>
+            <div style={{ textAlign: 'center', maxWidth: '400px', background: '#fff5f5', borderColor: '#feb2b2', borderRadius: '20px', padding: '2.5rem', boxShadow: '0 20px 40px -12px rgba(245, 101, 101, 0.3)' }}>
+                <AlertCircle size={48} color="#f56565" style={{ marginBottom: '1rem' }} />
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c53030', marginBottom: '0.75rem' }}>{t('securityCheck')}</h2>
                 <p style={{ marginBottom: '2rem', color: '#9b2c2c', fontWeight: '500' }}>{error}</p>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setError(null); setStep(1); }}>Δοκιμάστε ξανά</button>
+                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: '800' }} onClick={() => { setError(null); setStep(1); setRecaptchaToken(null); executeRecaptcha(); }}>{t('recaptchaVerify')}</button>
             </div>
         </div>
     );
 
     if (!clinic && !error) return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '12px' }}>
-            <Clock className="animate-spin" size={32} color="var(--primary)" />
-            <span style={{ fontWeight: '700', color: 'var(--text-light)' }}>Φόρτωση ιατρείου...</span>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', gap: '12px' }}>
+            <Loader2 className="animate-spin" size={32} color="var(--primary)" />
+            <span style={{ fontWeight: '700', color: 'var(--text-light)' }}>{t('loading')}</span>
         </div>
     );
 
     return (
         <div className="booking-page" style={{ minHeight: '100vh', background: 'transparent', padding: '4rem 1rem' }}>
             <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-                {/* Header */}
                 <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                    <div style={{ 
-                        width: '80px', height: '80px', borderRadius: '24px', 
+                    <div style={{
+                        width: '80px', height: '80px', borderRadius: '24px',
                         background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 1.5rem auto', boxShadow: 'var(--shadow-primary)',
@@ -160,98 +281,190 @@ const PatientBooking = () => {
                         {clinic.name.substring(0, 1).toUpperCase()}{clinic.name.split(' ').length > 1 ? clinic.name.split(' ')[1].substring(0, 1).toUpperCase() : 'C'}
                     </div>
                     <h1 style={{ fontSize: '2.25rem', fontWeight: '950', color: 'var(--secondary)', marginBottom: '0.75rem', letterSpacing: '-0.04em' }}>{clinic.name}</h1>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-light)', fontSize: '0.9rem', fontWeight: '600' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', color: 'var(--text-light)', fontSize: '0.9rem', fontWeight: '600', flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={16} color="var(--primary)" /> {clinic.location}</span>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Phone size={16} color="var(--primary)" /> {clinic.phone}</span>
                     </div>
                 </header>
 
-                <div className="booking-glass animate-slide">
+                <div style={{
+                    background: 'var(--glass-surface-strong)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    border: '1px solid rgba(255,255,255,0.4)',
+                    boxShadow: '0 40px 80px -16px rgba(15,23,42,0.12), 0 0 0 1px rgba(255,255,255,0.5)',
+                    borderRadius: '24px',
+                    padding: '2.5rem',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    animation: 'slideUp 0.4s ease'
+                }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, var(--primary), var(--accent))' }} />
+
+                    <StepIndicator currentStep={step} />
+
+                    {/* Language Switcher */}
+                    <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 10 }}>
+                        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-subtle)', borderRadius: '8px', padding: '4px' }}>
+                            <button
+                                onClick={() => i18n.changeLanguage('el')}
+                                style={{
+                                    padding: '6px 12px', borderRadius: '6px', border: 'none',
+                                    background: i18n.language === 'el' ? 'var(--primary)' : 'transparent',
+                                    color: i18n.language === 'el' ? 'white' : 'var(--text)',
+                                    fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                ΕΛ
+                            </button>
+                            <button
+                                onClick={() => i18n.changeLanguage('en')}
+                                style={{
+                                    padding: '6px 12px', borderRadius: '6px', border: 'none',
+                                    background: i18n.language === 'en' ? 'var(--primary)' : 'transparent',
+                                    color: i18n.language === 'en' ? 'white' : 'var(--text)',
+                                    fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                EN
+                            </button>
+                        </div>
+                    </div>
+
                     <StepIndicator currentStep={step} />
 
                     {step === 1 && (
-                        <div className="animate-fade">
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '2rem' }}>Στοιχεία Ασθενή</h2>
+                        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                                <Shield size={20} color="var(--primary)" />
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', margin: 0 }}>{t('patientDetails')}</h2>
+                            </div>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontWeight: '500', fontSize: '0.9rem' }}>{t('securityCheck')}</p>
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
-                                    <label className="booking-label"><User size={14} /> Ονοματεπώνυμο *</label>
-                                    <input type="text" placeholder="Π.χ. Ιωάννης Παπαδόπουλος" className="booking-input" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                        <User size={14} /> {t('fullName')} <span style={{ color: 'var(--urgent)' }}>*</span>
+                                    </label>
+                                    <input type="text" placeholder="Π.χ. Ιωάννης Παπαδόπουλος" style={{
+                                        width: '100%', padding: '12px 16px', borderRadius: '12px',
+                                        border: '1.5px solid var(--border)', background: 'rgba(255,255,255,0.8)',
+                                        fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)',
+                                        transition: 'all 0.2s ease', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                                    }} value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
                                     {formData.name && formData.name.length < 2 && (
-                                        <small style={{ color: '#ef4444', fontWeight: 600, marginTop: 4, display: 'block' }}>Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες</small>
+                                        <small style={{ color: '#ef4444', fontWeight: '600', marginTop: '4px', display: 'block' }}>{t('minNameLength')}</small>
                                     )}
                                 </div>
-                                <div className="booking-name-grid">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div>
-                                        <label className="booking-label"><Phone size={14} /> Τηλέφωνο *</label>
-                                        <input type="tel" placeholder="69XXXXXXXX" className="booking-input" value={formData.phone} onChange={e => {
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                            <Phone size={14} /> {t('phone')} <span style={{ color: 'var(--urgent)' }}>*</span>
+                                        </label>
+                                        <input type="tel" placeholder="69XXXXXXXX" style={{
+                                            width: '100%', padding: '12px 16px', borderRadius: '12px',
+                                            border: '1.5px solid var(--border)', background: 'rgba(255,255,255,0.8)',
+                                            fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)',
+                                            transition: 'all 0.2s ease', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                                        }} value={formData.phone} onChange={e => {
                                             const digits = e.target.value.replace(/\D/g, '');
                                             setFormData(prev => ({ ...prev, phone: digits }));
                                         }} />
                                         {formData.phone && formData.phone.length > 0 && formData.phone.length < 10 && (
-                                            <small style={{ color: '#ef4444', fontWeight: 600, marginTop: 4, display: 'block' }}>Το τηλέφωνο πρέπει να έχει τουλάχιστον 10 ψηφία</small>
+                                            <small style={{ color: '#ef4444', fontWeight: '600', marginTop: '4px', display: 'block' }}>{t('minPhoneLength')}</small>
                                         )}
                                     </div>
                                     <div>
-                                        <label className="booking-label"><Mail size={14} /> Email (Προαιρετικά)</label>
-                                        <input type="email" placeholder="email@example.gr" className="booking-input" value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                            <Mail size={14} /> {t('email')}
+                                        </label>
+                                        <input type="email" placeholder="email@example.gr" style={{
+                                            width: '100%', padding: '12px 16px', borderRadius: '12px',
+                                            border: '1.5px solid var(--border)', background: 'rgba(255,255,255,0.8)',
+                                            fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)',
+                                            transition: 'all 0.2s ease', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                                        }} value={formData.email} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
                                         {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
-                                            <small style={{ color: '#ef4444', fontWeight: 600, marginTop: 4, display: 'block' }}>Μη έγκυρη διεύθυνση email</small>
+                                            <small style={{ color: '#ef4444', fontWeight: '600', marginTop: '4px', display: 'block' }}>{t('invalidEmail')}</small>
                                         )}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="booking-label"><FileText size={14} /> Λόγος Επίσκεψης</label>
-                                    <textarea className="booking-input" placeholder="Περιγράψτε σύντομα τι σας απασχολεί..." style={{ minHeight: '100px', resize: 'none' }} value={formData.reason} onChange={e => setFormData(prev => ({ ...prev, reason: e.target.value }))} />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                        <FileText size={14} /> {t('reason')}
+                                    </label>
+                                    <textarea placeholder="Περιγράψτε σύντομα τι σας απασχολεί..." style={{
+                                        width: '100%', padding: '12px 16px', borderRadius: '12px',
+                                        border: '1.5px solid var(--border)', background: 'rgba(255,255,255,0.8)',
+                                        fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)',
+                                        transition: 'all 0.2s ease', outline: 'none', boxSizing: 'border-box',
+                                        fontFamily: 'inherit', minHeight: '100px', resize: 'none'
+                                    }} value={formData.reason} onChange={e => setFormData(prev => ({ ...prev, reason: e.target.value }))} />
                                 </div>
-                                <button className="btn btn-primary" style={{ width: '100%', padding: '16px', borderRadius: '16px', marginTop: '1rem', fontSize: '1rem', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} onClick={() => {
+                                <button style={{
+                                    width: '100%', padding: '16px', borderRadius: '16px',
+                                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
+                                    color: 'white', fontWeight: '800', fontSize: '1rem',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    transition: 'all 0.15s', boxShadow: 'var(--shadow-primary)',
+                                    border: 'none', cursor: 'pointer'
+                                }} onClick={() => {
                                     const errors = [];
-                                    if (!formData.name || formData.name.length < 2) errors.push('Ονοματεπώνυμο (τουλάχιστον 2 χαρακτήρες)');
-                                    if (!formData.phone || formData.phone.length < 10) errors.push('Τηλέφωνο (τουλάχιστον 10 ψηφία)');
-                                    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push('Email');
-                                    if (errors.length > 0) {
-                                        setError('Παρακαλώ συμπληρώστε σωστά: ' + errors.join(', '));
-                                        return;
-                                    }
+                                    if (!formData.name || formData.name.length < 2) errors.push(t('fullName'));
+                                    if (!formData.phone || formData.phone.length < 10) errors.push(t('phone'));
+                                    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push(t('email'));
+                                    if (errors.length > 0) { setError(`${t('requiredFields')} ${errors.join(', ')}`); return; }
                                     setError(null);
-                                    setStep(2);
-                                }} disabled={!formData.name || !formData.phone || formData.phone.length < 10 || (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))}>
-                                    Συνέχεια <ChevronRight size={18} />
+                                    executeRecaptcha();
+                                    setTimeout(() => setStep(2), 500);
+                                }} disabled={!formData.name || formData.name.length < 2 || !formData.phone || formData.phone.length < 10 || (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) || recaptchaLoading}>
+                                    {recaptchaLoading ? `${t('recaptchaVerify')} <Loader2 className="animate-spin" size={16} />` : `${t('continue')} <ChevronRight size={18} />`}
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {step === 2 && (
-                        <div className="animate-fade">
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', marginBottom: '2rem' }}>Επιλογή Ραντεβού</h2>
+                        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                                <Calendar size={20} color="var(--primary)" />
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--secondary)', margin: 0 }}>{t('selectAppointment')}</h2>
+                            </div>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                                {t('selectDoctor')}: {doctors.length > 0 ? t('anyDoctor') : '—'}
+                            </p>
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 {doctors.length > 0 && (
                                     <div>
-                                        <label className="booking-label"><User size={14} /> Επιλογή Γιατρού</label>
-                                        <div className="booking-doctors-grid">
-                                            <button 
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                            <User size={14} /> {t('selectDoctor')}
+                                        </label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '8px' }}>
+                                            <button
                                                 onClick={() => setFormData(prev => ({ ...prev, doctorId: '', date: '', time: '' }))}
                                                 style={{
-                                                    padding: '12px', borderRadius: '12px', border: '1.5px solid', 
+                                                    padding: '12px', borderRadius: '12px', border: '1.5px solid',
                                                     borderColor: !formData.doctorId ? 'var(--primary)' : 'var(--border)',
                                                     background: !formData.doctorId ? 'var(--primary-light)' : 'white',
                                                     color: !formData.doctorId ? 'var(--primary)' : 'var(--text)',
                                                     fontSize: '0.85rem', fontWeight: '700', transition: 'all 0.2s', cursor: 'pointer'
                                                 }}
                                             >
-                                                Οποιοσδήποτε
+                                                {t('anyDoctor')}
                                             </button>
                                             {doctors.map(d => (
-                                                <button 
+                                                <button
                                                     key={d.id}
                                                     onClick={() => setFormData(prev => ({ ...prev, doctorId: d.id, date: '', time: '' }))}
                                                     style={{
-                                                        padding: '12px', borderRadius: '12px', border: '1.5px solid', 
+                                                        padding: '12px', borderRadius: '12px', border: '1.5px solid',
                                                         borderColor: formData.doctorId === d.id ? 'var(--primary)' : 'var(--border)',
                                                         background: formData.doctorId === d.id ? 'var(--primary-light)' : 'white',
                                                         color: formData.doctorId === d.id ? 'var(--primary)' : 'var(--text)',
                                                         fontSize: '0.85rem', fontWeight: '700', transition: 'all 0.2s', cursor: 'pointer',
-                                                        textAlign: 'center'
+                                                        textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                                                     }}
                                                 >
                                                     {d.name}
@@ -263,32 +476,41 @@ const PatientBooking = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                                     <div>
-                                        <label className="booking-label"><Calendar size={14} /> Ημερομηνία</label>
-                                        <input type="date" className="booking-input" value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value, time: '' }))} min={minDate} />
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                            <Calendar size={14} /> {t('date')}
+                                        </label>
+                                        <input type="date" style={{
+                                            width: '100%', padding: '12px 16px', borderRadius: '12px',
+                                            border: '1.5px solid var(--border)', background: 'rgba(255,255,255,0.8)',
+                                            fontSize: '0.95rem', fontWeight: '500', color: 'var(--text)',
+                                            transition: 'all 0.2s ease', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+                                        }} value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value, time: '' }))} min={minDate} />
                                     </div>
 
                                     <div>
-                                        <label className="booking-label"><Clock size={14} /> Διαθέσιμες Ώρες</label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                                            <Clock size={14} /> {t('availableTimes')}
+                                        </label>
                                         {!formData.date ? (
                                             <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--bg-subtle)', borderRadius: '16px', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '600' }}>
-                                                Παρακαλώ επιλέξτε ημερομηνία πρώτα
+                                                {t('selectDateFirst')}
                                             </div>
                                         ) : slotsLoading ? (
                                             <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--bg-subtle)', borderRadius: '16px', color: 'var(--primary)', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                                <Clock className="animate-spin" size={18} /> Αναζήτηση slots...
+                                                <Loader2 className="animate-spin" size={18} /> {t('slotsLoading')}
                                             </div>
                                         ) : availableSlots.length === 0 ? (
                                             <div style={{ padding: '1.5rem', textAlign: 'center', background: '#fff8e6', borderRadius: '16px', color: '#92400e', fontSize: '0.88rem', fontWeight: '600', border: '1px solid #fde68a' }}>
                                                 <Clock size={18} style={{ marginBottom: '4px' }} />
-                                                <div>Δεν υπάρχουν διαθέσιμες ώρες για αυτή την ημέρα.</div>
+                                                <div>{t('noSlots')}</div>
                                                 <div style={{ fontSize: '0.78rem', marginTop: '6px', opacity: 0.85, fontWeight: '500' }}>
-                                                    Δοκιμάστε άλλη ημερομηνία ή καλέστε μας στο {clinic.phone} για ραντεβού εκτός ωραρίου.
+                                                    {t('tryAnotherDate')} {clinic.phone}
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="booking-slots-grid">
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                                                 {availableSlots.map(slot => (
-                                                    <button 
+                                                    <button
                                                         key={slot}
                                                         onClick={() => setFormData(prev => ({ ...prev, time: slot }))}
                                                         style={{
@@ -308,12 +530,12 @@ const PatientBooking = () => {
                                     </div>
                                 </div>
 
-                                <div className="booking-nav">
-                                    <button className="btn btn-outline" style={{ flex: 1, padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={() => setStep(1)}>
-                                        <ChevronLeft size={18} /> Πίσω
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                    <button style={{ flex: 1, padding: '16px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'var(--bg-subtle)', border: '1.5px solid var(--border)', color: 'var(--text)', fontWeight: '800' }} onClick={() => setStep(1)}>
+                                        <ChevronLeft size={18} /> {t('back')}
                                     </button>
-                                    <button className="btn btn-primary" style={{ flex: 2, padding: '16px', borderRadius: '16px', fontWeight: '800' }} onClick={handleSubmit} disabled={!formData.date || !formData.time || loading}>
-                                        {loading ? 'Γίνεται κράτηση...' : 'Επιβεβαίωση Ραντεβού'}
+                                    <button style={{ flex: 2, padding: '16px', borderRadius: '16px', fontWeight: '800', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.15s', boxShadow: 'var(--shadow-primary)', cursor: 'pointer' }} onClick={handleSubmit} disabled={!formData.date || !formData.time || loading}>
+                                        {loading ? `${t('loading')} <Loader2 className="animate-spin" size={16} />` : t('bookAppointment')}
                                     </button>
                                 </div>
                                 {error && (
@@ -326,37 +548,37 @@ const PatientBooking = () => {
                     )}
 
                     {step === 3 && (
-                        <div className="animate-fade" style={{ textAlign: 'center', padding: '1rem' }}>
+                        <div style={{ animation: 'fadeIn 0.3s ease', textAlign: 'center', padding: '1rem' }}>
                             <div style={{ width: '96px', height: '96px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem auto', border: '2px solid var(--accent)' }}>
                                 <CheckCircle size={56} color="var(--accent)" />
                             </div>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', marginBottom: '1rem', letterSpacing: '-0.02em' }}>Επιτυχής Καταχώρηση!</h2>
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', color: 'var(--secondary)', marginBottom: '1rem', letterSpacing: '-0.02em' }}>{t('success')}</h2>
                             <p style={{ color: 'var(--text-light)', marginBottom: '2.5rem', lineHeight: '1.7', fontSize: '1.05rem', fontWeight: '500' }}>
-                                Σας ευχαριστούμε, {formData.name.split(' ')[0]}.<br/>
-                                Το ραντεβού σας για τις <strong>{(() => {
-                                    const [y, m, d] = formData.date.split('-');
-                                    return new Date(y, m - 1, d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
-                                })()}</strong> στις <strong>{formData.time}</strong> καταχωρήθηκε.
-                                <br/><span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Θα λάβετε σύντομα μήνυμα επιβεβαίωσης.</span>
+                                {t('confirmationSent', { name: formData.name.split(' ')[0] })}
+                                <br/><span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('confirmationSent')}</span>
                             </p>
-                            <button className="btn btn-primary" style={{ width: '100%', padding: '16px', borderRadius: '16px', fontWeight: '800' }} onClick={() => { setStep(1); setFormData({ name: '', phone: '', email: '', reason: '', date: '', time: '', doctorId: '' }); setAvailableSlots([]); setError(null); }}>
-                                Νέα Κράτηση
+                            <button style={{ width: '100%', padding: '16px', borderRadius: '16px', fontWeight: '800', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }} onClick={downloadICS}>
+                                <Download size={18} /> {t('downloadCalendar')}
+                            </button>
+                            <button style={{ width: '100%', padding: '16px', borderRadius: '16px', fontWeight: '800', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)', color: 'white', border: 'none', cursor: 'pointer' }} onClick={() => { setStep(1); setFormData({ name: '', phone: '', email: '', reason: '', date: '', time: '', doctorId: '' }); setAvailableSlots([]); setError(null); }}>
+                                {t('newBooking')}
                             </button>
                         </div>
                     )}
+
                 </div>
 
                 <footer style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: '600' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <div style={{ 
-                            width: '28px', height: '28px', borderRadius: '8px', 
+                        <div style={{
+                            width: '28px', height: '28px', borderRadius: '8px',
                             background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: '0.65rem', fontWeight: '900', color: 'white'
                         }}>CF</div>
                         <span style={{ fontWeight: '800', color: 'var(--secondary)', fontSize: '1rem', letterSpacing: '-0.02em' }}>ClinicFlow</span>
                     </div>
-                    <p>Powered by AI-first Clinic Management • Secure & Encrypted</p>
+                    <p>{t('poweredBy')}</p>
                 </footer>
             </div>
 
@@ -441,6 +663,14 @@ const PatientBooking = () => {
                     .booking-page {
                         padding: 2rem 0.75rem !important;
                     }
+                }
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
         </div>

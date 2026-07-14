@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import * as Sentry from "@sentry/react";
 import axios from 'axios';
 import './index.css'
+import './i18n.js'
 import App from './App.jsx'
 import { createBeforeSend } from './lib/sentryConfig.js';
 
