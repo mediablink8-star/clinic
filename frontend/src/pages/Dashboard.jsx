@@ -2,7 +2,7 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { DEFAULT_TIMEZONE } from '../lib/constants';
 import { API_BASE } from '../lib/constants';
-import { Zap, Plus, Activity, LineChart, TrendingUp, Menu, X, ChevronDown } from 'lucide-react';
+import { Zap, Plus, Activity, LineChart, TrendingUp, Menu, X, ChevronDown, Clock } from 'lucide-react';
 import api from '../lib/api';
 import RecoveryFeed from '../components/RecoveryFeed';
 import QuickActions from '../components/QuickActions';
@@ -182,9 +182,14 @@ const Dashboard = ({
     })();
 
     const [isHeaderExpanded, setIsHeaderExpanded] = React.useState(true);
+    const [currentTime, setCurrentTime] = React.useState(() => new Date());
     const headerRef = React.useRef(null);
 
-    // Sticky header observer
+    // Clock update every second
+    React.useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
     React.useEffect(() => {
         const header = headerRef.current;
         if (!header) return;
@@ -292,6 +297,12 @@ const Dashboard = ({
                                 </div>
                             )}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px', background: 'linear-gradient(180deg,rgba(255,255,255,0.34) 0%,rgba(255,255,255,0.14) 100%)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(10px) saturate(180%)', boxShadow: 'var(--shadow-sm)' }}>
+                                {/* Clock */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0 6px', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>
+                                    <Clock size={12} color="var(--text-muted)" />
+                                    {currentTime.toLocaleTimeString(clinic?.timezone === 'Europe/Athens' ? 'el-GR' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: clinic?.timezone || 'Europe/Athens' })}
+                                </div>
+                                <div style={{ width: '1px', height: '16px', background: 'var(--border)' }} />
                                 <button onClick={() => setCurrentTab('reports')} className="btn btn-outline" style={{ border: 'none', background: 'transparent', padding: '4px 9px', fontSize: '0.7rem' }}><LineChart size={12} /> Αναφορές</button>
                                 <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '0.7rem' }}><Plus size={12} strokeWidth={3} /> Νέο Ραντεβού</button>
                                 <div style={{ width: '1px', height: '16px', background: 'var(--border)' }} />
