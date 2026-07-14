@@ -3,6 +3,8 @@ const { startNotificationWorker } = require('./services/notificationWorker');
 const { startRecoveryWorker } = require('./services/recoveryWorker');
 const { connection: recoveryConnection } = require('./services/recoveryQueue');
 const logger = require('./utils/logger');
+const cron = require('node-cron');
+const { updateRecoveryRates } = require('./scripts/updateRecoveryRates');
 
 logger.info('Background worker process starting...');
 
@@ -13,6 +15,15 @@ logger.info('Worker Background worker started', { mode: worker?.mode || 'unknown
 const recoveryWorker = startRecoveryWorker(recoveryConnection);
 if (recoveryWorker) {
     logger.info('Recovery worker started');
+}
+
+// Schedule recovery rate updates every hour
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_CRON_JOBS === 'true') {
+    cron.schedule('0 * * * *', async () => {
+        logger.info('Running scheduled recovery rate update');
+        await updateRecoveryRates().catch(err => logger.error('Recovery rate update failed', { error: err.message }));
+    });
+    logger.info('Scheduled recovery rate update cron job (hourly)');
 }
 
 async function stop() {

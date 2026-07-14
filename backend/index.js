@@ -177,6 +177,19 @@ app.use((req, res, next) => {
     next();
 });
 
+// Prometheus metrics middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = (Date.now() - start) / 1000;
+        // Skip metrics endpoint itself to avoid recursion
+        if (req.path !== '/metrics') {
+            metrics.recordHttpRequest(req.method, req.route?.path || req.path, res.statusCode, duration);
+        }
+    });
+    next();
+});
+
 const corsOptions = {
     origin: (origin, callback) => {
         const allowedOrigins = [
@@ -220,6 +233,7 @@ const asyncHandler = require('./middleware/asyncHandler');
 const redact = require('./middleware/redact');
 const { requireAuth: requireAuthMiddleware } = require('./middleware/requireAuth');
 const { attachBilling, trialGuard } = require('./middleware/planGate');
+const metrics = require('./utils/metrics');
 
 // --- SAAS MIDDLEWARE ---
 
@@ -275,6 +289,16 @@ app.get('/api/health', async (req, res) => {
     res.status(checks.status === 'ok' ? 200 : 503).json(checks);
 });
 
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', metrics.register.contentType);
+        res.end(await metrics.register.metrics());
+    } catch (err) {
+        res.status(500).send('Metrics error');
+    }
+});
+
 // Detailed health — requires platform admin auth, returns service config status
 app.get('/api/health/detailed', requireAdmin, async (req, res) => {
     const checks = {
@@ -313,6 +337,14 @@ app.get('/api/health/detailed', requireAdmin, async (req, res) => {
 
 // Apply general rate limit to all /api routes
 app.use('/api', apiLimiter);
+
+// API Versioning middleware
+const API_VERSION = 'v1';
+app.use('/api', (req, res, next) => {
+    res.setHeader('API-Version', API_VERSION);
+    res.setHeader('API-Deprecation-Warning', 'false');
+    next();
+});
 
 // Auth - rate limited
 const authRouter = require('./routes/auth');

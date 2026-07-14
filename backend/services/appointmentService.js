@@ -9,6 +9,7 @@ const { normalizePhone } = require('../utils/phone');
 const { sendDirectMessage } = require('./messagingService');
 const { fromZonedTime, formatInTimeZone } = require('date-fns-tz');
 const { encrypt, decrypt } = require('./encryptionService');
+const metrics = require('../utils/metrics');
 
 const logPrefix = '[AppointmentService]';
 
@@ -265,6 +266,9 @@ try {
             const patient = await prisma.patient.findUnique({ where: { id: patientId } });
             const startDate = new Date(appointment.startTime);
 
+            // Record metrics
+            metrics.recordAppointmentBooked(clinic.id, source || 'MANUAL', appointment.doctorId || 'none');
+
             triggerWebhook(
                 'appointment.created',
                 {
@@ -337,6 +341,11 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
         });
         return updated;
     });
+
+    // Record cancellation metric
+    if (status === 'CANCELLED') {
+        metrics.recordAppointmentCancelled(clinicId, actor.userId || 'user');
+    }
 
     // Update Google Calendar event status if synced
     if (existing.googleCalendarEventId) {

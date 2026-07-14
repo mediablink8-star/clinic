@@ -5,6 +5,14 @@ const prisma = require('../services/prisma');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Default retry configuration
+const DEFAULT_RETRY_CONFIG = {
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 60000,
+    backoffMultiplier: 2,
+};
+
 /**
  * Sends a single webhook attempt with timeout.
  */
@@ -83,11 +91,13 @@ function resolveWebhookUrl(eventType, clinic) {
     return url;
 }
 
+const { recordWebhookDelivery } = require('../utils/metrics');
+
 /**
- * Triggers an external webhook with automatic retry (exponential backoff).
+ * Triggers an external webhook with automatic retry (exponential backoff) and dead letter queue.
  */
 async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, options = {}) {
-     const { clinic } = options;
+     const { clinic, maxRetries, baseDelayMs, maxDelayMs, backoffMultiplier } = options;
      const targetUrl = webhookUrl || resolveWebhookUrl(eventType, clinic);
 
      if (!targetUrl) {
@@ -95,108 +105,198 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
          return { success: false, reason: 'No URL' };
      }
 
-    // Validate URL to prevent SSRF
-    try {
-        const parsed = new URL(targetUrl);
-        if (!['http:', 'https:'].includes(parsed.protocol)) {
-            logger.warn('Webhook Skipped — Invalid protocol', { eventType });
-            return { success: false, reason: 'Invalid URL protocol' };
-        }
-        // Block private/internal IP ranges to prevent SSRF attacks.
-        // Override: set ALLOW_PRIVATE_WEBHOOK_URLS=true in env if your n8n
-        // VPS resolves to a private IP (rare; usually a public hostname is fine).
-        const allowPrivate = process.env.ALLOW_PRIVATE_WEBHOOK_URLS === 'true';
-        if (!allowPrivate) {
-            const hostname = parsed.hostname.toLowerCase();
-            const isPrivateIp = /^10\./.test(hostname) ||
-                /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
-                /^192\.168\./.test(hostname) ||
-                /^127\./.test(hostname) ||
-                hostname === 'localhost' ||
-                hostname === '0.0.0.0' ||
-                /^169\.254\./.test(hostname) || // AWS metadata
-                /^::1$/.test(hostname) ||
-                /^\[::1\]/.test(hostname);
-            if (isPrivateIp) {
-                logger.warn('Webhook Skipped — Private/internal IP blocked (set ALLOW_PRIVATE_WEBHOOK_URLS=true to override)', { eventType, hostname });
-                return { success: false, reason: 'Private IP blocked' };
-            }
-        }
-    } catch {
-        logger.warn('Webhook Skipped — Malformed URL', { eventType });
-        return { success: false, reason: 'Malformed URL' };
+     // Validate URL to prevent SSRF
+     try {
+         const parsed = new URL(targetUrl);
+         if (!['http:', 'https:'].includes(parsed.protocol)) {
+             logger.warn('Webhook Skipped — Invalid protocol', { eventType });
+             return { success: false, reason: 'Invalid URL protocol' };
+         }
+         const allowPrivate = process.env.ALLOW_PRIVATE_WEBHOOK_URLS === 'true';
+         if (!allowPrivate) {
+             const hostname = parsed.hostname.toLowerCase();
+             const isPrivateIp = /^10\./.test(hostname) ||
+                 /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+                 /^192\.168\./.test(hostname) ||
+                 /^127\./.test(hostname) ||
+                 hostname === 'localhost' ||
+                 hostname === '0.0.0.0' ||
+                 /^169\.254\./.test(hostname) ||
+                 /^::1$/.test(hostname) ||
+                 /^\[::1\]/.test(hostname);
+             if (isPrivateIp) {
+                 logger.warn('Webhook Skipped — Private/internal IP blocked', { eventType, hostname });
+                 return { success: false, reason: 'Private IP blocked' };
+             }
+         }
+     } catch {
+         logger.warn('Webhook Skipped — Malformed URL', { eventType });
+         return { success: false, reason: 'Malformed URL' };
+     }
+
+     const retryConfig = {
+         maxRetries: maxRetries ?? DEFAULT_RETRY_CONFIG.maxRetries,
+         baseDelayMs: baseDelayMs ?? DEFAULT_RETRY_CONFIG.baseDelayMs,
+         maxDelayMs: maxDelayMs ?? DEFAULT_RETRY_CONFIG.maxDelayMs,
+         backoffMultiplier: backoffMultiplier ?? DEFAULT_RETRY_CONFIG.backoffMultiplier,
+     };
+
+     const rawSecret = webhookSecret || clinic?.webhookSecret;
+     const secret = decryptSafe(rawSecret);
+
+     const body = JSON.stringify({
+         event: eventType,
+         timestamp: new Date().toISOString(),
+         data: payload,
+         backendUrl: process.env.BACKEND_API_URL || '',
+         ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
+     });
+
+     const headers = { 
+         'Content-Type': 'application/json',
+         'Accept': 'application/json',
+         'X-Webhook-Key': secret || '',
+         'ngrok-skip-browser-warning': 'true'
+     };
+
+     if (secret) {
+         headers['X-Webhook-Signature'] = crypto.createHmac('sha256', secret).update(body).digest('hex');
+     }
+
+     logger.info('Webhook Sending', { eventType, targetUrl });
+
+     const startTime = Date.now();
+     let lastError;
+     let lastHttpStatus = null;
+     let deadLetter = false;
+
+     for (let attempt = 1; attempt <= retryConfig.maxRetries; attempt++) {
+try {
+             const status = await performRequest(targetUrl, body, headers);
+             lastHttpStatus = status;
+             logger.info('Webhook success', { eventType, attempt, status });
+             await recordDelivery({
+                 clinicId: clinic?.id,
+                 eventType,
+                 targetUrl,
+                 success: true,
+                 attempts: attempt,
+                 httpStatus: status,
+                 durationMs: Date.now() - startTime,
+                 payload,
+                 deadLetter: false,
+             });
+             // Record metrics
+             recordWebhookDelivery(clinic?.id, eventType, true);
+             return { success: true, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: attempt, httpStatus: status, deadLetter: false };
+         } catch (err) {
+             lastError = err;
+             const m = /HTTP (\d+)/.exec(err.message || '');
+             if (m) lastHttpStatus = Number(m[1]);
+             logger.warn('Webhook Attempt failed', { eventType, attempt, error: err.message });
+             
+             // On final attempt, mark as dead letter
+             if (attempt === retryConfig.maxRetries) {
+                 deadLetter = true;
+             } else {
+                 const delay = Math.min(
+                     retryConfig.baseDelayMs * Math.pow(retryConfig.backoffMultiplier, attempt - 1),
+                     retryConfig.maxDelayMs
+                 );
+                 await sleep(delay);
+             }
+         }
+     }
+
+     logger.error('Webhook failed - moving to dead letter queue', { event: eventType, url: targetUrl, attempts: retryConfig.maxRetries, err: lastError });
+     await recordDelivery({
+         clinicId: clinic?.id,
+         eventType,
+         targetUrl,
+         success: false,
+         attempts: retryConfig.maxRetries,
+         httpStatus: lastHttpStatus,
+         errorMessage: lastError?.message,
+         durationMs: Date.now() - startTime,
+         payload,
+         deadLetter: true,
+     });
+     // Record metrics
+     recordWebhookDelivery(clinic?.id, eventType, false);
+     return { success: false, error: lastError.message, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: retryConfig.maxRetries, httpStatus: lastHttpStatus, deadLetter: true };
+ }
+
+/**
+ * Retry a failed webhook delivery from the dead letter queue.
+ */
+async function retryWebhookDelivery(deliveryId) {
+    const delivery = await prisma.webhookDelivery.findUnique({ where: { id: deliveryId } });
+    if (!delivery) throw new Error('Webhook delivery not found');
+    
+    if (!delivery.deadLetter) {
+        throw new Error('Delivery is not in dead letter queue');
     }
 
-    const { maxRetries = 3, baseDelay = 500 } = options;
-    const rawSecret = webhookSecret || clinic?.webhookSecret;
-    const secret = decryptSafe(rawSecret);
+    // Clone the original payload
+    const payload = delivery.payload ? JSON.parse(JSON.stringify(delivery.payload)) : {};
+    
+    // Get clinic for context
+    const clinic = await prisma.clinic.findUnique({ where: { id: delivery.clinicId } });
+    if (!clinic) throw new Error('Clinic not found');
 
-    const body = JSON.stringify({
-        event: eventType,
-        timestamp: new Date().toISOString(),
-        data: payload,
-        backendUrl: process.env.BACKEND_API_URL || '',
-        ...(clinic ? { clinic: buildClinicContext(clinic) } : {})
-    });
+    const result = await triggerWebhook(
+        delivery.eventType,
+        payload.data || payload,
+        delivery.targetUrl,
+        clinic.webhookSecret,
+        { clinic, maxRetries: 3, baseDelayMs: 1000 }
+    );
 
-    const headers = { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Webhook-Key': secret || '',
-        'ngrok-skip-browser-warning': 'true'
+    if (result.success) {
+        // Mark as resolved
+        await prisma.webhookDelivery.update({
+            where: { id: deliveryId },
+            data: { deadLetter: false, success: true }
+        });
+    }
+
+    return result;
+}
+
+/**
+ * Get failed webhook deliveries for a clinic (dead letter queue)
+ */
+async function getDeadLetterQueue(clinicId, options = {}) {
+    const { limit = 50, offset = 0, since } = options;
+    const where = {
+        clinicId,
+        deadLetter: true,
+        ...(since && { createdAt: { gte: new Date(since) } }),
     };
-
-    if (secret) {
-        headers['X-Webhook-Signature'] = crypto.createHmac('sha256', secret).update(body).digest('hex');
-    }
-
-    logger.info('Webhook Sending', { eventType, targetUrl });
-
-    const startTime = Date.now();
-    let lastError;
-    let lastHttpStatus = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            // Using a more robust request helper to handle potential Node version issues
-            const status = await performRequest(targetUrl, body, headers);
-            lastHttpStatus = status;
-            logger.info('Webhook success', { eventType, attempt, status });
-            await recordDelivery({
-                clinicId: clinic?.id,
-                eventType,
-                targetUrl,
-                success: true,
-                attempts: attempt,
-                httpStatus: status,
-                durationMs: Date.now() - startTime,
-                payload,
-            });
-            return { success: true, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: attempt, httpStatus: status };
-        } catch (err) {
-            lastError = err;
-            const m = /HTTP (\d+)/.exec(err.message || '');
-            if (m) lastHttpStatus = Number(m[1]);
-            logger.warn('Webhook Attempt failed', { eventType, attempt, error: err.message });
-            if (attempt < maxRetries) {
-                await sleep(baseDelay * Math.pow(2, attempt - 1));
-            }
-        }
-    }
-
-    logger.error('Webhook failed', { event: eventType, url: targetUrl, attempts: maxRetries, err: lastError });
-    await recordDelivery({
-        clinicId: clinic?.id,
-        eventType,
-        targetUrl,
-        success: false,
-        attempts: maxRetries,
-        httpStatus: lastHttpStatus,
-        errorMessage: lastError?.message,
-        durationMs: Date.now() - startTime,
-        payload,
+    return prisma.webhookDelivery.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
     });
-    return { success: false, error: lastError.message, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: maxRetries, httpStatus: lastHttpStatus };
+}
+
+/**
+ * Clean up old webhook deliveries (keep last 30 days by default)
+ */
+async function cleanupWebhookDeliveries(options = {}) {
+    const { olderThanDays = 30, dryRun = false } = options;
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+    
+    if (dryRun) {
+        return prisma.webhookDelivery.count({
+            where: { createdAt: { lt: cutoff } }
+        });
+    }
+    
+    return prisma.webhookDelivery.deleteMany({
+        where: { createdAt: { lt: cutoff } }
+    });
 }
 
 /**

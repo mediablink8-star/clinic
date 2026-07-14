@@ -17,6 +17,7 @@ const { handleMissedCall } = require('../services/missedCallService');
 const { normalizePhone } = require('../utils/phone');
 const { logAction } = require('../services/auditService');
 const logger = require('../utils/logger');
+const { triggerWebhook, retryWebhookDelivery, getDeadLetterQueue, cleanupWebhookDeliveries } = require('../services/webhookService');
 
 // Apply platform admin protection to all routes in this router
 router.use(requirePlatformAdmin);
@@ -706,6 +707,25 @@ router.get('/holidays', asyncHandler(async (req, res) => {
         orderBy: { date: 'asc' }
     });
     res.json({ country, months, total: holidays.length, holidays });
+}));
+
+// ── Dead Letter Queue (Webhook) ──
+router.get('/webhook-dead-letter', asyncHandler(async (req, res) => {
+    const { clinicId, limit = 50, offset = 0, since } = req.query;
+    const queue = await getDeadLetterQueue(clinicId, { limit: parseInt(limit), offset: parseInt(offset), since });
+    res.json({ success: true, queue });
+}));
+
+router.post('/webhook-dead-letter/:deliveryId/retry', asyncHandler(async (req, res) => {
+    const { deliveryId } = req.params;
+    const result = await retryWebhookDelivery(deliveryId);
+    res.json({ success: result.success, ...result });
+}));
+
+router.post('/webhook-cleanup', asyncHandler(async (req, res) => {
+    const { olderThanDays = 30, dryRun = false } = req.body;
+    const result = await cleanupWebhookDeliveries({ olderThanDays: parseInt(olderThanDays), dryRun });
+    res.json({ success: true, deleted: result.count || result, dryRun });
 }));
 
 // ── Demo data seed (one-time use) ──

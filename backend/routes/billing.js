@@ -215,6 +215,35 @@ authed.post('/resume', asyncHandler(async (req, res) => {
     res.json({ success: true, cancelAtPeriodEnd: false });
 }));
 
+// ---- Metered usage reporting (for SMS, AI requests, voice calls) ----
+authed.post('/report-usage', asyncHandler(async (req, res) => {
+    const { metric, quantity = 1 } = req.body;
+    const validMetrics = ['sms_sent', 'ai_requests', 'voice_calls'];
+    if (!validMetrics.includes(metric)) {
+        throw new AppError('VALIDATION_ERROR', `Invalid metric. Allowed: ${validMetrics.join(', ')}`, 400);
+    }
+
+    const stripe = getStripe();
+    if (!req.clinic.stripeSubscriptionId) {
+        throw new AppError('VALIDATION_ERROR', 'No active subscription', 400);
+    }
+
+    // Get subscription to find the metered price item
+    const subscription = await stripe.subscriptions.retrieve(req.clinic.stripeSubscriptionId);
+    const item = subscription.items.data.find(i => i.price.lookup_key === metric);
+    if (!item) {
+        throw new AppError('VALIDATION_ERROR', `No metered price item found for metric: ${metric}`, 400);
+    }
+
+    await stripe.subscriptionItems.createUsageRecord(item.id, {
+        quantity,
+        timestamp: Math.floor(Date.now() / 1000),
+        action: 'increment',
+    });
+
+    res.json({ success: true });
+}));
+
 // Mount the authed router under /api/billing
 router.use('/', authed);
 

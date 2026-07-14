@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clinicflow_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clinicflow_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/clinicflow_test
+      REDIS_URL: redis://redis:6379/1
+      JWT_SECRET: test-jwt-secret
+      REFRESH_TOKEN_SECRET: test-refresh-secret
+      VAPI_API_KEY: test-vapi-key
+      VAPI_ASSISTANT_ID: test-assistant
+      VAPI_PHONE_NUMBER_ID: test-phone
+      TWILIO_ACCOUNT_SID: test-sid
+      TWILIO_AUTH_TOKEN: test-token
+      TWILIO_PHONE_NUMBER: +302101234567
+      GEMINI_API_KEY: test-gemini-key
+      BACKEND_API_URL: http://localhost:4000
+      FRONTEND_URL: http://localhost:5173
+      WEBHOOK_SECRET: test-webhook-secret
+      ZADARMA_WEBHOOK_SECRET: test-zadarma-secret
+      DISABLE_REDIS: "true"
+      DISABLE_WORKER: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             npm run test:ci"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules

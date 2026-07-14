@@ -1,5 +1,6 @@
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
+const metrics = require('../utils/metrics');
 
 const ACTIVE_RECOVERY_CASE_STATES = ['ACTIVE', 'ENGAGED'];
 
@@ -112,6 +113,8 @@ async function appendActivityEvent({
     });
 }
 
+const { recordRecoveryCase } = require('../utils/metrics');
+
 async function ensureRecoveryCaseForMissedCall(missedCallId) {
     const existing = await prisma.recoveryCase.findUnique({
         where: { missedCallId },
@@ -192,6 +195,9 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
         throw error;
     }
+
+    // Record metrics
+    recordRecoveryCase(missedCall.clinicId, recoveryCase.state);
 }
 
 async function recordOutboundMessageForMissedCall({
@@ -561,6 +567,9 @@ async function markRecoveryCaseRecovered({ clinicId, missedCallId, occurredAt = 
         },
         include: { conversation: true }
     });
+
+    // Record metrics
+    recordRecoveryCase(clinicId, 'RECOVERED');
 
     await appendActivityEvent({
         clinicId,
