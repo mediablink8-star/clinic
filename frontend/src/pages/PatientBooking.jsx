@@ -116,19 +116,6 @@ const PatientBooking = () => {
         fetchDoctors();
     }, [clinicId]);
 
-    const executeRecaptcha = useCallback(async () => {
-        if (!window.grecaptcha || recaptchaToken) return;
-        setRecaptchaLoading(true);
-        try {
-            const token = await window.grecaptcha.execute('6Lc...', { action: 'booking' });
-            setRecaptchaToken(token);
-        } catch (err) {
-            console.error('reCAPTCHA error:', err);
-        } finally {
-            setRecaptchaLoading(false);
-        }
-    }, [recaptchaToken]);
-
     useEffect(() => {
         if (window.grecaptcha && !recaptchaToken) {
             executeRecaptcha();
