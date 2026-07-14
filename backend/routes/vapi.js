@@ -22,6 +22,11 @@ const { getBookingLink } = require('../utils/url');
 const { normalizePhone } = require('../utils/phone');
 const logger = require('../utils/logger');
 const { fromZonedTime } = require('date-fns-tz');
+const { connection: redis } = require('../services/queueService');
+const { recordDelivery } = require('../services/webhookService');
+
+// Redis may be disabled in some environments (e.g., dev without Redis)
+const REDIS_DISABLED = process.env.REDIS_DISABLED === 'true' || !redis;
 
 function parseAppointmentDay(dayStr) {
     const now = new Date();
@@ -75,10 +80,22 @@ function vapiAuth(req, res, next) {
  */
 router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     const event = req.body;
-    const callId = event.id;
-    const status = event.status;
+    const callId = event.id || event.call?.id;
+    const eventType = event.type || event.message?.type || event.status || 'unknown';
 
-    logger.info('Vapi Webhook Received', { status, callId });
+    logger.info('Vapi Webhook Received', { status: event.status, callId, eventType });
+
+    // Idempotency: dedupe Vapi webhook retries by callId + eventType
+    // A single call fires multiple distinct events (call-started, function-call, call-ended, transcript)
+    // all sharing the same callId — key by both to avoid swallowing real events.
+    if (redis && !REDIS_DISABLED && callId) {
+        const idempotencyKey = `vapi:webhook:${callId}:${eventType}`;
+        const alreadyProcessed = await redis.set(idempotencyKey, '1', 'EX', 86400, 'NX'); // 24h TTL, only if not exists
+        if (!alreadyProcessed) {
+            logger.info('Vapi webhook duplicate ignored', { callId, eventType });
+            return res.json({ success: true, duplicate: true });
+        }
+    }
 
     // Process BEFORE responding — if processing fails, return 500 so Vapi retries.
     // Responding 200 before processing means failures are silently lost.
@@ -86,15 +103,55 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             await handleVapiEvent(event);
+            // Log successful webhook processing
+            const missedCallId = event.metadata?.missedCallId;
+            let clinicId = null;
+            if (missedCallId) {
+                const mc = await prisma.missedCall.findUnique({ where: { id: missedCallId }, select: { clinicId: true } });
+                clinicId = mc?.clinicId || null;
+            }
+            if (clinicId) {
+                await recordDelivery({
+                    clinicId,
+                    eventType: `vapi.webhook.${eventType}`,
+                    targetUrl: process.env.BACKEND_API_URL + '/api/vapi/webhook',
+                    success: true,
+                    attempts: 1,
+                    httpStatus: 200,
+                    errorMessage: null,
+                    durationMs: null,
+                    payload: { callId, eventType, status: event.status, missedCallId },
+                });
+            }
             return res.json({ success: true });
         } catch (err) {
-            logger.error(`Vapi handleVapiEvent error (attempt ${attempt}/${MAX_RETRIES})`, { err, callId });
+            logger.error(`Vapi handleVapiEvent error (attempt ${attempt}/${MAX_RETRIES})`, { err, callId, eventType });
             if (attempt < MAX_RETRIES) {
                 await new Promise(r => setTimeout(r, 1000 * attempt));
             }
         }
     }
     // All retries exhausted — return 500 so Vapi will retry later
+    // Log to WebhookDelivery for dead-letter visibility
+    const missedCallId = event.metadata?.missedCallId;
+    let clinicId = null;
+    if (missedCallId) {
+        const mc = await prisma.missedCall.findUnique({ where: { id: missedCallId }, select: { clinicId: true } });
+        clinicId = mc?.clinicId || null;
+    }
+    if (clinicId) {
+        await recordDelivery({
+            clinicId,
+            eventType: `vapi.webhook.${eventType}`,
+            targetUrl: process.env.BACKEND_API_URL + '/api/vapi/webhook',
+            success: false,
+            attempts: MAX_RETRIES,
+            httpStatus: 500,
+            errorMessage: 'All retries exhausted',
+            durationMs: null,
+            payload: { callId, eventType, status: event.status, missedCallId },
+        });
+    }
     res.status(500).json({ error: 'Webhook processing failed' });
 }));
 
@@ -117,6 +174,16 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     }
     logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, input });
 
+    // Idempotency for tool calls (Vapi may retry)
+    if (redis && !REDIS_DISABLED && call_id) {
+        const toolIdempotencyKey = `vapi:tool:${call_id}:${fn}:${JSON.stringify(input)}`;
+        const alreadyProcessed = await redis.set(toolIdempotencyKey, '1', 'EX', 86400, 'NX');
+        if (!alreadyProcessed) {
+            logger.info('Vapi tool call duplicate — already processed', { callId: call_id, fn });
+            return res.json({ success: true, duplicate: true });
+        }
+    }
+
     const mc = await prisma.missedCall.findFirst({
         where: { callSid: call_id },
         include: { clinic: true }
@@ -127,17 +194,63 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         return res.json({ success: false, message: 'Case not found' });
     }
 
-    if (fn === 'book_appointment') {
-        await handleVoiceBooking(mc, input);
-        return res.json({ success: true, message: `Ραντεβού καταχωρήθηκε.` });
-    }
+    try {
+        if (fn === 'book_appointment') {
+            await handleVoiceBooking(mc, input);
+            // Log successful tool call
+            if (mc.clinicId) {
+                await recordDelivery({
+                    clinicId: mc.clinicId,
+                    eventType: `vapi.tool.${fn}`,
+                    targetUrl: process.env.BACKEND_API_URL + '/api/vapi/tool',
+                    success: true,
+                    attempts: 1,
+                    httpStatus: 200,
+                    errorMessage: null,
+                    durationMs: null,
+                    payload: { callId: call_id, fn, input },
+                });
+            }
+            return res.json({ success: true, message: `Ραντεβού καταχωρήθηκε.` });
+        }
 
-    if (fn === 'request_callback') {
-        await handleVoiceCallback(mc);
-        return res.json({ success: true, message: 'Αίτημα επανάκλησης καταχωρήθηκε.' });
-    }
+        if (fn === 'request_callback') {
+            await handleVoiceCallback(mc);
+            if (mc.clinicId) {
+                await recordDelivery({
+                    clinicId: mc.clinicId,
+                    eventType: `vapi.tool.${fn}`,
+                    targetUrl: process.env.BACKEND_API_URL + '/api/vapi/tool',
+                    success: true,
+                    attempts: 1,
+                    httpStatus: 200,
+                    errorMessage: null,
+                    durationMs: null,
+                    payload: { callId: call_id, fn, input },
+                });
+            }
+            return res.json({ success: true, message: 'Αίτημα επανάκλησης καταχωρήθηκε.' });
+        }
 
-    res.json({ success: false, message: 'Unknown tool' });
+        res.json({ success: false, message: 'Unknown tool' });
+    } catch (err) {
+        logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, input });
+        // Log failed tool call for dead-letter visibility
+        if (mc?.clinicId) {
+            await recordDelivery({
+                clinicId: mc.clinicId,
+                eventType: `vapi.tool.${fn}`,
+                targetUrl: process.env.BACKEND_API_URL + '/api/vapi/tool',
+                success: false,
+                attempts: 1,
+                httpStatus: 500,
+                errorMessage: err.message,
+                durationMs: null,
+                payload: { callId: call_id, fn, input },
+            });
+        }
+        throw err;
+    }
 }));
 
 async function handleVapiEvent(event) {
