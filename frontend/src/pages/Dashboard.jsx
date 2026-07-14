@@ -450,44 +450,6 @@ const Dashboard = ({
                 </div>
             </div>
 
-            {/* ── FAB: New Appointment ── */}
-            <button 
-                onClick={() => setShowModal(true)}
-                style={{
-                    position: 'fixed',
-                    bottom: isMobile ? '16px' : '24px',
-                    right: isMobile ? '16px' : '24px',
-                    width: isMobile ? '56px' : '60px',
-                    height: isMobile ? '56px' : '60px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
-                    border: 'none',
-                    boxShadow: 'var(--shadow-primary)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 100,
-                    transition: 'all 0.3s ease',
-                    animation: 'fab-pulse 2s infinite'
-                }}
-                onMouseEnter={e => {
-                    if (!isMobile) {
-                        e.currentTarget.style.transform = 'scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 16px 40px -8px var(--primary-glow)';
-                    }
-                }}
-                onMouseLeave={e => {
-                    if (!isMobile) {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = 'var(--shadow-primary)';
-                    }
-                }}
-                aria-label="Νέο Ραντεβού"
-            >
-                <Plus size={isMobile ? 22 : 24} color="white" strokeWidth={3} />
-            </button>
-
             {/* ── MAIN GRID ── */}
             <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.5rem', flex: 1, minHeight: 0 }}>
 
@@ -536,6 +498,13 @@ const Dashboard = ({
             {/* AI Assistant Bubble */}
             <AiAssistant token={token} isMobile={isMobile} />
             {dialog}
+
+            <style>{`
+                @keyframes fab-pulse {
+                    0%, 100% { box-shadow: var(--shadow-primary); }
+                    50% { box-shadow: 0 8px 32px var(--primary-glow), 0 0 0 8px var(--primary-glow); }
+                }
+            `}</style>
         </div>
     );
 };
