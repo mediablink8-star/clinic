@@ -234,7 +234,8 @@ model Appointment {
   @@index([clinicId, doctorId, startTime, endTime, status])
   @@index([clinicId, source, createdAt])
   @@unique([clinicId, doctorId, startTime, status], name: "unique_doctor_slot")
-  @@unique([clinicId, patientId, startTime, status], name: "unique_patient_slot", where: { status: { notIn: ['CANCELLED', 'NO_SHOW'] } })
+  // Patient double-booking prevention via application-level locking (FOR UPDATE in appointmentService.js)
+  // Partial unique index not supported with notIn in Prisma 7.x; enforced at application level
 }
 
 model FeedEvent {
