@@ -140,7 +140,7 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
         try { localStorage.setItem('feed_dismissed:v1', JSON.stringify([...next])); } catch {}
     };
 
-    const handleRetry = async (logId, e) => {
+const handleRetry = async (logId, e) => {
         e.stopPropagation();
         if (retrying[logId]) return;
         setRetrying(r => ({ ...r, [logId]: 'retrying' }));
@@ -162,10 +162,6 @@ const RecoveryFeed = ({ logs = [], token, onNavigate, avgAppointmentValue = 80, 
             setTimeout(() => setRetrying(r => { const n = { ...r }; delete n[logId]; return n; }), 3000);
         }
     };
-
-    // Swipe actions state
-    const [swipeOffset, setSwipeOffset] = React.useState({});
-    const [swipingId, setSwipingId] = React.useState(null);
 
     const handleTouchStart = (e, itemId) => {
         setSwipingId(itemId);

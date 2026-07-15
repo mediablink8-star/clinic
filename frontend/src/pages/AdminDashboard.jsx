@@ -1601,7 +1601,7 @@ const GoLiveTab = () => {
                           <button
                             onClick={handleRunZadarmaTest}
                             disabled={isRunning}
-                            style={{ padding: '5px 12px', borderRadius: '8px', border: 'none', background: isRunning ? 'var(--border)' : `${meta.color}20`, color: isRunning ? 'var(--text-muted)' : meta.color, fontSize: '0.72rem', fontWeight: '700', cursor: isRunning ? 'not-allowed' : 'pointer', border: `1px solid ${meta.color}30`, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                            style={{ padding: '5px 12px', borderRadius: '8px', background: isRunning ? 'var(--border)' : `${meta.color}20`, color: isRunning ? 'var(--text-muted)' : meta.color, fontSize: '0.72rem', fontWeight: '700', cursor: isRunning ? 'not-allowed' : 'pointer', border: `1px solid ${meta.color}30`, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                           >
                             {isRunning ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Εκτέλεση…</> : <><FlaskConical size={11} /> Run Test</>}
                           </button>
