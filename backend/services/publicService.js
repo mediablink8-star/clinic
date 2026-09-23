@@ -324,18 +324,30 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         sendConfirmationSms({ appointment, patient: appointment.patient, clinic })
             .catch(err => logger.warn('SMS Fail', { error: err.message }));
 
-        // Push to Google Calendar if connected
+        // Sync to Google Calendar asynchronously, but persist the outcome on the appointment
+        // so the dashboard/support team can distinguish "not connected" from "sync failed".
         const { createCalendarEvent } = require('./googleCalendarService');
+        const calendarSyncStatus = clinic.googleCalendarEnabled ? 'PENDING' : 'NOT_CONNECTED';
+        prisma.appointment.update({
+            where: { id: appointment.id },
+            data: { googleCalendarSyncStatus: calendarSyncStatus, googleCalendarSyncError: null }
+        }).catch(err => logger.warn('GoogleCalendar status init failed', { error: err.message }));
+
         createCalendarEvent({ clinic, appointment, patient: appointment.patient })
-            .then(eventId => {
-                if (eventId) {
-                    return prisma.appointment.update({
-                        where: { id: appointment.id },
-                        data: { googleCalendarEventId: eventId }
-                    });
+            .then(eventId => prisma.appointment.update({
+                where: { id: appointment.id },
+                data: eventId
+                    ? { googleCalendarEventId: eventId, googleCalendarSyncStatus: 'SYNCED', googleCalendarSyncError: null }
+                    : { googleCalendarSyncStatus: clinic.googleCalendarEnabled ? 'FAILED' : 'NOT_CONNECTED',
+                        googleCalendarSyncError: clinic.googleCalendarEnabled ? 'Calendar event was not created.' : null }
+            }))
+            .catch(err => prisma.appointment.update({
+                where: { id: appointment.id },
+                data: {
+                    googleCalendarSyncStatus: 'FAILED',
+                    googleCalendarSyncError: String(err.message || 'Google Calendar sync failed').slice(0, 500)
                 }
-            })
-            .catch(err => logger.warn('GoogleCalendar Push failed', { error: err.message }));
+            }).catch(updateErr => logger.warn('GoogleCalendar failure status update failed', { error: updateErr.message })));
     }
 
     if (missedCallId) {
