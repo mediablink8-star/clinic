@@ -299,18 +299,29 @@ try {
                     // or flag the appointment for manual review.
                 });
 
-            // Push to Google Calendar if connected
+            // Sync to Google Calendar asynchronously, but persist the outcome on the appointment.
             const { createCalendarEvent } = require('./googleCalendarService');
+            const calendarSyncStatus = clinic.googleCalendarEnabled ? 'PENDING' : 'NOT_CONNECTED';
+            prisma.appointment.update({
+                where: { id: appointment.id },
+                data: { googleCalendarSyncStatus: calendarSyncStatus, googleCalendarSyncError: null }
+            }).catch(err => logger.warn('GoogleCalendar status init failed', { error: err.message }));
+
             createCalendarEvent({ clinic, appointment, patient })
-                .then(eventId => {
-                    if (eventId) {
-                        return prisma.appointment.update({
-                            where: { id: appointment.id },
-                            data: { googleCalendarEventId: eventId }
-                        });
+                .then(eventId => prisma.appointment.update({
+                    where: { id: appointment.id },
+                    data: eventId
+                        ? { googleCalendarEventId: eventId, googleCalendarSyncStatus: 'SYNCED', googleCalendarSyncError: null }
+                        : { googleCalendarSyncStatus: clinic.googleCalendarEnabled ? 'FAILED' : 'NOT_CONNECTED',
+                            googleCalendarSyncError: clinic.googleCalendarEnabled ? 'Calendar event was not created.' : null }
+                }))
+                .catch(err => prisma.appointment.update({
+                    where: { id: appointment.id },
+                    data: {
+                        googleCalendarSyncStatus: 'FAILED',
+                        googleCalendarSyncError: String(err.message || 'Google Calendar sync failed').slice(0, 500)
                     }
-                })
-                .catch(err => logger.warn('GoogleCalendar Push failed', { error: err.message }));
+                }).catch(updateErr => logger.warn('GoogleCalendar failure status update failed', { error: updateErr.message })));
 
             // NEW: Send immediate confirmation SMS
             sendConfirmationSms({ appointment, patient, clinic })
