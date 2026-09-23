@@ -138,6 +138,27 @@ router.post('/sms', validateWebhookSecret, asyncHandler(async (req, res) => {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
+    // Provider callbacks are authenticated by the shared webhook secret, so
+    // any explicit recovery identifiers must also be tenant-checked.
+    if (missedCallId) {
+        const missedCall = await prisma.missedCall.findUnique({
+            where: { id: missedCallId },
+            select: { clinicId: true }
+        });
+        if (!missedCall || missedCall.clinicId !== clinicId) {
+            throw new AppError('UNAUTHORIZED', 'Recovery case does not belong to clinic', 403);
+        }
+    }
+    if (recoveryCaseId) {
+        const recoveryCase = await prisma.recoveryCase.findUnique({
+            where: { id: recoveryCaseId },
+            select: { clinicId: true }
+        });
+        if (!recoveryCase || recoveryCase.clinicId !== clinicId) {
+            throw new AppError('UNAUTHORIZED', 'Recovery case does not belong to clinic', 403);
+        }
+    }
+
     await recordInboundMessage({
         clinicId,
         fromPhone: normalizedFrom,
