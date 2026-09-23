@@ -55,6 +55,16 @@ async function processNotification(notificationId) {
          return { success: false, reason: 'Notification not found after claim' };
      }
 
+     // A reminder must never be sent for an appointment that was cancelled
+     // or deleted while the notification was waiting/processing.
+     if (!notification.appointment || notification.appointment.deletedAt || ['CANCELLED', 'NO_SHOW'].includes(notification.appointment.status)) {
+         await prisma.notification.update({
+             where: { id: notificationId },
+             data: { status: 'CANCELLED' }
+         }).catch(err => logger.warn('Failed to cancel stale notification', { notificationId, error: err.message }));
+         return { success: false, reason: 'Appointment is no longer active' };
+     }
+
      const clinic = notification.clinic;
      if (clinic.messageCredits < 1) {
          logger.warn('Insufficient credits for notification', { notificationId, clinicId: clinic.id });
