@@ -138,7 +138,7 @@ async function createPatient({ clinicId, name, phone, email, amka }, actor) {
     action: 'CREATE_PATIENT',
     entity: 'PATIENT',
     entityId: patient.id,
-    details: { name, phone, amkaLast4: amka ? amka.slice(-4) : null },
+    details: { fields: ['name', 'phone', ...(amka ? ['amka'] : [])] },
     ipAddress: actor?.ip,
   });
 
@@ -176,7 +176,7 @@ async function updatePatient({ clinicId, patientId, name, phone, email, amka }, 
     action: 'UPDATE_PATIENT',
     entity: 'PATIENT',
     entityId: patientId,
-    details: data,
+    details: { fields: Object.keys(data) },
     ipAddress: actor?.ip,
   });
 
