@@ -491,6 +491,29 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
             where: { id: appointmentId },
             data: { deletedAt: null }
         });
+
+        // A deleted appointment had its queued reminder cancelled. If the
+        // appointment is restored and the reminder is still far enough in the
+        // future, reactivate that reminder instead of leaving the patient
+        // silently without a reminder.
+        if (existing.status !== 'CANCELLED' && existing.status !== 'NO_SHOW') {
+            const reminderTime = new Date(new Date(existing.startTime).getTime() - 24 * 60 * 60 * 1000);
+            if (reminderTime > new Date(Date.now() + 60 * 60 * 1000)) {
+                await tx.notification.updateMany({
+                    where: {
+                        appointmentId,
+                        type: 'REMINDER',
+                        status: 'CANCELLED'
+                    },
+                    data: {
+                        status: 'SCHEDULED',
+                        scheduledFor: reminderTime,
+                        sentAt: null
+                    }
+                });
+            }
+        }
+
         await logAction({
             clinicId,
             userId: actor.userId,
