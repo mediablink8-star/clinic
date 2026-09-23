@@ -69,12 +69,20 @@ async function parseCommand(command, context = {}) {
         /bypass/gi,
     ];
     let sanitized = command.slice(0, 500); // Hard cap length
-    for (const pattern of INJECTION_PATTERNS) {
-        sanitized = sanitized.replace(pattern, '');
+    // Reject injection attempts instead of deleting the suspicious text. Stripping
+    // it could transform a malicious command into a legitimate-looking action.
+    if (INJECTION_PATTERNS.some(pattern => pattern.test(sanitized))) {
+        logger.warn('AI prompt injection attempt rejected', { command: sanitized });
+        return {
+            action: 'unknown',
+            parameters: {},
+            confidence: 0.0,
+            error: 'Command rejected'
+        };
     }
     sanitized = sanitized.trim();
     if (!sanitized) {
-        throw new AppError('VALIDATION_ERROR', 'Command is empty after sanitization', 400);
+        throw new AppError('VALIDATION_ERROR', 'Command is empty', 400);
     }
 
     try {
