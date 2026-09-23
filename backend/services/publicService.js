@@ -109,13 +109,26 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     if (startTime) {
         startDateTime = new Date(startTime);
     } else if (date && time) {
+        // Keep public booking date/time validation strict and consistent with
+        // the AI booking path before values reach conflict/availability logic.
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date).trim()) ||
+            !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(time).trim())) {
+            throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
+        }
         startDateTime = parseDateTimeInTimezone(date, time, timezone);
         logger.info('Public Booking Parsed Time', { localDateTimeStr: `${date.trim()} ${time.trim()}:00`, timezone, utc: startDateTime.toISOString() });
     } else {
         throw new AppError('VALIDATION_ERROR', 'Either startTime or date+time is required', 400);
     }
 
+    if (!(startDateTime instanceof Date) || Number.isNaN(startDateTime.getTime())) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
+    }
+
     const endTime = new Date(startDateTime.getTime() + 60 * 60 * 1000);
+    if (Number.isNaN(endTime.getTime())) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid appointment time.', 400);
+    }
 
     // Fetch doctor if doctorId is provided; otherwise prepare active doctors for auto-assignment.
     // This keeps public booking behavior consistent with slot discovery, which exposes a slot
