@@ -421,6 +421,16 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
             where: { id: appointmentId },
             data: { deletedAt: new Date() }
         });
+
+        // Prevent queued reminders from being sent after an appointment is deleted.
+        await tx.notification.updateMany({
+            where: {
+                appointmentId,
+                status: { in: ['SCHEDULED', 'ENQUEUED'] }
+            },
+            data: { status: 'CANCELLED' }
+        });
+
         await logAction({
             clinicId,
             userId: actor.userId,
