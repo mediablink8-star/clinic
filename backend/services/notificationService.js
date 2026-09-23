@@ -26,14 +26,29 @@ async function processNotification(notificationId) {
          return { success: false, reason: 'Already processed or not found' };
      }
 
-     // Fetch the claimed notification with clinic and appointment+patient data
-     const notification = await prisma.notification.findUnique({
-         where: { id: notificationId },
-         include: {
-             clinic: true,
-             appointment: { include: { patient: true } }
-         }
-     });
+     // Fetch the claimed notification with clinic and appointment+patient data.
+     // If this lookup fails after the atomic claim, always move the job out of
+     // PROCESSING so it cannot become permanently invisible to the scheduler.
+     let notification;
+     try {
+         notification = await prisma.notification.findUnique({
+             where: { id: notificationId },
+             include: {
+                 clinic: true,
+                 appointment: { include: { patient: true } }
+             }
+         });
+     } catch (err) {
+         logger.error('Notification fetch failed after claim', { notificationId, error: err.message });
+         await prisma.notification.update({
+             where: { id: notificationId },
+             data: { status: 'FAILED', error: String(err.message || 'Notification lookup failed').slice(0, 500) }
+         }).catch(updateErr => logger.error('Failed to persist notification failure state', {
+             notificationId,
+             error: updateErr.message
+         }));
+         return { success: false, reason: err.message };
+     }
 
      if (!notification) {
          logger.error('Notification vanished after claim', { notificationId });
