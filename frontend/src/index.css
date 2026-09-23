@@ -3096,3 +3096,55 @@ small, .text-small {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* ── First-clinic usability pass ──────────────────────────────────────────
+   Keep the operational dashboard readable on smaller screens and avoid
+   hover-only motion on touch devices. */
+@media (max-width: 900px) {
+  .main-content:has(.dashboard-shell) {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding-bottom: 5rem;
+  }
+
+  .dashboard-shell {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .dashboard-main-grid {
+    min-height: auto !important;
+  }
+
+  .dashboard-main-grid > * {
+    min-height: 0;
+  }
+}
+
+@media (pointer: coarse) {
+  .hero-stat-card:hover,
+  .revenue-card-hero:hover,
+  .card-glass:hover {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-content {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .dashboard-hero-grid {
+    gap: 0.65rem !important;
+  }
+
+  .hero-stat-card,
+  .revenue-card-hero {
+    border-radius: 16px !important;
+    padding: 0.95rem 1rem !important;
+  }
+}
