@@ -189,6 +189,13 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         include: { clinic: true }
     });
 
+    // A tool call is authorized only by the persisted Vapi call identity.
+    // Never accept a caller-supplied missedCallId/clinicId as authority.
+    if (mc && mc.status !== 'RECOVERING' && mc.status !== 'RECOVERED') {
+        logger.warn('Vapi tool call for non-recovery case', { callId: call_id, missedCallId: mc.id, status: mc.status });
+        return res.json({ success: false, message: 'Case is not active' });
+    }
+
     if (!mc) {
         logger.warn('Vapi tool call — no missed call', { callId: call_id });
         return res.json({ success: false, message: 'Case not found' });
@@ -276,6 +283,27 @@ async function handleVapiEvent(event) {
             persistedClinicId: mc.clinicId
         });
         return;
+    }
+
+    // Bind the Vapi event to the exact outbound Vapi call. Legacy records may
+    // have no vapiCallId, but only a recovering case with matching tenant
+    // metadata may be claimed by the first authenticated event.
+    if (mc && call_id) {
+        if (mc.vapiCallId && mc.vapiCallId !== call_id) {
+            logger.warn('Vapi call identity mismatch', {
+                callId: call_id,
+                missedCallId: mc.id,
+                persistedVapiCallId: mc.vapiCallId
+            });
+            return;
+        }
+        if (!mc.vapiCallId && missedCallId && mc.status === 'RECOVERING') {
+            mc = await prisma.missedCall.update({
+                where: { id: mc.id },
+                data: { vapiCallId: call_id },
+                include: { clinic: true }
+            });
+        }
     }
 
     if (!mc) {
