@@ -308,13 +308,49 @@ try {
             }).catch(err => logger.warn('GoogleCalendar status init failed', { error: err.message }));
 
             createCalendarEvent({ clinic, appointment, patient })
-                .then(eventId => prisma.appointment.update({
-                    where: { id: appointment.id },
-                    data: eventId
-                        ? { googleCalendarEventId: eventId, googleCalendarSyncStatus: 'SYNCED', googleCalendarSyncError: null }
-                        : { googleCalendarSyncStatus: clinic.googleCalendarEnabled ? 'FAILED' : 'NOT_CONNECTED',
-                            googleCalendarSyncError: clinic.googleCalendarEnabled ? 'Calendar event was not created.' : null }
-                }))
+                .then(async eventId => {
+                    if (!eventId) {
+                        await prisma.appointment.update({
+                            where: { id: appointment.id },
+                            data: {
+                                googleCalendarSyncStatus: clinic.googleCalendarEnabled ? 'FAILED' : 'NOT_CONNECTED',
+                                googleCalendarSyncError: clinic.googleCalendarEnabled ? 'Calendar event was not created.' : null
+                            }
+                        });
+                        return;
+                    }
+
+                    // The appointment may have been deleted while the async
+                    // calendar insert was in flight. Never resurrect a deleted
+                    // appointment as a live calendar event.
+                    const current = await prisma.appointment.findFirst({
+                        where: { id: appointment.id },
+                        select: { deletedAt: true }
+                    });
+
+                    if (current?.deletedAt) {
+                        const { deleteCalendarEvent } = require('./googleCalendarService');
+                        await deleteCalendarEvent({ clinic, googleCalendarEventId: eventId });
+                        await prisma.appointment.update({
+                            where: { id: appointment.id },
+                            data: {
+                                googleCalendarEventId: null,
+                                googleCalendarSyncStatus: 'SYNCED',
+                                googleCalendarSyncError: null
+                            }
+                        });
+                        return;
+                    }
+
+                    await prisma.appointment.update({
+                        where: { id: appointment.id },
+                        data: {
+                            googleCalendarEventId: eventId,
+                            googleCalendarSyncStatus: 'SYNCED',
+                            googleCalendarSyncError: null
+                        }
+                    });
+                })
                 .catch(err => prisma.appointment.update({
                     where: { id: appointment.id },
                     data: {
