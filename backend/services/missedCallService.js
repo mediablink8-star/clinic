@@ -176,9 +176,14 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
         process.env.VAPI_API_KEY
     );
 
-    // Simple in-process circuit breaker state (resets on deploy, acceptable)
-    if (!global._vapiCircuit) global._vapiCircuit = { failures: 0, openUntil: 0 };
-    const circuit = global._vapiCircuit;
+    // Keep the Vapi circuit breaker isolated per clinic. A provider outage for
+    // one tenant must not disable voice recovery for every other tenant.
+    if (!global._vapiCircuits) global._vapiCircuits = new Map();
+    let circuit = global._vapiCircuits.get(clinicId);
+    if (!circuit) {
+        circuit = { failures: 0, openUntil: 0 };
+        global._vapiCircuits.set(clinicId, circuit);
+    }
     const circuitOpen = circuit.openUntil > Date.now();
 
     if (vapiConfigured && !circuitOpen) {
