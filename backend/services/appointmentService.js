@@ -518,11 +518,19 @@ async function getTodayAppointments(clinicId) {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { timezone: true } });
     const timezone = clinic?.timezone || process.env.DEFAULT_TIMEZONE || DEFAULT_TIMEZONE;
     
-    const todayStart = getStartOfDay(new Date(), timezone);
-    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const now = new Date();
+    const todayStart = getStartOfDay(now, timezone);
+    // Find the next local calendar date, then convert that local midnight
+    // back to UTC. Adding 24 elapsed hours breaks on DST transition days.
+    const localToday = formatInTimeZone(now, timezone, 'yyyy-MM-dd');
+    const [year, month, day] = localToday.split('-').map(Number);
+    const nextLocalDate = new Date(Date.UTC(year, month - 1, day + 1));
+    const nextDateKey = formatInTimeZone(nextLocalDate, 'UTC', 'yyyy-MM-dd');
+    const nextLocalMidnight = fromZonedTime(`${nextDateKey} 00:00:00`, timezone);
+    const todayEnd = new Date(nextLocalMidnight.getTime() - 1);
     
     const data = await prisma.appointment.findMany({
-        where: { clinicId, startTime: { gte: todayStart, lte: todayEnd } },
+        where: { clinicId, deletedAt: null, startTime: { gte: todayStart, lte: todayEnd } },
         include: { patient: true },
         orderBy: { startTime: 'asc' },
         take: 50
