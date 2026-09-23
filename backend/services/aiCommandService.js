@@ -430,7 +430,12 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 result: {
                     patient: patient.name,
                     appointmentId: appointment.id,
-                    date: appointment.startTime.toISOString().split('T')[0],
+                    date: new Intl.DateTimeFormat('en-CA', {
+                        timeZone: clinic?.timezone || DEFAULT_TIMEZONE,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    }).format(appointment.startTime),
                     time: appointment.startTime.toLocaleTimeString('el-GR', { timeZone: clinic?.timezone || DEFAULT_TIMEZONE, hour: '2-digit', minute: '2-digit' })
                 }
             };
@@ -474,7 +479,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                         id: call.id,
                         patient: call.patient?.name || call.fromNumber,
                         phone: call.fromNumber,
-                        time: call.createdAt.toLocaleString('el-GR'),
+                        time: call.createdAt.toLocaleString('el-GR', { timeZone: clinic?.timezone || DEFAULT_TIMEZONE }),
                         status: call.status
                     }))
                 }
