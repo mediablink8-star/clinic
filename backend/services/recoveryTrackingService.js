@@ -1,6 +1,7 @@
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
 const metrics = require('../utils/metrics');
+const logger = require('../utils/logger');
 
 const ACTIVE_RECOVERY_CASE_STATES = ['ACTIVE', 'ENGAGED'];
 
@@ -329,10 +330,11 @@ async function resolveRecoveryContext({ providerMessageSid, recoveryCaseId, miss
     }
 
     if (clinicId && patientPhone) {
+        const normalizedPatientPhone = String(patientPhone).trim();
         const recoveryCase = await prisma.recoveryCase.findFirst({
             where: {
                 clinicId,
-                patientPhone,
+                patientPhone: normalizedPatientPhone,
                 state: { in: ACTIVE_RECOVERY_CASE_STATES }
             },
             include: { conversation: true },
@@ -388,7 +390,6 @@ async function recordInboundMessage({
     try {
         message = await prisma.message.create({
             data: {
-        data: {
             clinicId,
             conversationId: conversation.id,
             direction: 'INBOUND',
