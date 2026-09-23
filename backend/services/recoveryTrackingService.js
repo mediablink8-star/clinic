@@ -371,12 +371,23 @@ async function recordInboundMessage({
     if (providerMessageSid) {
         const existingMessage = await prisma.message.findUnique({ where: { providerMessageSid } });
         if (existingMessage) {
+            if (existingMessage.clinicId !== clinicId) {
+                logger.warn('Inbound provider SID tenant mismatch', {
+                    providerMessageSid,
+                    callbackClinicId: clinicId,
+                    messageClinicId: existingMessage.clinicId
+                });
+                return { success: false, reason: 'Provider message belongs to another clinic' };
+            }
             return { success: true, duplicate: true, messageId: existingMessage.id };
         }
     }
 
     const { recoveryCase, conversation } = recoveryContext;
-    const message = await prisma.message.create({
+    let message;
+    try {
+        message = await prisma.message.create({
+            data: {
         data: {
             clinicId,
             conversationId: conversation.id,
@@ -388,8 +399,28 @@ async function recordInboundMessage({
             providerMessageSid,
             providerStatusRaw,
             ...getMessageTimestampFields('RECEIVED', occurredAt),
+            }
+        });
+    } catch (err) {
+        // The pre-check above is intentionally retained for the common path,
+        // but the unique DB constraint is the final authority under concurrency.
+        if (err?.code === 'P2002' && providerMessageSid) {
+            const existingMessage = await prisma.message.findUnique({
+                where: { providerMessageSid },
+                select: { id: true, clinicId: true }
+            });
+            if (existingMessage?.clinicId === clinicId) {
+                return { success: true, duplicate: true, messageId: existingMessage.id };
+            }
+            logger.warn('Concurrent inbound provider SID collision across clinics', {
+                providerMessageSid,
+                callbackClinicId: clinicId,
+                messageClinicId: existingMessage?.clinicId
+            });
+            return { success: false, reason: 'Provider message belongs to another clinic' };
         }
-    });
+        throw err;
+    }
 
     await prisma.$transaction([
         prisma.conversation.update({
