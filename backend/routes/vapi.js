@@ -174,13 +174,22 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     }
     logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, input });
 
-    // Idempotency for tool calls (Vapi may retry)
+    // Idempotency for tool calls (Vapi may retry).
+    // Reserve the key as "processing", but only mark it "done" after the
+    // business action succeeds. A failed action must remain retryable.
+    let toolIdempotencyKey = null;
     if (redis && !REDIS_DISABLED && call_id) {
-        const toolIdempotencyKey = `vapi:tool:${call_id}:${fn}:${JSON.stringify(input)}`;
-        const alreadyProcessed = await redis.set(toolIdempotencyKey, '1', 'EX', 86400, 'NX');
-        if (!alreadyProcessed) {
-            logger.info('Vapi tool call duplicate — already processed', { callId: call_id, fn });
-            return res.json({ success: true, duplicate: true });
+        toolIdempotencyKey = `vapi:tool:${call_id}:${fn}:${JSON.stringify(input)}`;
+        const claimed = await redis.set(toolIdempotencyKey, 'processing', 'EX', 86400, 'NX');
+        if (!claimed) {
+            const state = await redis.get(toolIdempotencyKey);
+            if (state === 'done') {
+                logger.info('Vapi tool call duplicate — already processed', { callId: call_id, fn });
+                return res.json({ success: true, duplicate: true });
+            }
+            // Another request is actively processing the same action. Tell
+            // Vapi to retry rather than pretending the action succeeded.
+            return res.status(409).json({ success: false, message: 'Tool call is already being processed' });
         }
     }
 
@@ -218,6 +227,9 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     payload: { callId: call_id, fn, input },
                 });
             }
+            if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
+                await redis.set(toolIdempotencyKey, 'done', 'EX', 86400);
+            }
             return res.json({ success: true, message: `Ραντεβού καταχωρήθηκε.` });
         }
 
@@ -236,11 +248,19 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     payload: { callId: call_id, fn, input },
                 });
             }
+            if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
+                await redis.set(toolIdempotencyKey, 'done', 'EX', 86400);
+            }
             return res.json({ success: true, message: 'Αίτημα επανάκλησης καταχωρήθηκε.' });
         }
 
         res.json({ success: false, message: 'Unknown tool' });
     } catch (err) {
+        // Clear the reservation so a transient provider/database failure can
+        // be retried safely instead of being permanently swallowed as a duplicate.
+        if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
+            await redis.del(toolIdempotencyKey).catch(() => {});
+        }
         logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, input });
         // Log failed tool call for dead-letter visibility
         if (mc?.clinicId) {
