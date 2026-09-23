@@ -14,12 +14,11 @@ if (process.env.NODE_ENV === 'production' && !process.env.ZADARMA_WEBHOOK_SECRET
     );
 }
 
-// VAPI_WEBHOOK_SECRET: if unset, all Vapi tool calls (book_appointment) return 401
-// and appointments booked via voice are never recorded.
+// VAPI_WEBHOOK_SECRET: required in production. Without it, Vapi webhooks/tool calls are rejected.
 if (process.env.NODE_ENV === 'production' && !process.env.VAPI_WEBHOOK_SECRET) {
     process.stderr.write(
-        '\n🟡 WARNING: VAPI_WEBHOOK_SECRET is not set.\n' +
-        '   Vapi tool calls (book_appointment) will be allowed through without auth.\n' +
+        '\n🔴 CRITICAL: VAPI_WEBHOOK_SECRET is not set.\n' +
+        '   Production Vapi webhook/tool requests will be rejected until this is configured.\n' +
         '   Set VAPI_WEBHOOK_SECRET to the same value as your Vapi assistant Server URL Secret.\n\n'
     );
 }
