@@ -260,7 +260,10 @@ async function handleVapiEvent(event) {
     const missedCallId = metadata?.missedCallId;
     const mc = missedCallId
         ? await prisma.missedCall.findUnique({ where: { id: missedCallId }, include: { clinic: true } })
-        : await prisma.missedCall.findFirst({ where: { callSid: call_id }, include: { clinic: true } });
+        : await prisma.missedCall.findFirst({
+            where: { vapiCallId: call_id },
+            include: { clinic: true }
+        });
 
     if (!mc) {
         const fromPhone = normalizePhone(event.customer?.number || event.call?.customer?.number);
@@ -294,7 +297,7 @@ async function handleVapiEvent(event) {
                     // Update the mc with the vapi call id for future lookups
                     await prisma.missedCall.update({
                         where: { id: recent.id },
-                        data: { callSid: call_id }
+                        data: { vapiCallId: call_id }
                     });
                     return await handleVapiEvent({ ...event, metadata: { ...metadata, missedCallId: recent.id } });
                 }
