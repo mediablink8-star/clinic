@@ -403,7 +403,8 @@ async function handleVoiceBooking(mc, input) {
                 },
                 { userId: 'vapi-ai', ip: '127.0.0.1' }
             );
-            const appointmentId = aptResult?.data?.id || null;
+            appointmentId = aptResult?.data?.id || null;
+            if (!appointmentId) throw new Error('Appointment creation returned no appointment ID');
             logger.info('Vapi appointment created', { appointmentId });
             booked = true;
 
