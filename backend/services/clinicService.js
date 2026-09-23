@@ -166,7 +166,7 @@ async function updateClinicAdmin({ clinicId, body, currentClinic: _currentClinic
             action: 'UPDATE_CLINIC_SETTINGS',
             entity: 'CLINIC',
             entityId: clinicId,
-            details: body,
+            details: { fields: Object.keys(body || {}) },
             ipAddress: actor.ip
         });
         return result;
@@ -192,7 +192,7 @@ async function updateClinicInfo({ clinicId, name, phone, email, location, timezo
             action: 'UPDATE_CLINIC_INFO',
             entity: 'CLINIC',
             entityId: clinicId,
-            details: { name, phone, email, location, timezone },
+            details: { fields: ['name', 'phone', 'email', 'location', 'timezone'] },
             ipAddress: actor.ip
         });
         return result;
@@ -212,7 +212,7 @@ async function updateAiConfig({ clinicId, aiConfig }, actor) {
             action: 'UPDATE_AI_CONFIG',
             entity: 'CLINIC',
             entityId: clinicId,
-            details: aiConfig,
+            details: { fields: Object.keys(aiConfig || {}) },
             ipAddress: actor.ip
         });
         return result;
