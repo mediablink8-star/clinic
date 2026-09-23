@@ -4,6 +4,7 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
+const { sendSms } = require('./twilioService');
 
 async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = false }) {
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
@@ -33,22 +34,25 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
     }
 
     let twilioFallbackSuccess = false;
-    // Twilio fallback when no webhook is configured or webhook failed
+    // Twilio fallback when no webhook is configured or the webhook failed.
+    // IMPORTANT: credit/usage accounting happens exactly once below, after delivery.
+    // Do not use sendSmsWithTracking here because that function also decrements credits.
     if (!hasAnyWebhook || !webhookResult.success) {
         try {
-            const { sendSmsWithTracking } = require('./twilioService');
             if (payload?.phone) {
-                const twilioResult = await sendSmsWithTracking({
+                const twilioResult = await sendSms({
                     to: payload.phone,
                     body: payload.message || payload.body || '',
-                    clinicId,
                 });
                 if (twilioResult.success) {
                     twilioFallbackSuccess = true;
+                } else {
+                    webhookResult = { success: false, message: twilioResult.error || 'SMS delivery failed' };
                 }
             }
         } catch (twilioErr) {
-            logger.warn(`Twilio fallback failed`, { err: twilioErr, clinicId });
+            logger.warn(`Twilio fallback failed`, { err: twilioErr.message, clinicId });
+            webhookResult = { success: false, message: twilioErr.message || 'SMS delivery failed' };
         }
     }
 
