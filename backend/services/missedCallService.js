@@ -204,7 +204,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
                 });
                 await prisma.missedCall.update({
                     where: { id: missedCall.id },
-                    data: { callSid: vapiResult.callId, smsStatus: 'pending' }
+                    data: { vapiCallId: vapiResult.callId, smsStatus: 'pending' }
                 });
                 return {
                     success: true,
