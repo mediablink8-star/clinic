@@ -185,7 +185,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     }
 
     const mc = await prisma.missedCall.findFirst({
-        where: { callSid: call_id },
+        where: { vapiCallId: call_id },
         include: { clinic: true }
     });
 
@@ -258,12 +258,25 @@ async function handleVapiEvent(event) {
     logger.info('Vapi processing event', { status, callId: call_id });
 
     const missedCallId = metadata?.missedCallId;
-    const mc = missedCallId
+    const metadataClinicId = metadata?.clinicId || null;
+    let mc = missedCallId
         ? await prisma.missedCall.findUnique({ where: { id: missedCallId }, include: { clinic: true } })
         : await prisma.missedCall.findFirst({
             where: { vapiCallId: call_id },
             include: { clinic: true }
         });
+
+    // Vapi metadata is server-generated when ClinicFlow creates the call.
+    // Never allow an event to mutate a case whose persisted clinic differs.
+    if (mc && metadataClinicId && mc.clinicId !== metadataClinicId) {
+        logger.warn('Vapi webhook clinic mismatch', {
+            callId: call_id,
+            missedCallId: mc.id,
+            metadataClinicId,
+            persistedClinicId: mc.clinicId
+        });
+        return;
+    }
 
     if (!mc) {
         const fromPhone = normalizePhone(event.customer?.number || event.call?.customer?.number);
@@ -272,15 +285,30 @@ async function handleVapiEvent(event) {
         if (fromPhone && toPhone) {
             logger.info('Vapi mc not found by ID, searching by phone', { fromPhone, toPhone });
             // Find clinic by the 'to' number (the zadarma/vapi number)
-            const clinic = await prisma.clinic.findFirst({
+            const clinics = await prisma.clinic.findMany({
                 where: {
                     OR: [
                         { zadarmaPhoneNumber: toPhone },
                         { phone: toPhone }
-                    ]
-                }
+                    ],
+                    isActive: true
+                },
+                select: { id: true, name: true }
             });
-            
+
+            // Phone numbers are not globally unique in the schema. Do not
+            // guess which tenant owns an unbound Vapi event.
+            if (clinics.length > 1) {
+                logger.warn('Vapi phone fallback ambiguous across clinics', {
+                    callId: call_id,
+                    toPhoneTail: toPhone.slice(-4),
+                    clinicCount: clinics.length
+                });
+                return;
+            }
+
+            const clinic = clinics[0];
+
             if (clinic) {
                 // Find recent recovering case for this patient in this clinic
                 const recent = await prisma.missedCall.findFirst({
