@@ -304,6 +304,7 @@ model Notification {
   @@index([scheduledFor])
 }
 
+  @@unique([appointmentId, type], name: "unique_appointment_notification_type")
 model AuditLog {
   id        String   @id @default(cuid())
   clinicId  String
