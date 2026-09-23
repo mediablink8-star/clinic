@@ -347,33 +347,60 @@ async function processScheduledMissedCalls() {
             }
         } catch { /* use default */ }
 
-        const { sendSmsWithTracking } = require('./twilioService');
-        const twilioResult = await sendSmsWithTracking({ to: mc.fromNumber, body: smsBody, clinicId: mc.clinicId });
+        try {
+            const { sendSmsWithTracking } = require('./twilioService');
+            const twilioResult = await sendSmsWithTracking({
+                to: mc.fromNumber,
+                body: smsBody,
+                clinicId: mc.clinicId
+            });
 
-        if (twilioResult.success) {
-            await prisma.missedCall.update({
-                where: { id: mc.id },
-                data: { smsStatus: 'sent', lastSmsSentAt: new Date() }
+            if (twilioResult.success) {
+                await prisma.missedCall.update({
+                    where: { id: mc.id },
+                    data: { smsStatus: 'sent', lastSmsSentAt: new Date(), smsError: null }
+                });
+                succeeded++;
+            } else {
+                await prisma.missedCall.update({
+                    where: { id: mc.id },
+                    data: { smsStatus: 'failed', smsError: twilioResult.error || 'SMS send failed' }
+                });
+                failed++;
+            }
+
+            await recordOutboundMessageForMissedCall({
+                missedCallId: mc.id,
+                status: twilioResult.success ? 'QUEUED' : 'FAILED',
+                providerStatusRaw: twilioResult.success ? 'twilio_sent' : 'twilio_failed',
+                fromPhone: clinic.phone || null,
+                toPhone: mc.fromNumber,
+                errorMessage: twilioResult.success ? null : (twilioResult.error || 'SMS send failed'),
             });
-            succeeded++;
-        } else {
-            await prisma.missedCall.update({
-                where: { id: mc.id },
-                data: { smsStatus: 'failed', smsError: twilioResult.error || 'Twilio send failed' }
+
+            processed++;
+        } catch (err) {
+            // Never leave a claimed record stuck in "processing". A provider,
+            // credit, or DB error must become an observable terminal failure.
+            logger.error('Scheduled recovery SMS processing failed', {
+                missedCallId: mc.id,
+                clinicId: mc.clinicId,
+                error: err.message
             });
+            try {
+                await prisma.missedCall.update({
+                    where: { id: mc.id },
+                    data: { smsStatus: 'failed', smsError: String(err.message || 'SMS processing failed').slice(0, 500) }
+                });
+            } catch (updateErr) {
+                logger.error('Failed to persist scheduled SMS failure state', {
+                    missedCallId: mc.id,
+                    error: updateErr.message
+                });
+            }
             failed++;
+            processed++;
         }
-
-        await recordOutboundMessageForMissedCall({
-            missedCallId: mc.id,
-            status: twilioResult.success ? 'QUEUED' : 'FAILED',
-            providerStatusRaw: twilioResult.success ? 'twilio_sent' : 'twilio_failed',
-            fromPhone: clinic.phone || null,
-            toPhone: mc.fromNumber,
-            errorMessage: twilioResult.success ? null : (twilioResult.error || 'Twilio send failed'),
-        });
-
-        processed++;
     }
 
     if (processed > 0) {
