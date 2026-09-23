@@ -69,6 +69,16 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
             throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
         }
         await incrementSmsUsage(clinicId, tx);
+
+        // A failed delivery is still an attempted SMS for usage/rate-limit
+        // purposes, but the clinic must not permanently lose a message credit.
+        if (deliveryStatus === 'FAILED') {
+            await tx.clinic.update({
+                where: { id: clinicId },
+                data: { messageCredits: { increment: 1 } }
+            });
+        }
+
         return tx.messageLog.create({
             data: {
                 clinicId,
