@@ -291,7 +291,8 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     await recordOutboundMessageForMissedCall({
         missedCallId: missedCall.id,
-        status: twilioResult.success ? 'QUEUED' : 'FAILED',
+        status: twilioResult.success ? 'SENT' : 'FAILED',
+        providerMessageSid: twilioResult.sid || null,
         providerStatusRaw: twilioResult.success ? 'twilio_sent' : 'twilio_failed',
         fromPhone: clinic.phone || null,
         toPhone: normalizedPhone,
@@ -371,7 +372,8 @@ async function processScheduledMissedCalls() {
 
             await recordOutboundMessageForMissedCall({
                 missedCallId: mc.id,
-                status: twilioResult.success ? 'QUEUED' : 'FAILED',
+                status: twilioResult.success ? 'SENT' : 'FAILED',
+                providerMessageSid: twilioResult.sid || null,
                 providerStatusRaw: twilioResult.success ? 'twilio_sent' : 'twilio_failed',
                 fromPhone: clinic.phone || null,
                 toPhone: mc.fromNumber,
