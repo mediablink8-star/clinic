@@ -447,17 +447,9 @@ async function handleProviderStatusCallback({
     const { recoveryCase, conversation } = recoveryContext;
     let message = recoveryContext.message;
 
-    if (!message) {
-        message = await prisma.message.findFirst({
-            where: {
-                conversationId: conversation.id,
-                direction: 'OUTBOUND',
-                providerMessageSid: null,
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-    }
-
+    // Never attach a provider callback to an arbitrary recent message.
+    // Without the provider SID there is no safe identity match; create a
+    // provider-linked record below instead of corrupting another SMS.
     let shouldCreateActivity = false;
 
     if (!message) {
