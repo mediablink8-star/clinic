@@ -420,7 +420,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                     patient: patient.name,
                     appointmentId: appointment.id,
                     date: appointment.startTime.toISOString().split('T')[0],
-                    time: appointment.startTime.toTimeString().slice(0, 5)
+                    time: appointment.startTime.toLocaleTimeString('el-GR', { timeZone: clinic?.timezone || DEFAULT_TIMEZONE, hour: '2-digit', minute: '2-digit' })
                 }
             };
         }
@@ -436,7 +436,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                     appointments: result.data.map(apt => ({
                         id: apt.id,
                         patient: apt.patient?.name || 'Unknown',
-                        time: new Date(apt.startTime).toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' }),
+                        time: new Date(apt.startTime).toLocaleTimeString('el-GR', { timeZone: clinic?.timezone || DEFAULT_TIMEZONE, hour: '2-digit', minute: '2-digit' }),
                         reason: apt.reason,
                         status: apt.status
                     }))
