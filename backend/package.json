@@ -32,7 +32,7 @@
     "testEnvironment": "node",
     "testTimeout": 60000,
     "testRegex": ".*\\.(test|spec)\\.js$",
-    "setupFilesAfterSetup": [
+    "setupFilesAfterEnv": [
       "<rootDir>/tests/setup.js"
     ],
     "collectCoverageFrom": [
