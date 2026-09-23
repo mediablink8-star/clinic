@@ -126,10 +126,17 @@ async function getDueNotifications({ limit = 50, cursor } = {}) {
 }
 
 async function markNotificationEnqueued(notificationId) {
-    return prisma.notification.update({
-        where: { id: notificationId },
+    // Only transition from SCHEDULED. A DB fallback worker or another process
+    // may have claimed the notification between discovery and enqueueing.
+    // Never overwrite PROCESSING/SENT/FAILED with ENQUEUED.
+    const result = await prisma.notification.updateMany({
+        where: {
+            id: notificationId,
+            status: 'SCHEDULED'
+        },
         data: { status: 'ENQUEUED' }
     });
+    return { count: result.count };
 }
 
 module.exports = { processNotification, getDueNotifications, markNotificationEnqueued };
