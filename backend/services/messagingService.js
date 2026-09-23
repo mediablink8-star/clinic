@@ -123,7 +123,8 @@ try {
             action: 'SEND_DIRECT_MESSAGE',
             entity: 'PATIENT',
             entityId: patientId,
-            details: { message, status: result.deliveryStatus },
+            // Do not persist message contents in the audit trail; SMS bodies may contain patient data.
+            details: { messageLength: message?.length || 0, status: result.deliveryStatus },
             ipAddress: actor?.ip
           });
         } catch (logErr) {
