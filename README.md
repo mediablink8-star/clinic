@@ -2,7 +2,7 @@
 
 > Modern clinic management system with AI-powered patient recovery, voice calls, and SMS automation.
 
-[![Production Ready](https://img.shields.io/badge/status-production%20ready-success)](https://github.com/mediablink8-star/clinic)
+[![Pilot Ready](https://img.shields.io/badge/status-controlled%20pilot-blue)](https://github.com/mediablink8-star/clinic)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 ## 🚀 Features
@@ -23,14 +23,14 @@
 - **📱 SMS** - Twilio integration with platform-level credentials
 - **📧 Email** - SMTP for notifications and password reset
 - **🔗 Webhooks** - n8n workflow automation
-- **📆 Calendar** - Google Calendar sync (coming soon)
+- **📆 Calendar** - Google Calendar sync with persisted sync status
 
 ### Security & Compliance
 - **🔐 Authentication** - JWT with MFA support
 - **🛡️ Authorization** - Role-based access control (OWNER, ADMIN, RECEPTIONIST, ASSISTANT)
 - **📝 Audit Logging** - Complete action history
 - **🔒 Encryption** - Sensitive data encrypted at rest
-- **⚖️ GDPR Compliant** - Privacy policy and data processing agreement
+- **⚖️ Privacy & Security** - Security controls and GDPR-oriented data handling; legal/compliance review required before making compliance claims
 
 ## 🏗️ Architecture
 
@@ -264,7 +264,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-- [x] Google Calendar two-way sync
+- [x] Google Calendar integration and sync status
 - [ ] WhatsApp integration
 - [ ] Mobile app (React Native)
 - [x] Advanced analytics dashboard
@@ -279,5 +279,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Version**: 1.0.0  
 **Last Updated**: May 6, 2026  
-**Status**: ✅ Production Ready
+**Status**: Controlled pilot ready — complete the first-clinic launch gate before handling real patient data
 
