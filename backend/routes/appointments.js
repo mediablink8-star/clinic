@@ -12,6 +12,7 @@ const {
 const { listPatients, deletePatient, restorePatient, getPatientExport } = require('../services/patientService');
 const { logAction } = require('../services/auditService');
 const logger = require('../utils/logger');
+const { updateCalendarEvent } = require('../services/googleCalendarService');
 
 router.get('/patients', asyncHandler(async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -176,6 +177,22 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
             include: { doctor: true, patient: true }
         });
     });
+
+    // Doctor reassignment changes the Google Calendar event title/description.
+    // Keep this best-effort so a calendar outage never blocks the clinic from
+    // successfully reassigning the appointment in ClinicFlow.
+    if (updated.googleCalendarEventId) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
+        updateCalendarEvent({
+            clinic,
+            googleCalendarEventId: updated.googleCalendarEventId,
+            appointment: updated,
+            patient: updated.patient,
+        }).catch(err => logger.warn('GoogleCalendar reassignment sync failed', {
+            appointmentId: updated.id,
+            error: err.message,
+        }));
+    }
 
     res.json({ success: true, data: updated });
 }));
