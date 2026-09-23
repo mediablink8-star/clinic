@@ -33,7 +33,7 @@ router.post('/command', aiLimiter, asyncHandler(async (req, res) => {
     const result = await processCommand(
         command.trim(),
         req.clinicId,
-        { userId: req.user.userId, ip: req.ip }
+        { userId: req.user.userId, role: req.user.role, ip: req.ip }
     );
     
     res.json(result);
