@@ -126,42 +126,58 @@ router.post('/appointments/:id/restore', asyncHandler(async (req, res) => {
 
 // PATCH /api/appointments/:id/doctor — reassign or unassign doctor
 router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
-const { doctorId } = req.body;
-const existing = await prisma.appointment.findFirst({
-    where: { id: req.params.id, clinicId: req.clinicId }
-});
-if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+    const { doctorId } = req.body;
 
-if (doctorId) {
-    const doctor = await prisma.doctor.findFirst({
-        where: { id: doctorId, clinicId: req.clinicId, isActive: true }
+    const updated = await prisma.$transaction(async (tx) => {
+        const existing = await tx.appointment.findFirst({
+            where: { id: req.params.id, clinicId: req.clinicId }
+        });
+        if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+
+        // Serialize reassignment against simultaneous bookings/reassignments
+        // for the target doctor/time slot. The clinic ID is part of the lock
+        // key so tenants can never contend with or affect each other.
+        await tx.$queryRaw`
+            SELECT pg_advisory_xact_lock(
+                hashtext(CONCAT(
+                    ${req.clinicId}, ':',
+                    COALESCE(${doctorId || existing.doctorId || 'UNASSIGNED'}, ':UNASSIGNED'),
+                    ':', ${existing.startTime.toISOString()},
+                    ':', ${existing.endTime.toISOString()}
+                ))
+            )
+        `;
+
+        if (doctorId) {
+            const doctor = await tx.doctor.findFirst({
+                where: { id: doctorId, clinicId: req.clinicId, isActive: true }
+            });
+            if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+
+            const conflict = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${req.clinicId}
+                AND "doctorId" = ${doctorId}
+                AND id != ${req.params.id}
+                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                AND "startTime" < ${existing.endTime}
+                AND "endTime" > ${existing.startTime}
+                LIMIT 1
+            `;
+            if (conflict.length > 0) {
+                throw new AppError('CONFLICT', 'This doctor already has an appointment at this time', 409);
+            }
+        }
+
+        return tx.appointment.update({
+            where: { id: req.params.id },
+            data: { doctorId: doctorId || null },
+            include: { doctor: true, patient: true }
+        });
     });
-    if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
 
-    // Check for double-booking with the new doctor
-    const conflict = await prisma.$queryRaw`
-        SELECT id FROM "Appointment"
-        WHERE "clinicId" = ${req.clinicId}
-        AND "doctorId" = ${doctorId}
-        AND id != ${req.params.id}
-        AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-        AND "startTime" < ${existing.endTime}
-        AND "endTime" > ${existing.startTime}
-        LIMIT 1
-    `;
-    if (conflict && conflict.length > 0) {
-        throw new AppError('CONFLICT', 'This doctor already has an appointment at this time', 409);
-    }
-}
-
-const updated = await prisma.appointment.update({
-    where: { id: req.params.id },
-    data: { doctorId: doctorId || null },
-    include: { doctor: true, patient: true }
-});
-res.json({ success: true, data: updated });
+    res.json({ success: true, data: updated });
 }));
-
 
 // GET /api/appointments/available?date=2026-04-22
 router.get('/appointments/available', asyncHandler(async (req, res) => {
