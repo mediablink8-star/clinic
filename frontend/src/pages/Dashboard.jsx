@@ -80,8 +80,13 @@ const Dashboard = ({
         </div>;
     }
 
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Καλημέρα' : hour < 18 ? 'Καλησπέρα' : 'Καλό βράδυ';
+    // Greeting follows the clinic's configured timezone, not the receptionist's device timezone.
+    const clinicHour = Number(new Intl.DateTimeFormat('en-US', {
+        timeZone: clinic?.timezone || DEFAULT_TIMEZONE,
+        hour: '2-digit',
+        hour12: false,
+    }).format(new Date()));
+    const greeting = clinicHour < 12 ? 'Καλημέρα' : clinicHour < 18 ? 'Καλησπέρα' : 'Καλό βράδυ';
     const clinicName = clinic?.name || 'Συνάδελφε';
     const isDoctor = /^(Δρ\.?|Dr\.?|Γιατρός|Ιατρός)/i.test(clinicName);
     const displayName = isDoctor ? clinicName : clinicName;
