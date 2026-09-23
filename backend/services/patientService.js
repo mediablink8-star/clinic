@@ -243,6 +243,48 @@ async function restorePatient(clinicId, patientId, actor) {
   if (!existing) throw new AppError('NOT_FOUND', 'Patient not found, not deleted, or already anonymized', 404);
 
   await prisma.$transaction(async (tx) => {
+    const appointments = await tx.appointment.findMany({
+      where: { patientId, clinicId, deletedAt: { not: null } },
+      select: { id: true, doctorId: true, startTime: true, endTime: true, status: true },
+    });
+
+    // Restoring a patient also restores their deleted appointments. Serialize
+    // each occupied doctor/time slot so a restore cannot resurrect an
+    // appointment that was replaced while the patient was deleted.
+    for (const appointment of appointments) {
+      if (!appointment.doctorId) continue;
+
+      await tx.$queryRaw`
+        SELECT pg_advisory_xact_lock(
+          hashtext(CONCAT(
+            ${clinicId}, ':', ${appointment.doctorId}, ':',
+            ${appointment.startTime.toISOString()}, ':',
+            ${appointment.endTime.toISOString()}
+          ))
+        )
+      `;
+
+      const conflict = await tx.$queryRaw`
+        SELECT id FROM "Appointment"
+        WHERE "clinicId" = ${clinicId}
+          AND "doctorId" = ${appointment.doctorId}
+          AND id != ${appointment.id}
+          AND "deletedAt" IS NULL
+          AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+          AND "startTime" < ${appointment.endTime}
+          AND "endTime" > ${appointment.startTime}
+        LIMIT 1
+      `;
+
+      if (conflict.length > 0) {
+        throw new AppError(
+          'CONFLICT',
+          'Patient cannot be restored because one of their appointments now conflicts with an active appointment.',
+          409
+        );
+      }
+    }
+
     await tx.patient.update({
       where: { id: patientId },
       data: { deletedAt: null },
