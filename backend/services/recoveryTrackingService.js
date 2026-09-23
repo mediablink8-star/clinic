@@ -275,6 +275,14 @@ async function resolveRecoveryContext({ providerMessageSid, recoveryCaseId, miss
         });
 
         if (existingMessage) {
+            if (clinicId && existingMessage.clinicId !== clinicId) {
+                logger.warn('Provider callback tenant mismatch', {
+                    providerMessageSid,
+                    callbackClinicId: clinicId,
+                    messageClinicId: existingMessage.clinicId
+                });
+                return null;
+            }
             return {
                 recoveryCase: existingMessage.conversation.recoveryCase,
                 conversation: existingMessage.conversation,
@@ -290,11 +298,32 @@ async function resolveRecoveryContext({ providerMessageSid, recoveryCaseId, miss
         });
 
         if (recoveryCase?.conversation) {
+            if (clinicId && recoveryCase.clinicId !== clinicId) {
+                logger.warn('Recovery callback tenant mismatch', {
+                    recoveryCaseId,
+                    callbackClinicId: clinicId,
+                    recoveryCaseClinicId: recoveryCase.clinicId
+                });
+                return null;
+            }
             return { recoveryCase, conversation: recoveryCase.conversation, message: null };
         }
     }
 
     if (missedCallId) {
+        const missedCall = await prisma.missedCall.findUnique({
+            where: { id: missedCallId },
+            select: { clinicId: true }
+        });
+        if (!missedCall) return null;
+        if (clinicId && missedCall.clinicId !== clinicId) {
+            logger.warn('Missed-call callback tenant mismatch', {
+                missedCallId,
+                callbackClinicId: clinicId,
+                missedCallClinicId: missedCall.clinicId
+            });
+            return null;
+        }
         const recoveryCase = await ensureRecoveryCaseForMissedCall(missedCallId);
         return { recoveryCase, conversation: recoveryCase.conversation, message: null };
     }
