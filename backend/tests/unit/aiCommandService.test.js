@@ -1,5 +1,5 @@
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 
 jest.mock('../../services/prisma', () => testPrisma);
 jest.mock('../../services/encryptionService', () => ({
@@ -304,6 +304,25 @@ describe('AI Command Service', () => {
         action: 'send_sms',
         parameters: { patientName: 'Μη Υπάρχων', message: 'Test' },
         confidence: 0.8,
+      };
+
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+    });
+
+    it('should reject an unknown doctor name when booking', async () => {
+      await createTestDoctor(clinic.id, { name: 'Dr. Existing' });
+
+      const parsed = {
+        action: 'book_appointment',
+        parameters: {
+          patientName: 'Γιάννης Παπαδόπουλος',
+          reason: 'έλεγχος',
+          date: '2026-01-16',
+          time: '10:00',
+          duration: 30,
+          doctorName: 'Dr. Does Not Exist',
+        },
+        confidence: 0.9,
       };
 
       await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
