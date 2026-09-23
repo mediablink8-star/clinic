@@ -228,6 +228,8 @@ model Appointment {
   notifications   Notification[]
   missedCalls     MissedCall[]      // Reverse relation for recovered missed calls
   googleCalendarEventId String?     // Google Calendar event ID for sync
+  googleCalendarSyncStatus String? // PENDING, SYNCED, FAILED, or NOT_CONNECTED
+  googleCalendarSyncError String?  // Last sync error for diagnostics
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
