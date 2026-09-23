@@ -83,52 +83,106 @@ async function sendSms({ to, body }) {
 }
 
 async function sendSmsWithTracking({ to, body, clinicId }) {
-    const clinic = await prisma.clinic.findUnique({
-        where: { id: clinicId },
-        select: { messageCredits: true, smsCount: true, smsMonthlyLimit: true, dailyUsedCount: true, dailyMessageCap: true, lastResetDate: true, lastResetDay: true, timezone: true },
-    });
-    if (!clinic || clinic.messageCredits <= 0) {
-        return { success: false, error: 'Insufficient message credits' };
-    }
-
-    // Check monthly + daily limits BEFORE sending
-    try {
-        await assertWithinSmsLimit(clinicId);
-    } catch (err) {
-        if (err.code === 'USAGE_LIMIT_REACHED') {
-            return { success: false, error: 'Monthly SMS limit reached' };
-        }
-        return { success: false, error: 'SMS rate limit exceeded' };
-    }
-
-    const result = await sendSms({ to, body });
-    if (!result.success) return result;
+    // Reserve the credit and usage slot BEFORE calling the provider. This
+    // closes the race where concurrent sends could all pass the preflight
+    // check and only one would be charged after delivery.
+    let reservationId = null;
 
     try {
-        await prisma.$transaction(async (tx) => {
-            const updated = await tx.clinic.updateMany({
-                where: { id: clinicId, messageCredits: { gt: 0 } },
-                data: { messageCredits: { decrement: 1 } },
+        const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId);
+
+        const reservation = await prisma.$transaction(async (tx) => {
+            const { ensureMonthlyUsageWindow } = require('./usageService');
+            await ensureMonthlyUsageWindow(clinicId, tx);
+
+            const result = await tx.clinic.updateMany({
+                where: {
+                    id: clinicId,
+                    messageCredits: { gt: 0 },
+                    smsCount: { lt: limit },
+                    dailyUsedCount: { lt: dailyLimit },
+                },
+                data: {
+                    messageCredits: { decrement: 1 },
+                    smsCount: { increment: 1 },
+                    dailyUsedCount: { increment: 1 },
+                },
             });
-            if (updated.count === 0) {
-                throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
+
+            if (result.count === 0) {
+                throw new AppError('USAGE_LIMIT_REACHED', 'SMS limit or message credits reached', 429);
             }
-            await incrementSmsUsage(clinicId, tx);
-            await tx.messageLog.create({
+
+            const log = await tx.messageLog.create({
                 data: {
                     clinicId,
                     type: 'SMS',
-                    status: 'SENT',
+                    status: 'PENDING',
                     cost: 1,
+                },
+            });
+
+            return log.id;
+        });
+
+        reservationId = reservation;
+    } catch (err) {
+        if (err.code === 'USAGE_LIMIT_REACHED') {
+            return { success: false, error: err.message };
+        }
+
+        logger.error('SMS reservation failed', { clinicId, error: err.message });
+        return { success: false, error: 'Unable to reserve SMS credit' };
+    }
+
+    const result = await sendSms({ to, body });
+
+    if (result.success) {
+        try {
+            await prisma.messageLog.update({
+                where: { id: reservationId },
+                data: { status: 'SENT' },
+            });
+        } catch (err) {
+            // The provider already accepted the SMS and the reservation is
+            // already charged. Keep the successful provider result, but log
+            // the accounting discrepancy for operational reconciliation.
+            logger.error('SMS sent but delivery log update failed', {
+                clinicId,
+                reservationId,
+                sid: result.sid,
+                error: err.message,
+            });
+        }
+
+        return result;
+    }
+
+    // Provider failure: refund the reserved credit. We intentionally keep
+    // usage counters consumed so repeated provider failures cannot bypass
+    // monthly/daily caps.
+    try {
+        await prisma.$transaction(async (tx) => {
+            await tx.clinic.update({
+                where: { id: clinicId },
+                data: { messageCredits: { increment: 1 } },
+            });
+
+            await tx.messageLog.update({
+                where: { id: reservationId },
+                data: {
+                    status: 'FAILED',
+                    error: result.error || 'SMS provider failed',
                 },
             });
         });
     } catch (err) {
-        if (err.code === 'INSUFFICIENT_CREDITS') {
-            logger.warn('Twilio Credit deduction failed', { clinicId, reason: 'insufficient credits' });
-        } else {
-            logger.warn('Twilio Credit/usage tracking failed', { clinicId, error: err.message });
-        }
+        logger.error('SMS provider failed and credit refund/logging failed', {
+            clinicId,
+            reservationId,
+            providerError: result.error,
+            error: err.message,
+        });
     }
 
     return result;
