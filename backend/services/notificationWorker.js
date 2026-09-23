@@ -163,7 +163,13 @@ function startNotificationWorker() {
             for (const item of pending) {
                 const queued = await safeAddReminder({ notificationId: item.id });
                 if (!queued) continue;
-                await markNotificationEnqueued(item.id);
+                const marked = await markNotificationEnqueued(item.id);
+                if (marked.count === 0) {
+                    // Another worker already claimed it. The queued job is still
+                    // safe because processNotification atomically claims only
+                    // SCHEDULED/ENQUEUED records.
+                    continue;
+                }
                 enqueued++;
             }
             if (enqueued > 0) logger.info('Enqueued notification jobs', { count: enqueued });
