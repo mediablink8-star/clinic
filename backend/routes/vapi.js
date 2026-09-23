@@ -286,8 +286,8 @@ async function handleVapiEvent(event) {
     }
 
     // Bind the Vapi event to the exact outbound Vapi call. Legacy records may
-    // have no vapiCallId, but only a recovering case with matching tenant
-    // metadata may be claimed by the first authenticated event.
+    // have no vapiCallId, so require the event's customer phone to match the
+    // recovery case before allowing a one-time legacy claim.
     if (mc && call_id) {
         if (mc.vapiCallId && mc.vapiCallId !== call_id) {
             logger.warn('Vapi call identity mismatch', {
@@ -297,7 +297,26 @@ async function handleVapiEvent(event) {
             });
             return;
         }
-        if (!mc.vapiCallId && missedCallId && mc.status === 'RECOVERING') {
+
+        const eventCustomerPhone = normalizePhone(
+            event.customer?.number || event.call?.customer?.number
+        );
+        const casePhone = normalizePhone(mc.fromNumber);
+
+        if (!mc.vapiCallId && missedCallId) {
+            if (mc.status !== 'RECOVERING' ||
+                !eventCustomerPhone ||
+                !casePhone ||
+                eventCustomerPhone !== casePhone) {
+                logger.warn('Vapi legacy recovery binding rejected', {
+                    callId: call_id,
+                    missedCallId: mc.id,
+                    hasCustomerPhone: Boolean(eventCustomerPhone),
+                    status: mc.status
+                });
+                return;
+            }
+
             mc = await prisma.missedCall.update({
                 where: { id: mc.id },
                 data: { vapiCallId: call_id },
