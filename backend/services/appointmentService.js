@@ -133,7 +133,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, name: true, timezone: true, webhookSecret: true }
+        select: { id: true, name: true, timezone: true, webhookSecret: true, googleCalendarEnabled: true }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     const timezone = clinic.timezone || DEFAULT_TIMEZONE;
