@@ -211,6 +211,8 @@ async function updateCalendarEvent({ clinic, googleCalendarEventId, appointment,
         });
     } catch (err) {
         logger.warn('GoogleCalendar Failed to update event', { error: err.message });
+        // Let callers persist the failure instead of silently reporting success.
+        throw err;
     }
 }
 
