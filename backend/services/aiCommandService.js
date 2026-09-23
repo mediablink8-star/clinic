@@ -289,7 +289,10 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 if (doctors.length > 1) {
                     throw new AppError('AMBIGUOUS_MATCH', 'Multiple doctors found', 400, { suggestions: doctors.map(d => d.name) });
                 }
-                if (doctors.length === 1) doctorId = doctors[0].id;
+                if (doctors.length === 0) {
+                    throw new AppError('NOT_FOUND', `Doctor "${doctorName}" not found`, 404);
+                }
+                doctorId = doctors[0].id;
             }
             
             // Parse date and time in clinic's timezone
