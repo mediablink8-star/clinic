@@ -286,14 +286,22 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
             
             // Parse date and time in clinic's timezone
             const timezone = clinic?.timezone || DEFAULT_TIMEZONE;
-            
+
+            // Never fall back to the server timezone for clinic appointments.
+            if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date || '')) ||
+                !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(time || ''))) {
+                throw new AppError('VALIDATION_ERROR', 'Appointment date must be YYYY-MM-DD and time must be HH:MM', 400);
+            }
+
             const { parseDateTimeInTimezone } = require('./publicService');
             let startTime;
             try {
                 startTime = parseDateTimeInTimezone(date, time, timezone);
             } catch (err) {
-                // fallback if date format was somewhat bad
-                startTime = new Date(`${date}T${time}:00`);
+                throw new AppError('VALIDATION_ERROR', 'Invalid appointment date/time for clinic timezone', 400);
+            }
+            if (!(startTime instanceof Date) || Number.isNaN(startTime.getTime())) {
+                throw new AppError('VALIDATION_ERROR', 'Invalid appointment date/time', 400);
             }
             const durationMinutes = duration || 30;
             if (!Number.isFinite(Number(durationMinutes)) || Number(durationMinutes) < 15 || Number(durationMinutes) > 240) {
@@ -445,8 +453,14 @@ async function processCommand(command, clinicId, actor) {
     const geminiApiKey = clinic?.geminiApiKey ? decrypt(clinic.geminiApiKey) : null;
     
     // Parse command with AI
+    const clinicTimezone = clinic?.timezone || DEFAULT_TIMEZONE;
+    const currentDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: clinicTimezone,
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date());
+
     const context = {
-        currentDate: new Date().toISOString().split('T')[0],
+        currentDate,
         geminiApiKey
     };
     
