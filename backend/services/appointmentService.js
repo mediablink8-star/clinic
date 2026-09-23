@@ -362,6 +362,15 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
     // Record cancellation metric
     if (status === 'CANCELLED') {
         metrics.recordAppointmentCancelled(clinicId, actor.userId || 'user');
+
+        // Cancel any reminder that has not already been claimed/sent.
+        await prisma.notification.updateMany({
+            where: {
+                appointmentId,
+                status: { in: ['SCHEDULED', 'ENQUEUED'] }
+            },
+            data: { status: 'CANCELLED' }
+        });
     }
 
     // Update Google Calendar event status if synced
@@ -570,16 +579,23 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
     });
     if (existing) return;
 
-    await prisma.notification.create({
-        data: {
-            clinicId: appointment.clinicId,
-            appointmentId: appointment.id,
-            type: 'REMINDER',
-            message,
-            scheduledFor: reminderTime,
-            status: 'SCHEDULED',
-        }
-    });
+    try {
+        await prisma.notification.create({
+            data: {
+                clinicId: appointment.clinicId,
+                appointmentId: appointment.id,
+                type: 'REMINDER',
+                message,
+                scheduledFor: reminderTime,
+                status: 'SCHEDULED',
+            }
+        });
+    } catch (err) {
+        // The unique appointment/type constraint makes concurrent reminder
+        // scheduling safe. A duplicate simply means another request won.
+        if (err?.code === 'P2002') return;
+        throw err;
+    }
 }
 
 /**
