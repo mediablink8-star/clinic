@@ -220,7 +220,8 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
     const whereClause = {
         clinicId,
         startTime: { gte: startOfDay, lte: endOfDay },
-        status: { notIn: ['CANCELLED', 'NO_SHOW'] }
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        deletedAt: null
     };
     
     if (doctor) {
