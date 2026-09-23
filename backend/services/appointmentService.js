@@ -339,8 +339,8 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
         throw new AppError('VALIDATION_ERROR', `status must be one of: ${VALID_STATUSES.join(', ')}`, 400);
     }
 
-    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId } });
-    if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId, deletedAt: null } });
+    if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
         const updated = await tx.appointment.update({
@@ -422,8 +422,8 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
 }
 
 async function deleteAppointment({ clinicId, appointmentId }, actor) {
-    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId } });
-    if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+    const existing = await prisma.appointment.findFirst({ where: { id: appointmentId, clinicId, deletedAt: null } });
+    if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
     await prisma.$transaction(async (tx) => {
         await tx.appointment.update({
@@ -449,6 +449,21 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
             ipAddress: actor.ip
         });
     });
+
+    // Soft-deletion must also stop the appointment from appearing as active in
+    // the connected Google Calendar. Keep the stored status unchanged so a
+    // restore can put the event back to its previous status.
+    if (existing.googleCalendarEventId) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const { updateCalendarEvent } = require('./googleCalendarService');
+        updateCalendarEvent({
+            clinic,
+            googleCalendarEventId: existing.googleCalendarEventId,
+            appointment: { ...existing, status: 'CANCELLED' },
+            patient
+        }).catch(err => logger.warn('GoogleCalendar Delete update failed', { error: err.message }));
+    }
 
     return { success: true };
 }
@@ -523,6 +538,20 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
             ipAddress: actor.ip
         });
     });
+
+    // If the appointment was linked to Google Calendar, restore its
+    // previous status in the calendar as well.
+    if (existing.googleCalendarEventId) {
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const { updateCalendarEvent } = require('./googleCalendarService');
+        updateCalendarEvent({
+            clinic,
+            googleCalendarEventId: existing.googleCalendarEventId,
+            appointment: existing,
+            patient
+        }).catch(err => logger.warn('GoogleCalendar Restore update failed', { error: err.message }));
+    }
 
     return { success: true };
 }
