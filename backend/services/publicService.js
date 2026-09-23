@@ -263,10 +263,21 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         });
 
         if (missedCallId) {
+            // A recovery link must be single-use. Without this guard, an old
+            // SMS booking link could create multiple appointments from the
+            // same missed-call recovery case.
             const mc = await tx.missedCall.findFirst({
-                where: { id: missedCallId, clinicId }
+                where: {
+                    id: missedCallId,
+                    clinicId,
+                    status: 'RECOVERING',
+                    appointmentId: null,
+                }
             });
-            if (!mc) throw new AppError('NOT_FOUND', 'Missed call not found', 404);
+            if (!mc) {
+                throw new AppError('CONFLICT', 'This recovery booking link has already been used or is no longer active.', 409);
+            }
+
             await tx.missedCall.update({
                 where: { id: mc.id },
                 data: {
