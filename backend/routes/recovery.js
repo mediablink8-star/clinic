@@ -371,20 +371,21 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
             logger.info('Batch Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
             const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Default 1h
 
-            // Atomic transaction for all recovery confirm operations
-            await prisma.$transaction(async (tx) => {
-                // Create appointment
-                const apt = await createAppointment({
-                    clinicId,
-                    patientId: mc.patientId || (await ensurePatient(mc, clinicId, tx)).id,
-                    reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
-                    startTime,
-                    endTime,
-                    status: 'CONFIRMED',
-                    source: 'SMS_BOOKING'
-                }, actor);
+            // createAppointment owns the appointment transaction. Do not wrap it
+            // in a second Prisma transaction (nested transactions use a separate
+            // DB transaction and were not actually atomic).
+            const patientId = mc.patientId || (await ensurePatient(mc, clinicId, prisma)).id;
+            const apt = await createAppointment({
+                clinicId,
+                patientId,
+                reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+                startTime,
+                endTime,
+                source: 'SMS_BOOKING'
+            }, actor);
 
-                // Record feed event
+            // Keep recovery bookkeeping atomic after the appointment exists.
+            await prisma.$transaction(async (tx) => {
                 await tx.feedEvent.create({
                     data: {
                         clinicId,
@@ -397,7 +398,6 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
                     }
                 });
 
-                // Update missed call record
                 await tx.missedCall.update({
                     where: { id: mc.id },
                     data: {
@@ -407,7 +407,6 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
                     }
                 });
 
-                // Mark tracking case recovered
                 const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
                 await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date(), tx });
             });
@@ -469,20 +468,19 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     logger.info('Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
 
-    // Atomic transaction for all recovery confirm operations
-    await prisma.$transaction(async (tx) => {
-        // Create appointment
-        const apt = await createAppointment({
-            clinicId,
-            patientId: mc.patientId || (await ensurePatient(mc, clinicId, tx)).id,
-            reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
-            startTime,
-            endTime,
-            status: 'CONFIRMED',
-            source: 'SMS_BOOKING'
-        }, actor);
+    // createAppointment owns the appointment transaction; avoid a nested
+    // Prisma transaction here and keep the recovery bookkeeping separate.
+    const patientId = mc.patientId || (await ensurePatient(mc, clinicId, prisma)).id;
+    const apt = await createAppointment({
+        clinicId,
+        patientId,
+        reason: 'Ανάκτηση από AI: ' + (mc.bookingName || 'Ραντεβού'),
+        startTime,
+        endTime,
+        source: 'SMS_BOOKING'
+    }, actor);
 
-        // Record feed event
+    await prisma.$transaction(async (tx) => {
         await tx.feedEvent.create({
             data: {
                 clinicId,
@@ -495,7 +493,6 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
             }
         });
 
-        // Update missed call record
         await tx.missedCall.update({
             where: { id: mc.id },
             data: {
@@ -505,7 +502,6 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
             }
         });
 
-        // Mark tracking case recovered
         const { markRecoveryCaseRecovered } = require('../services/recoveryTrackingService');
         await markRecoveryCaseRecovered({ clinicId, missedCallId: mc.id, occurredAt: new Date(), tx });
     });
