@@ -325,7 +325,8 @@ model MissedCall {
   clinicId         String
   clinic           Clinic           @relation(fields: [clinicId], references: [id])
   fromNumber       String
-  callSid          String?          @unique // External call ID for dedup (Fix 4)
+  callSid          String?          @unique // Original telephony call ID for inbound-call deduplication
+  vapiCallId       String?          @unique // Vapi outbound callback call ID; never overwrites callSid
   patientId        String?
   patient          Patient?         @relation(fields: [patientId], references: [id])
   appointmentId    String?
