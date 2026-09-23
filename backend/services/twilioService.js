@@ -1,6 +1,6 @@
 const twilio = require('twilio');
 const prisma = require('./prisma');
-const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
+const { assertWithinSmsLimit, ensureMonthlyUsageWindow } = require('./usageService');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 
@@ -92,7 +92,6 @@ async function sendSmsWithTracking({ to, body, clinicId }) {
         const { limit, dailyLimit } = await assertWithinSmsLimit(clinicId);
 
         const reservation = await prisma.$transaction(async (tx) => {
-            const { ensureMonthlyUsageWindow } = require('./usageService');
             await ensureMonthlyUsageWindow(clinicId, tx);
 
             const result = await tx.clinic.updateMany({
