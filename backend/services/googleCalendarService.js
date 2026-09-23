@@ -134,7 +134,14 @@ async function createCalendarEvent({ clinic, appointment, patient }) {
             colorId: appointment.priority === 'URGENT' ? '11' : '1', // red for urgent, blue for normal
         };
 
-        logger.info('GoogleCalendar Event payload', { event });
+        // Never log the full calendar payload: it contains patient-identifying information
+        // and may include sensitive appointment details.
+        logger.info('GoogleCalendar Creating event', {
+            appointmentId: appointment.id,
+            calendarId,
+            hasPatient: !!patient?.name,
+            hasReason: !!appointment.reason,
+        });
         const response = await calendar.events.insert({
             calendarId,
             resource: event,
