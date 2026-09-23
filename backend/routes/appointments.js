@@ -130,9 +130,9 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
 
     const updated = await prisma.$transaction(async (tx) => {
         const existing = await tx.appointment.findFirst({
-            where: { id: req.params.id, clinicId: req.clinicId }
+            where: { id: req.params.id, clinicId: req.clinicId, deletedAt: null }
         });
-        if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found', 404);
+        if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
         // Serialize reassignment against simultaneous bookings/reassignments
         // for the target doctor/time slot. The clinic ID is part of the lock
@@ -159,6 +159,7 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
                 WHERE "clinicId" = ${req.clinicId}
                 AND "doctorId" = ${doctorId}
                 AND id != ${req.params.id}
+                AND "deletedAt" IS NULL
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${existing.endTime}
                 AND "endTime" > ${existing.startTime}
