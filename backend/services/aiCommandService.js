@@ -349,28 +349,64 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
             }
             const patient = patients[0];
             
-            // Find appointment
+            // Find appointment safely in the clinic's configured timezone.
+            // Never use the server/browser timezone for an AI cancellation.
             const where = {
                 clinicId,
                 patientId: patient.id,
                 status: { notIn: ['CANCELLED', 'COMPLETED', 'NO_SHOW'] }
             };
-            
+
             if (date) {
-                const startOfDay = new Date(`${date}T00:00:00`);
-                const endOfDay = new Date(`${date}T23:59:59`);
-                where.startTime = { gte: startOfDay, lte: endOfDay };
+                const timezone = clinic?.timezone || DEFAULT_TIMEZONE;
+                if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date))) {
+                    throw new AppError('VALIDATION_ERROR', 'Appointment date must be YYYY-MM-DD', 400);
+                }
+
+                const { parseDateTimeInTimezone } = require('./publicService');
+                let startOfDay;
+                try {
+                    startOfDay = parseDateTimeInTimezone(date, '00:00', timezone);
+                } catch (err) {
+                    throw new AppError('VALIDATION_ERROR', 'Invalid appointment date for clinic timezone', 400);
+                }
+                if (!(startOfDay instanceof Date) || Number.isNaN(startOfDay.getTime())) {
+                    throw new AppError('VALIDATION_ERROR', 'Invalid appointment date', 400);
+                }
+
+                const nextDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+                where.startTime = { gte: startOfDay, lt: nextDay };
             }
-            
-            const appointment = await prisma.appointment.findFirst({
+
+            const appointments = await prisma.appointment.findMany({
                 where,
-                orderBy: { startTime: 'asc' }
+                orderBy: { startTime: 'asc' },
+                take: 5
             });
-            
-            if (!appointment) {
+
+            if (appointments.length === 0) {
                 throw new AppError('NOT_FOUND', `No active appointment found for ${patientName}`, 404);
             }
-            
+
+            // Cancelling without a date is unsafe when the patient has multiple
+            // active appointments. Refuse rather than silently cancelling the
+            // earliest one.
+            if (!date && appointments.length > 1) {
+                throw new AppError(
+                    'AMBIGUOUS_MATCH',
+                    `Multiple active appointments found for ${patientName}. Please specify the date.`,
+                    400,
+                    {
+                        appointments: appointments.map(appointment => ({
+                            id: appointment.id,
+                            startTime: appointment.startTime.toISOString()
+                        }))
+                    }
+                );
+            }
+
+            const appointment = appointments[0];
+
             await updateAppointmentStatus({
                 clinicId,
                 appointmentId: appointment.id,
