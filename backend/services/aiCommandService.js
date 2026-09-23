@@ -178,6 +178,12 @@ async function findPatientsByName(clinicId, name) {
  * Execute parsed command
  */
 async function executeCommand(parsedCommand, clinicId, actor, clinic) {
+    // AI can trigger real-world actions (SMS, calls, bookings, cancellations).
+    // Keep authorization explicit even if this service is called outside the HTTP route.
+    const allowedRoles = ['RECEPTIONIST', 'DOCTOR', 'ADMIN', 'OWNER', 'AUTOMATION'];
+    if (!allowedRoles.includes(actor?.role)) {
+        throw new AppError('FORBIDDEN', 'Insufficient permissions to execute AI commands', 403);
+    }
     const { action, parameters } = parsedCommand;
     
     switch (action) {
@@ -263,14 +269,19 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
 
             let doctorId = null;
             if (doctorName) {
-                const doctor = await prisma.doctor.findFirst({
+                const doctors = await prisma.doctor.findMany({
                     where: {
                         clinicId,
                         isActive: true,
-                        name: { contains: doctorName, mode: 'insensitive' }
-                    }
+                        name: { contains: doctorName.trim(), mode: 'insensitive' }
+                    },
+                    select: { id: true, name: true },
+                    take: 5
                 });
-                if (doctor) doctorId = doctor.id;
+                if (doctors.length > 1) {
+                    throw new AppError('AMBIGUOUS_MATCH', 'Multiple doctors found', 400, { suggestions: doctors.map(d => d.name) });
+                }
+                if (doctors.length === 1) doctorId = doctors[0].id;
             }
             
             // Parse date and time in clinic's timezone
@@ -285,6 +296,9 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 startTime = new Date(`${date}T${time}:00`);
             }
             const durationMinutes = duration || 30;
+            if (!Number.isFinite(Number(durationMinutes)) || Number(durationMinutes) < 15 || Number(durationMinutes) > 240) {
+                throw new AppError('VALIDATION_ERROR', 'Duration must be between 15 and 240 minutes', 400);
+            }
             const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
             
             const result = await createAppointment({
