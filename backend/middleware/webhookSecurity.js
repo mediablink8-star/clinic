@@ -33,10 +33,12 @@ const validateWebhookSecret = async (req, res, next) => {
             return next(new AppError('UNAUTHORIZED', 'Webhook security is not configured for this clinic', 401));
         }
 
-        if (!incomingSecret || !crypto.timingSafeEqual(
-            Buffer.from(String(incomingSecret), 'utf8'),
-            Buffer.from(String(actualSecret), 'utf8')
-        )) {
+        const incomingBuffer = Buffer.from(String(incomingSecret || ''), 'utf8');
+        const actualBuffer = Buffer.from(String(actualSecret), 'utf8');
+        if (
+            incomingBuffer.length !== actualBuffer.length ||
+            !crypto.timingSafeEqual(incomingBuffer, actualBuffer)
+        ) {
             console.warn(`[Security] Invalid webhook secret for clinicId=${clinicId}`);
             return next(new AppError('UNAUTHORIZED', 'Invalid or missing webhook secret', 401));
         }
@@ -65,10 +67,12 @@ const validateSystemSecret = (req, res, next) => {
         return next(new AppError('CONFIGURATION_ERROR', 'System secret not configured. Set MBAS_SYSTEM_SECRET.', 500));
     }
 
-    if (!incomingSecret || !crypto.timingSafeEqual(
-        Buffer.from(String(incomingSecret), 'utf8'),
-        Buffer.from(String(systemSecret), 'utf8')
-    )) {
+    const incomingBuffer = Buffer.from(String(incomingSecret || ''), 'utf8');
+    const systemBuffer = Buffer.from(String(systemSecret), 'utf8');
+    if (
+        incomingBuffer.length !== systemBuffer.length ||
+        !crypto.timingSafeEqual(incomingBuffer, systemBuffer)
+    ) {
         console.warn('[Security] Unauthorized global automation attempt');
         return next(new AppError('UNAUTHORIZED', 'Invalid system secret', 401));
     }
