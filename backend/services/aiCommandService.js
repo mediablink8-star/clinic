@@ -299,8 +299,8 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
             const timezone = clinic?.timezone || DEFAULT_TIMEZONE;
 
             // Never fall back to the server timezone for clinic appointments.
-            if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date || '')) ||
-                !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(time || ''))) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ||
+                !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time || ''))) {
                 throw new AppError('VALIDATION_ERROR', 'Appointment date must be YYYY-MM-DD and time must be HH:MM', 400);
             }
 
@@ -370,7 +370,7 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
 
             if (date) {
                 const timezone = clinic?.timezone || DEFAULT_TIMEZONE;
-                if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date))) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) {
                     throw new AppError('VALIDATION_ERROR', 'Appointment date must be YYYY-MM-DD', 400);
                 }
 
