@@ -395,11 +395,13 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
         return updated;
     });
 
-    // Record cancellation metric
-    if (status === 'CANCELLED') {
-        metrics.recordAppointmentCancelled(clinicId, actor.userId || 'user');
+    // Cancel any reminder that has not already been claimed/sent when the
+    // appointment can no longer be attended.
+    if (status === 'CANCELLED' || status === 'NO_SHOW') {
+        if (status === 'CANCELLED') {
+            metrics.recordAppointmentCancelled(clinicId, actor.userId || 'user');
+        }
 
-        // Cancel any reminder that has not already been claimed/sent.
         await prisma.notification.updateMany({
             where: {
                 appointmentId,
