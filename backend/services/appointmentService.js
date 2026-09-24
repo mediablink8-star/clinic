@@ -575,6 +575,20 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
         });
     });
 
+    // Ensure a restored appointment has a reminder even if the original
+    // appointment never had a notification row (for example, it was deleted
+    // before reminder creation completed).
+    if (existing.status !== 'CANCELLED' && existing.status !== 'NO_SHOW') {
+        const restored = await prisma.appointment.findUnique({
+            where: { id: appointmentId },
+            include: { patient: true, doctor: true }
+        });
+        const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
+        if (restored && clinic) {
+            await scheduleAppointmentReminder({ appointment: restored, patient: restored.patient, clinic });
+        }
+    }
+
     // If the appointment was linked to Google Calendar, restore its
     // previous status in the calendar as well.
     if (existing.googleCalendarEventId) {
