@@ -111,8 +111,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
     } else if (date && time) {
         // Keep public booking date/time validation strict and consistent with
         // the AI booking path before values reach conflict/availability logic.
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(date).trim()) ||
-            !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(time).trim())) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date).trim()) ||
+            !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time).trim())){
             throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
         }
         startDateTime = parseDateTimeInTimezone(date, time, timezone);
