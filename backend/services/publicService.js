@@ -22,13 +22,7 @@ async function getPublicClinic(clinicId) {
       workingHours: true,
       onboardingCompleted: true,
       createdAt: true,
-      _count: {
-        select: {
-          doctors: { where: { isActive: true } },
-          patients: true,
-          appointments: { where: { status: 'CONFIRMED' } },
-        },
-      },
+
     },
   });
 
