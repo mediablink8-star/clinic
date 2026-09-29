@@ -37,7 +37,7 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
     // Twilio fallback when no webhook is configured or the webhook failed.
     // IMPORTANT: credit/usage accounting happens exactly once below, after delivery.
     // Do not use sendSmsWithTracking here because that function also decrements credits.
-    if (!hasAnyWebhook || !webhookResult.success) {
+    if (!hasAnyWebhook || (!webhookResult.success && !webhookResult.attempted)) {
         try {
             if (payload?.phone) {
                 const twilioResult = await sendSms({
