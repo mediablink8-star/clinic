@@ -415,11 +415,14 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
     if (existing.googleCalendarEventId) {
         const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
         const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const doctor = existing.doctorId
+            ? await prisma.doctor.findUnique({ where: { id: existing.doctorId } })
+            : null;
         const { updateCalendarEvent } = require('./googleCalendarService');
         updateCalendarEvent({
             clinic,
             googleCalendarEventId: existing.googleCalendarEventId,
-            appointment: { ...existing, status },
+            appointment: { ...existing, status, doctor },
             patient
         }).catch(err => logger.warn('GoogleCalendar Update failed', { error: err.message }));
     }
@@ -494,11 +497,14 @@ async function deleteAppointment({ clinicId, appointmentId }, actor) {
     if (existing.googleCalendarEventId) {
         const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
         const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const doctor = existing.doctorId
+            ? await prisma.doctor.findUnique({ where: { id: existing.doctorId } })
+            : null;
         const { updateCalendarEvent } = require('./googleCalendarService');
         updateCalendarEvent({
             clinic,
             googleCalendarEventId: existing.googleCalendarEventId,
-            appointment: { ...existing, status: 'CANCELLED' },
+            appointment: { ...existing, status: 'CANCELLED', doctor },
             patient
         }).catch(err => logger.warn('GoogleCalendar Delete update failed', { error: err.message }));
     }
@@ -596,11 +602,14 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
     if (existing.googleCalendarEventId) {
         const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
         const patient = await prisma.patient.findUnique({ where: { id: existing.patientId } });
+        const doctor = existing.doctorId
+            ? await prisma.doctor.findUnique({ where: { id: existing.doctorId } })
+            : null;
         const { updateCalendarEvent } = require('./googleCalendarService');
         updateCalendarEvent({
             clinic,
             googleCalendarEventId: existing.googleCalendarEventId,
-            appointment: existing,
+            appointment: { ...existing, doctor },
             patient
         }).catch(err => logger.warn('GoogleCalendar Restore update failed', { error: err.message }));
     }
