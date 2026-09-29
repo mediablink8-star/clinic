@@ -25,7 +25,8 @@ const decryptAmka = (patient, user) => {
                     patient.amka = decrypt(patient.amka);
                 }
             } catch (err) {
-                // Ignore or log decryption error
+                logger.warn('Patient AMKA decryption failed', { patientId: patient.id, error: err.message });
+                patient.amka = null;
             }
         } else {
             patient.amka = null;
