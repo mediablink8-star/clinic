@@ -102,7 +102,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
 
      if (!targetUrl) {
          logger.warn('Webhook Skipped — No target URL found', { eventType });
-         return { success: false, reason: 'No URL' };
+         return { success: false, attempted: false, reason: 'No URL' };
      }
 
      // Validate URL to prevent SSRF
@@ -110,7 +110,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
          const parsed = new URL(targetUrl);
          if (!['http:', 'https:'].includes(parsed.protocol)) {
              logger.warn('Webhook Skipped — Invalid protocol', { eventType });
-             return { success: false, reason: 'Invalid URL protocol' };
+             return { success: false, attempted: true, reason: 'Invalid URL protocol' };
          }
          const allowPrivate = process.env.ALLOW_PRIVATE_WEBHOOK_URLS === 'true';
          if (!allowPrivate) {
@@ -126,12 +126,12 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
                  /^\[::1\]/.test(hostname);
              if (isPrivateIp) {
                  logger.warn('Webhook Skipped — Private/internal IP blocked', { eventType, hostname });
-                 return { success: false, reason: 'Private IP blocked' };
+                 return { success: false, attempted: true, reason: 'Private IP blocked' };
              }
          }
      } catch {
          logger.warn('Webhook Skipped — Malformed URL', { eventType });
-         return { success: false, reason: 'Malformed URL' };
+         return { success: false, attempted: true, reason: 'Malformed URL' };
      }
 
      const retryConfig = {
@@ -188,7 +188,7 @@ try {
              });
              // Record metrics
              recordWebhookDelivery(clinic?.id, eventType, true);
-             return { success: true, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: attempt, httpStatus: status, deadLetter: false };
+             return { success: true, attempted: true, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: attempt, httpStatus: status, deadLetter: false };
          } catch (err) {
              lastError = err;
              const m = /HTTP (\d+)/.exec(err.message || '');
@@ -223,7 +223,7 @@ try {
      });
      // Record metrics
      recordWebhookDelivery(clinic?.id, eventType, false);
-     return { success: false, error: lastError.message, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: retryConfig.maxRetries, httpStatus: lastHttpStatus, deadLetter: true };
+     return { success: false, attempted: true, error: lastError.message, duration: Date.now() - startTime, latency: Date.now() - startTime, attempts: retryConfig.maxRetries, httpStatus: lastHttpStatus, deadLetter: true };
  }
 
 /**
