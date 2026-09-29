@@ -212,7 +212,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
 
     try {
         if (fn === 'book_appointment') {
-            await handleVoiceBooking(mc, input);
+            const bookingResult = await handleVoiceBooking(mc, input);
             // Log successful tool call
             if (mc.clinicId) {
                 await recordDelivery({
@@ -230,7 +230,13 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
             if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
                 await redis.set(toolIdempotencyKey, 'done', 'EX', 86400);
             }
-            return res.json({ success: true, message: `Ραντεβού καταχωρήθηκε.` });
+            return res.json({
+                success: true,
+                booked: bookingResult?.booked === true,
+                message: bookingResult?.booked === true
+                    ? 'Ραντεβού καταχωρήθηκε.'
+                    : 'Δεν ήταν δυνατή η καταχώρηση στην επιλεγμένη ώρα. Δόθηκε εναλλακτική δυνατότητα κράτησης.'
+            });
         }
 
         if (fn === 'request_callback') {
@@ -567,7 +573,7 @@ async function handleVoiceBooking(mc, input) {
         }
 
         logger.info('Vapi case RECOVERED', { missedCallId: mc.id, appointmentId, revenue });
-        return;
+        return { booked: true, appointmentId };
     }
 
     await prisma.missedCall.update({
@@ -579,6 +585,7 @@ async function handleVoiceBooking(mc, input) {
         }
     });
     logger.info('Vapi booking not completed, case remains RECOVERING', { missedCallId: mc.id });
+    return { booked: false, appointmentId: null };
 }
 
 async function handleVoiceCallback(mc) {
