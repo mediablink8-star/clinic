@@ -85,7 +85,10 @@ async function isHoliday(date, country = 'GR') {
  * A holiday is treated as outside-hours — next opening time is returned.
  */
 async function checkClinicAvailability(now, workingHours, timezone = DEFAULT_TIMEZONE) {
-    const holiday = await isHoliday(now, timezone);
+    // Second argument is the country code, not the timezone. Passing the
+    // timezone here made the query look for Holiday.country = 'Europe/Athens',
+    // which never matches, so holiday closures were silently ignored.
+    const holiday = await isHoliday(now, 'GR');
     if (holiday) {
         const scheduled = getNextOpeningTime(now, workingHours, timezone);
         return {

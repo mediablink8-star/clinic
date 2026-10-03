@@ -274,9 +274,17 @@ model MessageLog {
   cost      Int      @default(1)
   status    String   // SENT, FAILED, BLOCKED, PENDING
   error     String?
+
+  // Provider correlation. Twilio and the n8n/Make workflows write these, and
+  // the delivery-status callback in index.js looks rows up by providerMessageSid.
+  appointmentId       String?
+  toPhone             String?
+  providerMessageSid  String?   @unique
+  providerStatusRaw   String?
   timestamp DateTime @default(now())
 
   @@index([clinicId])
+  @@index([providerMessageSid])
 }
 
 enum NotificationType {
@@ -302,9 +310,9 @@ model Notification {
   @@index([clinicId])
   @@index([status])
   @@index([scheduledFor])
+  @@unique([appointmentId, type], name: "unique_appointment_notification_type")
 }
 
-  @@unique([appointmentId, type], name: "unique_appointment_notification_type")
 model AuditLog {
   id        String   @id @default(cuid())
   clinicId  String

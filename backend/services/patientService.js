@@ -1,5 +1,6 @@
 const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
+const logger = require('../utils/logger');
 const { normalizePhone } = require('../utils/phone');
 const { encrypt, decrypt } = require('./encryptionService');
 
