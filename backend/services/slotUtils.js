@@ -71,7 +71,7 @@ function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) 
 
 function resolveRangeForDate(workingHours, dateInput, timezone = DEFAULT_TIMEZONE) {
     if (!workingHours || typeof workingHours !== 'object') return null;
-    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    const date = toDateForTimezone(dateInput, timezone);
     if (isNaN(date.getTime())) return null;
 
     // Helper to find key case-insensitively and accent-insensitively
@@ -123,6 +123,23 @@ function getLocalDateParts(date, timezone = DEFAULT_TIMEZONE) {
 }
 
 const { fromZonedTime, toZonedTime, formatInTimeZone } = require('date-fns-tz');
+
+function toDateForTimezone(dateInput, timezone = DEFAULT_TIMEZONE) {
+    if (dateInput instanceof Date) return dateInput;
+    if (typeof dateInput === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(dateInput)) {
+        // Treat date-only inputs as local calendar dates, not UTC midnight.
+        return fromZonedTime(`${dateInput}T12:00:00`, timezone);
+    }
+    return new Date(dateInput);
+}
+
+function getEndOfDay(date, timezone = DEFAULT_TIMEZONE) {
+    const localDate = formatInTimeZone(date, timezone, 'yyyy-MM-dd');
+    const [year, month, day] = localDate.split('-').map(Number);
+    const nextDate = new Date(Date.UTC(year, month - 1, day + 1));
+    const nextKey = `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, '0')}-${String(nextDate.getUTCDate()).padStart(2, '0')}`;
+    return new Date(fromZonedTime(`${nextKey}T00:00:00`, timezone).getTime() - 1);
+}
 
 /**
  * Get the start of a day (00:00:00) in a specific timezone, returned as a UTC Date object.
@@ -240,8 +257,8 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
         return [];
     }
 
-    const startOfDay = getStartOfDay(new Date(date), timezone);
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const startOfDay = getStartOfDay(toDateForTimezone(date, timezone), timezone);
+    const endOfDay = getEndOfDay(startOfDay, timezone);
 
     const whereClause = {
         clinicId,
