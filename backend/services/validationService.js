@@ -109,6 +109,8 @@ const publicBookingSchema = Joi.object({
     startTime: Joi.date().iso(),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
+    // Optional outside production; the route enforces verification in production.
+    recaptchaToken: Joi.string().max(4096).allow(null, ''),
     // Optional: link to missed call for recovery tracking
     missedCallId: Joi.string().allow(null, ''),
     doctorId: Joi.string().allow(null, '')
