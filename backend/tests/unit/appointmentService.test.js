@@ -357,7 +357,7 @@ describe('Appointment Service Unit Tests', () => {
     it('should return early if no patient phone', async () => {
       const patientNoPhone = await createTestPatient(clinic.id, { 
         name: 'No Phone', 
-        phone: null 
+        phone: '' 
       });
       
       const appointment = { startTime: new Date().toISOString() };
