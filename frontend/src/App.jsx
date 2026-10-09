@@ -72,6 +72,7 @@ const App = () => {
   const queryClient = useQueryClient();
   // Simple Routing
   const [path, setPath] = useState(window.location.pathname);
+  const [currentTab, setCurrentTab] = useState('dashboard');
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -97,7 +98,6 @@ const App = () => {
 
   const [clinic, setClinic] = useState(null);
   const [token, setToken] = useState(null);
-  const [currentTab, setCurrentTab] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
