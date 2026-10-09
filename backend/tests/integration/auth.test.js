@@ -52,6 +52,11 @@ describe('Authentication Integration', () => {
         if (response.status === 429) break;
       }
       expect(response.status).toBe(429);
+      // Keep later tests independent from this deliberate account-lockout scenario.
+      await testPrisma.user.update({
+        where: { id: user.id },
+        data: { failedAttempts: 0, lockedUntil: null },
+      });
     });
   });
 
