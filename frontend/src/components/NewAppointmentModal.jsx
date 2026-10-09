@@ -39,8 +39,9 @@ const NewAppointmentModal = ({
     const [patientError, setPatientError] = useState('');
 
     useEffect(() => {
+        if (!isOpen) return;
         api.get('/doctors').then(r => setDoctors(r.data.data || [])).catch(() => {});
-    }, []);
+    }, [isOpen]);
 
     const handleLocalBook = async () => {
         if (isNewPatient) {
