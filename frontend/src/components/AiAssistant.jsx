@@ -135,6 +135,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
                 className="ai-fab"
                 style={{
                     position: 'fixed',
