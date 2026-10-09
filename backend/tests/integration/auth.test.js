@@ -79,11 +79,11 @@ describe('Authentication Integration', () => {
         .post('/api/auth/register')
         .send({
           clinicName: 'Test',
-          clinicPhone: '+302109876543',
-          clinicEmail: 'test@clinic.com',
-          ownerName: 'Owner',
-          ownerEmail: 'owner@test.com',
-          ownerPassword: 'weak',
+          email: 'owner@test.com',
+          password: 'weak',
+          phone: '+302109876543',
+          inviteCode: process.env.SYSTEM_INVITE_CODE,
+          agreedToTerms: true,
         })
         .expect(400);
     });
