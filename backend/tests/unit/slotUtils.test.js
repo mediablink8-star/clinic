@@ -5,6 +5,7 @@ const {
   parseDateTimeInTimezone 
 } = require('../../services/slotUtils');
 const { testPrisma, createTestClinic, createTestDoctor, cleanDatabase } = require('../setup');
+const { formatInTimeZone } = require('date-fns-tz');
 
 describe('Slot Utils Unit Tests', () => {
   let clinic, doctor;
@@ -188,10 +189,7 @@ describe('Slot Utils Unit Tests', () => {
       const date = new Date('2026-01-15T15:30:00.000Z');
       const start = getStartOfDay(date, 'Europe/Athens');
       
-      expect(start.getHours()).toBe(0);
-      expect(start.getMinutes()).toBe(0);
-      expect(start.getSeconds()).toBe(0);
-      expect(start.getMilliseconds()).toBe(0);
+      expect(formatInTimeZone(start, 'Europe/Athens', 'HH:mm:ss.SSS')).toBe('00:00:00.000');
     });
 
     it('should handle different timezones', () => {
