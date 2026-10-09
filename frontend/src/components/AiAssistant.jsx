@@ -29,6 +29,15 @@ const AiAssistant = ({ token, isMobile = false }) => {
         }
     }, [messages, isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     const handleSend = async () => {
         if (!input.trim() || loading) return;
 
