@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS "Doctor" (
     "email" TEXT,
     "avatarUrl" TEXT,
     "workingHours" JSONB,
-    "avgAppointmentValue" DOUBLE PRECISION,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -22,7 +21,6 @@ ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "phone" TEXT;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "email" TEXT;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "avatarUrl" TEXT;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "workingHours" JSONB;
-ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "avgAppointmentValue" DOUBLE PRECISION;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE "Doctor" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
@@ -33,8 +31,6 @@ CREATE INDEX IF NOT EXISTS "Doctor_clinicId_idx" ON "Doctor"("clinicId");
 CREATE INDEX IF NOT EXISTS "Doctor_clinicId_isActive_idx" ON "Doctor"("clinicId", "isActive");
 CREATE INDEX IF NOT EXISTS "Appointment_clinicId_doctorId_startTime_endTime_status_idx"
     ON "Appointment"("clinicId", "doctorId", "startTime", "endTime", "status");
-CREATE UNIQUE INDEX IF NOT EXISTS "unique_doctor_slot"
-    ON "Appointment"("clinicId", "doctorId", "startTime", "status");
 
 DO $$
 BEGIN
