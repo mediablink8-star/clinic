@@ -22,7 +22,7 @@ describe('AiAssistant', () => {
 
     const button = screen.getByRole('button', { name: /ai/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveTextContent('✨');
+    expect(button).toHaveAccessibleName(/open ai assistant/i);
   });
 
   it('opens chat window when button clicked', () => {
@@ -39,7 +39,7 @@ describe('AiAssistant', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /ai/i }));
 
-    expect(screen.getByText('Γεια σου! Είμαι η Σοφία')).toBeInTheDocument();
+    expect(screen.getByText(/Γεια σου! Είμαι η Σοφία/)).toBeInTheDocument();
   });
 
   it('sends command and displays response', async () => {
