@@ -38,7 +38,7 @@ describe('recoveryUtils', () => {
   });
 
   it('handles malformed conversation data without throwing', () => {
-    expect(getEvent({ status: 'RECOVERING', aiConversation: '{bad json' })).toBe(EVENT_TYPES.DETECTED);
+    expect(getEvent({ status: 'RECOVERING', aiConversation: '{bad json' })).toBe(EVENT_TYPES.RECOVERING);
     expect(getReplyPreview({ aiConversation: '{bad json' })).toBeNull();
   });
 
