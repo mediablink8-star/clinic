@@ -32,7 +32,26 @@ const EN_DAY_INDEX = {
 };
 
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    if (!rangeStr) return null;
+
+    // Current clinic settings store hours as structured objects; accept those
+    // alongside legacy strings such as "09:00-18:00".
+    if (typeof rangeStr === 'object') {
+        if (rangeStr.closed === true) return null;
+        const open = typeof rangeStr.open === 'string' ? rangeStr.open : '';
+        const close = typeof rangeStr.close === 'string' ? rangeStr.close : '';
+        const openMatch = open.match(/^(\d{1,2}):(\d{2})$/);
+        const closeMatch = close.match(/^(\d{1,2}):(\d{2})$/);
+        if (!openMatch || !closeMatch) return null;
+        const openHour = Number(openMatch[1]);
+        const openMinute = Number(openMatch[2]);
+        const closeHour = Number(closeMatch[1]);
+        const closeMinute = Number(closeMatch[2]);
+        if (openHour > 23 || closeHour > 24 || openMinute > 59 || closeMinute > 59) return null;
+        return { openHour, openMinute, closeHour, closeMinute };
+    }
+
+    if (typeof rangeStr !== 'string' || /closed/i.test(rangeStr)) return null;
     const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return {
@@ -41,6 +60,13 @@ function parseHoursRange(rangeStr) {
         closeHour: parseInt(match[3], 10),
         closeMinute: parseInt(match[4], 10),
     };
+}
+
+function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) {
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    if (typeof timeStr !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeStr)) return null;
+    const parsed = fromZonedTime(`${dateStr}T${timeStr}:00`, timezone);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function resolveRangeForDate(workingHours, dateInput, timezone = DEFAULT_TIMEZONE) {
@@ -285,4 +311,5 @@ module.exports = {
     getLocalDateParts,
     getStartOfDay,
     getStartOfMonth,
+    parseDateTimeInTimezone,
 };
