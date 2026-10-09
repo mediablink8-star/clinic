@@ -1,5 +1,5 @@
 let mockGeminiError = null;
-jest.mock('@google/generative-ai', () => ({
+jest.doMock('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: () => ({
       generateContent: async (prompt) => {
