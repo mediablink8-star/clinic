@@ -441,27 +441,6 @@ const handleRetry = async (logId, e) => {
                     </div>
                 </div>
 
-                <div
-                    key={item.id}
-                    className="feed-item"
-                    style={{
-                        borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
-                        backgroundColor: getActionBackground(item),
-                        transform: isSwiping ? `translateX(${offset}px)` : undefined,
-                        transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        zIndex: isSwiping ? 10 : 1,
-                    }}
-                    onTouchStart={(e) => handleTouchStart(e, item.id)}
-                    onTouchMove={(e) => handleTouchMove(e, item.id)}
-                    onTouchEnd={() => handleTouchEnd(item.id, item)}
-                    onMouseDown={(e) => handleTouchStart(e, item.id)}
-                    onMouseMove={(e) => {
-                        if (swipingId === item.id) handleTouchMove(e, item.id);
-                    }}
-                    onMouseUp={() => handleTouchEnd(item.id, item)}
-                    onMouseLeave={() => handleTouchEnd(item.id, item)}
-                    onClick={() => !isSwiping && handleItemClick(item)}
-                >
                         <div className="feed-content">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                                 <div className="feed-name">{item.name}</div>
