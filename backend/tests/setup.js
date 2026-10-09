@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const pg = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -21,7 +23,9 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
+const testPool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4 });
 const testPrisma = new PrismaClient({
+  adapter: new PrismaPg(testPool),
   log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
 });
 
