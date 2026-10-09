@@ -12,7 +12,7 @@ const sentryDsn = (import.meta.env.VITE_SENTRY_DSN || '').trim();
 if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
-    enabled: false,  // DISABLED — suspected cause of i.getTime crash in Web Worker
+    enabled: true,
     environment: import.meta.env.MODE || 'development',
     release: `clinicflow-frontend@${import.meta.env.VITE_APP_VERSION || '1.0.0'}`,
     integrations: [
@@ -56,22 +56,6 @@ const queryClient = new QueryClient({
   mutationCache: new MutationCache(),
 });
 
-// SAFETY NET: Override Date.prototype.getTime to never crash
-// If .getTime() is called on a non-Date object, log the error and return NaN
-const originalGetTime = Date.prototype.getTime;
-Date.prototype.getTime = function() {
-  if (!(this instanceof Date)) {
-    console.error('[SAFETY] .getTime() called on non-Date:', typeof this, this, new Error().stack);
-    return NaN;
-  }
-  try {
-    return originalGetTime.call(this);
-  } catch (e) {
-    console.error('[SAFETY] .getTime() threw:', e);
-    return NaN;
-  }
-};
-
 // Global error handler — catches uncaught JS errors and shows visible error
 window.onerror = function(message, source, lineno, colno, error) {
   console.error('[GLOBAL_ERROR]', message, '\nStack:', error?.stack || 'no stack');
@@ -81,13 +65,26 @@ window.onerror = function(message, source, lineno, colno, error) {
     const div = document.createElement('div');
     div.className = 'global-error-fallback';
     div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0f172a;color:#e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;z-index:99999;font-family:system-ui,sans-serif;';
-    div.innerHTML = `
-      <div style="font-size:3rem;margin-bottom:1rem">⚠️</div>
-      <h1 style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem">Σφάλμα εφαρμογής</h1>
-      <p style="color:#94a3b8;max-width:400px;margin-bottom:1.5rem">${message}</p>
-      <button onclick="window.location.reload()" style="padding:10px 24px;border-radius:8px;border:none;background:#635bff;color:white;font-weight:700;cursor:pointer;font-size:0.9rem">Επαναφόρτωση</button>
-      ${error?.stack ? `<pre style="margin-top:2rem;color:#64748b;font-size:0.7rem;text-align:left;max-width:600px;overflow:auto;max-height:200px">${error.stack}</pre>` : ''}
-    `;
+    const icon = document.createElement('div');
+    icon.style.cssText = 'font-size:3rem;margin-bottom:1rem';
+    icon.textContent = '⚠️';
+    const heading = document.createElement('h1');
+    heading.style.cssText = 'font-size:1.5rem;font-weight:800;margin-bottom:0.5rem';
+    heading.textContent = 'Σφάλμα εφαρμογής';
+    const detail = document.createElement('p');
+    detail.style.cssText = 'color:#94a3b8;max-width:400px;margin-bottom:1.5rem';
+    detail.textContent = String(message || 'Άγνωστο σφάλμα');
+    const reload = document.createElement('button');
+    reload.style.cssText = 'padding:10px 24px;border-radius:8px;border:none;background:#635bff;color:white;font-weight:700;cursor:pointer;font-size:0.9rem';
+    reload.textContent = 'Επαναφόρτωση';
+    reload.addEventListener('click', () => window.location.reload());
+    div.append(icon, heading, detail, reload);
+    if (error?.stack) {
+      const stack = document.createElement('pre');
+      stack.style.cssText = 'margin-top:2rem;color:#64748b;font-size:0.7rem;text-align:left;max-width:600px;overflow:auto;max-height:200px';
+      stack.textContent = error.stack;
+      div.appendChild(stack);
+    }
     root.appendChild(div);
   }
   return false;
