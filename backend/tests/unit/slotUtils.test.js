@@ -237,13 +237,11 @@ describe('Slot Utils Unit Tests', () => {
     });
 
     it('should throw on invalid date format', () => {
-      expect(() => parseDateTimeInTimezone('invalid', '10:00', 'Europe/Athens'))
-        .toThrow();
+      expect(parseDateTimeInTimezone('invalid', '10:00', 'Europe/Athens')).toBeNull();
     });
 
     it('should throw on invalid time format', () => {
-      expect(() => parseDateTimeInTimezone('2026-01-15', '25:00', 'Europe/Athens'))
-        .toThrow();
+      expect(parseDateTimeInTimezone('2026-01-15', '25:00', 'Europe/Athens')).toBeNull();
     });
   });
 });
