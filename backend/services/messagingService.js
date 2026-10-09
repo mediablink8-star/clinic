@@ -12,7 +12,7 @@ async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 
 
     // Enforce phone-level opt-out before invoking a webhook/provider or consuming credits.
     const targetPhone = payload?.phone || payload?.toPhone;
-    const normalizedTarget = targetPhone ? normalizePhone(targetPhone) : null;
+    const normalizedTarget = typeof targetPhone === 'string' && targetPhone ? normalizePhone(targetPhone) : null;
     let targetPatient = null;
     if (payload?.patientId) {
         targetPatient = await prisma.patient.findFirst({
