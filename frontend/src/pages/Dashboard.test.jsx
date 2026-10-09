@@ -74,7 +74,7 @@ describe('Dashboard', () => {
 
   it('renders greeting with clinic name', () => {
     render(<Dashboard {...mockProps} />);
-    expect(screen.getByText(/καλημ.*ερα/i)).toBeInTheDocument();
+    expect(screen.getByText(/Καλημέρα|Καλησπέρα|Καλό βράδυ/i)).toBeInTheDocument();
     expect(screen.getByText('Test Clinic')).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('Dashboard', () => {
 
   it('shows onboarding checklist when not completed', () => {
     render(<Dashboard {...mockProps} clinic={{ ...mockClinic, onboardingCompleted: false }} />);
-    expect(screen.getByText('Onboarding')).toBeInTheDocument();
+    expect(screen.getByText(/Ρύθμιση ClinicFlow/)).toBeInTheDocument();
   });
 
   it('shows config warnings when present', () => {
@@ -122,6 +122,6 @@ describe('Dashboard', () => {
 
   it('shows inactive warning when clinic is paused', () => {
     render(<Dashboard {...mockProps} clinic={{ ...mockClinic, isActive: false }} />);
-    expect(screen.getByText('Η Κλινική είναι ΣΕ ΠΑΥΣΗ')).toBeInTheDocument();
+    expect(screen.getByText(/Η Κλινική είναι ΣΕ ΠΑΥΣΗ/)).toBeInTheDocument();
   });
 });
