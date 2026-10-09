@@ -177,7 +177,7 @@ try {
              // Serialize concurrent attempts for the same slot. FOR UPDATE alone
              // cannot lock a row that does not exist yet.
              await tx.$queryRaw`
-                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}, ':', COALESCE(${assignedDoctorId}, 'AUTO'), ':', ${start.toISOString()}, ':', ${end.toISOString()})))
+                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', COALESCE(${assignedDoctorId}::text, 'AUTO'), ':', ${start.toISOString()}::text, ':', ${end.toISOString()}::text)))
              `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
