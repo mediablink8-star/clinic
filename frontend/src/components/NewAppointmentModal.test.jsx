@@ -76,6 +76,7 @@ describe('NewAppointmentModal', () => {
     await userEvent.selectOptions(screen.getByLabelText(/ασθενής/i), 'patient-1');
     await userEvent.selectOptions(screen.getByLabelText(/γιατρός/i), 'doc-1');
     await userEvent.type(screen.getByLabelText(/αιτιολογία/i), 'Regular checkup');
+    await userEvent.type(screen.getByLabelText(/ώρα/i), '10:00');
     
     fireEvent.click(screen.getByRole('button', { name: /αποθήκευση|καταχώρηση/i }));
     
@@ -101,6 +102,7 @@ describe('NewAppointmentModal', () => {
     
     await userEvent.selectOptions(screen.getByLabelText(/ασθενής/i), 'patient-1');
     await userEvent.type(screen.getByLabelText(/αιτιολογία/i), 'Test reason');
+    await userEvent.type(screen.getByLabelText(/ώρα/i), '10:00');
     
     const submitBtn = screen.getByRole('button', { name: /αποθήκευση|καταχώρηση/i });
     expect(submitBtn).not.toBeDisabled();
