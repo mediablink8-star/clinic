@@ -153,41 +153,6 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
 
     const { confirm, dialog } = useConfirm();
 
-    // Re-sync form when clinic prop updates (e.g. after fresh API fetch on page load)
-    React.useEffect(() => {
-        if (!clinic) return;
-        setFormData(prev => ({
-            ...prev,
-            ...clinic,
-            aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
-        }));
-        setWebhookData(prev => ({
-            ...prev,
-            webhookUrl: clinic.webhookUrl || '',
-            webhookMissedCall: clinic.webhookMissedCall || '',
-            webhookAppointment: clinic.webhookAppointment || '',
-            webhookReminders: clinic.webhookReminders || '',
-            webhookDirectSms: clinic.webhookDirectSms || '',
-            webhookInboundSms: clinic.webhookInboundSms || '',
-        }));
-        setVapiData(prev => ({
-            ...prev,
-            vapiAssistantId: clinic.vapiAssistantId || '',
-            vapiPhoneNumberId: clinic.vapiPhoneNumberId || '',
-            voiceEnabled: clinic.voiceEnabled || false,
-        }));
-    }, [clinic?.id, clinic?.updatedAt]);
-
-    // Fetch available upgrade plans
-    React.useEffect(() => {
-        api.get('/clinic/plans')
-            .then(res => {
-                setCurrentPlan(res.data.currentPlan);
-                setUpgradePlans(res.data.plans);
-            })
-            .catch((err) => console.error('Failed to fetch clinic plans:', err));
-    }, []);
-
     const handleUpgrade = async (planKey) => {
         // Plan upgrades require contacting support until Stripe is integrated.
         setShowUpgradeModal(false);
@@ -242,12 +207,7 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    useEffect(() => {
-        fetchLogs();
-        fetchUsage();
-        fetchTeam();
-        fetchDoctors();
-    }, []);
+
 
     useEffect(() => {
         const targets = SECTIONS.map(s => document.getElementById(s.id)).filter(Boolean);
@@ -539,6 +499,49 @@ const ClinicSettings = ({ clinic, token, onUpdate }) => {
     const [savingVapi, setSavingVapi] = React.useState(false);
     const [testingVapi, setTestingVapi] = React.useState(false);
     const [vapiStatus, setVapiStatus] = React.useState(null);
+
+    // Re-sync form when clinic prop updates (e.g. after fresh API fetch on page load)
+    React.useEffect(() => {
+        if (!clinic) return;
+        setFormData(prev => ({
+            ...prev,
+            ...clinic,
+            aiConfig: typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {})
+        }));
+        setWebhookData(prev => ({
+            ...prev,
+            webhookUrl: clinic.webhookUrl || '',
+            webhookMissedCall: clinic.webhookMissedCall || '',
+            webhookAppointment: clinic.webhookAppointment || '',
+            webhookReminders: clinic.webhookReminders || '',
+            webhookDirectSms: clinic.webhookDirectSms || '',
+            webhookInboundSms: clinic.webhookInboundSms || '',
+        }));
+        setVapiData(prev => ({
+            ...prev,
+            vapiAssistantId: clinic.vapiAssistantId || '',
+            vapiPhoneNumberId: clinic.vapiPhoneNumberId || '',
+            voiceEnabled: clinic.voiceEnabled || false,
+        }));
+    }, [clinic?.id, clinic?.updatedAt]);
+
+    // Fetch available upgrade plans
+    React.useEffect(() => {
+        api.get('/clinic/plans')
+            .then(res => {
+                setCurrentPlan(res.data.currentPlan);
+                setUpgradePlans(res.data.plans);
+            })
+            .catch((err) => console.error('Failed to fetch clinic plans:', err));
+    }, []);
+
+    useEffect(() => {
+        fetchLogs();
+        fetchUsage();
+        fetchTeam();
+        fetchDoctors();
+    }, []);
+
 
     // Gemini AI Assistant state
     const [geminiData, setGeminiData] = React.useState({
