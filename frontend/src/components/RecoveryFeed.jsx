@@ -330,7 +330,7 @@ const handleRetry = async (logId, e) => {
         const showLeftActions = offset < -SWIPE_THRESHOLD;
         const showRightActions = offset > SWIPE_THRESHOLD;
 
-        return (
+        return 
             <div
                 key={item.id}
                 className="feed-item"
@@ -482,7 +482,7 @@ const handleRetry = async (logId, e) => {
                             )}
                         </div>
                     </div>
-                );
+                ;
                 })}
             </div>
 
