@@ -4,6 +4,27 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin, ChevronRight, ChevronLeft, Mail, FileText, Loader2, Shield, Download, Globe } from 'lucide-react';
 
+const StepIndicator = ({ currentStep }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2.5rem' }}>
+        {[1, 2, 3].map((s) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                    width: '32px', height: '32px', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.875rem', fontWeight: '800',
+                    background: currentStep === s ? 'var(--primary)' : currentStep > s ? 'var(--accent)' : 'var(--bg-subtle)',
+                    color: currentStep >= s ? 'white' : 'var(--text-muted)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: currentStep === s ? '0 8px 16px -4px var(--primary-glow)' : 'none'
+                }}>
+                    {currentStep > s ? <CheckCircle size={16} /> : s}
+                </div>
+                {s < 3 && <div style={{ width: '40px', height: '2px', background: currentStep > s ? 'var(--accent)' : 'var(--border)', opacity: 0.5 }} />}
+            </div>
+        ))}
+    </div>
+);
+
 const PatientBooking = () => {
     const { t, i18n } = useTranslation();
     const searchParams = new URLSearchParams(window.location.search);
@@ -218,27 +239,6 @@ END:VCALENDAR`;
         const [y, m, d] = dateStr.split('-');
         return new Date(y, m - 1, d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
     };
-
-    const StepIndicator = ({ currentStep }) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2.5rem' }}>
-            {[1, 2, 3].map((s) => (
-                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '32px', height: '32px', borderRadius: '10px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.875rem', fontWeight: '800',
-                        background: currentStep === s ? 'var(--primary)' : currentStep > s ? 'var(--accent)' : 'var(--bg-subtle)',
-                        color: currentStep >= s ? 'white' : 'var(--text-muted)',
-                        transition: 'all 0.3s ease',
-                        boxShadow: currentStep === s ? '0 8px 16px -4px var(--primary-glow)' : 'none'
-                    }}>
-                        {currentStep > s ? <CheckCircle size={16} /> : s}
-                    </div>
-                    {s < 3 && <div style={{ width: '40px', height: '2px', background: currentStep > s ? 'var(--accent)' : 'var(--border)', opacity: 0.5 }} />}
-                </div>
-            ))}
-        </div>
-    );
 
     if (!mounted) return null;
 
