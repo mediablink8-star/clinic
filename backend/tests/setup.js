@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 process.env.NODE_ENV = 'test';
+process.env.SYSTEM_INVITE_CODE = process.env.SYSTEM_INVITE_CODE || 'test-invite-code';
 process.env.DB_ENCRYPTION_KEY = 'test-only-encryption-key-for-ci';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
