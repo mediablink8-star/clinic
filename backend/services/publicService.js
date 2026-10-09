@@ -184,9 +184,9 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         if (doctorId) {
             // Serialize concurrent attempts for the same clinic/doctor/time slot.
             // FOR UPDATE cannot lock a missing row, so it is not sufficient by itself.
-            await tx.$queryRaw\`
-                SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':', \${doctorId}, ':', \${startDateTime.toISOString()}, ':', \${endTime.toISOString()})))
-            \`;
+            await tx.$queryRaw`
+                SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}, ':', ${doctorId}, ':', ${startDateTime.toISOString()}, ':', ${endTime.toISOString()})))
+            `;
             // Specific doctor — check only that doctor's schedule
             const conflict = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
@@ -196,8 +196,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflict && conflict.length > 0) {
@@ -207,10 +207,10 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             // No specific doctor — assign the booking to the first doctor who is both working
             // and conflict-free. This avoids rejecting valid public slots in multi-doctor clinics.
             for (const candidate of autoAssignableDoctors) {
-                await tx.$queryRaw\`
-                    SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':', \${candidate.id}, ':', \${startDateTime.toISOString()}, ':', \${endTime.toISOString()})))
-                \`;
-                const conflict = await tx.$queryRaw\`
+                await tx.$queryRaw`
+                    SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}, ':', ${candidate.id}, ':', ${startDateTime.toISOString()}, ':', ${endTime.toISOString()})))
+                `;
+                const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
                     AND "doctorId" = ${candidate.id}
@@ -218,8 +218,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${endTime}
                     AND "endTime" > ${startDateTime}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
 
                 if (!conflict || conflict.length === 0) {
@@ -233,9 +233,9 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             }
         } else {
             // Serialize clinic-level slots when no doctors are configured.
-            await tx.$queryRaw\`
-                SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':CLINIC:', \${startDateTime.toISOString()}, ':', \${endTime.toISOString()})))
-            \`;
+            await tx.$queryRaw`
+                SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}, ':CLINIC:', ${startDateTime.toISOString()}, ':', ${endTime.toISOString()})))
+            `;
             // Clinics without configured doctors use a clinic-level calendar resource.
             const conflicts = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
@@ -245,8 +245,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflicts && conflicts.length > 0) {
