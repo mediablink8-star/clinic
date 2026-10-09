@@ -149,6 +149,8 @@ const cookieParser = require('cookie-parser');
 const { connection } = require('./services/queueService');
 
 const app = express();
+// Export the Express app so integration tests can exercise routes with Supertest.
+module.exports = app;
 const port = process.env.PORT || 4000;
 
 // Security headers — must be early
