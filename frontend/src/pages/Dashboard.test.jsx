@@ -75,7 +75,7 @@ describe('Dashboard', () => {
   it('renders greeting with clinic name', () => {
     render(<Dashboard {...mockProps} />);
     expect(screen.getByText(/Καλημέρα|Καλησπέρα|Καλό βράδυ/i)).toBeInTheDocument();
-    expect(screen.getByText('Test Clinic')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Test Clinic');
   });
 
   it('shows active/paused toggle', () => {
