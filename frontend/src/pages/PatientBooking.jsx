@@ -10,6 +10,7 @@ const PatientBooking = () => {
     const clinicId = searchParams.get('clinicId');
     const missedCallId = searchParams.get('missedCallId');
     const lang = searchParams.get('lang') || 'el';
+    const recaptchaSiteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim();
 
     useEffect(() => {
         i18n.changeLanguage(lang);
@@ -32,30 +33,43 @@ const PatientBooking = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [minDate, setMinDate] = useState('');
-    const [recaptchaToken, setRecaptchaToken] = useState(null);
     const [recaptchaLoading, setRecaptchaLoading] = useState(false);
     const [pollingInterval, setPollingInterval] = useState(null);
     const [mounted, setMounted] = useState(false);
 
+    useEffect(() => {
+        if (!recaptchaSiteKey || window.grecaptcha) return;
+        const existing = document.querySelector('script[data-clinicflow-recaptcha]');
+        if (existing) return;
+        setRecaptchaLoading(true);
+        const script = document.createElement('script');
+        script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}`;
+        script.async = true;
+        script.defer = true;
+        script.dataset.clinicflowRecaptcha = 'true';
+        script.onload = () => setRecaptchaLoading(false);
+        script.onerror = () => setRecaptchaLoading(false);
+        document.head.appendChild(script);
+    }, [recaptchaSiteKey]);
+
     const executeRecaptcha = useCallback(async () => {
-        if (!window.grecaptcha || recaptchaToken) return;
+        if (!recaptchaSiteKey) {
+            if (import.meta.env.PROD) throw new Error('reCAPTCHA site key is not configured');
+            return null;
+        }
+        if (!window.grecaptcha) throw new Error('reCAPTCHA has not loaded yet');
         setRecaptchaLoading(true);
         try {
-            const token = await window.grecaptcha.execute('6Lc...', { action: 'booking' });
-            setRecaptchaToken(token);
-        } catch (err) {
-            console.error('reCAPTCHA error:', err);
+            return await new Promise((resolve, reject) => {
+                window.grecaptcha.ready(() => {
+                    window.grecaptcha.execute(recaptchaSiteKey, { action: 'booking_submit' })
+                        .then(resolve, reject);
+                });
+            });
         } finally {
             setRecaptchaLoading(false);
         }
-    }, [recaptchaToken]);
-
-    useEffect(() => {
-        if (window.grecaptcha && !recaptchaToken) {
-            executeRecaptcha();
-        }
-    }, [executeRecaptcha, recaptchaToken]);
-
+    }, [recaptchaSiteKey]);
     useEffect(() => {
         setMounted(true);
         setMinDate(new Date().toISOString().split('T')[0]);
@@ -116,12 +130,6 @@ const PatientBooking = () => {
         fetchDoctors();
     }, [clinicId]);
 
-    useEffect(() => {
-        if (window.grecaptcha && !recaptchaToken) {
-            executeRecaptcha();
-        }
-    }, [executeRecaptcha, recaptchaToken]);
-
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
@@ -131,15 +139,13 @@ const PatientBooking = () => {
             setLoading(false);
             return;
         }
-        if (!recaptchaToken) {
-            try {
-                const token = await window.grecaptcha.execute('6Lc...', { action: 'booking_submit' });
-                setRecaptchaToken(token);
-            } catch (err) {
-                setError('Security verification failed. Please refresh and try again.');
-                setLoading(false);
-                return;
-            }
+        let freshRecaptchaToken = null;
+        try {
+            freshRecaptchaToken = await executeRecaptcha();
+        } catch (err) {
+            setError('Security verification could not be completed. Please check your connection and try again.');
+            setLoading(false);
+            return;
         }
 
         try {
@@ -153,7 +159,7 @@ const PatientBooking = () => {
                 time: formData.time,
                 doctorId: formData.doctorId || undefined,
                 missedCallId: missedCallId || undefined,
-                recaptchaToken,
+                recaptchaToken: freshRecaptchaToken || undefined,
             });
             setStep(3);
         } catch (err) {
@@ -242,7 +248,7 @@ END:VCALENDAR`;
                 <AlertCircle size={48} color="#f56565" style={{ marginBottom: '1rem' }} />
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c53030', marginBottom: '0.75rem' }}>{t('securityCheck')}</h2>
                 <p style={{ marginBottom: '2rem', color: '#9b2c2c', fontWeight: '500' }}>{error}</p>
-                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: '800' }} onClick={() => { setError(null); setStep(1); setRecaptchaToken(null); executeRecaptcha(); }}>{t('recaptchaVerify')}</button>
+                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: '800' }} onClick={() => { setError(null); setStep(1); }}>{t('recaptchaVerify')}</button>
             </div>
         </div>
     );
