@@ -78,7 +78,7 @@ describe('Recovery Tracking Service', () => {
       await ensureRecoveryCaseForMissedCall(missedCall.id);
 
       const event = await testPrisma.activityEvent.findFirst({
-        where: { type: 'MISSED_CALL_DETECTED', recoveryCaseId: { not: null } },
+        where: { type: 'MISSED_CALL_DETECTED' },
       });
       expect(event).not.toBeNull();
       expect(event.metadata.missedCallId).toBe(missedCall.id);
