@@ -4,18 +4,33 @@ import { X, AlertCircle, Calendar, Clock, User, FileText, Sparkles, Stethoscope,
 import { getHoliday } from '../lib/greekHolidays';
 
 const NewAppointmentModal = ({
-    onClose,
-    patients,
+    isOpen = true,
+    onClose = () => {},
+    patients = [],
     appointments = [],
-    newAppt,
-    setNewAppt,
+    newAppt: controlledNewAppt,
+    setNewAppt: controlledSetNewAppt,
     onAnalyze,
-    analyzing,
+    analyzing = false,
     analysis,
     onBook,
+    onSubmit,
     booking = false,
+    defaultDate = '',
+    doctors: initialDoctors = [],
 }) => {
-    const [doctors, setDoctors] = useState([]);
+    // Support controlled use by the dashboard and a small uncontrolled fallback
+    // for isolated/legacy callers that do not provide appointment state.
+    const [localNewAppt, setLocalNewAppt] = useState(() => ({
+        patientId: '',
+        doctorId: '',
+        reason: '',
+        date: defaultDate,
+        time: '',
+    }));
+    const newAppt = controlledNewAppt || localNewAppt;
+    const setNewAppt = controlledSetNewAppt || setLocalNewAppt;
+    const [doctors, setDoctors] = useState(initialDoctors);
     const [isNewPatient, setIsNewPatient] = useState(false);
     const [newPatientName, setNewPatientName] = useState('');
     const [newPatientPhone, setNewPatientPhone] = useState('');
@@ -43,13 +58,15 @@ const NewAppointmentModal = ({
                 });
                 const newPatient = res.data;
                 setCreatingPatient(false);
-                onBook(newPatient.id);
+                if (onBook) onBook(newPatient.id);
+                else if (onSubmit) onSubmit({ ...newAppt, patientId: newPatient.id });
             } catch (err) {
                 setCreatingPatient(false);
                 setPatientError(err.response?.data?.error || 'Σφάλμα κατά τη δημιουργία ασθενούς.');
             }
         } else {
-            onBook();
+            if (onBook) onBook();
+            else if (onSubmit) onSubmit(newAppt);
         }
     };
 
@@ -84,9 +101,14 @@ const NewAppointmentModal = ({
 
     const isValid = isPatientValid && newAppt.reason && newAppt.date && newAppt.time && !holiday;
 
+    if (!isOpen) return null;
+
     return (
         <div
-            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Νέο Ραντεβού"
+            onClick={onClose
             style={{
                 position: 'fixed', inset: 0,
                 background: 'rgba(5,11,27,0.55)',
@@ -143,6 +165,7 @@ const NewAppointmentModal = ({
                     </div>
                     <button
                         onClick={onClose}
+                        aria-label="Κλείσιμο"
                         style={{
                             width: '32px', height: '32px', borderRadius: '8px',
                             background: 'var(--glass-control)', border: '1px solid rgba(255,255,255,0.36)',
