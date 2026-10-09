@@ -23,7 +23,7 @@ describe('Authentication Integration', () => {
         .expect(200);
 
       expect(res.body).toHaveProperty('token');
-      expect(res.headers['set-cookie']?.some(cookie => cookie.startsWith('refreshToken=')).toBe(true);
+      expect(res.headers['set-cookie']?.some(cookie => cookie.startsWith('refreshToken='))).toBe(true);
       expect(res.body).toHaveProperty('clinic');
       expect(res.body.clinic.id).toBe(clinic.id);
     });
@@ -68,7 +68,7 @@ describe('Authentication Integration', () => {
         })
         .expect(201);
 
-      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body).toHaveProperty('token');
       expect(res.body.clinic.name).toBe('New Clinic');
       expect(res.body.clinic.role).toBe('OWNER');
     });
@@ -99,7 +99,7 @@ describe('Authentication Integration', () => {
         .set('Cookie', loginRes.headers['set-cookie'])
         .expect(200);
 
-      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body).toHaveProperty('token');
     });
 
     it('should reject invalid refresh token', async () => {
