@@ -8,7 +8,7 @@ jest.mock('@google/generative-ai', () => ({
           mockGeminiError = null;
           throw error;
         }
-        const command = prompt.match(/\\n\\nCommand: "([\\s\\S]*?)"\\s*$/)?.[1] || '';
+        const command = prompt.match(/\n\nCommand: "([\s\S]*?)"\s*$/)?.[1] || '';
         let parsed = { action: 'unknown', parameters: {}, confidence: 0 };
         if (/ignore previous instructions|forget your rules|hacker|new instructions|override your instructions/i.test(command)) {
           parsed = { action: 'unknown', parameters: {}, confidence: 0 };
