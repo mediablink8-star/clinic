@@ -126,7 +126,7 @@ const { fromZonedTime, toZonedTime, formatInTimeZone } = require('date-fns-tz');
 
 function toDateForTimezone(dateInput, timezone = DEFAULT_TIMEZONE) {
     if (dateInput instanceof Date) return dateInput;
-    if (typeof dateInput === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(dateInput)) {
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
         // Treat date-only inputs as local calendar dates, not UTC midnight.
         return fromZonedTime(`${dateInput}T12:00:00`, timezone);
     }
