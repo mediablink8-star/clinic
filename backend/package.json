@@ -21,7 +21,7 @@
     "seed:holidays": "node prisma/seed-holidays.js",
     "test": "jest --runInBand --forceExit",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --coverage --runInBand --forceExit",
+    "test:ci": "jest --config=jest.config.js --ci --coverage --runInBand --forceExit",
     "test:integration": "jest --testPathPattern=integration --runInBand --forceExit",
     "test:unit": "jest --testPathPattern=unit --runInBand --forceExit",
     "lint": "eslint . --ext .js",
