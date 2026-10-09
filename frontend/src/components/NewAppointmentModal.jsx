@@ -109,7 +109,7 @@ const NewAppointmentModal = ({
             role="dialog"
             aria-modal="true"
             aria-label="Νέο Ραντεβού"
-            onClick={onClose
+            onClick={onClose}
             style={{
                 position: 'fixed', inset: 0,
                 background: 'rgba(5,11,27,0.55)',
