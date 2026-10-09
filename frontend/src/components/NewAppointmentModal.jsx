@@ -10,7 +10,7 @@ const NewAppointmentModal = ({
     appointments = [],
     newAppt: controlledNewAppt,
     setNewAppt: controlledSetNewAppt,
-    onAnalyze,
+    onAnalyze = () => {},
     analyzing = false,
     analysis,
     onBook,
