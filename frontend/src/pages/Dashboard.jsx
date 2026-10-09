@@ -58,6 +58,34 @@ const Dashboard = ({
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     React.useEffect(() => { if (!loading) setHasLoaded(true); }, [loading]);
     const { confirm, dialog } = useConfirm();
+    const [isHeaderExpanded, setIsHeaderExpanded] = React.useState(true);
+    const [currentTime, setCurrentTime] = React.useState(() => new Date());
+    const headerRef = React.useRef(null);
+
+    // Clock update every second
+    React.useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+    React.useEffect(() => {
+        const header = headerRef.current;
+        if (!header) return;
+        
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setIsHeaderExpanded(entry.isIntersecting);
+            },
+            { root: null, rootMargin: '0px', threshold: 0 }
+        );
+        
+        const sentinel = document.createElement('div');
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        header.parentNode.insertBefore(sentinel, header);
+        observer.observe(sentinel);
+        
+        return () => observer.disconnect();
+    }, []);
     if (!hasLoaded && loading) return <DashboardSkeleton />;
 
     // Safety checks for all props
@@ -186,34 +214,7 @@ const Dashboard = ({
         }
     })();
 
-    const [isHeaderExpanded, setIsHeaderExpanded] = React.useState(true);
-    const [currentTime, setCurrentTime] = React.useState(() => new Date());
-    const headerRef = React.useRef(null);
 
-    // Clock update every second
-    React.useEffect(() => {
-        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(interval);
-    }, []);
-    React.useEffect(() => {
-        const header = headerRef.current;
-        if (!header) return;
-        
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setIsHeaderExpanded(entry.isIntersecting);
-            },
-            { root: null, rootMargin: '0px', threshold: 0 }
-        );
-        
-        const sentinel = document.createElement('div');
-        sentinel.style.height = '1px';
-        sentinel.style.width = '100%';
-        header.parentNode.insertBefore(sentinel, header);
-        observer.observe(sentinel);
-        
-        return () => observer.disconnect();
-    }, []);
 
     // FAB for New Appointment (mobile)
     const FabNewAppointment = () => (
