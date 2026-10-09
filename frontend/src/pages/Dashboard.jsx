@@ -322,6 +322,27 @@ const Dashboard = ({
                 </div>
             </div>
 
+            {!clinic?.isActive && (
+                <div role="alert" style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--urgent)', fontWeight: 700 }}>
+                    Η Κλινική είναι ΣΕ ΠΑΥΣΗ — οι αυτοματισμοί δεν θα εκτελούνται.
+                </div>
+            )}
+
+            {Array.isArray(warnings) && warnings.length > 0 && (
+                <div role="status" style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.22)', color: 'var(--text)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <strong>Χρειάζονται ρυθμίσεις για πλήρη λειτουργία</strong>
+                    {warnings.slice(0, 3).map((warning, index) => (
+                        <span key={warning?.id || warning?.code || index} style={{ fontSize: '0.82rem' }}>
+                            {warning?.message || warning?.title || String(warning)}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {!clinic?.onboardingCompleted && (
+                <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={logsArray} />
+            )}
+
             {/* ── STICKY STATS BAR ── */}
             <div style={{ 
                 position: 'sticky', 
