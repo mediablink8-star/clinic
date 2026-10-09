@@ -1,3 +1,7 @@
+jest.mock('../../services/twilioService', () => ({
+  sendSms: jest.fn().mockResolvedValue({ success: true, messageId: 'test-sms-id' }),
+}));
+
 const { 
   createAppointment, 
   updateAppointmentStatus, 
@@ -396,19 +400,23 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should not create duplicate reminders', async () => {
-      const future = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
-      const appointment = { 
-        id: 'apt-duplicate', 
-        clinicId: clinic.id, 
-        startTime: future.toISOString() 
-      };
+      const start = new Date(`${nextClinicWeekday(4)}T08:00:00.000Z`);
+      const created = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Reminder idempotency test',
+        startTime: start.toISOString(),
+        endTime: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
+        doctorId: doctor.id,
+      }, actor);
+      const appointment = created.data;
       const clinicObj = { id: clinic.id, name: 'Test Clinic', timezone: 'Europe/Athens' };
-      
+
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
-      
+
       const notifications = await testPrisma.notification.findMany({
-        where: { appointmentId: 'apt-duplicate', type: 'REMINDER' }
+        where: { appointmentId: appointment.id, type: 'REMINDER' }
       });
       expect(notifications.length).toBe(1);
     });
