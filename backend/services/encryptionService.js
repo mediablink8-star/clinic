@@ -39,7 +39,8 @@ function encrypt(text) {
  * Reads the version prefix to select the correct key.
  */
 function decrypt(encryptedText) {
-    if (!encryptedText) return null;
+    if (encryptedText === null || encryptedText === undefined) return null;
+    if (encryptedText === '') return '';
     try {
         const parts = encryptedText.split(':');
         // Legacy format (v1, no version prefix): iv:authTag:ciphertext
