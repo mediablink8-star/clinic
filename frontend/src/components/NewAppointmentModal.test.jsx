@@ -110,7 +110,7 @@ describe('NewAppointmentModal', () => {
 
   it('shows loading state during submission', async () => {
     const slowSubmit = vi.fn(() => new Promise(r => setTimeout(r, 100)));
-    render(<NewAppointmentModal {...mockProps} onSubmit={slowSubmit} />);
+    render(<NewAppointmentModal {...mockProps} onSubmit={slowSubmit} booking={true} />);
     
     await userEvent.selectOptions(screen.getByLabelText(/ασθενής/i), 'patient-1');
     await userEvent.type(screen.getByLabelText(/αιτία επίσκεψης/i), 'Test');
@@ -118,6 +118,6 @@ describe('NewAppointmentModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /αποθήκευση|καταχώρηση/i }));
     
     expect(screen.getByRole('button', { name: /αποθήκευση|καταχώρηση/i })).toBeDisabled();
-    expect(screen.getByText(/αποθήκευση...|καταχώρηση.../i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /καταχώρηση\.\.\./i })).toBeInTheDocument();
   });
 });
