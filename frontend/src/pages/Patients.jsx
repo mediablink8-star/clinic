@@ -335,7 +335,9 @@ const Patients = ({ patients, clinic, setCurrentTab, token, onPatientCreated, is
     const pullStartY = useRef(0);
     const pulling = useRef(false);
     const onRetryRef = useRef(onRetry);
-    onRetryRef.current = onRetry;
+    useEffect(() => {
+        onRetryRef.current = onRetry;
+    }, [onRetry]);
 
     const [showDeleted, setShowDeleted] = useState(false);
     const [deletedPatients, setDeletedPatients] = useState([]);
