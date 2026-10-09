@@ -76,7 +76,13 @@ const csrfOriginGuard = (req, res, next) => {
         // In dev, allow no-origin for curl/server-to-server convenience
         return next();
     }
-    const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
+    const isAllowed = allowedOrigins.some((allowedOrigin) => {
+        try {
+            return new URL(origin).origin === new URL(allowedOrigin).origin;
+        } catch {
+            return false;
+        }
+    });
     if (!isAllowed) {
         return res.status(403).json({ error: 'CSRF check failed: origin not allowed' });
     }
