@@ -71,7 +71,7 @@ const Dashboard = ({
         // The header is not mounted while the dashboard skeleton/guard screens render.
         if (!hasLoaded || loading || !clinic || !token || !setCurrentTab || !setShowModal) return;
         const header = headerRef.current;
-        if (!header || !header.parentNode) return;
+        if (!header || !header.parentNode || typeof IntersectionObserver === 'undefined') return;
 
         const observer = new IntersectionObserver(
             ([entry]) => setIsHeaderExpanded(entry.isIntersecting),
