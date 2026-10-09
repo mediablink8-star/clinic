@@ -1,3 +1,36 @@
+let mockGeminiError = null;
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: () => ({
+      generateContent: async (prompt) => {
+        if (mockGeminiError) {
+          const error = mockGeminiError;
+          mockGeminiError = null;
+          throw error;
+        }
+        const command = prompt.match(/\\n\\nCommand: "([\\s\\S]*?)"\\s*$/)?.[1] || '';
+        let parsed = { action: 'unknown', parameters: {}, confidence: 0 };
+        if (/ignore previous instructions|forget your rules|hacker|new instructions|override your instructions/i.test(command)) {
+          parsed = { action: 'unknown', parameters: {}, confidence: 0 };
+        } else if (/Στείλε SMS/i.test(command)) {
+          parsed = { action: 'send_sms', parameters: { patientName: 'Γιάννης', message: 'Το ραντεβού σας είναι αύριο' }, confidence: 0.9 };
+        } else if (/Κάλεσε/i.test(command)) {
+          parsed = { action: 'call_patient', parameters: { patientName: 'Μαρία' }, confidence: 0.95 };
+        } else if (/Κλείσε ραντεβού/i.test(command)) {
+          parsed = { action: 'book_appointment', parameters: { patientName: 'Νίκος', reason: 'έλεγχος', date: '2026-01-16', time: '10:00', duration: 30 }, confidence: 0.85 };
+        } else if (/Ακύρωσε/i.test(command)) {
+          parsed = { action: 'cancel_appointment', parameters: { patientName: 'Πέτρος' }, confidence: 0.9 };
+        } else if (/Ποια ραντεβού/i.test(command)) {
+          parsed = { action: 'list_today_appointments', parameters: {}, confidence: 1 };
+        } else if (/αναπάντητες κλήσεις/i.test(command)) {
+          parsed = { action: 'list_missed_calls', parameters: {}, confidence: 0.95 };
+        }
+        return { response: { text: () => JSON.stringify(parsed) } };
+      },
+    }),
+  })),
+}));
+
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 
@@ -77,6 +110,7 @@ describe('AI Command Service', () => {
   });
 
   beforeEach(() => {
+    mockGeminiError = null;
     jest.clearAllMocks();
   });
 
@@ -361,14 +395,7 @@ describe('AI Command Service', () => {
     });
 
     it('should handle AI quota exceeded', async () => {
-      jest.doMock('@google/generative-ai', () => ({
-        GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-          getGenerativeModel: () => ({
-            generateContent: () => Promise.reject(new Error('429 Too Many Requests')),
-          }),
-        })),
-      }));
-
+      mockGeminiError = new Error('429 Too Many Requests');
       const result = await processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor);
 
       expect(result.success).toBe(false);
