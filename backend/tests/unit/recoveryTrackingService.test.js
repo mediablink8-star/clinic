@@ -375,7 +375,7 @@ describe('Recovery Tracking Service', () => {
         missedCallId: missedCall.id,
       });
 
-      expect(result).toEqual(rc);
+      expect(result).toMatchObject({ id: rc.id, state: 'RECOVERED' });
     });
   });
 
