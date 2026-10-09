@@ -2,6 +2,7 @@ const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
 const metrics = require('../utils/metrics');
 const logger = require('../utils/logger');
+const { normalizePhone } = require('../utils/phone');
 
 const ACTIVE_RECOVERY_CASE_STATES = ['ACTIVE', 'ENGAGED'];
 
@@ -386,6 +387,8 @@ async function recordInboundMessage({
     }
 
     const { recoveryCase, conversation } = recoveryContext;
+    const normalizedBody = String(body || '').trim().toUpperCase();
+    const isOptOut = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(normalizedBody);
     let message;
     try {
         message = await prisma.message.create({
@@ -423,7 +426,7 @@ async function recordInboundMessage({
         throw err;
     }
 
-    await prisma.$transaction([
+    const updates = [
         prisma.conversation.update({
             where: { id: conversation.id },
             data: { lastMessageAt: occurredAt }
@@ -432,10 +435,30 @@ async function recordInboundMessage({
             where: { id: recoveryCase.id },
             data: {
                 lastActivityAt: occurredAt,
-                state: recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state,
+                state: isOptOut
+                    ? 'OPTED_OUT'
+                    : (recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state),
             }
         }),
-    ]);
+    ];
+
+    if (isOptOut && recoveryCase.missedCallId) {
+        updates.push(prisma.missedCall.updateMany({
+            where: { id: recoveryCase.missedCallId, clinicId },
+            data: { optedOut: true, conversationState: 'COMPLETED' },
+        }));
+    }
+    if (isOptOut) {
+        const normalizedPhone = normalizePhone(fromPhone);
+        if (normalizedPhone) {
+            updates.push(prisma.patient.updateMany({
+                where: { clinicId, phone: normalizedPhone },
+                data: { optedOut: true, optedOutAt: occurredAt },
+            }));
+        }
+    }
+
+    await prisma.$transaction(updates);
 
     await appendActivityEvent({
         clinicId,
@@ -454,13 +477,14 @@ async function recordInboundMessage({
         recoveryCaseId: recoveryCase.id,
         conversationId: conversation.id,
         messageId: message.id,
-        type: 'PATIENT_REPLIED',
+        type: isOptOut ? 'PATIENT_OPTED_OUT' : 'PATIENT_REPLIED',
         metadata: {
             bodyPreview: body ? body.slice(0, 140) : null,
+            optedOut: isOptOut,
         }
     });
 
-    return { success: true, messageId: message.id, recoveryCaseId: recoveryCase.id };
+    return { success: true, messageId: message.id, recoveryCaseId: recoveryCase.id, optedOut: isOptOut };
 }
 
 async function syncLegacyMissedCallSmsStatus(missedCallId, status, errorMessage = null, occurredAt = new Date()) {
