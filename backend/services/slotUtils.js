@@ -125,9 +125,16 @@ function getLocalDateParts(date, timezone = DEFAULT_TIMEZONE) {
 const { fromZonedTime, toZonedTime, formatInTimeZone } = require('date-fns-tz');
 
 function toDateForTimezone(dateInput, timezone = DEFAULT_TIMEZONE) {
-    if (dateInput instanceof Date) return dateInput;
+    if (dateInput instanceof Date) {
+        // Date objects at exactly UTC midnight commonly originate from
+        // date-only inputs (new Date('YYYY-MM-DD')); preserve that calendar day.
+        if (dateInput.getUTCHours() === 0 && dateInput.getUTCMinutes() === 0 &&
+            dateInput.getUTCSeconds() === 0 && dateInput.getUTCMilliseconds() === 0) {
+            return fromZonedTime(`${dateInput.toISOString().slice(0, 10)}T12:00:00`, timezone);
+        }
+        return dateInput;
+    }
     if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-        // Treat date-only inputs as local calendar dates, not UTC midnight.
         return fromZonedTime(`${dateInput}T12:00:00`, timezone);
     }
     return new Date(dateInput);
@@ -220,6 +227,14 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
         select: { workingHours: true, aiConfig: true, id: true },
     });
     if (!clinic) return [];
+
+    // Accept either a Doctor object or its ID, as used by existing callers.
+    if (typeof doctor === 'string') {
+        doctor = await prisma.doctor.findFirst({
+            where: { id: doctor, clinicId, isActive: true },
+        });
+        if (!doctor) return [];
+    }
 
     // If no doctor specified, get slots for ALL active doctors and union them
     if (!doctor) {
