@@ -185,7 +185,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             // Serialize concurrent attempts for the same clinic/doctor/time slot.
             // FOR UPDATE cannot lock a missing row, so it is not sufficient by itself.
             await tx.$queryRaw`
-                SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${doctorId}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))
+                SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${doctorId}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) AS advisory_lock
             `;
             // Specific doctor — check only that doctor's schedule
             const conflict = await tx.$queryRaw`
@@ -208,7 +208,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             // and conflict-free. This avoids rejecting valid public slots in multi-doctor clinics.
             for (const candidate of autoAssignableDoctors) {
                 await tx.$queryRaw`
-                    SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${candidate.id}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))
+                    SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${candidate.id}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) AS advisory_lock
                 `;
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
@@ -234,7 +234,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         } else {
             // Serialize clinic-level slots when no doctors are configured.
             await tx.$queryRaw`
-                SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':CLINIC:', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))
+                SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':CLINIC:', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) AS advisory_lock
             `;
             // Clinics without configured doctors use a clinic-level calendar resource.
             const conflicts = await tx.$queryRaw`
