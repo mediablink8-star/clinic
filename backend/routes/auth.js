@@ -202,7 +202,7 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
-        res.json({
+        res.status(201).json({
             token: accessToken,
             clinic: {
                 id: result.clinic.id,
