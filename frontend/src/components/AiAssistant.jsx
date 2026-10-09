@@ -427,6 +427,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
                         <button
                             onClick={handleSend}
                             aria-label="Αποστολή"
+                            aria-busy={loading}
                             disabled={!input.trim() || loading}
                             className="ai-send-btn"
                             style={{
