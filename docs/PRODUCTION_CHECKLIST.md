@@ -12,6 +12,9 @@
 - [ ] Confirm `REDIS_URL` points only to the production Redis instance.
 - [ ] Confirm outbound SMS/voice credentials belong to the intended production accounts.
 - [ ] Confirm `FRONTEND_URL` is the exact production origin.
+- [ ] Set `RECAPTCHA_SECRET_KEY` on the backend and `VITE_RECAPTCHA_SITE_KEY` in the frontend build environment; use matching Google reCAPTCHA v3 keys.
+- [ ] Optionally set `RECAPTCHA_ALLOWED_HOSTNAMES` to a comma-separated allowlist (for example, `clinicflow.app,www.clinicflow.app`) and tune `RECAPTCHA_MIN_SCORE` after monitoring false positives.
+- [ ] Rebuild and redeploy the frontend after changing `VITE_RECAPTCHA_SITE_KEY`; Vite embeds `VITE_` variables at build time.
 
 ### 1a. Emergency controls
 - [ ] Clinic `isActive` is the master clinic workflow kill switch.
