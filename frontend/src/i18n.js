@@ -30,7 +30,6 @@ const resources = {
       invalidEmail: 'Μη έγκυρη διεύθυνση email',
       selectDateTime: 'Παρακαλώ επιλέξτε ημερομηνία και ώρα.',
       confirmationSent: 'Θα λάβετε σύντομα μήνυμα επιβεβαίωσης.',
-      newBooking: 'Νέα Κράτηση',
       poweredBy: 'Powered by AI-first Clinic Management • Secure & Encrypted',
       selectDoctor: 'Επιλογή Γιατρού',
       anyDoctor: 'Οποιοσδήποτε',
@@ -41,7 +40,6 @@ const resources = {
       verified: 'Επαλήθευση ολόκληρη',
       securityCheck: 'Έλεγχος ασφαλείας',
       downloadCalendar: 'Προσθήκη στο ημερολόγιο',
-      selectDateFirst: 'Παρακαλώ επιλέξτε ημερομηνία πρώτα',
     }
   },
   en: {
@@ -72,7 +70,6 @@ const resources = {
       invalidEmail: 'Invalid email address',
       selectDateTime: 'Please select date and time.',
       confirmationSent: 'You will receive a confirmation message shortly.',
-      newBooking: 'New Booking',
       poweredBy: 'Powered by AI-first Clinic Management • Secure & Encrypted',
       selectDoctor: 'Select Doctor',
       anyDoctor: 'Any Doctor',
@@ -83,7 +80,6 @@ const resources = {
       verified: 'Verification complete',
       securityCheck: 'Security Check',
       downloadCalendar: 'Add to Calendar',
-      selectDateFirst: 'Please select a date first',
     }
   }
 };
