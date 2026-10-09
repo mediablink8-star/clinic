@@ -1,7 +1,7 @@
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 
-jest.mock('../../services/prisma', () => testPrisma);
+jest.mock('../../services/prisma', () => require('../setup').testPrisma);
 jest.mock('../../services/encryptionService', () => ({
   decrypt: (val) => val?.replace('encrypted:', '') || null,
   encrypt: (val) => `encrypted:${val}`,
