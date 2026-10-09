@@ -172,9 +172,9 @@ try {
 
              // Serialize concurrent attempts for the same slot. FOR UPDATE alone
              // cannot lock a row that does not exist yet.
-             await tx.$queryRaw\`
-                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':', COALESCE(\${assignedDoctorId}, 'AUTO'), ':', \${start.toISOString()}, ':', \${end.toISOString()})))
-             \`;
+             await tx.$queryRaw`
+                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}, ':', COALESCE(${assignedDoctorId}, 'AUTO'), ':', ${start.toISOString()}, ':', ${end.toISOString()})))
+             `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
              if (!assignedDoctorId) {
@@ -201,8 +201,8 @@ try {
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
                              AND "endTime" > ${start}
-                             FOR UPDATE
                              LIMIT 1
+                             FOR UPDATE
                          `;
 
                          if (!conflict || conflict.length === 0) {
@@ -225,8 +225,8 @@ try {
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
                 
                 if (conflict && conflict.length > 0) {
