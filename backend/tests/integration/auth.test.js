@@ -22,8 +22,8 @@ describe('Authentication Integration', () => {
         .send({ email: user.email, password: 'TestPass123!' })
         .expect(200);
 
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('refreshToken');
+      expect(res.body).toHaveProperty('token');
+      expect(res.headers['set-cookie']?.some(cookie => cookie.startsWith('refreshToken=')).toBe(true);
       expect(res.body).toHaveProperty('clinic');
       expect(res.body.clinic.id).toBe(clinic.id);
     });
@@ -42,16 +42,15 @@ describe('Authentication Integration', () => {
         .expect(401);
     });
 
-    it('should rate limit after 5 failed attempts', async () => {
-      for (let i = 0; i < 5; i++) {
-        await request(app)
+    it('should lock the account after the configured failed-attempt threshold', async () => {
+      let response;
+      for (let i = 0; i < 12; i++) {
+        response = await request(app)
           .post('/api/auth/login')
           .send({ email: user.email, password: 'WrongPass' });
+        if (response.status === 429) break;
       }
-      await request(app)
-        .post('/api/auth/login')
-        .send({ email: user.email, password: 'WrongPass' })
-        .expect(429);
+      expect(response.status).toBe(429);
     });
   });
 
@@ -61,17 +60,17 @@ describe('Authentication Integration', () => {
         .post('/api/auth/register')
         .send({
           clinicName: 'New Clinic',
-          clinicPhone: '+302109876543',
-          clinicEmail: 'new@clinic.com',
-          ownerName: 'New Owner',
-          ownerEmail: 'owner@newclinic.com',
-          ownerPassword: 'SecurePass123!',
+          email: 'owner@newclinic.com',
+          password: 'SecurePass123!',
+          phone: '+302109876543',
+          inviteCode: process.env.SYSTEM_INVITE_CODE,
+          agreedToTerms: true,
         })
         .expect(201);
 
       expect(res.body).toHaveProperty('accessToken');
       expect(res.body.clinic.name).toBe('New Clinic');
-      expect(res.body.user.role).toBe('OWNER');
+      expect(res.body.clinic.role).toBe('OWNER');
     });
 
     it('should reject weak passwords', async () => {
