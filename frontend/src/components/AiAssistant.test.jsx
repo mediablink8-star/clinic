@@ -59,7 +59,7 @@ describe('AiAssistant', () => {
     fireEvent.click(screen.getByRole('button', { name: /αποστολή/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('✅ SMS εστάλη στον/στην Γιάννης!')).toBeInTheDocument();
+      expect(screen.getByText(/SMS εστάλη στον\/στην Γιάννης/)).toBeInTheDocument();
     });
 
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/ai/command'), expect.objectContaining({
@@ -131,14 +131,15 @@ describe('AiAssistant', () => {
     fireEvent.change(input, { target: { value: 'Test command' } });
     fireEvent.click(screen.getByRole('button', { name: /αποστολή/i }));
 
-    expect(screen.getByText('⋯')).toBeInTheDocument();
+    const sendButton = screen.getByRole('button', { name: /αποστολή/i });
+    expect(sendButton).toHaveAttribute('aria-busy', 'true');
 
     resolvePromise({
       json: async () => ({ success: true, action: 'list_today_appointments', result: { count: 0, appointments: [] } }),
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('⋯')).not.toBeInTheDocument();
+      expect(sendButton).toHaveAttribute('aria-busy', 'false');
     });
   });
 });
