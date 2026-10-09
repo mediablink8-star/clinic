@@ -21,6 +21,7 @@ const appointmentSchema = Joi.object({
     patientId: Joi.string().length(25).required(), // CUID length
     startTime: Joi.date().iso(),
     endTime: Joi.date().iso(),
+    duration: Joi.number().integer().min(5).max(480),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
     reason: Joi.string().max(500).allow(null, ''),
