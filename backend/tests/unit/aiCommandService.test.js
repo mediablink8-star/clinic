@@ -70,6 +70,7 @@ describe('AI Command Service', () => {
   });
 
   afterAll(async () => {
+    await testPrisma.appointment.deleteMany({ where: { clinicId: clinic.id } });
     await testPrisma.patient.deleteMany({ where: { clinicId: clinic.id } });
     await testPrisma.user.deleteMany({ where: { clinicId: clinic.id } });
     await testPrisma.clinic.delete({ where: { id: clinic.id } });
