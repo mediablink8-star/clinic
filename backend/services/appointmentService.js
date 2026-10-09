@@ -682,7 +682,7 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
     
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el').el });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''}.\nΣας περιμένουμε! 😊`;
@@ -727,7 +727,7 @@ async function sendConfirmationSms({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
 
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el').el });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''} για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;
