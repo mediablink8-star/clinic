@@ -1,4 +1,5 @@
 const request = require('supertest');
+const { authenticator } = require('otplib');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -142,36 +143,44 @@ describe('Authentication Integration', () => {
   });
 
   describe('MFA', () => {
-    it('should enable MFA and return secret', async () => {
-      const res = await request(app)
-        .post('/api/auth/mfa/enable')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
-
-      expect(res.body).toHaveProperty('secret');
-      expect(res.body).toHaveProperty('qrCode');
+    beforeEach(async () => {
+      await testPrisma.user.update({
+        where: { id: user.id },
+        data: { mfaEnabled: false, mfaSecret: null, mfaPendingSecret: null },
+      });
     });
 
-    it('should verify MFA token', async () => {
-      await request(app)
-        .post('/api/auth/mfa/enable')
+    it('should set up and enable MFA with a valid TOTP code', async () => {
+      const setup = await request(app)
+        .post('/api/auth/mfa/setup')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      const userWithMFA = await testPrisma.user.findUnique({ where: { id: user.id } });
-      expect(userWithMFA.mfaEnabled).toBe(false);
+      expect(setup.body.secret).toBeDefined();
+      const code = authenticator.generate(setup.body.secret);
+      await request(app)
+        .post('/api/auth/mfa/verify')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ code })
+        .expect(200);
 
-      const totp = require('otplib').authenticator;
-      const mfaToken = totp.generate(userWithMFA.mfaPendingSecret);
+      const updatedUser = await testPrisma.user.findUnique({ where: { id: user.id } });
+      expect(updatedUser.mfaEnabled).toBe(true);
+    });
+
+    it('should reject an invalid MFA code', async () => {
+      const setup = await request(app)
+        .post('/api/auth/mfa/setup')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      const currentCode = authenticator.generate(setup.body.secret);
+      const invalidCode = String((Number(currentCode) + 1) % 1000000).padStart(6, '0');
 
       await request(app)
         .post('/api/auth/mfa/verify')
         .set('Authorization', `Bearer ${token}`)
-        .send({ token: mfaToken })
-        .expect(200);
-
-      const verifiedUser = await testPrisma.user.findUnique({ where: { id: user.id } });
-      expect(verifiedUser.mfaEnabled).toBe(true);
+        .send({ code: invalidCode })
+        .expect(400);
     });
   });
 
