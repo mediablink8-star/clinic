@@ -115,7 +115,7 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'After hours',
         date: dateStr,
         time: '20:00', // Outside 09:00-18:00
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject appointment for non-existent patient', async () => {
@@ -127,7 +127,7 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'Test',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
@@ -154,7 +154,7 @@ describe('Appointment Service Unit Tests', () => {
         date: dateStr,
         time: '14:00',
         doctorId: doctor.id,
-      }, actor)).rejects.toThrow('CONFLICT');
+      }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
     it('should reject appointment without patientId', async () => {
@@ -165,7 +165,7 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'No patient',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
@@ -223,7 +223,7 @@ describe('Appointment Service Unit Tests', () => {
         clinicId: clinic.id,
         appointmentId,
         status: 'INVALID_STATUS',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject non-existent appointment', async () => {
@@ -231,7 +231,7 @@ describe('Appointment Service Unit Tests', () => {
         clinicId: clinic.id,
         appointmentId: 'non-existent-id',
         status: 'CANCELLED',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 
