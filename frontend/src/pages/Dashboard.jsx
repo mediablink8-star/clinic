@@ -68,24 +68,27 @@ const Dashboard = ({
         return () => clearInterval(interval);
     }, []);
     React.useEffect(() => {
+        // The header is not mounted while the dashboard skeleton/guard screens render.
+        if (!hasLoaded || loading || !clinic || !token || !setCurrentTab || !setShowModal) return;
         const header = headerRef.current;
-        if (!header) return;
-        
+        if (!header || !header.parentNode) return;
+
         const observer = new IntersectionObserver(
-            ([entry]) => {
-                setIsHeaderExpanded(entry.isIntersecting);
-            },
+            ([entry]) => setIsHeaderExpanded(entry.isIntersecting),
             { root: null, rootMargin: '0px', threshold: 0 }
         );
-        
+
         const sentinel = document.createElement('div');
         sentinel.style.height = '1px';
         sentinel.style.width = '100%';
         header.parentNode.insertBefore(sentinel, header);
         observer.observe(sentinel);
-        
-        return () => observer.disconnect();
-    }, []);
+
+        return () => {
+            observer.disconnect();
+            sentinel.remove();
+        };
+    }, [hasLoaded, loading, clinic, token, setCurrentTab, setShowModal]);
     if (!hasLoaded && loading) return <DashboardSkeleton />;
 
     // Safety checks for all props
