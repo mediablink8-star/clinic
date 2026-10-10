@@ -1,11 +1,12 @@
 const request = require('supertest');
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Appointments Integration', () => {
   let clinic, owner, patient, doctor, token;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic({ timezone: 'Europe/Athens' });
     owner = await createTestUser(clinic.id, { role: 'OWNER' });
     patient = await createTestPatient(clinic.id, { name: 'Maria Papadopoulos', phone: '+306912345678' });
