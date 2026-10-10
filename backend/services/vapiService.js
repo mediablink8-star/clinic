@@ -137,7 +137,7 @@ async function triggerOutboundCall({ clinic, phone, missedCallId, patientName })
 
 function buildAgentPrompt(clinic, patientName, availableSlots = [], doctorsInfo = '') {
     let aiCfg = {};
-    try { aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {}); } catch {}
+    try { aiCfg = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig) : (clinic.aiConfig || {}); } catch { /* Malformed clinic AI config falls back to safe defaults. */ }
 
     const clinicName = clinic.name || 'το ιατρείο';
     const services = aiCfg.services ? `Υπηρεσίες: ${aiCfg.services}` : '';
