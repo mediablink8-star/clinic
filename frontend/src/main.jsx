@@ -79,12 +79,6 @@ window.onerror = function(message, source, lineno, colno, error) {
     reload.textContent = 'Επαναφόρτωση';
     reload.addEventListener('click', () => window.location.reload());
     div.append(icon, heading, detail, reload);
-    if (error?.stack) {
-      const stack = document.createElement('pre');
-      stack.style.cssText = 'margin-top:2rem;color:#64748b;font-size:0.7rem;text-align:left;max-width:600px;overflow:auto;max-height:200px';
-      stack.textContent = error.stack;
-      div.appendChild(stack);
-    }
     root.appendChild(div);
   }
   return false;
