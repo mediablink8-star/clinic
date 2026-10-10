@@ -118,9 +118,15 @@ describe('AI Command Service', () => {
     await cleanDatabase();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockGeminiError = null;
     jest.clearAllMocks();
+    // Keep the ambiguous-name scenario from contaminating later pipeline tests.
+    if (clinic?.id) {
+      await testPrisma.patient.deleteMany({
+        where: { clinicId: clinic.id, name: { in: ['Γιάννης Α', 'Γιάννης Β'] } },
+      });
+    }
   });
 
   describe('parseCommand', () => {
