@@ -25,7 +25,7 @@ jobs:
         working-directory: backend
         run: |
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          npm audit fix --package-lock-only --ignore-scripts --no-fund
+          npm audit fix --package-lock-only --ignore-scripts --no-fund || echo 'Some advisories require manual or breaking-version decisions; keep safe lockfile updates and continue.'
       - name: Reconcile frontend lockfile and apply non-breaking security updates
         working-directory: frontend
         run: |
