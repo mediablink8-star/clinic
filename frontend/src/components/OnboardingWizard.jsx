@@ -3,7 +3,7 @@ import { API_BASE } from '../lib/constants';
 import api from '../lib/api';
 import {
     Building2, Phone, Zap, CheckCircle2, ArrowRight,
-    ArrowLeft, X, Loader, Eye, EyeOff
+    ArrowLeft, X, Loader
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,7 +28,6 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
     const [step, setStep] = useState(0);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    const [showKey, setShowKey] = useState(false);
 
     // Step 1 — clinic info
     const [info, setInfo] = useState({
@@ -50,7 +49,6 @@ const OnboardingWizard = ({ clinic, token, onComplete, onUpdate }) => {
 
     // Step 3 — Voice AI (Vapi)
     const [voiceData, setVoiceData] = useState({
-        vapiApiKey: '',
         vapiAssistantId: '',
         vapiPhoneNumberId: '',
         voiceEnabled: true,
@@ -96,7 +94,7 @@ const saveInfo = async () => {
 
     const saveVoice = async () => {
         // Voice is optional — skip if no key provided
-        const hasVapi = voiceData.vapiApiKey || voiceData.vapiAssistantId;
+        const hasVapi = voiceData.vapiAssistantId?.trim() || voiceData.vapiPhoneNumberId?.trim();
         if (!hasVapi) return true;
         
         // Validate required fields
@@ -361,23 +359,7 @@ const saveInfo = async () => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div>
-                                <label htmlFor="wizard-vapi-key" style={labelStyle}>Vapi API Key (προαιρετικό)</label>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        id="wizard-vapi-key"
-                                        className="input-glass"
-                                        style={{ paddingRight: '40px' }}
-                                        type={showKey ? 'text' : 'password'}
-                                        value={voiceData.vapiApiKey}
-                                        onChange={e => setVoiceData(p => ({ ...p, vapiApiKey: e.target.value }))}
-                                        placeholder="sk-..."
-                                    />
-                                    <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex' }}>
-                                        {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
-                                    </button>
-                                </div>
-                            </div>
+                            <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: 0 }}>Το API key του Vapi διαχειρίζεται κεντρικά από την πλατφόρμα. Χρειάζονται μόνο τα IDs του assistant και του αριθμού.</p>
                             <div>
                                 <label htmlFor="wizard-assistant-id" style={labelStyle}>Assistant ID *</label>
                                 <input id="wizard-assistant-id" className="input-glass" value={voiceData.vapiAssistantId} onChange={e => setVoiceData(p => ({ ...p, vapiAssistantId: e.target.value }))} placeholder="assistant_xxxxx" />
