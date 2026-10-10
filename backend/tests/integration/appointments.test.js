@@ -32,13 +32,12 @@ describe('Appointments Integration', () => {
         })
         .expect(201);
 
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty('id');
-      expect(res.body.data.patientId).toBe(patient.id);
-      expect(res.body.data.doctorId).toBe(doctor.id);
-      expect(res.body.data.status).toBe('CONFIRMED');
+      expect(res.body).toHaveProperty('id');
+      expect(res.body.patientId).toBe(patient.id);
+      expect(res.body.doctorId).toBe(doctor.id);
+      expect(res.body.status).toBe('CONFIRMED');
 
-      const apt = await testPrisma.appointment.findUnique({ where: { id: res.body.data.id } });
+      const apt = await testPrisma.appointment.findUnique({ where: { id: res.body.id } });
       expect(apt).not.toBeNull();
       expect(new Date(apt.startTime).getHours()).toBe(7); // 10:00 Athens = 07:00 UTC in July
     });
@@ -74,7 +73,7 @@ describe('Appointments Integration', () => {
         .send({ patientId: patient.id, reason: 'Auto assign', date: dateStr, time: '09:00' })
         .expect(201);
 
-      expect(res.body.data.doctorId).not.toBeNull();
+      expect(res.body.doctorId).not.toBeNull();
     });
 
     it('should reject appointment outside working hours', async () => {
@@ -116,7 +115,6 @@ describe('Appointments Integration', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body).toHaveProperty('total');
       expect(res.body).toHaveProperty('totalPages');
@@ -164,7 +162,7 @@ describe('Appointments Integration', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ patientId: patient.id, reason: 'Status test', date: dateStr, time: '12:00', doctorId: doctor.id });
 
-      appointmentId = res.body.data.id;
+      appointmentId = res.body.id;
     });
 
     it('should update status to CANCELLED', async () => {
@@ -174,7 +172,7 @@ describe('Appointments Integration', () => {
         .send({ status: 'CANCELLED' })
         .expect(200);
 
-      expect(res.body.data.status).toBe('CANCELLED');
+      expect(res.body.status).toBe('CANCELLED');
     });
 
     it('should update status to COMPLETED', async () => {
@@ -295,7 +293,7 @@ describe('Appointments Integration', () => {
         .send({ patientId: patient.id, reason: 'Afternoon', date: dateStr, time: '14:00', duration: 60 })
         .expect(201);
 
-      expect(res.body.data.reason).toBe('Afternoon');
+      expect(res.body.reason).toBe('Afternoon');
     });
 
     it('should allow different patients at same time', async () => {
@@ -321,7 +319,7 @@ describe('Appointments Integration', () => {
         .send({ patientId: patient2.id, reason: 'Patient 2', date: dateStr, time: '11:00' })
         .expect(201);
 
-      expect(res.body.data.patientId).toBe(patient2.id);
+      expect(res.body.patientId).toBe(patient2.id);
     });
   });
 
