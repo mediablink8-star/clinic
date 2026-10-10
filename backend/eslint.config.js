@@ -17,9 +17,9 @@ module.exports = [
     },
     rules: {
       ...js.configs.recommended.rules,
-      indent: ['error', 2],
+      indent: ['warn', 4],
       'linebreak-style': ['error', 'unix'],
-      quotes: ['error', 'single'],
+      quotes: ['warn', 'single'],
       semi: ['error', 'always'],
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': 'off',
