@@ -126,6 +126,8 @@ async function parseCommand(command, context = {}) {
         if (parsed.parameters) {
             for (const [key, val] of Object.entries(parsed.parameters)) {
                 if (typeof val === 'string') {
+                    // Intentionally match control characters to remove them from model output.
+                    // eslint-disable-next-line no-control-regex
                     parsed.parameters[key] = val.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 500);
                 }
             }
