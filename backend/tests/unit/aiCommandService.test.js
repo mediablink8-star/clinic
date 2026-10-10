@@ -341,15 +341,15 @@ describe('AI Command Service', () => {
 
     it('should reject ambiguous patient names', async () => {
       await testPrisma.patient.create({
-        data: { clinicId: clinic.id, name: 'Γιάννης Α', phone: '+306900000001' },
+        data: { clinicId: clinic.id, name: 'Ambiguous Patient A', phone: '+306900000001' },
       });
       await testPrisma.patient.create({
-        data: { clinicId: clinic.id, name: 'Γιάννης Β', phone: '+306900000002' },
+        data: { clinicId: clinic.id, name: 'Ambiguous Patient B', phone: '+306900000002' },
       });
 
       const parsed = {
         action: 'send_sms',
-        parameters: { patientName: 'Γιάννης', message: 'Test' },
+        parameters: { patientName: 'Ambiguous Patient', message: 'Test' },
         confidence: 0.8,
       };
 
@@ -416,12 +416,14 @@ describe('AI Command Service', () => {
       expect(result.suggestions).toBeDefined();
     });
 
-    it('should handle AI quota exceeded', async () => {
+    it('should surface AI quota exhaustion as a service-unavailable error', async () => {
       mockGeminiError = new Error('429 Too Many Requests');
-      const result = await processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('quota exceeded');
+      await expect(
+        processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor)
+      ).rejects.toMatchObject({
+        code: 'AI_QUOTA_EXCEEDED',
+        status: 503,
+      });
     });
   });
 });
