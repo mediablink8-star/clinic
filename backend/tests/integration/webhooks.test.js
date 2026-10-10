@@ -1,11 +1,40 @@
+process.env.VAPI_WEBHOOK_SECRET ||= 'test-vapi-secret';
+process.env.STRIPE_SECRET_KEY ||= 'sk_test_clinicflow_ci';
+process.env.STRIPE_WEBHOOK_SECRET ||= 'whsec_clinicflow_ci';
+
+const Stripe = require('stripe');
+const stripeTestClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeSignature = (event) => stripeTestClient.webhooks.generateTestHeaderString({
+  payload: JSON.stringify(event),
+  secret: process.env.STRIPE_WEBHOOK_SECRET,
+});
+
+const twilioSignature = (params) => {
+  const url = `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status`;
+  const data = url + Object.keys(params).sort().map(key => key + String(params[key] ?? '')).join('');
+  return require('crypto').createHmac('sha1', process.env.TWILIO_AUTH_TOKEN).update(data).digest('base64');
+};
+
 const request = require('supertest');
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
+
+function nextClinicWeekday(daysAhead = 3) {
+  const date = new Date();
+  date.setUTCHours(12, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+  return date.toISOString().split('T')[0];
+}
+
 
 describe('Webhooks Integration', () => {
-  let clinic, owner, token, webhookSecret;
+  let clinic, owner, token, webhookSecret, zadarmaSecret;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic({ 
       timezone: 'Europe/Athens',
       webhookSecret: 'test-webhook-secret-123',
@@ -13,12 +42,13 @@ describe('Webhooks Integration', () => {
     owner = await createTestUser(clinic.id, { role: 'OWNER' });
     token = generateTestToken(owner.id, clinic.id, owner.role);
     webhookSecret = clinic.webhookSecret;
+    zadarmaSecret = process.env.ZADARMA_WEBHOOK_SECRET || 'test-zadarma-secret';
   });
 
   describe('Zadarma Webhook (Missed Call Detection)', () => {
     it('should create missed call on NOTIFY_START', async () => {
       const res = await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -48,7 +78,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306988888888',
@@ -66,7 +96,7 @@ describe('Webhooks Integration', () => {
 
     it('should deduplicate by call_id', async () => {
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -76,7 +106,7 @@ describe('Webhooks Integration', () => {
         .expect(200);
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -112,7 +142,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_END',
           caller_id: '+306966666666',
@@ -146,6 +176,11 @@ describe('Webhooks Integration', () => {
           MessageStatus: 'delivered',
           To: '+306912345678',
         })
+        .set('x-twilio-signature', twilioSignature({
+          MessageSid: 'SM1234567890',
+          MessageStatus: 'delivered',
+          To: '+306912345678',
+        }))
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
@@ -170,6 +205,12 @@ describe('Webhooks Integration', () => {
           ErrorCode: '30003',
           To: '+306912345678',
         })
+        .set('x-twilio-signature', twilioSignature({
+          MessageSid: 'SM0987654321',
+          MessageStatus: 'failed',
+          ErrorCode: '30003',
+          To: '+306912345678',
+        }))
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
@@ -189,23 +230,22 @@ describe('Webhooks Integration', () => {
         stripeCustomerId: 'cus_test123',
       });
 
-      // Mock Stripe webhook signature verification
-      // In real test, use stripe.webhooks.generateTestHeaderString
-      
+      const event = {
+        id: 'evt_test123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            customer: 'cus_test123',
+            subscription: 'sub_test123',
+            metadata: { clinicId: clinicWithStripe.id },
+          },
+        },
+      };
+
       const res = await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test123',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              customer: 'cus_test123',
-              subscription: 'sub_test123',
-              metadata: { clinicId: clinicWithStripe.id },
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       expect(res.body.received).toBe(true);
@@ -217,23 +257,25 @@ describe('Webhooks Integration', () => {
         stripeSubscriptionId: 'sub_test456',
       });
 
+      const event = {
+        id: 'evt_test456',
+        type: 'invoice.paid',
+        data: {
+          object: {
+            customer: 'cus_test456',
+            subscription: 'sub_test456',
+            amount_paid: 2900,
+            currency: 'eur',
+            period_start: Math.floor(Date.now() / 1000) - 86400,
+            period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+          },
+        },
+      };
+
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test456',
-          type: 'invoice.paid',
-          data: {
-            object: {
-              customer: 'cus_test456',
-              subscription: 'sub_test456',
-              amount_paid: 2900,
-              currency: 'eur',
-              period_start: Math.floor(Date.now() / 1000) - 86400,
-              period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       const events = await testPrisma.subscriptionEvent.findMany({
@@ -249,19 +291,21 @@ describe('Webhooks Integration', () => {
         planStatus: 'active',
       });
 
+      const event = {
+        id: 'evt_test789',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            customer: 'cus_test789',
+            id: 'sub_test789',
+          },
+        },
+      };
+
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test789',
-          type: 'customer.subscription.deleted',
-          data: {
-            object: {
-              customer: 'cus_test789',
-              id: 'sub_test789',
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       const updated = await testPrisma.clinic.findUnique({ where: { id: clinicWithStripe.id } });
@@ -338,7 +382,7 @@ describe('Webhooks Integration', () => {
               parameters: {
                 patientName: 'Test Patient',
                 phone: '+306912345678',
-                date: '2026-01-20',
+                date: nextClinicWeekday(3),
                 time: '10:00',
                 duration: 30,
                 reason: 'Checkup',
@@ -365,7 +409,7 @@ describe('Webhooks Integration', () => {
             parameters: {
               patientName: 'Idempotent Patient',
               phone: '+306900000001',
-              date: '2026-01-25',
+              date: nextClinicWeekday(4),
               time: '11:00',
               duration: 30,
               reason: 'Idempotency test',

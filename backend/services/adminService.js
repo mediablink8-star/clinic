@@ -401,7 +401,7 @@ async function bulkUpdateClinics(clinicIds, action, value) {
         throw new AppError('VALIDATION_ERROR', 'No clinics selected', 400);
     }
 
-    let data = {};
+    let data;
     switch (action) {
         case 'activate':
             data = { isActive: true };

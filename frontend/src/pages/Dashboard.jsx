@@ -58,6 +58,37 @@ const Dashboard = ({
     const logsArray = React.useMemo(() => Array.isArray(recoveryLog) ? recoveryLog : [], [recoveryLog]);
     React.useEffect(() => { if (!loading) setHasLoaded(true); }, [loading]);
     const { confirm, dialog } = useConfirm();
+    const [isHeaderExpanded, setIsHeaderExpanded] = React.useState(true);
+    const [currentTime, setCurrentTime] = React.useState(() => new Date());
+    const headerRef = React.useRef(null);
+
+    // Clock update every second
+    React.useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+    React.useEffect(() => {
+        // The header is not mounted while the dashboard skeleton/guard screens render.
+        if (!hasLoaded || loading || !clinic || !token || !setCurrentTab || !setShowModal) return;
+        const header = headerRef.current;
+        if (!header || !header.parentNode || typeof IntersectionObserver === 'undefined') return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => setIsHeaderExpanded(entry.isIntersecting),
+            { root: null, rootMargin: '0px', threshold: 0 }
+        );
+
+        const sentinel = document.createElement('div');
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        header.parentNode.insertBefore(sentinel, header);
+        observer.observe(sentinel);
+
+        return () => {
+            observer.disconnect();
+            sentinel.remove();
+        };
+    }, [hasLoaded, loading, clinic, token, setCurrentTab, setShowModal]);
     if (!hasLoaded && loading) return <DashboardSkeleton />;
 
     // Safety checks for all props
@@ -186,34 +217,7 @@ const Dashboard = ({
         }
     })();
 
-    const [isHeaderExpanded, setIsHeaderExpanded] = React.useState(true);
-    const [currentTime, setCurrentTime] = React.useState(() => new Date());
-    const headerRef = React.useRef(null);
 
-    // Clock update every second
-    React.useEffect(() => {
-        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(interval);
-    }, []);
-    React.useEffect(() => {
-        const header = headerRef.current;
-        if (!header) return;
-        
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setIsHeaderExpanded(entry.isIntersecting);
-            },
-            { root: null, rootMargin: '0px', threshold: 0 }
-        );
-        
-        const sentinel = document.createElement('div');
-        sentinel.style.height = '1px';
-        sentinel.style.width = '100%';
-        header.parentNode.insertBefore(sentinel, header);
-        observer.observe(sentinel);
-        
-        return () => observer.disconnect();
-    }, []);
 
     // FAB for New Appointment (mobile)
     const FabNewAppointment = () => (
@@ -317,6 +321,27 @@ const Dashboard = ({
                     </div>
                 </div>
             </div>
+
+            {!clinic?.isActive && (
+                <div role="alert" style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--urgent)', fontWeight: 700 }}>
+                    Η Κλινική είναι ΣΕ ΠΑΥΣΗ — οι αυτοματισμοί δεν θα εκτελούνται.
+                </div>
+            )}
+
+            {Array.isArray(warnings) && warnings.length > 0 && (
+                <div role="status" style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.22)', color: 'var(--text)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <strong>Χρειάζονται ρυθμίσεις για πλήρη λειτουργία</strong>
+                    {warnings.slice(0, 3).map((warning, index) => (
+                        <span key={warning?.id || warning?.code || index} style={{ fontSize: '0.82rem' }}>
+                            {warning?.message || warning?.title || String(warning)}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {!clinic?.onboardingCompleted && (
+                <OnboardingChecklist clinic={clinic} systemStatus={systemStatus} recoveryLog={logsArray} />
+            )}
 
             {/* ── STICKY STATS BAR ── */}
             <div style={{ 

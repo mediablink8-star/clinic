@@ -4,7 +4,7 @@
  */
 function normalizePhone(phone) {
     if (!phone) return '';
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '').replace(/^00/, '+');
+    const cleaned = phone.replace(/[\s\-()]/g, '').replace(/^00/, '+');
     if (cleaned.startsWith('+30')) return cleaned;
     if (cleaned.startsWith('+')) return cleaned;
     if (/^[26]/.test(cleaned) && cleaned.length === 10) return `+30${cleaned}`;

@@ -11,13 +11,11 @@ const {
     getDoctorAnalytics
 } = require('../services/doctorService');
 
-// Require OWNER or ADMIN role for mutating endpoints
-const ROLE_HIERARCHY = ['ASSISTANT', 'RECEPTIONIST', 'DOCTOR', 'ADMIN', 'OWNER'];
+// Doctor records affect clinic-wide scheduling and should only be managed by
+// clinic owners or administrators.
 const requireStaffOrAbove = (req, res, next) => {
-    const userRoleIndex = ROLE_HIERARCHY.indexOf(req.user?.role);
-    const requiredRoleIndex = ROLE_HIERARCHY.indexOf('RECEPTIONIST');
-    if (userRoleIndex < requiredRoleIndex) {
-        throw new AppError('FORBIDDEN', 'Forbidden: Insufficient permissions', 403);
+    if (!['OWNER', 'ADMIN'].includes(req.user?.role)) {
+        throw new AppError('FORBIDDEN', 'Only clinic owners and administrators can manage doctors', 403);
     }
     next();
 };

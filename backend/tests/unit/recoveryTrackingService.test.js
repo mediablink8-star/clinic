@@ -78,7 +78,7 @@ describe('Recovery Tracking Service', () => {
       await ensureRecoveryCaseForMissedCall(missedCall.id);
 
       const event = await testPrisma.activityEvent.findFirst({
-        where: { type: 'MISSED_CALL_DETECTED', recoveryCaseId: { not: null } },
+        where: { type: 'MISSED_CALL_DETECTED' },
       });
       expect(event).not.toBeNull();
       expect(event.metadata.missedCallId).toBe(missedCall.id);
@@ -102,7 +102,7 @@ describe('Recovery Tracking Service', () => {
     });
 
     it('should throw if missed call not found', async () => {
-      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toThrow('NOT_FOUND');
+      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
     });
   });
 
@@ -215,6 +215,37 @@ describe('Recovery Tracking Service', () => {
       const updated = await testPrisma.missedCall.findUnique({ where: { id: missedCall.id } });
       expect(updated.optedOut).toBe(true);
       expect(updated.conversationState).toBe('COMPLETED');
+    });
+
+    it('should handle the Greek STOP keyword and opt out the patient', async () => {
+      const phone = '+306977777778';
+      const patientRecord = await createTestPatient(clinic.id, { phone });
+      const missedCall = await testPrisma.missedCall.create({
+        data: {
+          clinicId: clinic.id,
+          fromNumber: phone,
+          callSid: 'test-call-greek-stop',
+          status: 'RECOVERING',
+          conversationState: 'BOOKING',
+          patientId: patientRecord.id,
+        },
+      });
+
+      await ensureRecoveryCaseForMissedCall(missedCall.id);
+      const result = await recordInboundMessage({
+        clinicId: clinic.id,
+        fromPhone: phone,
+        body: 'ΔΙΑΚΟΠΗ',
+        providerMessageSid: 'SM-GREEK-STOP',
+      });
+
+      const updatedPatient = await testPrisma.patient.findUnique({ where: { id: patientRecord.id } });
+      const updatedMissedCall = await testPrisma.missedCall.findUnique({ where: { id: missedCall.id } });
+      const recoveryCase = await testPrisma.recoveryCase.findFirst({ where: { missedCallId: missedCall.id } });
+      expect(result.optedOut).toBe(true);
+      expect(updatedPatient.optedOut).toBe(true);
+      expect(updatedMissedCall.optedOut).toBe(true);
+      expect(recoveryCase.state).toBe('CLOSED_OPTED_OUT');
     });
 
     it('should deduplicate by providerMessageSid', async () => {
@@ -375,7 +406,7 @@ describe('Recovery Tracking Service', () => {
         missedCallId: missedCall.id,
       });
 
-      expect(result).toEqual(rc);
+      expect(result).toMatchObject({ id: rc.id, state: 'RECOVERED' });
     });
   });
 

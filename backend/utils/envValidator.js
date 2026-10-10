@@ -96,6 +96,12 @@ const HINT = {
         'Generate: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))". Used to encrypt clinic.geminiApiKey and similar secrets at rest.',
     FRONTEND_URL:
         'Set to your Vercel production URL: https://clinicflow.app (must match Vercel deployment URL exactly or CORS breaks).',
+    RECAPTCHA_SECRET_KEY:
+        'Set from Google reCAPTCHA Admin Console. Required for public appointment booking in production; never expose this key in the frontend.',
+    RECAPTCHA_ALLOWED_HOSTNAMES:
+        'Comma-separated exact hostnames allowed to submit public bookings, e.g. clinicflow.app,www.clinicflow.app. Required in production.',
+    RECAPTCHA_MIN_SCORE:
+        'Optional reCAPTCHA v3 score threshold from 0 to 1. Defaults to 0.5; tune only after observing false positives.',
     SMTP_HOST:
         'Set to your SMTP host. Resend example: smtp.resend.com:465. Required in production — password resets and demo-request emails will fail silently without it.',
     SMTP_PORT:
@@ -138,6 +144,9 @@ const SET_ONCE = [
     'WEBHOOK_SECRET',
     'AUTOMATION_API_KEY',
     'REGISTRATION_INVITE_CODE',
+    'RECAPTCHA_SECRET_KEY',
+    'RECAPTCHA_ALLOWED_HOSTNAMES',
+    'RECAPTCHA_MIN_SCORE',
     'TRIAL_DAYS',
     'BILLING_GRACE_DAYS',
     'GOOGLE_CLIENT_ID',

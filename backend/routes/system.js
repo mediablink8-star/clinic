@@ -7,7 +7,7 @@ const { connection } = require('../services/queueService');
 let _workersModule = null;
 try { 
     _workersModule = require('../services/notificationWorker');
-} catch {}
+} catch { /* Notification workers are optional in API-only deployments. */ }
 
 const prisma = require('../services/prisma');
 

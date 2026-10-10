@@ -127,14 +127,14 @@ async function listAppointments(clinicId, doctorId = null, page = 1, limit = 50,
     return { success: true, data: decryptedData, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, source }, actor) {
+async function createAppointment({ clinicId, patientId, reason, startTime, endTime, duration = 60, priority, doctorId, date, time, source }, actor) {
     if (!patientId) {
         throw new AppError('VALIDATION_ERROR', 'patientId is required', 400);
     }
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, name: true, timezone: true, webhookSecret: true, googleCalendarEnabled: true }
+        select: { id: true, name: true, timezone: true, workingHours: true, aiConfig: true, webhookSecret: true, googleCalendarEnabled: true }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     const timezone = clinic.timezone || DEFAULT_TIMEZONE;
@@ -145,7 +145,11 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
         start = fromZonedTime(localDateTimeStr, timezone);
         logger.info(`Staff Booking Parsed Time`, { localDateTimeStr, timezone, utc: start.toISOString() });
-        end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1h
+        const requestedDuration = Number(duration);
+        const durationMinutes = Number.isInteger(requestedDuration) && requestedDuration >= 5 && requestedDuration <= 480
+            ? requestedDuration
+            : 60;
+        end = new Date(start.getTime() + durationMinutes * 60 * 1000);
     } else if (startTime && endTime) {
         start = new Date(startTime);
         end = new Date(endTime);
@@ -172,9 +176,9 @@ try {
 
              // Serialize concurrent attempts for the same slot. FOR UPDATE alone
              // cannot lock a row that does not exist yet.
-             await tx.$queryRaw\`
-                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':', COALESCE(\${assignedDoctorId}, 'AUTO'), ':', \${start.toISOString()}, ':', \${end.toISOString()})))
-             \`;
+             await tx.$queryRaw`
+                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', COALESCE(${assignedDoctorId}::text, 'AUTO'), ':', ${start.toISOString()}::text, ':', ${end.toISOString()}::text)))) AS advisory_lock
+             `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
              if (!assignedDoctorId) {
@@ -198,11 +202,12 @@ try {
                              SELECT id FROM "Appointment"
                              WHERE "clinicId" = ${clinicId}
                              AND "doctorId" = ${doc.id}
+                             AND "deletedAt" IS NULL
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
                              AND "endTime" > ${start}
-                             FOR UPDATE
                              LIMIT 1
+                             FOR UPDATE
                          `;
 
                          if (!conflict || conflict.length === 0) {
@@ -222,11 +227,12 @@ try {
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
                     AND "doctorId" = ${assignedDoctorId}
+                    AND "deletedAt" IS NULL
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
                 
                 if (conflict && conflict.length > 0) {
@@ -520,12 +526,12 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
     await prisma.$transaction(async (tx) => {
         // Serialize restoration with concurrent bookings for the same clinic/doctor/slot.
         await tx.$queryRaw`
-            SELECT pg_advisory_xact_lock(hashtext(CONCAT(
-                ${clinicId}, ':',
-                COALESCE(${existing.doctorId}, 'AUTO'), ':',
-                ${existing.startTime.toISOString()}, ':',
-                ${existing.endTime.toISOString()}
-            )))
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(
+                ${clinicId}::text, ':',
+                COALESCE(${existing.doctorId}::text, 'AUTO'), ':',
+                ${existing.startTime.toISOString()}::text, ':',
+                ${existing.endTime.toISOString()}::text
+            )))) AS advisory_lock
         `;
 
         // A deleted appointment can still occupy the slot in the database, so
@@ -678,7 +684,7 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
     
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el').el });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''}.\nΣας περιμένουμε! 😊`;
@@ -723,7 +729,7 @@ async function sendConfirmationSms({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
 
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el').el });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''} για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;

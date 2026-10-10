@@ -46,6 +46,13 @@ export function createBeforeSend() {
     return function beforeSend(event) {
         try {
             if (event.message) event.message = scrubString(event.message);
+            if (Array.isArray(event.exception?.values)) {
+                event.exception.values = event.exception.values.map(exception => ({
+                    ...exception,
+                    value: exception.value ? scrubString(exception.value) : exception.value
+                }));
+            }
+            if (event.transaction) event.transaction = scrubString(event.transaction);
             if (event.extra) event.extra = scrubValue(event.extra);
             if (event.tags) event.tags = scrubValue(event.tags);
             if (event.user) {
@@ -54,6 +61,16 @@ export function createBeforeSend() {
                 if (event.user.username) event.user.username = '[REDACTED]';
             }
             if (event.request) {
+                if (event.request.url) {
+                    try {
+                        const requestUrl = new URL(event.request.url);
+                        requestUrl.search = '';
+                        requestUrl.hash = '';
+                        event.request.url = requestUrl.toString();
+                    } catch (err) {
+                        event.request.url = '[REDACTED]';
+                    }
+                }
                 if (event.request.cookies) event.request.cookies = '[REDACTED]';
                 if (event.request.headers) {
                     event.request.headers = Object.fromEntries(

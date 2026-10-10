@@ -2,6 +2,7 @@ const prisma = require('./prisma');
 const AppError = require('../errors/AppError');
 const metrics = require('../utils/metrics');
 const logger = require('../utils/logger');
+const { normalizePhone } = require('../utils/phone');
 
 const ACTIVE_RECOVERY_CASE_STATES = ['ACTIVE', 'ENGAGED'];
 
@@ -147,7 +148,7 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
     }
 
     try {
-        return await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const recoveryCase = await tx.recoveryCase.create({
                 data: {
                     clinicId: missedCall.clinicId,
@@ -186,6 +187,8 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
             return { ...recoveryCase, conversation };
         });
+        recordRecoveryCase(missedCall.clinicId, result.state);
+        return result;
     } catch (error) {
         if (error.code === 'P2002') {
             return prisma.recoveryCase.findUnique({
@@ -196,9 +199,6 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
         throw error;
     }
-
-    // Record metrics
-    recordRecoveryCase(missedCall.clinicId, recoveryCase.state);
 }
 
 async function recordOutboundMessageForMissedCall({
@@ -386,6 +386,8 @@ async function recordInboundMessage({
     }
 
     const { recoveryCase, conversation } = recoveryContext;
+    const normalizedBody = String(body || '').trim().toUpperCase();
+    const isOptOut = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'ΔΙΑΚΟΠΗ'].includes(normalizedBody);
     let message;
     try {
         message = await prisma.message.create({
@@ -423,7 +425,7 @@ async function recordInboundMessage({
         throw err;
     }
 
-    await prisma.$transaction([
+    const updates = [
         prisma.conversation.update({
             where: { id: conversation.id },
             data: { lastMessageAt: occurredAt }
@@ -432,10 +434,30 @@ async function recordInboundMessage({
             where: { id: recoveryCase.id },
             data: {
                 lastActivityAt: occurredAt,
-                state: recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state,
+                state: isOptOut
+                    ? 'CLOSED_OPTED_OUT'
+                    : (recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state),
             }
         }),
-    ]);
+    ];
+
+    if (isOptOut && recoveryCase.missedCallId) {
+        updates.push(prisma.missedCall.updateMany({
+            where: { id: recoveryCase.missedCallId, clinicId },
+            data: { optedOut: true, conversationState: 'COMPLETED' },
+        }));
+    }
+    if (isOptOut) {
+        const normalizedPhone = normalizePhone(fromPhone);
+        if (normalizedPhone) {
+            updates.push(prisma.patient.updateMany({
+                where: { clinicId, phone: normalizedPhone },
+                data: { optedOut: true, optedOutAt: occurredAt },
+            }));
+        }
+    }
+
+    await prisma.$transaction(updates);
 
     await appendActivityEvent({
         clinicId,
@@ -454,13 +476,14 @@ async function recordInboundMessage({
         recoveryCaseId: recoveryCase.id,
         conversationId: conversation.id,
         messageId: message.id,
-        type: 'PATIENT_REPLIED',
+        type: isOptOut ? 'PATIENT_OPTED_OUT' : 'PATIENT_REPLIED',
         metadata: {
             bodyPreview: body ? body.slice(0, 140) : null,
+            optedOut: isOptOut,
         }
     });
 
-    return { success: true, messageId: message.id, recoveryCaseId: recoveryCase.id };
+    return { success: true, messageId: message.id, recoveryCaseId: recoveryCase.id, optedOut: isOptOut };
 }
 
 async function syncLegacyMissedCallSmsStatus(missedCallId, status, errorMessage = null, occurredAt = new Date()) {

@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const greekPhoneRegex = /^(\+30)?[26][0-9\s\-\(\)]{8,14}$/;
+const greekPhoneRegex = /^(\+30)?[26][0-9\s\-()]{8,14}$/;
 const greekPhoneMessage = 'Enter a valid Greek phone number, e.g. 2101234567 or 6912345678.';
 
 const amkaRegex = /^[0-9]{11}$/;
@@ -21,6 +21,7 @@ const appointmentSchema = Joi.object({
     patientId: Joi.string().length(25).required(), // CUID length
     startTime: Joi.date().iso(),
     endTime: Joi.date().iso(),
+    duration: Joi.number().integer().min(5).max(480),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
     reason: Joi.string().max(500).allow(null, ''),
@@ -109,10 +110,12 @@ const publicBookingSchema = Joi.object({
     startTime: Joi.date().iso(),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
+    // Optional outside production; the route enforces verification in production.
+    recaptchaToken: Joi.string().max(4096).allow(null, ''),
     // Optional: link to missed call for recovery tracking
     missedCallId: Joi.string().allow(null, ''),
     doctorId: Joi.string().allow(null, '')
-}).or('startTime', 'date');
+}).or('startTime', 'date').with('date', 'time').with('time', 'date');
 
 const missedCallSchema = Joi.object({
     phone: Joi.string().required(),

@@ -1,8 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const pg = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 process.env.NODE_ENV = 'test';
+process.env.SYSTEM_INVITE_CODE = process.env.SYSTEM_INVITE_CODE || 'test-invite-code';
+process.env.DB_ENCRYPTION_KEY = 'test-only-encryption-key-for-ci';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
 process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/clinic_test';
@@ -21,7 +25,9 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
+const testPool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4 });
 const testPrisma = new PrismaClient({
+  adapter: new PrismaPg(testPool),
   log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
 });
 

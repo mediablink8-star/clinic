@@ -1,5 +1,7 @@
 # Production Deployment Checklist
 
+> **Release gate:** this checklist is not a certification. Checkmarks describe intended/implemented controls, not proof of successful production operation. Do not launch with real patient data until backend tests, dependency security findings, backup restore, tenant-isolation checks, and provider integrations have been verified.
+
 ## Pre-Deployment
 
 ### 1. Environment Variables
@@ -12,6 +14,9 @@
 - [ ] Confirm `REDIS_URL` points only to the production Redis instance.
 - [ ] Confirm outbound SMS/voice credentials belong to the intended production accounts.
 - [ ] Confirm `FRONTEND_URL` is the exact production origin.
+- [ ] Set `RECAPTCHA_SECRET_KEY` on the backend and `VITE_RECAPTCHA_SITE_KEY` in the frontend build environment; use matching Google reCAPTCHA v3 keys.
+- [ ] Set `RECAPTCHA_ALLOWED_HOSTNAMES` to a comma-separated allowlist of the exact production hostnames (for example, `clinicflow.app,www.clinicflow.app`); production booking fails closed if this is missing. Tune `RECAPTCHA_MIN_SCORE` after monitoring false positives.
+- [ ] Rebuild and redeploy the frontend after changing `VITE_RECAPTCHA_SITE_KEY`; Vite embeds `VITE_` variables at build time.
 
 ### 1a. Emergency controls
 - [ ] Clinic `isActive` is the master clinic workflow kill switch.
@@ -19,12 +24,12 @@
 - [ ] Keep provider credentials revocable so outbound voice/SMS can be disabled immediately if needed.
 - [ ] `DATABASE_URL` - PostgreSQL connection string (Supabase/Neon/Render)
 - [ ] `JWT_SECRET` - Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
-- [ ] `DB_ENCRYPTION_KEY` - Generate same as JWT_SECRET
+- [ ] `DB_ENCRYPTION_KEY` - Generate a separate random key; never reuse `JWT_SECRET`
 - [ ] `FRONTEND_URL` - Your deployed frontend URL (for CORS)
 - [ ] `NODE_ENV=production`
 - [ ] `REDIS_URL` - Upstash Redis or similar (required for background jobs)
 - [ ] `DISABLE_REDIS=false` - Enable Redis in production
-- [ ] `WEBHOOK_SECRET` - Generate same as JWT_SECRET
+- [ ] `WEBHOOK_SECRET` - Generate a separate random secret; never reuse `JWT_SECRET` or `DB_ENCRYPTION_KEY`
 - [ ] `GEMINI_API_KEY` - Google AI API key for Sophia assistant
 - [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Email provider
 - [ ] `N8N_WEBHOOK_URL` - n8n instance for SMS workflows

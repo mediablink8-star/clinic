@@ -79,8 +79,9 @@ describe('Encryption Service', () => {
     const encrypted = encrypt('test');
     const parts = encrypted.split(':');
     
-    expect(parts.length).toBe(3); // iv:ciphertext:authTag
-    expect(parts[0]).toHaveLength(24); // 12 bytes IV = 24 hex chars
-    expect(parts[2]).toHaveLength(32); // 16 bytes auth tag = 32 hex chars
+    expect(parts.length).toBe(4); // version:iv:authTag:ciphertext
+    expect(parts[0]).toBe('v1');
+    expect(parts[1]).toHaveLength(32); // 16-byte IV = 32 hex chars
+    expect(parts[2]).toHaveLength(32); // 16-byte auth tag = 32 hex chars
   });
 });

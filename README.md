@@ -82,7 +82,7 @@ clinic/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20.13+ (required for the built-in `node --watch` development scripts)
 - PostgreSQL 14+
 - Redis (for production)
 - n8n instance (for SMS workflows)

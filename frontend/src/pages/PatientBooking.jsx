@@ -4,12 +4,34 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Clock, User, Phone, CheckCircle, AlertCircle, MapPin, ChevronRight, ChevronLeft, Mail, FileText, Loader2, Shield, Download, Globe } from 'lucide-react';
 
+const StepIndicator = ({ currentStep }) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2.5rem' }}>
+        {[1, 2, 3].map((s) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                    width: '32px', height: '32px', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.875rem', fontWeight: '800',
+                    background: currentStep === s ? 'var(--primary)' : currentStep > s ? 'var(--accent)' : 'var(--bg-subtle)',
+                    color: currentStep >= s ? 'white' : 'var(--text-muted)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: currentStep === s ? '0 8px 16px -4px var(--primary-glow)' : 'none'
+                }}>
+                    {currentStep > s ? <CheckCircle size={16} /> : s}
+                </div>
+                {s < 3 && <div style={{ width: '40px', height: '2px', background: currentStep > s ? 'var(--accent)' : 'var(--border)', opacity: 0.5 }} />}
+            </div>
+        ))}
+    </div>
+);
+
 const PatientBooking = () => {
     const { t, i18n } = useTranslation();
     const searchParams = new URLSearchParams(window.location.search);
     const clinicId = searchParams.get('clinicId');
     const missedCallId = searchParams.get('missedCallId');
     const lang = searchParams.get('lang') || 'el';
+    const recaptchaSiteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim();
 
     useEffect(() => {
         i18n.changeLanguage(lang);
@@ -32,33 +54,67 @@ const PatientBooking = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [minDate, setMinDate] = useState('');
-    const [recaptchaToken, setRecaptchaToken] = useState(null);
     const [recaptchaLoading, setRecaptchaLoading] = useState(false);
-    const [pollingInterval, setPollingInterval] = useState(null);
+    const recaptchaReadyRef = useRef(null);
     const [mounted, setMounted] = useState(false);
 
+    useEffect(() => {
+        if (!recaptchaSiteKey) return undefined;
+        if (window.grecaptcha) {
+            recaptchaReadyRef.current = Promise.resolve(window.grecaptcha);
+            return undefined;
+        }
+
+        setRecaptchaLoading(true);
+        let script = document.querySelector('script[data-clinicflow-recaptcha]');
+        const createdHere = !script;
+        if (!script) {
+            script = document.createElement('script');
+            script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}`;
+            script.async = true;
+            script.defer = true;
+            script.dataset.clinicflowRecaptcha = 'true';
+        }
+
+        recaptchaReadyRef.current = new Promise((resolve, reject) => {
+            const handleLoad = () => window.grecaptcha ? resolve(window.grecaptcha) : reject(new Error('reCAPTCHA loaded without its API'));
+            const handleError = () => reject(new Error('reCAPTCHA script failed to load'));
+            script.addEventListener('load', handleLoad, { once: true });
+            script.addEventListener('error', handleError, { once: true });
+        }).finally(() => setRecaptchaLoading(false));
+        recaptchaReadyRef.current.catch(() => {});
+        if (createdHere) document.head.appendChild(script);
+
+        return () => {
+        };
+    }, [recaptchaSiteKey]);
+
     const executeRecaptcha = useCallback(async () => {
-        if (!window.grecaptcha || recaptchaToken) return;
+        if (!recaptchaSiteKey) {
+            if (import.meta.env.PROD) throw new Error('reCAPTCHA site key is not configured');
+            return null;
+        }
+        if (!window.grecaptcha) {
+            if (!recaptchaReadyRef.current) throw new Error('reCAPTCHA loader is not initialized');
+            await recaptchaReadyRef.current;
+        }
         setRecaptchaLoading(true);
         try {
-            const token = await window.grecaptcha.execute('6Lc...', { action: 'booking' });
-            setRecaptchaToken(token);
-        } catch (err) {
-            console.error('reCAPTCHA error:', err);
+            return await new Promise((resolve, reject) => {
+                window.grecaptcha.ready(() => {
+                    window.grecaptcha.execute(recaptchaSiteKey, { action: 'booking_submit' })
+                        .then(resolve, reject);
+                });
+            });
         } finally {
             setRecaptchaLoading(false);
         }
-    }, [recaptchaToken]);
-
-    useEffect(() => {
-        if (window.grecaptcha && !recaptchaToken) {
-            executeRecaptcha();
-        }
-    }, [executeRecaptcha, recaptchaToken]);
-
+    }, [recaptchaSiteKey]);
     useEffect(() => {
         setMounted(true);
-        setMinDate(new Date().toISOString().split('T')[0]);
+        const today = new Date();
+        const localDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+        setMinDate(localDate);
     }, []);
 
     const fetchSlots = useCallback(async () => {
@@ -85,7 +141,6 @@ const PatientBooking = () => {
             const interval = setInterval(() => {
                 fetchSlots();
             }, 30000);
-            setPollingInterval(interval);
             return () => clearInterval(interval);
         }
     }, [formData.date, formData.time, clinicId, fetchSlots]);
@@ -116,12 +171,6 @@ const PatientBooking = () => {
         fetchDoctors();
     }, [clinicId]);
 
-    useEffect(() => {
-        if (window.grecaptcha && !recaptchaToken) {
-            executeRecaptcha();
-        }
-    }, [executeRecaptcha, recaptchaToken]);
-
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
@@ -131,15 +180,13 @@ const PatientBooking = () => {
             setLoading(false);
             return;
         }
-        if (!recaptchaToken) {
-            try {
-                const token = await window.grecaptcha.execute('6Lc...', { action: 'booking_submit' });
-                setRecaptchaToken(token);
-            } catch (err) {
-                setError('Security verification failed. Please refresh and try again.');
-                setLoading(false);
-                return;
-            }
+        let freshRecaptchaToken = null;
+        try {
+            freshRecaptchaToken = await executeRecaptcha();
+        } catch (err) {
+            setError('Security verification could not be completed. Please check your connection and try again.');
+            setLoading(false);
+            return;
         }
 
         try {
@@ -153,7 +200,7 @@ const PatientBooking = () => {
                 time: formData.time,
                 doctorId: formData.doctorId || undefined,
                 missedCallId: missedCallId || undefined,
-                recaptchaToken,
+                recaptchaToken: freshRecaptchaToken || undefined,
             });
             setStep(3);
         } catch (err) {
@@ -213,27 +260,6 @@ END:VCALENDAR`;
         return new Date(y, m - 1, d).toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
     };
 
-    const StepIndicator = ({ currentStep }) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2.5rem' }}>
-            {[1, 2, 3].map((s) => (
-                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '32px', height: '32px', borderRadius: '10px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.875rem', fontWeight: '800',
-                        background: currentStep === s ? 'var(--primary)' : currentStep > s ? 'var(--accent)' : 'var(--bg-subtle)',
-                        color: currentStep >= s ? 'white' : 'var(--text-muted)',
-                        transition: 'all 0.3s ease',
-                        boxShadow: currentStep === s ? '0 8px 16px -4px var(--primary-glow)' : 'none'
-                    }}>
-                        {currentStep > s ? <CheckCircle size={16} /> : s}
-                    </div>
-                    {s < 3 && <div style={{ width: '40px', height: '2px', background: currentStep > s ? 'var(--accent)' : 'var(--border)', opacity: 0.5 }} />}
-                </div>
-            ))}
-        </div>
-    );
-
     if (!mounted) return null;
 
     if (error && step !== 2) return (
@@ -242,7 +268,7 @@ END:VCALENDAR`;
                 <AlertCircle size={48} color="#f56565" style={{ marginBottom: '1rem' }} />
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#c53030', marginBottom: '0.75rem' }}>{t('securityCheck')}</h2>
                 <p style={{ marginBottom: '2rem', color: '#9b2c2c', fontWeight: '500' }}>{error}</p>
-                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: '800' }} onClick={() => { setError(null); setStep(1); setRecaptchaToken(null); executeRecaptcha(); }}>{t('recaptchaVerify')}</button>
+                <button className="btn btn-primary" style={{ width: '100%', padding: '14px', borderRadius: '12px', fontWeight: '800' }} onClick={() => { setError(null); setStep(1); }}>{t('recaptchaVerify')}</button>
             </div>
         </div>
     );

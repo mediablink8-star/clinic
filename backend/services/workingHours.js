@@ -148,7 +148,7 @@ function getNextOpeningTime(now, workingHours, timezone = DEFAULT_TIMEZONE) {
 function isWithinWorkingHours({ clinic, start, end }) {
     if (!clinic?.workingHours) return true;
 
-    let wh = {};
+    let wh;
     try {
         wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
     } catch {

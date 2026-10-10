@@ -38,7 +38,7 @@ async function findPatientByAmka(clinicId, amka, excludePatientId = null) {
       } else if (p.amka === amka) {
         return p;
       }
-    } catch {}
+    } catch { /* Ignore malformed legacy ciphertext and continue with redacted data. */ }
   }
   return null;
 }
@@ -375,7 +375,7 @@ async function getPatientExport(clinicId, patientId, { decryptFor = null, userId
       if (patientForExport.amka.includes(':')) {
         patientForExport.amka = decrypt(patientForExport.amka);
       }
-    } catch {}
+    } catch { /* Ignore malformed legacy ciphertext and continue with redacted data. */ }
   } else if (patientForExport.amka) {
     patientForExport.amka = null;
   }

@@ -126,6 +126,8 @@ async function parseCommand(command, context = {}) {
         if (parsed.parameters) {
             for (const [key, val] of Object.entries(parsed.parameters)) {
                 if (typeof val === 'string') {
+                    // Intentionally match control characters to remove them from model output.
+                    // eslint-disable-next-line no-control-regex
                     parsed.parameters[key] = val.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 500);
                 }
             }
@@ -233,9 +235,16 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
             }
             const patient = patients[0];
-            
-            if (!clinic?.vapiApiKey && !process.env.VAPI_API_KEY) {
-                throw new AppError('CONFIGURATION_ERROR', 'Voice calling not configured for this clinic', 400);
+
+            if (clinic?.voiceEnabled !== true) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is disabled for this clinic', 400);
+            }
+            if (!process.env.VAPI_API_KEY) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is not configured on the platform', 400);
+            }
+            if (!(clinic?.vapiAssistantId || process.env.VAPI_ASSISTANT_ID) ||
+                !(clinic?.vapiPhoneNumberId || process.env.VAPI_PHONE_NUMBER_ID)) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is not configured for this clinic', 400);
             }
             
             const result = await triggerOutboundCall({

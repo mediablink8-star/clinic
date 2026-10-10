@@ -5,9 +5,30 @@ const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const { sendSms } = require('./twilioService');
+const { normalizePhone } = require('../utils/phone');
 
 async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = false }) {
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    // Enforce phone-level opt-out before invoking a webhook/provider or consuming credits.
+    const targetPhone = payload?.phone || payload?.toPhone;
+    const normalizedTarget = typeof targetPhone === 'string' && targetPhone ? normalizePhone(targetPhone) : null;
+    let targetPatient = null;
+    if (payload?.patientId) {
+        targetPatient = await prisma.patient.findFirst({
+            where: { id: payload.patientId, clinicId },
+            select: { id: true, optedOut: true },
+        });
+    } else if (normalizedTarget) {
+        targetPatient = await prisma.patient.findFirst({
+            where: { clinicId, phone: normalizedTarget },
+            select: { id: true, optedOut: true },
+        });
+    }
+    if (targetPatient?.optedOut) {
+        throw new AppError('SMS_OPT_OUT', 'This patient has opted out of SMS messages', 409);
+    }
+
     if (clinic.messageCredits <= 0) {
         throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
     }
@@ -101,6 +122,9 @@ async function sendDirectMessage({ clinicId, patientId, message, type = 'SMS', c
         where: { id: patientId, clinicId }
     });
     if (!patient) throw new AppError('NOT_FOUND', 'Patient not found', 404);
+    if (type === 'SMS' && patient.optedOut) {
+        throw new AppError('SMS_OPT_OUT', 'This patient has opted out of SMS messages', 409);
+    }
     const result = await sendManagedSms({
         clinicId,
         clinic,

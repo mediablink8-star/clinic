@@ -363,7 +363,7 @@ router.get('/clinics/:clinicId/setup-status', asyncHandler(async (req, res) => {
     const twilioCredsOk = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
     const twilioSenderOk = !!(process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_ALPHA_SENDER_ID);
 
-    let workingHoursOk = false;
+    let workingHoursOk;
     try {
         const wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : (clinic.workingHours || {});
         workingHoursOk = Object.values(wh).some(v => typeof v === 'string' && v.includes('-') && !v.toLowerCase().includes('closed'));

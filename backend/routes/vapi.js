@@ -480,7 +480,7 @@ async function handleVoiceBooking(mc, input) {
             hour = parseInt(digitMatch[1]);
             min = parseInt(digitMatch[2] || '0');
         }
-    } catch {}
+    } catch { /* Invalid preferred time keeps the default 09:00 start. */ }
 
     const dateStr = startTime.toISOString().split('T')[0];
     startTime = fromZonedTime(

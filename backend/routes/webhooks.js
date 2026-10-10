@@ -13,20 +13,22 @@ const webhookAuth = require('../middleware/webhookAuth');
 const { validateZadarmaSecret, getZadarmaSecret } = require('../middleware/webhookAuth');
 
 async function zadarmaHandler(req, res) {
-    const { caller_id, destination, disposition, event, call_id_with_callback, call_id } = req.body;
+    const { caller_id, destination, called_did, disposition, event, call_id_with_callback, call_id } = req.body;
     const sid = call_id_with_callback || call_id;
 
     const phone = normalizePhone(caller_id);
     if (!phone) throw new AppError('VALIDATION_ERROR', 'caller_id is required', 400);
 
+    // Zadarma commonly sends called_did; accept destination for legacy payloads too.
+    const destinationNumber = destination || called_did;
+    const normalizedTo = normalizePhone(destinationNumber);
     // Find clinic by the called number
-    const normalizedTo = normalizePhone(destination);
     const clinic = await prisma.clinic.findFirst({
         where: {
             OR: [
-                { zadarmaPhoneNumber: destination },
+                { zadarmaPhoneNumber: destinationNumber },
                 { zadarmaPhoneNumber: normalizedTo },
-                { phone: destination },
+                { phone: destinationNumber },
                 { phone: normalizedTo }
             ]
         },
@@ -34,7 +36,7 @@ async function zadarmaHandler(req, res) {
     });
 
     if (!clinic) {
-        logger.warn(`[Zadarma] No clinic found for number: ${destination}`);
+        logger.warn(`[Zadarma] No clinic found for number: ${destinationNumber}`);
         return res.json({ success: false, error: 'Clinic not found' });
     }
 
@@ -258,8 +260,24 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
         recoveryCaseId,
     });
 
-    // ── SMS opt-out / opt-in keyword handling (TCPA / Greek law 3471/2006) ──
+    // Keep the legacy missed-call conversation state in sync with inbound intent.
+    // This is lead capture only; appointment creation still requires slot validation.
     const normalizedBody = String(messageBody || '').trim().toUpperCase();
+    const isStopKeyword = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'].includes(normalizedBody);
+    const isStartKeyword = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'].includes(normalizedBody);
+    if (result.success && missedCallId && !isStopKeyword && !isStartKeyword) {
+        const conversationState = /(ΡΑΝΤΕΒΟΥ|APPOINTMENT|BOOK|ΚΛΕΙΣΩ|ΝΑΙ|YES)/u.test(normalizedBody)
+            ? 'BOOKING'
+            : /(ΚΑΛΕΣ|CALL|ΕΠΙΚΟΙΝΩΝ|ΤΗΛΕΦΩΝ)/u.test(normalizedBody)
+                ? 'CALLBACK'
+                : 'QUESTION';
+        await prisma.missedCall.updateMany({
+            where: { id: missedCallId, clinicId },
+            data: { conversationState },
+        });
+    }
+
+    // ── SMS opt-out / opt-in keyword handling (TCPA / Greek law 3471/2006) ──
     const STOP_KEYWORDS = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'];
     const START_KEYWORDS = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'];
 
@@ -278,7 +296,7 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
             const isStop = STOP_KEYWORDS.includes(normalizedBody);
             await prisma.patient.update({
                 where: { id: patient.id },
-                data: { optedOut: isStop, optedOutAt: new Date() }
+                data: { optedOut: isStop, optedOutAt: isStop ? new Date() : null }
             });
 
             if (isStop) {

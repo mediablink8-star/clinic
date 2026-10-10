@@ -3,12 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AiAssistant from '../components/AiAssistant';
 
-vi.mock('../lib/api', () => ({
-  default: {
-    post: vi.fn(),
-  },
-}));
-
 vi.mock('../lib/authSession', () => ({
   decodeToken: vi.fn().mockReturnValue({ userId: 'test-user', clinicId: 'test-clinic', role: 'OWNER' }),
 }));
@@ -18,6 +12,9 @@ const mockToken = 'test-token-123';
 describe('AiAssistant', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      json: async () => ({ success: true, action: 'list_today_appointments', result: { count: 0, appointments: [] } }),
+    }));
   });
 
   it('renders floating button when closed', () => {
@@ -25,7 +22,7 @@ describe('AiAssistant', () => {
 
     const button = screen.getByRole('button', { name: /ai/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveTextContent('✨');
+    expect(button).toHaveAccessibleName(/open ai assistant/i);
   });
 
   it('opens chat window when button clicked', () => {
@@ -42,17 +39,16 @@ describe('AiAssistant', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /ai/i }));
 
-    expect(screen.getByText('Γεια σου! Είμαι η Σοφία')).toBeInTheDocument();
+    expect(screen.getByText(/Γεια σου! Είμαι η Σοφία/)).toBeInTheDocument();
   });
 
   it('sends command and displays response', async () => {
-    const { default: api } = await import('../lib/api');
-    api.post.mockResolvedValue({
-      data: {
+    fetch.mockResolvedValue({
+      json: async () => ({
         success: true,
         action: 'send_sms',
         result: { patient: 'Γιάννης', phone: '+306912345678', message: 'Test message', status: 'SENT' },
-      },
+      }),
     });
 
     render(<AiAssistant token={mockToken} />);
@@ -63,18 +59,18 @@ describe('AiAssistant', () => {
     fireEvent.click(screen.getByRole('button', { name: /αποστολή/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('✅ SMS εστάλη στον/στην Γιάννης!')).toBeInTheDocument();
+      expect(screen.getByText(/SMS εστάλη στον\/στην Γιάννης/)).toBeInTheDocument();
     });
 
-    expect(api.post).toHaveBeenCalledWith('/ai/command', {
-      command: 'Στείλε SMS στον Γιάννη ότι το ραντεβού είναι αύριο',
-    });
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/ai/command'), expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ command: 'Στείλε SMS στον Γιάννη ότι το ραντεβού είναι αύριο' }),
+    }));
   });
 
   it('shows error message on failed command', async () => {
-    const { default: api } = await import('../lib/api');
-    api.post.mockResolvedValue({
-      data: { success: false, error: 'Δεν κατάλαβα την εντολή', suggestions: ['Δοκίμασε ξανά'] },
+    fetch.mockResolvedValue({
+      json: async () => ({ success: false, error: 'Δεν κατάλαβα την εντολή', suggestions: ['Δοκίμασε ξανά'] }),
     });
 
     render(<AiAssistant token={mockToken} />);
@@ -125,9 +121,8 @@ describe('AiAssistant', () => {
   });
 
   it('shows loading indicator while processing', async () => {
-    const { default: api } = await import('../lib/api');
     let resolvePromise;
-    api.post.mockImplementation(() => new Promise(r => { resolvePromise = r; }));
+    fetch.mockImplementation(() => new Promise(resolve => { resolvePromise = resolve; }));
 
     render(<AiAssistant token={mockToken} />);
     fireEvent.click(screen.getByRole('button', { name: /ai/i }));
@@ -136,14 +131,15 @@ describe('AiAssistant', () => {
     fireEvent.change(input, { target: { value: 'Test command' } });
     fireEvent.click(screen.getByRole('button', { name: /αποστολή/i }));
 
-    expect(screen.getByText('⋯')).toBeInTheDocument();
+    const sendButton = screen.getByRole('button', { name: /αποστολή/i });
+    expect(sendButton).toHaveAttribute('aria-busy', 'true');
 
     resolvePromise({
-      data: { success: true, action: 'list_today_appointments', result: { count: 0, appointments: [] } },
+      json: async () => ({ success: true, action: 'list_today_appointments', result: { count: 0, appointments: [] } }),
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('⋯')).not.toBeInTheDocument();
+      expect(sendButton).toHaveAttribute('aria-busy', 'false');
     });
   });
 });

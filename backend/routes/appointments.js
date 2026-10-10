@@ -92,12 +92,12 @@ router.get('/appointments', asyncHandler(async (req, res) => {
 }));
 
 router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {
-    const { patientId, reason, startTime, endTime, priority, doctorId, date, time } = req.body;
+    const { patientId, reason, startTime, endTime, duration, priority, doctorId, date, time } = req.body;
     const { data } = await createAppointment(
-        { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time },
+        { clinicId: req.clinicId, patientId, reason, startTime, endTime, duration, priority, doctorId, date, time },
         { userId: req.user.userId, ip: req.ip }
     );
-    res.json(data);
+    res.status(201).json(data);
 }));
 
 router.put('/appointments/:id/status', asyncHandler(async (req, res) => {

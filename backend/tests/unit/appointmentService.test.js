@@ -1,3 +1,15 @@
+jest.mock('../../services/twilioService', () => ({
+  sendSms: jest.fn().mockResolvedValue({ success: true, messageId: 'test-sms-id' }),
+}));
+
+jest.mock('../../services/messagingService', () => ({
+  sendDirectMessage: jest.fn().mockResolvedValue({ success: true, data: { status: 'SENT' } }),
+}));
+
+jest.mock('../../services/messagingService', () => ({
+  sendDirectMessage: jest.fn().mockResolvedValue({ success: true, messageId: 'test-message-id' }),
+}));
+
 const { 
   createAppointment, 
   updateAppointmentStatus, 
@@ -9,6 +21,16 @@ const {
   scheduleAppointmentReminder,
 } = require('../../services/appointmentService');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
+
+function nextClinicWeekday(daysAhead = 1) {
+  const date = new Date();
+  date.setUTCHours(12, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+  return date.toISOString().split('T')[0];
+}
 
 describe('Appointment Service Unit Tests', () => {
   let clinic, owner, patient, doctor, actor;
@@ -42,9 +64,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('createAppointment', () => {
     it('should create appointment with date/time in clinic timezone', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(1);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -68,9 +88,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should create appointment with startTime/endTime directly', async () => {
-      const start = new Date();
-      start.setDate(start.getDate() + 2);
-      start.setHours(11, 0, 0, 0);
+      const start = new Date(`${nextClinicWeekday(2)}T08:00:00.000Z`);
       const end = new Date(start.getTime() + 30 * 60000);
 
       const result = await createAppointment({
@@ -86,9 +104,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should auto-assign doctor when none specified', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 3);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(3);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -103,9 +119,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should reject appointment outside working hours', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 4);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(4);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -113,27 +127,23 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'After hours',
         date: dateStr,
         time: '20:00', // Outside 09:00-18:00
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject appointment for non-existent patient', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 5);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(5);
 
       await expect(createAppointment({
         clinicId: clinic.id,
-        patientId: 'non-existent-id',
+        patientId: 'c123456789012345678901234',
         reason: 'Test',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 6);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(6);
 
       // First appointment
       await createAppointment({
@@ -156,20 +166,18 @@ describe('Appointment Service Unit Tests', () => {
         date: dateStr,
         time: '14:00',
         doctorId: doctor.id,
-      }, actor)).rejects.toThrow('CONFLICT');
+      }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
     it('should reject appointment without patientId', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 7);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(7);
 
       await expect(createAppointment({
         clinicId: clinic.id,
         reason: 'No patient',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
@@ -177,9 +185,7 @@ describe('Appointment Service Unit Tests', () => {
     let appointmentId;
 
     beforeAll(async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 8);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(8);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -204,9 +210,7 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should update status to COMPLETED', async () => {
       // Re-create appointment since it was cancelled
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 9);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(9);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -231,7 +235,7 @@ describe('Appointment Service Unit Tests', () => {
         clinicId: clinic.id,
         appointmentId,
         status: 'INVALID_STATUS',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject non-existent appointment', async () => {
@@ -239,15 +243,13 @@ describe('Appointment Service Unit Tests', () => {
         clinicId: clinic.id,
         appointmentId: 'non-existent-id',
         status: 'CANCELLED',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 
   describe('deleteAppointment (soft delete)', () => {
     it('should soft delete appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 10);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(10);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -263,10 +265,31 @@ describe('Appointment Service Unit Tests', () => {
       expect(deleted.deletedAt).not.toBeNull();
     });
 
+    it('should allow a new booking after the prior appointment is soft-deleted', async () => {
+      const dateStr = nextClinicWeekday(12);
+      const original = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Original booking',
+        date: dateStr,
+        time: '16:00',
+      }, actor);
+
+      await deleteAppointment({ clinicId: clinic.id, appointmentId: original.data.id }, actor);
+
+      const replacement = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Replacement booking',
+        date: dateStr,
+        time: '16:00',
+      }, actor);
+
+      expect(replacement.data.id).not.toBe(original.data.id);
+    });
+
     it('should restore soft-deleted appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 11);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(11);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -330,9 +353,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('getAvailableSlots', () => {
     it('should return available slots for a date', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 12);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(12);
 
       const slots = await getAvailableSlots(clinic.id, dateStr);
       
@@ -343,9 +364,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should filter by doctor', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 13);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(13);
 
       const slots = await getAvailableSlots(clinic.id, dateStr, doctor.id);
       
@@ -357,7 +376,7 @@ describe('Appointment Service Unit Tests', () => {
     it('should return early if no patient phone', async () => {
       const patientNoPhone = await createTestPatient(clinic.id, { 
         name: 'No Phone', 
-        phone: null 
+        phone: '' 
       });
       
       const appointment = { startTime: new Date().toISOString() };
@@ -412,19 +431,23 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should not create duplicate reminders', async () => {
-      const future = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
-      const appointment = { 
-        id: 'apt-duplicate', 
-        clinicId: clinic.id, 
-        startTime: future.toISOString() 
-      };
+      const start = new Date(`${nextClinicWeekday(4)}T08:00:00.000Z`);
+      const created = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Reminder idempotency test',
+        startTime: start.toISOString(),
+        endTime: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
+        doctorId: doctor.id,
+      }, actor);
+      const appointment = created.data;
       const clinicObj = { id: clinic.id, name: 'Test Clinic', timezone: 'Europe/Athens' };
-      
+
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
-      
+
       const notifications = await testPrisma.notification.findMany({
-        where: { appointmentId: 'apt-duplicate', type: 'REMINDER' }
+        where: { appointmentId: appointment.id, type: 'REMINDER' }
       });
       expect(notifications.length).toBe(1);
     });

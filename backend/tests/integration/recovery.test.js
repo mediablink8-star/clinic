@@ -1,14 +1,15 @@
 const request = require('supertest');
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken } = require('../setup');
+const ZADARMA_SECRET = process.env.ZADARMA_WEBHOOK_SECRET || 'test-zadarma-secret';
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Recovery System Integration', () => {
   let clinic, owner, patient, token;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
-      vapiApiKey: 'test-vapi-key',
       vapiAssistantId: 'test-assistant-id',
       vapiPhoneNumberId: 'test-phone-id',
     });
@@ -20,7 +21,7 @@ describe('Recovery System Integration', () => {
   describe('Missed Call Detection', () => {
     it('should create missed call via webhook', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -42,7 +43,7 @@ describe('Recovery System Integration', () => {
 
     it('should link missed call to existing patient', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -60,12 +61,12 @@ describe('Recovery System Integration', () => {
 
     it('should deduplicate by callSid', async () => {
       await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
       await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
@@ -150,12 +151,15 @@ describe('Recovery System Integration', () => {
 
     it('should handle inbound SMS and update conversation state', async () => {
       const res = await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
         .send({
-          From: '+306977777777',
-          To: '+302101234567',
-          Body: 'Ναι, θέλω ραντεβού',
-          MessageSid: 'test-sms-inbound-1',
+          clinicId: clinic.id,
+          missedCallId: conversationMissedCallId,
+          from: '+306977777777',
+          to: '+302101234567',
+          body: 'Ναι, θέλω ραντεβού',
+          providerMessageSid: 'test-sms-inbound-1',
         })
         .expect(200);
 
@@ -177,18 +181,50 @@ describe('Recovery System Integration', () => {
       });
 
       await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
         .send({
-          From: '+306966666666',
-          To: '+302101234567',
-          Body: 'STOP',
-          MessageSid: 'test-sms-stop',
+          clinicId: clinic.id,
+          missedCallId: mc.id,
+          from: '+306966666666',
+          to: '+302101234567',
+          body: 'STOP',
+          providerMessageSid: 'test-sms-stop',
         })
         .expect(200);
 
       const updated = await testPrisma.missedCall.findUnique({ where: { id: mc.id } });
       expect(updated.optedOut).toBe(true);
       expect(updated.conversationState).toBe('COMPLETED');
+    });
+
+    it('should clear opt-out state and timestamp after START', async () => {
+      const phone = '+306955555555';
+      const optedOutPatient = await testPrisma.patient.create({
+        data: {
+          clinicId: clinic.id,
+          name: 'Opted Out Patient',
+          phone,
+          optedOut: true,
+          optedOutAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      });
+
+      await request(app)
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
+        .send({
+          clinicId: clinic.id,
+          from: phone,
+          to: '+302101234567',
+          body: 'START',
+          providerMessageSid: 'test-sms-start',
+        })
+        .expect(200);
+
+      const updated = await testPrisma.patient.findUnique({ where: { id: optedOutPatient.id } });
+      expect(updated.optedOut).toBe(false);
+      expect(updated.optedOutAt).toBeNull();
     });
   });
 

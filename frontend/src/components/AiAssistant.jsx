@@ -19,7 +19,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
     const inputRef = useRef(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
     };
 
     useEffect(() => {
@@ -28,6 +28,15 @@ const AiAssistant = ({ token, isMobile = false }) => {
             inputRef.current?.focus();
         }
     }, [messages, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -135,6 +144,7 @@ const AiAssistant = ({ token, isMobile = false }) => {
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={isOpen ? 'Close AI assistant' : 'Open AI assistant'}
                 className="ai-fab"
                 style={{
                     position: 'fixed',
@@ -416,6 +426,8 @@ const AiAssistant = ({ token, isMobile = false }) => {
                         />
                         <button
                             onClick={handleSend}
+                            aria-label="Αποστολή"
+                            aria-busy={loading}
                             disabled={!input.trim() || loading}
                             className="ai-send-btn"
                             style={{

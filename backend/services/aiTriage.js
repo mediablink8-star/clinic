@@ -34,7 +34,7 @@ async function classifyAppointment(reason, clinic) {
         }
 
         let servicesList = '';
-        try { servicesList = JSON.parse(clinic.services || '[]').map(s => s.name).join(', '); } catch {}
+        try { servicesList = JSON.parse(clinic.services || '[]').map(s => s.name).join(', '); } catch { /* Malformed legacy data falls back to an empty service list. */ }
         const aiConfig = JSON.parse(clinic.aiConfig || '{}');
 
         const { decrypt } = require('./encryptionService');

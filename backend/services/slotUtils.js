@@ -32,7 +32,26 @@ const EN_DAY_INDEX = {
 };
 
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    if (!rangeStr) return null;
+
+    // Current clinic settings store hours as structured objects; accept those
+    // alongside legacy strings such as "09:00-18:00".
+    if (typeof rangeStr === 'object') {
+        if (rangeStr.closed === true) return null;
+        const open = typeof rangeStr.open === 'string' ? rangeStr.open : '';
+        const close = typeof rangeStr.close === 'string' ? rangeStr.close : '';
+        const openMatch = open.match(/^(\d{1,2}):(\d{2})$/);
+        const closeMatch = close.match(/^(\d{1,2}):(\d{2})$/);
+        if (!openMatch || !closeMatch) return null;
+        const openHour = Number(openMatch[1]);
+        const openMinute = Number(openMatch[2]);
+        const closeHour = Number(closeMatch[1]);
+        const closeMinute = Number(closeMatch[2]);
+        if (openHour > 23 || closeHour > 24 || openMinute > 59 || closeMinute > 59) return null;
+        return { openHour, openMinute, closeHour, closeMinute };
+    }
+
+    if (typeof rangeStr !== 'string' || /closed/i.test(rangeStr)) return null;
     const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return {
@@ -43,9 +62,16 @@ function parseHoursRange(rangeStr) {
     };
 }
 
+function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) {
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+    if (typeof timeStr !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeStr)) return null;
+    const parsed = fromZonedTime(`${dateStr}T${timeStr}:00`, timezone);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function resolveRangeForDate(workingHours, dateInput, timezone = DEFAULT_TIMEZONE) {
     if (!workingHours || typeof workingHours !== 'object') return null;
-    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    const date = toDateForTimezone(dateInput, timezone);
     if (isNaN(date.getTime())) return null;
 
     // Helper to find key case-insensitively and accent-insensitively
@@ -98,6 +124,30 @@ function getLocalDateParts(date, timezone = DEFAULT_TIMEZONE) {
 
 const { fromZonedTime, toZonedTime, formatInTimeZone } = require('date-fns-tz');
 
+function toDateForTimezone(dateInput, timezone = DEFAULT_TIMEZONE) {
+    if (dateInput instanceof Date) {
+        // Date objects at exactly UTC midnight commonly originate from
+        // date-only inputs (new Date('YYYY-MM-DD')); preserve that calendar day.
+        if (dateInput.getUTCHours() === 0 && dateInput.getUTCMinutes() === 0 &&
+            dateInput.getUTCSeconds() === 0 && dateInput.getUTCMilliseconds() === 0) {
+            return fromZonedTime(`${dateInput.toISOString().slice(0, 10)}T12:00:00`, timezone);
+        }
+        return dateInput;
+    }
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+        return fromZonedTime(`${dateInput}T12:00:00`, timezone);
+    }
+    return new Date(dateInput);
+}
+
+function getEndOfDay(date, timezone = DEFAULT_TIMEZONE) {
+    const localDate = formatInTimeZone(date, timezone, 'yyyy-MM-dd');
+    const [year, month, day] = localDate.split('-').map(Number);
+    const nextDate = new Date(Date.UTC(year, month - 1, day + 1));
+    const nextKey = `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, '0')}-${String(nextDate.getUTCDate()).padStart(2, '0')}`;
+    return new Date(fromZonedTime(`${nextKey}T00:00:00`, timezone).getTime() - 1);
+}
+
 /**
  * Get the start of a day (00:00:00) in a specific timezone, returned as a UTC Date object.
  */
@@ -132,7 +182,7 @@ function parseWorkingHours(clinic, doctor = null) {
         }
     }
 
-    let workingHours = {};
+    let workingHours;
     try {
         workingHours = typeof clinic?.workingHours === 'string'
             ? JSON.parse(clinic.workingHours || '{}')
@@ -178,6 +228,14 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
     });
     if (!clinic) return [];
 
+    // Accept either a Doctor object or its ID, as used by existing callers.
+    if (typeof doctor === 'string') {
+        doctor = await prisma.doctor.findFirst({
+            where: { id: doctor, clinicId, isActive: true },
+        });
+        if (!doctor) return [];
+    }
+
     // If no doctor specified, get slots for ALL active doctors and union them
     if (!doctor) {
         const activeDoctors = await prisma.doctor.findMany({
@@ -214,8 +272,8 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
         return [];
     }
 
-    const startOfDay = getStartOfDay(new Date(date), timezone);
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const startOfDay = getStartOfDay(toDateForTimezone(date, timezone), timezone);
+    const endOfDay = getEndOfDay(startOfDay, timezone);
 
     const whereClause = {
         clinicId,
@@ -285,4 +343,5 @@ module.exports = {
     getLocalDateParts,
     getStartOfDay,
     getStartOfMonth,
+    parseDateTimeInTimezone,
 };

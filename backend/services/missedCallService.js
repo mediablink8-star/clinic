@@ -102,7 +102,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
     // ── Working hours + holiday check ───────────────────────────────────────
     const { checkClinicAvailability } = require('./workingHours');
-    let aiConfig = {};
+    let aiConfig;
     try {
         aiConfig = typeof clinic.aiConfig === 'string' ? JSON.parse(clinic.aiConfig || '{}') : (clinic.aiConfig || {});
     } catch { aiConfig = {}; }
@@ -159,7 +159,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             data: {
                 missedCallId: missedCall.id,
                 smsStatus: 'scheduled',
-                scheduledSmsAt,
+                scheduledSmsAt: scheduledAt,
                 reason: reasonNote
             }
         };

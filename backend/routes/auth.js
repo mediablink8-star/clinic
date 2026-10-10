@@ -14,6 +14,10 @@ const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
+const { requireAuth: requireCurrentUser } = require('../middleware/requireAuth');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const SOCIAL_LOGIN_HASH = 'SOCIAL_LOGIN_NO_PASSWORD';
 const logger = require('../utils/logger');
 
 const loginLimiter = rateLimit({
@@ -76,7 +80,13 @@ const csrfOriginGuard = (req, res, next) => {
         // In dev, allow no-origin for curl/server-to-server convenience
         return next();
     }
-    const isAllowed = allowedOrigins.some(o => origin.startsWith(o));
+    const isAllowed = allowedOrigins.some((allowedOrigin) => {
+        try {
+            return new URL(origin).origin === new URL(allowedOrigin).origin;
+        } catch {
+            return false;
+        }
+    });
     if (!isAllowed) {
         return res.status(403).json({ error: 'CSRF check failed: origin not allowed' });
     }
@@ -196,7 +206,7 @@ router.post('/register', registerLimiter, validate(registerSchema), asyncHandler
 
         res.cookie('refreshToken', refreshToken, getRefreshCookieOptions());
 
-        res.json({
+        res.status(201).json({
             token: accessToken,
             clinic: {
                 id: result.clinic.id,
@@ -239,6 +249,10 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
         // Check per-account lockout — platform admins are exempt
         if (!user.isPlatformAdmin && user.lockedUntil && user.lockedUntil > new Date()) {
             throw new AppError('ACCOUNT_LOCKED', 'Account locked due to too many failed attempts. Try again in 15 minutes.', 429);
+        }
+
+        if (user.passwordHash === SOCIAL_LOGIN_HASH) {
+            throw new AppError('AUTH_METHOD_REQUIRED', 'This account uses Google sign-in. Please sign in with Google.', 401);
         }
 
         const isMatch = await comparePassword(password, user.passwordHash);
@@ -463,13 +477,23 @@ router.post('/logout', csrfOriginGuard, asyncHandler(async (req, res) => {
 }));
 
 router.post('/google', asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
+    const { idToken, inviteCode } = req.body;
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        throw new AppError('GOOGLE_AUTH_NOT_CONFIGURED', 'Google sign-in is not configured', 503);
+    }
+    if (typeof idToken !== 'string' || !idToken.trim()) {
+        throw new AppError('VALIDATION_ERROR', 'Google ID token is required', 400);
+    }
+
     try {
         const ticket = await client.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
+        if (!payload || !payload.sub || !payload.email || payload.email_verified !== true) {
+            throw new AppError('AUTH_FAILED', 'Google account email must be verified', 401);
+        }
         const { sub: googleId, email, name, picture } = payload;
 
         // Wrap find+create in a transaction to prevent race conditions on
@@ -482,6 +506,19 @@ router.post('/google', asyncHandler(async (req, res) => {
             });
             let u;
             if (!c) {
+                // Google sign-in must not bypass the invite-code gate used by
+                // password registration. Existing clinics can still sign in.
+                if (
+                    !process.env.REGISTRATION_INVITE_CODE ||
+                    typeof inviteCode !== 'string' ||
+                    inviteCode !== process.env.REGISTRATION_INVITE_CODE
+                ) {
+                    throw new AppError(
+                        'REGISTRATION_DISABLED',
+                        'New clinic creation requires an invitation. Please request a demo.',
+                        403
+                    );
+                }
                 c = await tx.clinic.create({
                     data: {
                         name: name || 'Νέο Ιατρείο',
@@ -568,23 +605,54 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
+        if (error instanceof AppError) throw error;
+        logger.warn('Google authentication failed', { error: error.message });
         throw new AppError('AUTH_FAILED', 'Google authentication failed', 401);
     }
 }));
 
+router.get('/me', requireCurrentUser, asyncHandler(async (req, res) => {
+    const [user, clinic] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                clinicId: true,
+                isPlatformAdmin: true,
+                mfaEnabled: true,
+            }
+        }),
+        prisma.clinic.findUnique({
+            where: { id: req.clinicId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                location: true,
+                avatarUrl: true,
+                timezone: true,
+                plan: true,
+                isActive: true,
+                onboardingCompleted: true,
+                trialEndsAt: true,
+            }
+        })
+    ]);
+
+    if (!user || !clinic || user.clinicId !== clinic.id) {
+        throw new AppError('UNAUTHORIZED', 'User is no longer a member of this clinic', 401);
+    }
+
+    res.json({ success: true, user, clinic });
+}));
+
 // --- MFA ENDPOINTS ---
 
-const requireAuth = asyncHandler(async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-    if (!decoded) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    req.user = decoded;
-    next();
-});
-
-router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/setup', requireCurrentUser, asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
@@ -608,7 +676,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/verify', requireCurrentUser, asyncHandler(async (req, res) => {
     const { code } = req.body;
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
@@ -703,15 +771,17 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/disable', requireCurrentUser, asyncHandler(async (req, res) => {
     const { password } = req.body;
 
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user) throw new AppError('UNAUTHORIZED', 'User not found', 401);
 
-        // Social login users have no password — skip the check
-        if (!user.passwordHash.startsWith('$2b$')) {
-            if (!password) {
+        // Password-based accounts must prove knowledge of their password.
+        // Google-only accounts use an explicit sentinel and have no local password.
+        if (user.passwordHash !== SOCIAL_LOGIN_HASH) {
+            if (typeof password !== 'string' || !password) {
                 throw new AppError('VALIDATION_ERROR', 'Password required to disable MFA', 400);
             }
             const isValid = await comparePassword(password, user.passwordHash);

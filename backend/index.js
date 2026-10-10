@@ -149,6 +149,8 @@ const cookieParser = require('cookie-parser');
 const { connection } = require('./services/queueService');
 
 const app = express();
+// Export the Express app so integration tests can exercise routes with Supertest.
+module.exports = app;
 const port = process.env.PORT || 4000;
 
 // Security headers — must be early
@@ -424,7 +426,9 @@ app.post('/api/webhook/sms-status', express.urlencoded({ extended: false }), asy
 
 // --- WEBHOOK ROUTES ---
 const webhooksRouter = require('./routes/webhooks');
+// Keep the singular legacy path and the documented plural path working during migration.
 app.use('/api/webhook', webhookLimiter, webhooksRouter);
+app.use('/api/webhooks', webhookLimiter, webhooksRouter);
 
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');

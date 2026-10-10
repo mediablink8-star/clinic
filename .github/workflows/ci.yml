@@ -1,5 +1,9 @@
 name: CI/CD
 
+concurrency:
+  group: ci-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, develop]
@@ -10,6 +14,16 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  backend-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Check backend JavaScript syntax
+        run: find backend -path '*/node_modules' -prune -o -name '*.js' -print0 | xargs -0 -n1 node --check
+
   backend-lint:
     runs-on: ubuntu-latest
     steps:
@@ -21,13 +35,12 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: cd backend && npm ci
       - run: cd backend && npm run lint --if-present
-        continue-on-error: true
 
   backend-test:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: public.ecr.aws/docker/library/postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -54,6 +67,7 @@ jobs:
       FRONTEND_URL: http://localhost:5173
       WEBHOOK_SECRET: test-webhook-secret
       ZADARMA_WEBHOOK_SECRET: test-zadarma-secret
+      VAPI_WEBHOOK_SECRET: test-vapi-secret
       DISABLE_REDIS: "true"
       DISABLE_WORKER: "true"
     steps:
@@ -79,7 +93,7 @@ jobs:
     needs: backend-test
     services:
       postgres:
-        image: postgres:16
+        image: public.ecr.aws/docker/library/postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -102,6 +116,9 @@ jobs:
       TWILIO_AUTH_TOKEN: test-token
       TWILIO_PHONE_NUMBER: +302101234567
       GEMINI_API_KEY: test-gemini-key
+      WEBHOOK_SECRET: test-webhook-secret
+      ZADARMA_WEBHOOK_SECRET: test-zadarma-secret
+      VAPI_WEBHOOK_SECRET: test-vapi-secret
       DISABLE_REDIS: "true"
       DISABLE_WORKER: "true"
     steps:
@@ -127,7 +144,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
       - run: cd frontend && npm run lint --if-present
-        continue-on-error: true
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -140,7 +156,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: cd frontend && npm ci
       - run: cd frontend && npm run test:ci
-        continue-on-error: true
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -162,8 +177,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: cd backend && npm audit --audit-level=high || true
-      - run: cd frontend && npm audit --audit-level=high || true
+      - run: cd backend && npm audit --audit-level=high
+      - run: cd frontend && npm audit --audit-level=high
 
   docker-build:
     runs-on: ubuntu-latest
