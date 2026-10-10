@@ -94,6 +94,9 @@ async function verifyBookingRecaptcha(token) {
     const minimumScore = Number.isFinite(thresholdValue) ? Math.min(1, Math.max(0, thresholdValue)) : 0.5;
     const allowedHostnames = (process.env.RECAPTCHA_ALLOWED_HOSTNAMES || '')
         .split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+    if (process.env.NODE_ENV === 'production' && allowedHostnames.length === 0) {
+        throw new AppError('RECAPTCHA_NOT_CONFIGURED', 'Allowed reCAPTCHA hostnames are not configured', 503);
+    }
     const hostname = typeof result.hostname === 'string' ? result.hostname.toLowerCase() : '';
     if (!result.success || result.action !== 'booking_submit' ||
         typeof result.score !== 'number' || result.score < minimumScore ||
