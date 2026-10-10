@@ -159,7 +159,7 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
             data: {
                 missedCallId: missedCall.id,
                 smsStatus: 'scheduled',
-                scheduledSmsAt,
+                scheduledSmsAt: scheduledAt,
                 reason: reasonNote
             }
         };
