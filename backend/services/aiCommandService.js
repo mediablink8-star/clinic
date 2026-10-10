@@ -233,7 +233,10 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
                 throw new AppError('AMBIGUOUS_MATCH', 'Multiple patients found', 400, { suggestions: patients.map(p => p.name) });
             }
             const patient = patients[0];
-            
+
+            if (clinic?.voiceEnabled !== true) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is disabled for this clinic', 400);
+            }
             if (!process.env.VAPI_API_KEY) {
                 throw new AppError('CONFIGURATION_ERROR', 'Voice calling is not configured on the platform', 400);
             }
