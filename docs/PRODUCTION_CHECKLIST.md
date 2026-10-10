@@ -1,5 +1,7 @@
 # Production Deployment Checklist
 
+> **Release gate:** this checklist is not a certification. Checkmarks describe intended/implemented controls, not proof of successful production operation. Do not launch with real patient data until backend tests, dependency security findings, backup restore, tenant-isolation checks, and provider integrations have been verified.
+
 ## Pre-Deployment
 
 ### 1. Environment Variables
