@@ -12,6 +12,17 @@ const request = require('supertest');
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
 
+function nextClinicWeekday(daysAhead = 3) {
+  const date = new Date();
+  date.setUTCHours(12, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+  return date.toISOString().split('T')[0];
+}
+
+
 describe('Webhooks Integration', () => {
   let clinic, owner, token, webhookSecret, zadarmaSecret;
 
@@ -353,7 +364,7 @@ describe('Webhooks Integration', () => {
               parameters: {
                 patientName: 'Test Patient',
                 phone: '+306912345678',
-                date: '2026-01-20',
+                date: nextClinicWeekday(3),
                 time: '10:00',
                 duration: 30,
                 reason: 'Checkup',
@@ -380,7 +391,7 @@ describe('Webhooks Integration', () => {
             parameters: {
               patientName: 'Idempotent Patient',
               phone: '+306900000001',
-              date: '2026-01-25',
+              date: nextClinicWeekday(4),
               time: '11:00',
               duration: 30,
               reason: 'Idempotency test',
