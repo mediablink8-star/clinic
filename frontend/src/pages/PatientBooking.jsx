@@ -59,18 +59,29 @@ const PatientBooking = () => {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        if (!recaptchaSiteKey || window.grecaptcha) return;
-        const existing = document.querySelector('script[data-clinicflow-recaptcha]');
-        if (existing) return;
+        if (!recaptchaSiteKey || window.grecaptcha) return undefined;
+
         setRecaptchaLoading(true);
-        const script = document.createElement('script');
-        script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}`;
-        script.async = true;
-        script.defer = true;
-        script.dataset.clinicflowRecaptcha = 'true';
-        script.onload = () => setRecaptchaLoading(false);
-        script.onerror = () => setRecaptchaLoading(false);
-        document.head.appendChild(script);
+        let script = document.querySelector('script[data-clinicflow-recaptcha]');
+        const createdHere = !script;
+        if (!script) {
+            script = document.createElement('script');
+            script.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}`;
+            script.async = true;
+            script.defer = true;
+            script.dataset.clinicflowRecaptcha = 'true';
+        }
+
+        const handleLoad = () => setRecaptchaLoading(false);
+        const handleError = () => setRecaptchaLoading(false);
+        script.addEventListener('load', handleLoad);
+        script.addEventListener('error', handleError);
+        if (createdHere) document.head.appendChild(script);
+
+        return () => {
+            script.removeEventListener('load', handleLoad);
+            script.removeEventListener('error', handleError);
+        };
     }, [recaptchaSiteKey]);
 
     const executeRecaptcha = useCallback(async () => {
@@ -93,7 +104,9 @@ const PatientBooking = () => {
     }, [recaptchaSiteKey]);
     useEffect(() => {
         setMounted(true);
-        setMinDate(new Date().toISOString().split('T')[0]);
+        const today = new Date();
+        const localDate = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+        setMinDate(localDate);
     }, []);
 
     const fetchSlots = useCallback(async () => {
