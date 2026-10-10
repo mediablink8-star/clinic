@@ -182,7 +182,7 @@ function parseWorkingHours(clinic, doctor = null) {
         }
     }
 
-    let workingHours = {};
+    let workingHours;
     try {
         workingHours = typeof clinic?.workingHours === 'string'
             ? JSON.parse(clinic.workingHours || '{}')
