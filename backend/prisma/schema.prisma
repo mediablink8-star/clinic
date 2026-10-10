@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -235,9 +236,9 @@ model Appointment {
 
   @@index([clinicId, doctorId, startTime, endTime, status])
   @@index([clinicId, source, createdAt])
-  @@unique([clinicId, doctorId, startTime, status], name: "unique_doctor_slot")
-  // Patient double-booking prevention via application-level locking (FOR UPDATE in appointmentService.js)
-  // Partial unique index not supported with notIn in Prisma 7.x; enforced at application level
+  // Keep active doctor slots unique, but let a soft-deleted appointment release its slot.
+  @@unique([clinicId, doctorId, startTime], where: raw("\\\"deletedAt\\\" IS NULL"), map: "unique_doctor_slot_active")
+  // Application-level advisory locks serialize concurrent booking attempts.
 }
 
 model FeedEvent {
