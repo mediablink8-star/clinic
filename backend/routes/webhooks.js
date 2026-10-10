@@ -278,7 +278,7 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
             const isStop = STOP_KEYWORDS.includes(normalizedBody);
             await prisma.patient.update({
                 where: { id: patient.id },
-                data: { optedOut: isStop, optedOutAt: new Date() }
+                data: { optedOut: isStop, optedOutAt: isStop ? new Date() : null }
             });
 
             if (isStop) {
