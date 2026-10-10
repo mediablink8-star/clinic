@@ -426,7 +426,9 @@ app.post('/api/webhook/sms-status', express.urlencoded({ extended: false }), asy
 
 // --- WEBHOOK ROUTES ---
 const webhooksRouter = require('./routes/webhooks');
+// Keep the singular legacy path and the documented plural path working during migration.
 app.use('/api/webhook', webhookLimiter, webhooksRouter);
+app.use('/api/webhooks', webhookLimiter, webhooksRouter);
 
 // --- PUBLIC ROUTES (No Auth) ---
 const publicRouter = require('./routes/public');
