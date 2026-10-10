@@ -1,11 +1,12 @@
 const request = require('supertest');
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Webhooks Integration', () => {
   let clinic, owner, token, webhookSecret;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic({ 
       timezone: 'Europe/Athens',
       webhookSecret: 'test-webhook-secret-123',
