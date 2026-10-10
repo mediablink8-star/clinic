@@ -8,7 +8,9 @@ module.exports = {
     'routes/**/*.js',
     'middleware/**/*.js',
     'utils/**/*.js',
-    '!services/*.test.js',
+    '!**/*.test.js',
+    '!**/__tests__/**',
+    '!**/node_modules/**',
   ],
   coverageThreshold: {
     global: {
