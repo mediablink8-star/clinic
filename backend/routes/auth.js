@@ -476,7 +476,7 @@ router.post('/logout', csrfOriginGuard, asyncHandler(async (req, res) => {
 }));
 
 router.post('/google', asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
+    const { idToken, inviteCode } = req.body;
     if (!process.env.GOOGLE_CLIENT_ID) {
         throw new AppError('GOOGLE_AUTH_NOT_CONFIGURED', 'Google sign-in is not configured', 503);
     }
@@ -505,6 +505,19 @@ router.post('/google', asyncHandler(async (req, res) => {
             });
             let u;
             if (!c) {
+                // Google sign-in must not bypass the invite-code gate used by
+                // password registration. Existing clinics can still sign in.
+                if (
+                    !process.env.REGISTRATION_INVITE_CODE ||
+                    typeof inviteCode !== 'string' ||
+                    inviteCode !== process.env.REGISTRATION_INVITE_CODE
+                ) {
+                    throw new AppError(
+                        'REGISTRATION_DISABLED',
+                        'New clinic creation requires an invitation. Please request a demo.',
+                        403
+                    );
+                }
                 c = await tx.clinic.create({
                     data: {
                         name: name || 'Νέο Ιατρείο',
