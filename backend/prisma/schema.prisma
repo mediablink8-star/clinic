@@ -237,7 +237,7 @@ model Appointment {
   @@index([clinicId, doctorId, startTime, endTime, status])
   @@index([clinicId, source, createdAt])
   // Keep active doctor slots unique, but let a soft-deleted appointment release its slot.
-  @@unique([clinicId, doctorId, startTime], where: raw("\\\"deletedAt\\\" IS NULL"), map: "unique_doctor_slot_active")
+  @@unique([clinicId, doctorId, startTime], where: raw("\"deletedAt\" IS NULL"), map: "unique_doctor_slot_active")
   // Application-level advisory locks serialize concurrent booking attempts.
 }
 
