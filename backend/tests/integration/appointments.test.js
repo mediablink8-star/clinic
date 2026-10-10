@@ -1,6 +1,16 @@
 const request = require('supertest');
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
+function nextClinicWeekday(daysAhead) {
+  const date = new Date();
+  date.setUTCHours(12, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date.setUTCDate(date.getUTCDate() + 1);
+  }
+  return date.toISOString().split('T')[0];
+}
+
 
 describe('Appointments Integration', () => {
   let clinic, owner, patient, doctor, token;
@@ -16,9 +26,7 @@ describe('Appointments Integration', () => {
 
   describe('POST /api/appointments', () => {
     it('should create appointment with date+time in clinic timezone', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(1);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -43,9 +51,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 2);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(2);
 
       await request(app)
         .post('/api/appointments')
@@ -63,9 +69,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should auto-assign doctor when none specified', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 3);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(3);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -77,9 +81,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should reject appointment outside working hours', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 4);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(4);
 
       await request(app)
         .post('/api/appointments')
@@ -89,9 +91,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should reject invalid patientId', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 5);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(5);
 
       await request(app)
         .post('/api/appointments')
@@ -153,9 +153,7 @@ describe('Appointments Integration', () => {
     let appointmentId;
 
     beforeAll(async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 10);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(10);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -194,9 +192,7 @@ describe('Appointments Integration', () => {
 
   describe('DELETE /api/appointments/:id', () => {
     it('should soft delete appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 11);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(11);
 
       const createRes = await request(app)
         .post('/api/appointments')
@@ -223,9 +219,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow RECEPTIONIST to create appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 12);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(12);
 
       await request(app)
         .post('/api/appointments')
@@ -235,9 +229,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow RECEPTIONIST to update status', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 13);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(13);
 
       const createRes = await request(app)
         .post('/api/appointments')
@@ -255,9 +247,7 @@ describe('Appointments Integration', () => {
 
   describe('Patient double-booking prevention', () => {
     it('should prevent same patient from booking overlapping appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 20);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(20);
 
       // First appointment
       await request(app)
@@ -275,9 +265,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow same patient to book non-overlapping appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 21);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(21);
 
       // First appointment
       await request(app)
@@ -297,9 +285,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow different patients at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 22);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(22);
 
       const patient2 = await testPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Patient Two', phone: '+306922222222' },
@@ -325,9 +311,7 @@ describe('Appointments Integration', () => {
 
   describe('Per-clinic rate limiting', () => {
     it('should enforce per-clinic rate limit on appointment creation', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 30);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = nextClinicWeekday(30);
 
       // Make requests up to the limit (assuming default apiLimiter: 500 per 15 min)
       // We'll test the burst behavior - rapid requests should eventually hit limit
