@@ -3,6 +3,7 @@ const { authenticator } = require('otplib');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { decrypt } = require('../../services/encryptionService');
 
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
@@ -164,8 +165,10 @@ describe('Authentication Integration', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(setup.body.secret).toBeDefined();
-      const code = authenticator.generate(setup.body.secret);
+      expect(setup.body.qrImageUrl).toMatch(/^data:image\\/png;base64,/);
+      const pendingUser = await testPrisma.user.findUnique({ where: { id: user.id } });
+      const pendingSecret = decrypt(pendingUser.mfaPendingSecret);
+      const code = authenticator.generate(pendingSecret);
       await request(app)
         .post('/api/auth/mfa/verify')
         .set('Authorization', `Bearer ${token}`)
@@ -181,7 +184,9 @@ describe('Authentication Integration', () => {
         .post('/api/auth/mfa/setup')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
-      const currentCode = authenticator.generate(setup.body.secret);
+      const pendingUser = await testPrisma.user.findUnique({ where: { id: user.id } });
+      const pendingSecret = decrypt(pendingUser.mfaPendingSecret);
+      const currentCode = authenticator.generate(pendingSecret);
       const invalidCode = String((Number(currentCode) + 1) % 1000000).padStart(6, '0');
 
       await request(app)
