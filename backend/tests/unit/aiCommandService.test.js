@@ -249,6 +249,17 @@ describe('AI Command Service', () => {
       expect(result.result.callId).toBe('test-call-id');
     });
 
+    it('should enforce the clinic voice kill switch', async () => {
+      const parsed = {
+        action: 'call_patient',
+        parameters: { patientName: 'Γιάννης Παπαδόπουλος' },
+        confidence: 0.95,
+      };
+
+      await expect(executeCommand(parsed, clinic.id, actor, { ...clinic, voiceEnabled: false }))
+        .rejects.toMatchObject({ code: 'CONFIGURATION_ERROR', status: 400 });
+    });
+
     it('should execute book_appointment with all parameters', async () => {
       const parsed = {
         action: 'book_appointment',
