@@ -3,6 +3,10 @@ jest.mock('../../services/twilioService', () => ({
 }));
 
 jest.mock('../../services/messagingService', () => ({
+  sendDirectMessage: jest.fn().mockResolvedValue({ success: true, data: { status: 'SENT' } }),
+}));
+
+jest.mock('../../services/messagingService', () => ({
   sendDirectMessage: jest.fn().mockResolvedValue({ success: true, messageId: 'test-message-id' }),
 }));
 
