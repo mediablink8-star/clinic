@@ -273,6 +273,7 @@ router.get('/gemini-config', asyncHandler(async (req, res) => {
     res.json({ configured });
 }));
 
+const { triggerWebhook } = require('../services/webhookService');
 const { sendDirectMessage, sendManagedSms } = require('../services/messagingService');
 
 // POST /api/clinic/test-sms
