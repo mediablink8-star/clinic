@@ -3,7 +3,7 @@ const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Webhooks Integration', () => {
-  let clinic, owner, token, webhookSecret;
+  let clinic, owner, token, webhookSecret, zadarmaSecret;
 
   beforeAll(async () => {
     await cleanDatabase();
@@ -14,12 +14,13 @@ describe('Webhooks Integration', () => {
     owner = await createTestUser(clinic.id, { role: 'OWNER' });
     token = generateTestToken(owner.id, clinic.id, owner.role);
     webhookSecret = clinic.webhookSecret;
+    zadarmaSecret = process.env.ZADARMA_WEBHOOK_SECRET || 'test-zadarma-secret';
   });
 
   describe('Zadarma Webhook (Missed Call Detection)', () => {
     it('should create missed call on NOTIFY_START', async () => {
       const res = await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -49,7 +50,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306988888888',
@@ -67,7 +68,7 @@ describe('Webhooks Integration', () => {
 
     it('should deduplicate by call_id', async () => {
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -77,7 +78,7 @@ describe('Webhooks Integration', () => {
         .expect(200);
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -113,7 +114,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${zadarmaSecret}`)
         .send({
           event: 'NOTIFY_END',
           caller_id: '+306966666666',
