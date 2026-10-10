@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const greekPhoneRegex = /^(\+30)?[26][0-9\s\-\(\)]{8,14}$/;
+const greekPhoneRegex = /^(\+30)?[26][0-9\s\-()]{8,14}$/;
 const greekPhoneMessage = 'Enter a valid Greek phone number, e.g. 2101234567 or 6912345678.';
 
 const amkaRegex = /^[0-9]{11}$/;
