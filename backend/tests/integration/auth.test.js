@@ -9,8 +9,10 @@ const { testPrisma, createTestClinic, createTestUser, createTestPatient, createT
 
 describe('Authentication Integration', () => {
   let clinic, user, token;
+  const originalRegistrationInviteCode = process.env.REGISTRATION_INVITE_CODE;
 
   beforeAll(async () => {
+    process.env.REGISTRATION_INVITE_CODE = 'test-invite-code';
     await cleanDatabase();
     clinic = await createTestClinic();
     user = await createTestUser(clinic.id);
@@ -70,7 +72,7 @@ describe('Authentication Integration', () => {
           email: 'owner@newclinic.com',
           password: 'SecurePass123!',
           phone: '+302109876543',
-          inviteCode: process.env.SYSTEM_INVITE_CODE,
+          inviteCode: process.env.REGISTRATION_INVITE_CODE,
           agreedToTerms: true,
         })
         .expect(201);
@@ -88,7 +90,7 @@ describe('Authentication Integration', () => {
           email: 'owner@test.com',
           password: 'weak',
           phone: '+302109876543',
-          inviteCode: process.env.SYSTEM_INVITE_CODE,
+          inviteCode: process.env.REGISTRATION_INVITE_CODE,
           agreedToTerms: true,
         })
         .expect(400);
@@ -251,5 +253,11 @@ describe('Authentication Integration', () => {
           .expect(200);
       }
     });
+  });
+
+  afterAll(async () => {
+    await cleanDatabase();
+    if (originalRegistrationInviteCode === undefined) delete process.env.REGISTRATION_INVITE_CODE;
+    else process.env.REGISTRATION_INVITE_CODE = originalRegistrationInviteCode;
   });
 });
