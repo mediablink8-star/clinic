@@ -13,20 +13,22 @@ const webhookAuth = require('../middleware/webhookAuth');
 const { validateZadarmaSecret, getZadarmaSecret } = require('../middleware/webhookAuth');
 
 async function zadarmaHandler(req, res) {
-    const { caller_id, destination, disposition, event, call_id_with_callback, call_id } = req.body;
+    const { caller_id, destination, called_did, disposition, event, call_id_with_callback, call_id } = req.body;
     const sid = call_id_with_callback || call_id;
 
     const phone = normalizePhone(caller_id);
     if (!phone) throw new AppError('VALIDATION_ERROR', 'caller_id is required', 400);
 
+    // Zadarma commonly sends called_did; accept destination for legacy payloads too.
+    const destinationNumber = destination || called_did;
+    const normalizedTo = normalizePhone(destinationNumber);
     // Find clinic by the called number
-    const normalizedTo = normalizePhone(destination);
     const clinic = await prisma.clinic.findFirst({
         where: {
             OR: [
-                { zadarmaPhoneNumber: destination },
+                { zadarmaPhoneNumber: destinationNumber },
                 { zadarmaPhoneNumber: normalizedTo },
-                { phone: destination },
+                { phone: destinationNumber },
                 { phone: normalizedTo }
             ]
         },
@@ -34,7 +36,7 @@ async function zadarmaHandler(req, res) {
     });
 
     if (!clinic) {
-        logger.warn(`[Zadarma] No clinic found for number: ${destination}`);
+        logger.warn(`[Zadarma] No clinic found for number: ${destinationNumber}`);
         return res.json({ success: false, error: 'Clinic not found' });
     }
 
