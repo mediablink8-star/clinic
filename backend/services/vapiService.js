@@ -43,6 +43,12 @@ function vapiRequest(method, path, body, apiKey) {
 }
 
 async function triggerOutboundCall({ clinic, phone, missedCallId, patientName }) {
+    // This is a hard per-clinic kill switch; never place calls when voice is disabled.
+    if (clinic?.voiceEnabled !== true) {
+        logger.info('Vapi outbound call skipped because voice is disabled for clinic', { clinicId: clinic?.id });
+        return { success: false, reason: 'voice_disabled' };
+    }
+
     // Vapi API key is global (env variable), not per-clinic
     const apiKey = process.env.VAPI_API_KEY;
     if (!apiKey) {
