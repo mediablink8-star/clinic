@@ -31,7 +31,6 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: cd backend && npm ci
       - run: cd backend && npm run lint --if-present
-        continue-on-error: true
 
   backend-test:
     runs-on: ubuntu-latest
@@ -170,8 +169,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - run: cd backend && npm audit --audit-level=high || true
-      - run: cd frontend && npm audit --audit-level=high || true
+      - run: cd backend && npm audit --audit-level=high
+      - run: cd frontend && npm audit --audit-level=high
 
   docker-build:
     runs-on: ubuntu-latest
