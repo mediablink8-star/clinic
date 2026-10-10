@@ -110,6 +110,9 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
         }
         startDateTime = parseDateTimeInTimezone(date, time, timezone);
+        if (!(startDateTime instanceof Date) || Number.isNaN(startDateTime.getTime())) {
+            throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
+        }
         logger.info('Public Booking Parsed Time', { localDateTimeStr: `${date.trim()} ${time.trim()}:00`, timezone, utc: startDateTime.toISOString() });
     } else {
         throw new AppError('VALIDATION_ERROR', 'Either startTime or date+time is required', 400);
