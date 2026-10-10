@@ -69,6 +69,9 @@ describe('AI Command Service', () => {
         email: 'ai@clinic.com',
         timezone: 'Europe/Athens',
         geminiApiKey: 'encrypted:test-gemini-key',
+        voiceEnabled: true,
+        vapiAssistantId: 'test-assistant-id',
+        vapiPhoneNumberId: 'test-phone-number-id',
         workingHours: JSON.stringify({
           monday: { open: '09:00', close: '18:00' },
           tuesday: { open: '09:00', close: '18:00' },
@@ -96,6 +99,15 @@ describe('AI Command Service', () => {
         name: 'Γιάννης Παπαδόπουλος',
         phone: '+306944444444',
         email: 'giannis@test.com',
+      },
+    });
+
+    await testPrisma.doctor.create({
+      data: {
+        clinicId: clinic.id,
+        name: 'Δρ. Παπαδόπουλος',
+        specialty: 'General',
+        isActive: true,
       },
     });
 
