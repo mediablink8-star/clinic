@@ -190,6 +190,33 @@ describe('Recovery System Integration', () => {
       expect(updated.optedOut).toBe(true);
       expect(updated.conversationState).toBe('COMPLETED');
     });
+
+    it('should clear opt-out state and timestamp after START', async () => {
+      const phone = '+306955555555';
+      const optedOutPatient = await testPrisma.patient.create({
+        data: {
+          clinicId: clinic.id,
+          name: 'Opted Out Patient',
+          phone,
+          optedOut: true,
+          optedOutAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      });
+
+      await request(app)
+        .post('/api/webhook/twilio/sms')
+        .send({
+          From: phone,
+          To: '+302101234567',
+          Body: 'START',
+          MessageSid: 'test-sms-start',
+        })
+        .expect(200);
+
+      const updated = await testPrisma.patient.findUnique({ where: { id: optedOutPatient.id } });
+      expect(updated.optedOut).toBe(false);
+      expect(updated.optedOutAt).toBeNull();
+    });
   });
 
   describe('Recovery Stats', () => {
