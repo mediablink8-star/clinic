@@ -4,6 +4,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { decrypt } = require('../../services/encryptionService');
+const { decrypt } = require('../../services/encryptionService');
 
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
