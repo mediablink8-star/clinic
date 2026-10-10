@@ -55,10 +55,15 @@ const PatientBooking = () => {
     const [error, setError] = useState(null);
     const [minDate, setMinDate] = useState('');
     const [recaptchaLoading, setRecaptchaLoading] = useState(false);
+    const recaptchaReadyRef = useRef(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        if (!recaptchaSiteKey || window.grecaptcha) return undefined;
+        if (!recaptchaSiteKey) return undefined;
+        if (window.grecaptcha) {
+            recaptchaReadyRef.current = Promise.resolve(window.grecaptcha);
+            return undefined;
+        }
 
         setRecaptchaLoading(true);
         let script = document.querySelector('script[data-clinicflow-recaptcha]');
@@ -71,15 +76,16 @@ const PatientBooking = () => {
             script.dataset.clinicflowRecaptcha = 'true';
         }
 
-        const handleLoad = () => setRecaptchaLoading(false);
-        const handleError = () => setRecaptchaLoading(false);
-        script.addEventListener('load', handleLoad);
-        script.addEventListener('error', handleError);
+        recaptchaReadyRef.current = new Promise((resolve, reject) => {
+            const handleLoad = () => window.grecaptcha ? resolve(window.grecaptcha) : reject(new Error('reCAPTCHA loaded without its API'));
+            const handleError = () => reject(new Error('reCAPTCHA script failed to load'));
+            script.addEventListener('load', handleLoad, { once: true });
+            script.addEventListener('error', handleError, { once: true });
+        }).finally(() => setRecaptchaLoading(false));
+        recaptchaReadyRef.current.catch(() => {});
         if (createdHere) document.head.appendChild(script);
 
         return () => {
-            script.removeEventListener('load', handleLoad);
-            script.removeEventListener('error', handleError);
         };
     }, [recaptchaSiteKey]);
 
@@ -88,7 +94,10 @@ const PatientBooking = () => {
             if (import.meta.env.PROD) throw new Error('reCAPTCHA site key is not configured');
             return null;
         }
-        if (!window.grecaptcha) throw new Error('reCAPTCHA has not loaded yet');
+        if (!window.grecaptcha) {
+            if (!recaptchaReadyRef.current) throw new Error('reCAPTCHA loader is not initialized');
+            await recaptchaReadyRef.current;
+        }
         setRecaptchaLoading(true);
         try {
             return await new Promise((resolve, reject) => {
