@@ -148,7 +148,7 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
     }
 
     try {
-        return await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const recoveryCase = await tx.recoveryCase.create({
                 data: {
                     clinicId: missedCall.clinicId,
@@ -187,6 +187,8 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
             return { ...recoveryCase, conversation };
         });
+        recordRecoveryCase(missedCall.clinicId, result.state);
+        return result;
     } catch (error) {
         if (error.code === 'P2002') {
             return prisma.recoveryCase.findUnique({
@@ -197,9 +199,6 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
         throw error;
     }
-
-    // Record metrics
-    recordRecoveryCase(missedCall.clinicId, recoveryCase.state);
 }
 
 async function recordOutboundMessageForMissedCall({
