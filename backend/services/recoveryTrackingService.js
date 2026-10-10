@@ -388,7 +388,7 @@ async function recordInboundMessage({
 
     const { recoveryCase, conversation } = recoveryContext;
     const normalizedBody = String(body || '').trim().toUpperCase();
-    const isOptOut = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'].includes(normalizedBody);
+    const isOptOut = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'ΔΙΑΚΟΠΗ'].includes(normalizedBody);
     let message;
     try {
         message = await prisma.message.create({
