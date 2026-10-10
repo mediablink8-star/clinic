@@ -102,7 +102,7 @@ describe('Recovery Tracking Service', () => {
     });
 
     it('should throw if missed call not found', async () => {
-      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toThrow('NOT_FOUND');
+      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
     });
   });
 
