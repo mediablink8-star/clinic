@@ -32,7 +32,7 @@ jest.doMock('@google/generative-ai', () => ({
 }));
 
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 
 jest.mock('../../services/prisma', () => require('../setup').testPrisma);
 jest.mock('../../services/encryptionService', () => ({
