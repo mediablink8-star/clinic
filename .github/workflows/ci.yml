@@ -67,6 +67,7 @@ jobs:
       FRONTEND_URL: http://localhost:5173
       WEBHOOK_SECRET: test-webhook-secret
       ZADARMA_WEBHOOK_SECRET: test-zadarma-secret
+      VAPI_WEBHOOK_SECRET: test-vapi-secret
       DISABLE_REDIS: "true"
       DISABLE_WORKER: "true"
     steps:
@@ -115,6 +116,9 @@ jobs:
       TWILIO_AUTH_TOKEN: test-token
       TWILIO_PHONE_NUMBER: +302101234567
       GEMINI_API_KEY: test-gemini-key
+      WEBHOOK_SECRET: test-webhook-secret
+      ZADARMA_WEBHOOK_SECRET: test-zadarma-secret
+      VAPI_WEBHOOK_SECRET: test-vapi-secret
       DISABLE_REDIS: "true"
       DISABLE_WORKER: "true"
     steps:
