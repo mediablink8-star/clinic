@@ -115,7 +115,7 @@ const publicBookingSchema = Joi.object({
     // Optional: link to missed call for recovery tracking
     missedCallId: Joi.string().allow(null, ''),
     doctorId: Joi.string().allow(null, '')
-}).or('startTime', 'date');
+}).or('startTime', 'date').with('date', 'time').with('time', 'date');
 
 const missedCallSchema = Joi.object({
     phone: Joi.string().required(),
