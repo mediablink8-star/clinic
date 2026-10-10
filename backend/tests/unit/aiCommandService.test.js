@@ -304,8 +304,10 @@ describe('AI Command Service', () => {
       expect(result.success).toBe(true);
       expect(result.action).toBe('cancel_appointment');
 
-      const updated = await testPrisma.appointment.findUnique({ where: { id: existingApt.id } });
-      expect(updated.status).toBe('CANCELLED');
+      expect(require('../../services/appointmentService').updateAppointmentStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ clinicId: clinic.id, appointmentId: existingApt.id, status: 'CANCELLED' }),
+        actor
+      );
     });
 
     it('should execute list_today_appointments', async () => {
@@ -351,7 +353,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('AMBIGUOUS_MATCH');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'AMBIGUOUS_MATCH' });
     });
 
     it('should reject non-existent patient', async () => {
@@ -361,7 +363,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should reject an unknown doctor name when booking', async () => {
@@ -380,7 +382,7 @@ describe('AI Command Service', () => {
         confidence: 0.9,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should validate required parameters for book_appointment', async () => {
@@ -390,7 +392,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('VALIDATION_ERROR');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
