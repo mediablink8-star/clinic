@@ -245,7 +245,7 @@ describe('Recovery Tracking Service', () => {
       expect(result.optedOut).toBe(true);
       expect(updatedPatient.optedOut).toBe(true);
       expect(updatedMissedCall.optedOut).toBe(true);
-      expect(recoveryCase.state).toBe('OPTED_OUT');
+      expect(recoveryCase.state).toBe('CLOSED_OPTED_OUT');
     });
 
     it('should deduplicate by providerMessageSid', async () => {
