@@ -14,6 +14,9 @@ const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const SOCIAL_LOGIN_HASH = 'SOCIAL_LOGIN_NO_PASSWORD';
 const logger = require('../utils/logger');
 
 const loginLimiter = rateLimit({
@@ -247,6 +250,10 @@ router.post('/login', loginLimiter, validate(loginSchema), asyncHandler(async (r
             throw new AppError('ACCOUNT_LOCKED', 'Account locked due to too many failed attempts. Try again in 15 minutes.', 429);
         }
 
+        if (user.passwordHash === SOCIAL_LOGIN_HASH) {
+            throw new AppError('AUTH_METHOD_REQUIRED', 'This account uses Google sign-in. Please sign in with Google.', 401);
+        }
+
         const isMatch = await comparePassword(password, user.passwordHash);
 
         if (!isMatch) {
@@ -470,12 +477,22 @@ router.post('/logout', csrfOriginGuard, asyncHandler(async (req, res) => {
 
 router.post('/google', asyncHandler(async (req, res) => {
     const { idToken } = req.body;
+    if (!process.env.GOOGLE_CLIENT_ID) {
+        throw new AppError('GOOGLE_AUTH_NOT_CONFIGURED', 'Google sign-in is not configured', 503);
+    }
+    if (typeof idToken !== 'string' || !idToken.trim()) {
+        throw new AppError('VALIDATION_ERROR', 'Google ID token is required', 400);
+    }
+
     try {
         const ticket = await client.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
         const payload = ticket.getPayload();
+        if (!payload || !payload.sub || !payload.email || payload.email_verified !== true) {
+            throw new AppError('AUTH_FAILED', 'Google account email must be verified', 401);
+        }
         const { sub: googleId, email, name, picture } = payload;
 
         // Wrap find+create in a transaction to prevent race conditions on
@@ -574,6 +591,8 @@ router.post('/google', asyncHandler(async (req, res) => {
             }
         });
     } catch (error) {
+        if (error instanceof AppError) throw error;
+        logger.warn('Google authentication failed', { error: error.message });
         throw new AppError('AUTH_FAILED', 'Google authentication failed', 401);
     }
 }));
@@ -714,10 +733,12 @@ router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
 
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user) throw new AppError('UNAUTHORIZED', 'User not found', 401);
 
-        // Social login users have no password — skip the check
-        if (!user.passwordHash.startsWith('$2b$')) {
-            if (!password) {
+        // Password-based accounts must prove knowledge of their password.
+        // Google-only accounts use an explicit sentinel and have no local password.
+        if (user.passwordHash !== SOCIAL_LOGIN_HASH) {
+            if (typeof password !== 'string' || !password) {
                 throw new AppError('VALIDATION_ERROR', 'Password required to disable MFA', 400);
             }
             const isValid = await comparePassword(password, user.passwordHash);
