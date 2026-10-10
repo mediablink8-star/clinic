@@ -21,7 +21,7 @@ describe('Recovery System Integration', () => {
   describe('Missed Call Detection', () => {
     it('should create missed call via webhook', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/${ZADARMA_SECRET}')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -43,7 +43,7 @@ describe('Recovery System Integration', () => {
 
     it('should link missed call to existing patient', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/${ZADARMA_SECRET}')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -61,12 +61,12 @@ describe('Recovery System Integration', () => {
 
     it('should deduplicate by callSid', async () => {
       await request(app)
-        .post('/api/webhook/zadarma/${ZADARMA_SECRET}')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
       await request(app)
-        .post('/api/webhook/zadarma/${ZADARMA_SECRET}')
+        .post(`/api/webhook/zadarma/${ZADARMA_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
