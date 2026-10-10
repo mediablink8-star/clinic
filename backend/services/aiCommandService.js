@@ -234,8 +234,12 @@ async function executeCommand(parsedCommand, clinicId, actor, clinic) {
             }
             const patient = patients[0];
             
-            if (!clinic?.vapiApiKey && !process.env.VAPI_API_KEY) {
-                throw new AppError('CONFIGURATION_ERROR', 'Voice calling not configured for this clinic', 400);
+            if (!process.env.VAPI_API_KEY) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is not configured on the platform', 400);
+            }
+            if (!(clinic?.vapiAssistantId || process.env.VAPI_ASSISTANT_ID) ||
+                !(clinic?.vapiPhoneNumberId || process.env.VAPI_PHONE_NUMBER_ID)) {
+                throw new AppError('CONFIGURATION_ERROR', 'Voice calling is not configured for this clinic', 400);
             }
             
             const result = await triggerOutboundCall({
