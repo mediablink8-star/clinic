@@ -217,6 +217,37 @@ describe('Recovery Tracking Service', () => {
       expect(updated.conversationState).toBe('COMPLETED');
     });
 
+    it('should handle the Greek STOP keyword and opt out the patient', async () => {
+      const phone = '+306977777778';
+      const patientRecord = await createTestPatient(clinic.id, { phone });
+      const missedCall = await testPrisma.missedCall.create({
+        data: {
+          clinicId: clinic.id,
+          fromNumber: phone,
+          callSid: 'test-call-greek-stop',
+          status: 'RECOVERING',
+          conversationState: 'BOOKING',
+          patientId: patientRecord.id,
+        },
+      });
+
+      await ensureRecoveryCaseForMissedCall(missedCall.id);
+      const result = await recordInboundMessage({
+        clinicId: clinic.id,
+        fromPhone: phone,
+        body: 'ΔΙΑΚΟΠΗ',
+        providerMessageSid: 'SM-GREEK-STOP',
+      });
+
+      const updatedPatient = await testPrisma.patient.findUnique({ where: { id: patientRecord.id } });
+      const updatedMissedCall = await testPrisma.missedCall.findUnique({ where: { id: missedCall.id } });
+      const recoveryCase = await testPrisma.recoveryCase.findFirst({ where: { missedCallId: missedCall.id } });
+      expect(result.optedOut).toBe(true);
+      expect(updatedPatient.optedOut).toBe(true);
+      expect(updatedMissedCall.optedOut).toBe(true);
+      expect(recoveryCase.state).toBe('OPTED_OUT');
+    });
+
     it('should deduplicate by providerMessageSid', async () => {
       const missedCall = await testPrisma.missedCall.create({
         data: {
