@@ -165,7 +165,7 @@ describe('Authentication Integration', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(setup.body.qrImageUrl).toMatch(/^data:image\\/png;base64,/);
+      expect(setup.body.qrImageUrl).toMatch(/^data:image\/png;base64,/);
       const pendingUser = await testPrisma.user.findUnique({ where: { id: user.id } });
       const pendingSecret = decrypt(pendingUser.mfaPendingSecret);
       const code = authenticator.generate(pendingSecret);
