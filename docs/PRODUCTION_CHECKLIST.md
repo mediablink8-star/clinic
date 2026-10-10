@@ -22,12 +22,12 @@
 - [ ] Keep provider credentials revocable so outbound voice/SMS can be disabled immediately if needed.
 - [ ] `DATABASE_URL` - PostgreSQL connection string (Supabase/Neon/Render)
 - [ ] `JWT_SECRET` - Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
-- [ ] `DB_ENCRYPTION_KEY` - Generate same as JWT_SECRET
+- [ ] `DB_ENCRYPTION_KEY` - Generate a separate random key; never reuse `JWT_SECRET`
 - [ ] `FRONTEND_URL` - Your deployed frontend URL (for CORS)
 - [ ] `NODE_ENV=production`
 - [ ] `REDIS_URL` - Upstash Redis or similar (required for background jobs)
 - [ ] `DISABLE_REDIS=false` - Enable Redis in production
-- [ ] `WEBHOOK_SECRET` - Generate same as JWT_SECRET
+- [ ] `WEBHOOK_SECRET` - Generate a separate random secret; never reuse `JWT_SECRET` or `DB_ENCRYPTION_KEY`
 - [ ] `GEMINI_API_KEY` - Google AI API key for Sophia assistant
 - [ ] `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Email provider
 - [ ] `N8N_WEBHOOK_URL` - n8n instance for SMS workflows
