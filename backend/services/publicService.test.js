@@ -54,6 +54,19 @@ describe('publicService', () => {
     });
 
 
+    test('rejects an impossible calendar date with a validation error', async () => {
+        await expect(bookAppointment({
+            clinicId: 'clinic_1',
+            name: 'Test Patient',
+            phone: '6912345678',
+            date: '2026-99-99',
+            time: '10:00',
+        })).rejects.toMatchObject({
+            code: 'VALIDATION_ERROR',
+            status: 400,
+        });
+    });
+
     test('normalizes phone before creating public booking', async () => {
         const tx = {
             $queryRaw: jest.fn().mockResolvedValue([]),
