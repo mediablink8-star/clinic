@@ -55,7 +55,6 @@ const PatientBooking = () => {
     const [error, setError] = useState(null);
     const [minDate, setMinDate] = useState('');
     const [recaptchaLoading, setRecaptchaLoading] = useState(false);
-    const [pollingInterval, setPollingInterval] = useState(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -133,7 +132,6 @@ const PatientBooking = () => {
             const interval = setInterval(() => {
                 fetchSlots();
             }, 30000);
-            setPollingInterval(interval);
             return () => clearInterval(interval);
         }
     }, [formData.date, formData.time, clinicId, fetchSlots]);
