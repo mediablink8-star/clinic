@@ -27,8 +27,8 @@ describe('Encryption Service', () => {
         expect(() => decrypt('invalid:data:here')).toThrow('Decryption failed');
     });
 
-    test('decrypt returns null for empty input', () => {
-        expect(decrypt('')).toBeNull();
+    test('decrypt preserves empty-string input', () => {
+        expect(decrypt('')).toBe('');
         expect(decrypt(null)).toBeNull();
         expect(decrypt(undefined)).toBeNull();
     });
