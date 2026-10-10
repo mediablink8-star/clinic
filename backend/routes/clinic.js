@@ -174,17 +174,43 @@ router.put('/webhooks', requireOwner, asyncHandler(async (req, res) => {
 // PUT /api/clinic/vapi
 router.put('/vapi', requireOwner, asyncHandler(async (req, res) => {
     const { vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, zadarmaApiKey, zadarmaApiSecret, zadarmaPhoneNumber, voiceEnabled } = req.body;
+    const stringFields = { vapiAssistantId, vapiPhoneNumberId, vapiCredentialId, zadarmaApiKey, zadarmaApiSecret, zadarmaPhoneNumber };
+    for (const [field, value] of Object.entries(stringFields)) {
+        if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 2048)) {
+            throw new AppError('VALIDATION_ERROR', `Invalid value for ${field}`, 400);
+        }
+    }
+    if (voiceEnabled !== undefined && typeof voiceEnabled !== 'boolean') {
+        throw new AppError('VALIDATION_ERROR', 'voiceEnabled must be a boolean', 400);
+    }
+
+    const existing = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { vapiAssistantId: true, vapiPhoneNumberId: true, voiceEnabled: true }
+    });
+    if (!existing) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    const nextAssistantId = vapiAssistantId === undefined ? existing.vapiAssistantId : vapiAssistantId;
+    const nextPhoneNumberId = vapiPhoneNumberId === undefined ? existing.vapiPhoneNumberId : vapiPhoneNumberId;
+    const nextVoiceEnabled = voiceEnabled === undefined ? existing.voiceEnabled : voiceEnabled;
+    if (nextVoiceEnabled && (
+        !process.env.VAPI_API_KEY ||
+        !(nextAssistantId || process.env.VAPI_ASSISTANT_ID) ||
+        !(nextPhoneNumberId || process.env.VAPI_PHONE_NUMBER_ID)
+    )) {
+        throw new AppError('CONFIGURATION_ERROR', 'Configure the platform Vapi key and assistant/phone number IDs before enabling voice', 400);
+    }
 
     const data = await prisma.clinic.update({
         where: { id: req.clinicId },
         data: {
-            ...(vapiAssistantId !== undefined && { vapiAssistantId: vapiAssistantId || null }),
-            ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId || null }),
-            ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId || null }),
+            ...(vapiAssistantId !== undefined && { vapiAssistantId: vapiAssistantId?.trim() || null }),
+            ...(vapiPhoneNumberId !== undefined && { vapiPhoneNumberId: vapiPhoneNumberId?.trim() || null }),
+            ...(vapiCredentialId !== undefined && { vapiCredentialId: vapiCredentialId?.trim() || null }),
             ...(zadarmaApiKey !== undefined && { zadarmaApiKey: zadarmaApiKey ? encrypt(zadarmaApiKey) : null }),
             ...(zadarmaApiSecret !== undefined && { zadarmaApiSecret: zadarmaApiSecret ? encrypt(zadarmaApiSecret) : null }),
-            ...(zadarmaPhoneNumber !== undefined && { zadarmaPhoneNumber: zadarmaPhoneNumber || null }),
-            ...(voiceEnabled !== undefined && { voiceEnabled: Boolean(voiceEnabled) }),
+            ...(zadarmaPhoneNumber !== undefined && { zadarmaPhoneNumber: zadarmaPhoneNumber?.trim() || null }),
+            ...(voiceEnabled !== undefined && { voiceEnabled }),
         },
         select: { vapiAssistantId: true, vapiPhoneNumberId: true, zadarmaPhoneNumber: true, voiceEnabled: true }
     });
@@ -200,10 +226,12 @@ router.get('/vapi-config', asyncHandler(async (req, res) => {
         select: { voiceEnabled: true, vapiAssistantId: true, vapiPhoneNumberId: true, zadarmaApiKey: true, zadarmaPhoneNumber: true }
     });
 
-    const voiceConfigured = !!(clinic?.voiceEnabled && 
-        clinic?.vapiAssistantId && 
-        clinic?.vapiPhoneNumberId && 
-        (clinic?.zadarmaApiKey || process.env.ZADARMA_API_KEY));
+    const voiceConfigured = !!(
+        clinic?.voiceEnabled &&
+        process.env.VAPI_API_KEY &&
+        (clinic?.vapiAssistantId || process.env.VAPI_ASSISTANT_ID) &&
+        (clinic?.vapiPhoneNumberId || process.env.VAPI_PHONE_NUMBER_ID)
+    );
 
     res.json({
         voiceEnabled: clinic?.voiceEnabled || false,
