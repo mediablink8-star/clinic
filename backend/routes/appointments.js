@@ -97,7 +97,7 @@ router.post('/appointments', validate(appointmentSchema), asyncHandler(async (re
         { clinicId: req.clinicId, patientId, reason, startTime, endTime, duration, priority, doctorId, date, time },
         { userId: req.user.userId, ip: req.ip }
     );
-    res.json(data);
+    res.status(201).json(data);
 }));
 
 router.put('/appointments/:id/status', asyncHandler(async (req, res) => {
