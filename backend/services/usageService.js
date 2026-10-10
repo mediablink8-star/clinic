@@ -58,7 +58,7 @@ async function pushAndTrim(map, clinicId, windowMs, type = null) {
 }
 
 async function assertNotTemporarilyBlocked(clinicId, type) {
-    let blockedUntil = 0;
+    let blockedUntil;
 
     if (!REDIS_DISABLED && connection && connection.status === 'ready') {
         const key = `block:${type}:${clinicId}`;
