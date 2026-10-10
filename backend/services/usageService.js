@@ -145,7 +145,7 @@ async function assertRateLimits(clinicId, type) {
         await checkPlatformAbuse(clinicId);
 
         // For burst we check the same Redis key but with a smaller window
-        let burstCount = 0;
+        let burstCount;
         if (!REDIS_DISABLED && connection && connection.status === 'ready') {
             try {
                 burstCount = await connection.zcount(`rate:${type}:${clinicId}`, nowMs() - config.BURST_WINDOW_MS, '+inf');
