@@ -257,6 +257,29 @@ describe('Appointment Service Unit Tests', () => {
       expect(deleted.deletedAt).not.toBeNull();
     });
 
+    it('should allow a new booking after the prior appointment is soft-deleted', async () => {
+      const dateStr = nextClinicWeekday(12);
+      const original = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Original booking',
+        date: dateStr,
+        time: '16:00',
+      }, actor);
+
+      await deleteAppointment({ clinicId: clinic.id, appointmentId: original.data.id }, actor);
+
+      const replacement = await createAppointment({
+        clinicId: clinic.id,
+        patientId: patient.id,
+        reason: 'Replacement booking',
+        date: dateStr,
+        time: '16:00',
+      }, actor);
+
+      expect(replacement.data.id).not.toBe(original.data.id);
+    });
+
     it('should restore soft-deleted appointment', async () => {
       const dateStr = nextClinicWeekday(11);
 
