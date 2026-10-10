@@ -151,12 +151,15 @@ describe('Recovery System Integration', () => {
 
     it('should handle inbound SMS and update conversation state', async () => {
       const res = await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
         .send({
-          From: '+306977777777',
-          To: '+302101234567',
-          Body: 'Ναι, θέλω ραντεβού',
-          MessageSid: 'test-sms-inbound-1',
+          clinicId: clinic.id,
+          missedCallId: conversationMissedCallId,
+          from: '+306977777777',
+          to: '+302101234567',
+          body: 'Ναι, θέλω ραντεβού',
+          providerMessageSid: 'test-sms-inbound-1',
         })
         .expect(200);
 
@@ -178,12 +181,15 @@ describe('Recovery System Integration', () => {
       });
 
       await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
         .send({
-          From: '+306966666666',
-          To: '+302101234567',
-          Body: 'STOP',
-          MessageSid: 'test-sms-stop',
+          clinicId: clinic.id,
+          missedCallId: mc.id,
+          from: '+306966666666',
+          to: '+302101234567',
+          body: 'STOP',
+          providerMessageSid: 'test-sms-stop',
         })
         .expect(200);
 
@@ -205,12 +211,14 @@ describe('Recovery System Integration', () => {
       });
 
       await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhooks/inbound-sms')
+        .set('x-webhook-secret', process.env.WEBHOOK_SECRET)
         .send({
-          From: phone,
-          To: '+302101234567',
-          Body: 'START',
-          MessageSid: 'test-sms-start',
+          clinicId: clinic.id,
+          from: phone,
+          to: '+302101234567',
+          body: 'START',
+          providerMessageSid: 'test-sms-start',
         })
         .expect(200);
 
