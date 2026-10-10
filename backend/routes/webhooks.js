@@ -260,8 +260,24 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
         recoveryCaseId,
     });
 
-    // ── SMS opt-out / opt-in keyword handling (TCPA / Greek law 3471/2006) ──
+    // Keep the legacy missed-call conversation state in sync with inbound intent.
+    // This is lead capture only; appointment creation still requires slot validation.
     const normalizedBody = String(messageBody || '').trim().toUpperCase();
+    const isStopKeyword = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'].includes(normalizedBody);
+    const isStartKeyword = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'].includes(normalizedBody);
+    if (result.success && missedCallId && !isStopKeyword && !isStartKeyword) {
+        const conversationState = /(ΡΑΝΤΕΒΟΥ|APPOINTMENT|BOOK|ΚΛΕΙΣΩ|ΝΑΙ|YES)/u.test(normalizedBody)
+            ? 'BOOKING'
+            : /(ΚΑΛΕΣ|CALL|ΕΠΙΚΟΙΝΩΝ|ΤΗΛΕΦΩΝ)/u.test(normalizedBody)
+                ? 'CALLBACK'
+                : 'QUESTION';
+        await prisma.missedCall.updateMany({
+            where: { id: missedCallId, clinicId },
+            data: { conversationState },
+        });
+    }
+
+    // ── SMS opt-out / opt-in keyword handling (TCPA / Greek law 3471/2006) ──
     const STOP_KEYWORDS = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'];
     const START_KEYWORDS = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'];
 
