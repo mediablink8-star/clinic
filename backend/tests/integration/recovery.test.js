@@ -1,11 +1,12 @@
 const request = require('supertest');
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Recovery System Integration', () => {
   let clinic, owner, patient, token;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
       vapiAssistantId: 'test-assistant-id',
