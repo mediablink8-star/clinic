@@ -67,7 +67,7 @@ function decrypt(encryptedText) {
         return decrypted;
     } catch (error) {
         logger.error('Decryption failed', { error: error.message });
-        throw new Error(`Decryption failed: ${error.message}`);
+        throw new Error(`Decryption failed: ${error.message}`, { cause: error });
     }
 }
 
