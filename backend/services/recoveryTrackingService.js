@@ -436,7 +436,7 @@ async function recordInboundMessage({
             data: {
                 lastActivityAt: occurredAt,
                 state: isOptOut
-                    ? 'OPTED_OUT'
+                    ? 'CLOSED_OPTED_OUT'
                     : (recoveryCase.state === 'ACTIVE' ? 'ENGAGED' : recoveryCase.state),
             }
         }),
