@@ -70,7 +70,7 @@ const sendPasswordResetEmail = async (to, resetLink) => {
                     <p>Γεια σας,</p>
                     <p>Λάβαμε ένα αίτημα για επαναφορά του κωδικού πρόσβασης του λογαριασμού σας. Πατήστε το παρακάτω κουμπί για να προχωρήσετε:</p>
                     <div style="margin: 30px 0;">
-                        <a href="${resetLink}" style="background-color: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Αλλαγή Κωδικού</a>
+                        <a href="${escapeHtml(resetLink)}" style="background-color: #0d9488; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Αλλαγή Κωδικού</a>
                     </div>
                     <p style="font-size: 12px; color: #64748b;">Αν δεν κάνατε εσείς το αίτημα, μπορείτε να αγνοήσετε αυτό το email.</p>
                 </div>
@@ -103,12 +103,12 @@ const sendSmsFailureAlert = async (to, clinicName, phone, error) => {
         await transporter.sendMail({
             from: process.env.SMTP_FROM || '"ClinicFlow" <no-reply@clinicflows.vercel.app>',
             to,
-            subject: `⚠️ Αποτυχία SMS — ${clinicName}`,
+            subject: `⚠️ Αποτυχία SMS — ${safeSubject(clinicName)}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h2 style="color: #ef4444;">⚠️ Αποτυχία Αποστολής SMS</h2>
-                    <p>Το σύστημα δεν μπόρεσε να στείλει SMS στον αριθμό <strong>${phone}</strong>.</p>
-                    <p><strong>Σφάλμα:</strong> ${error}</p>
+                    <p>Το σύστημα δεν μπόρεσε να στείλει SMS στον αριθμό <strong>${escapeHtml(phone)}</strong>.</p>
+                    <p><strong>Σφάλμα:</strong> ${escapeHtml(error?.message || error)}</p>
                     <p>Παρακαλώ ελέγξτε τα credentials Twilio και τα webhook URLs στις ρυθμίσεις.</p>
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
                     <p style="font-size: 12px; color: #64748b;">ClinicFlow — Αυτόματη ειδοποίηση</p>
@@ -142,7 +142,7 @@ const sendDemoRequest = async ({ clinicName, name, email, phone, notes }) => {
         await transporter.sendMail({
             from: process.env.SMTP_FROM || '"ClinicFlow" <no-reply@clinicflows.vercel.app>',
             to: notifyTo,
-            subject: `Νέο αίτημα demo — ${clinicName}`,
+            subject: `Νέο αίτημα demo — ${safeSubject(clinicName)}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                     <h2 style="color: #0d9488;">Νέο αίτημα επίδειξης</h2>
@@ -164,6 +164,10 @@ const sendDemoRequest = async ({ clinicName, name, email, phone, notes }) => {
         return false;
     }
 };
+
+function safeSubject(value) {
+    return String(value || '').replace(/[\\r\\n]+/g, ' ').slice(0, 150);
+}
 
 function escapeHtml(str) {
     return String(str || '')
