@@ -166,7 +166,7 @@ const sendDemoRequest = async ({ clinicName, name, email, phone, notes }) => {
 };
 
 function safeSubject(value) {
-    return String(value || '').replace(/[\\r\\n]+/g, ' ').slice(0, 150);
+    return String(value || '').replace(/[\r\n]+/g, ' ').slice(0, 150);
 }
 
 function escapeHtml(str) {
