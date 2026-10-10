@@ -5,12 +5,13 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Authentication Integration', () => {
   let clinic, user, token;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic();
     user = await createTestUser(clinic.id);
     token = generateTestToken(user.id, clinic.id, user.role);
