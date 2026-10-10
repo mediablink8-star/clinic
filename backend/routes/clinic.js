@@ -11,6 +11,7 @@ const {
     resetClinicToDefaults
 } = require('../services/clinicService');
 const { logAction } = require('../services/auditService');
+const { triggerWebhook, resolveWebhookUrl } = require('../services/webhookService');
 const { validate, clinicUpdateSchema, clinicInfoSchema, aiConfigSchema } = require('../services/validationService');
 const { PLANS, getPlanLimits, getPlanKeyByClinic, validateUpgrade, getUpgradeablePlans } = require('../services/planService');
 const prisma = require('../services/prisma');
@@ -325,7 +326,7 @@ router.post('/webhooks/test-all', requireOwner, asyncHandler(async (req, res) =>
     const clinic = await prisma.clinic.findUnique({ where: { id: req.clinicId } });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
 
-    const { triggerWebhook, resolveWebhookUrl } = require('../services/webhookService');
+    // Shared webhook helpers are imported at module scope.
 
     const samples = [
         { eventType: 'missed_call.test',      label: 'Missed call',        payload: { caller: '+306900000001', callId: 'test-call-001', timestamp: new Date().toISOString() } },
