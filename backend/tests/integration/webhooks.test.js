@@ -1,3 +1,13 @@
+process.env.STRIPE_SECRET_KEY ||= 'sk_test_clinicflow_ci';
+process.env.STRIPE_WEBHOOK_SECRET ||= 'whsec_clinicflow_ci';
+
+const Stripe = require('stripe');
+const stripeTestClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripeSignature = (event) => stripeTestClient.webhooks.generateTestHeaderString({
+  payload: JSON.stringify(event),
+  secret: process.env.STRIPE_WEBHOOK_SECRET,
+});
+
 const request = require('supertest');
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
@@ -191,23 +201,22 @@ describe('Webhooks Integration', () => {
         stripeCustomerId: 'cus_test123',
       });
 
-      // Mock Stripe webhook signature verification
-      // In real test, use stripe.webhooks.generateTestHeaderString
-      
+      const event = {
+        id: 'evt_test123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            customer: 'cus_test123',
+            subscription: 'sub_test123',
+            metadata: { clinicId: clinicWithStripe.id },
+          },
+        },
+      };
+
       const res = await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test123',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              customer: 'cus_test123',
-              subscription: 'sub_test123',
-              metadata: { clinicId: clinicWithStripe.id },
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       expect(res.body.received).toBe(true);
@@ -219,23 +228,25 @@ describe('Webhooks Integration', () => {
         stripeSubscriptionId: 'sub_test456',
       });
 
+      const event = {
+        id: 'evt_test456',
+        type: 'invoice.paid',
+        data: {
+          object: {
+            customer: 'cus_test456',
+            subscription: 'sub_test456',
+            amount_paid: 2900,
+            currency: 'eur',
+            period_start: Math.floor(Date.now() / 1000) - 86400,
+            period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+          },
+        },
+      };
+
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test456',
-          type: 'invoice.paid',
-          data: {
-            object: {
-              customer: 'cus_test456',
-              subscription: 'sub_test456',
-              amount_paid: 2900,
-              currency: 'eur',
-              period_start: Math.floor(Date.now() / 1000) - 86400,
-              period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       const events = await testPrisma.subscriptionEvent.findMany({
@@ -251,19 +262,21 @@ describe('Webhooks Integration', () => {
         planStatus: 'active',
       });
 
+      const event = {
+        id: 'evt_test789',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            customer: 'cus_test789',
+            id: 'sub_test789',
+          },
+        },
+      };
+
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test789',
-          type: 'customer.subscription.deleted',
-          data: {
-            object: {
-              customer: 'cus_test789',
-              id: 'sub_test789',
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .send(event)
+        .set('Stripe-Signature', stripeSignature(event))
         .expect(200);
 
       const updated = await testPrisma.clinic.findUnique({ where: { id: clinicWithStripe.id } });
