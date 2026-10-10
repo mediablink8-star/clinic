@@ -9,6 +9,12 @@ const stripeSignature = (event) => stripeTestClient.webhooks.generateTestHeaderS
   secret: process.env.STRIPE_WEBHOOK_SECRET,
 });
 
+const twilioSignature = (params) => {
+  const url = `${process.env.BACKEND_API_URL || ''}/api/webhook/sms-status`;
+  const data = url + Object.keys(params).sort().map(key => key + String(params[key] ?? '')).join('');
+  return require('crypto').createHmac('sha1', process.env.TWILIO_AUTH_TOKEN).update(data).digest('base64');
+};
+
 const request = require('supertest');
 const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
@@ -170,6 +176,11 @@ describe('Webhooks Integration', () => {
           MessageStatus: 'delivered',
           To: '+306912345678',
         })
+        .set('x-twilio-signature', twilioSignature({
+          MessageSid: 'SM1234567890',
+          MessageStatus: 'delivered',
+          To: '+306912345678',
+        }))
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
@@ -194,6 +205,12 @@ describe('Webhooks Integration', () => {
           ErrorCode: '30003',
           To: '+306912345678',
         })
+        .set('x-twilio-signature', twilioSignature({
+          MessageSid: 'SM0987654321',
+          MessageStatus: 'failed',
+          ErrorCode: '30003',
+          To: '+306912345678',
+        }))
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
