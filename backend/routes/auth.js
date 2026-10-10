@@ -14,6 +14,7 @@ const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
+const { requireAuth: requireCurrentUser } = require('../middleware/requireAuth');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const SOCIAL_LOGIN_HASH = 'SOCIAL_LOGIN_NO_PASSWORD';
@@ -610,19 +611,48 @@ router.post('/google', asyncHandler(async (req, res) => {
     }
 }));
 
+router.get('/me', requireCurrentUser, asyncHandler(async (req, res) => {
+    const [user, clinic] = await Promise.all([
+        prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                clinicId: true,
+                isPlatformAdmin: true,
+                mfaEnabled: true,
+            }
+        }),
+        prisma.clinic.findUnique({
+            where: { id: req.clinicId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                location: true,
+                avatarUrl: true,
+                timezone: true,
+                plan: true,
+                isActive: true,
+                onboardingCompleted: true,
+                trialEndsAt: true,
+            }
+        })
+    ]);
+
+    if (!user || !clinic || user.clinicId !== clinic.id) {
+        throw new AppError('UNAUTHORIZED', 'User is no longer a member of this clinic', 401);
+    }
+
+    res.json({ success: true, user, clinic });
+}));
+
 // --- MFA ENDPOINTS ---
 
-const requireAuth = asyncHandler(async (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-    if (!decoded) throw new AppError('UNAUTHORIZED', 'Unauthorized', 401);
-    req.user = decoded;
-    next();
-});
-
-router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/setup', requireCurrentUser, asyncHandler(async (req, res) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
@@ -646,7 +676,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/verify', requireCurrentUser, asyncHandler(async (req, res) => {
     const { code } = req.body;
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
@@ -741,7 +771,7 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
     }
 }));
 
-router.post('/mfa/disable', requireAuth, asyncHandler(async (req, res) => {
+router.post('/mfa/disable', requireCurrentUser, asyncHandler(async (req, res) => {
     const { password } = req.body;
 
     try {
