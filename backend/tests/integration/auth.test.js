@@ -188,6 +188,44 @@ describe('Authentication Integration', () => {
         .send({ code: invalidCode })
         .expect(400);
     });
+
+    it('requires the current password before disabling MFA for password-based accounts', async () => {
+      await testPrisma.user.update({
+        where: { id: user.id },
+        data: { mfaEnabled: true, mfaSecret: authenticator.generateSecret() },
+      });
+
+      await request(app)
+        .post('/api/auth/mfa/disable')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      await request(app)
+        .post('/api/auth/mfa/disable')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ password: 'WrongPass123!' })
+        .expect(401);
+
+      await request(app)
+        .post('/api/auth/mfa/disable')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ password: 'TestPass123!' })
+        .expect(200);
+    });
+
+    it('rejects password login for Google-only accounts', async () => {
+      const socialUser = await createTestUser(clinic.id, { email: 'google-only@test.com' });
+      await testPrisma.user.update({
+        where: { id: socialUser.id },
+        data: { passwordHash: 'SOCIAL_LOGIN_NO_PASSWORD' },
+      });
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: socialUser.email, password: 'AnyPassword123!' })
+        .expect(401);
+    });
   });
 
   describe('Per-clinic rate limiting', () => {
