@@ -207,6 +207,9 @@ describe('Appointment Service Unit Tests', () => {
     beforeAll(async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 8);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
@@ -234,6 +237,9 @@ describe('Appointment Service Unit Tests', () => {
       // Re-create appointment since it was cancelled
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 9);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
@@ -303,6 +309,9 @@ describe('Appointment Service Unit Tests', () => {
     it('should soft delete appointment', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 10);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
@@ -322,6 +331,9 @@ describe('Appointment Service Unit Tests', () => {
     it('should restore soft-deleted appointment', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 11);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
