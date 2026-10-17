@@ -278,10 +278,28 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
             const isStop = STOP_KEYWORDS.includes(normalizedBody);
             await prisma.patient.update({
                 where: { id: patient.id },
-                data: { optedOut: isStop, optedOutAt: new Date() }
+                data: { optedOut: isStop, optedOutAt: isStop ? new Date() : null }
+            });
+
+            // Stop queued/retried recovery messages for this phone as well as
+            // future sends. The central sender guard is a second line of defense.
+            await prisma.missedCall.updateMany({
+                where: { clinicId, fromNumber: normalizedFrom },
+                data: isStop
+                    ? { optedOut: true, conversationState: 'COMPLETED', smsStatus: 'skipped', scheduledSmsAt: null, smsError: null }
+                    : { optedOut: false }
             });
 
             if (isStop) {
+                await prisma.recoveryCase.updateMany({
+                    where: {
+                        clinicId,
+                        patientPhone: normalizedFrom,
+                        state: { in: ['ACTIVE', 'ENGAGED'] },
+                    },
+                    data: { state: 'CLOSED', lastActivityAt: new Date() }
+                });
+
                 const reply = 'Έχετε διαγραφεί από τις ειδοποιήσεις. Απαντήστε START για επανεγγραφή.';
                 sendSmsWithTracking({ to: normalizedFrom, body: reply, clinicId, allowOptedOut: true })
                     .catch(err => logger.error('[inbound-sms] STOP confirmation SMS failed', { err: err.message, clinicId }));
