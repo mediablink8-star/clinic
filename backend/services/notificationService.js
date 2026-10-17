@@ -94,6 +94,13 @@ async function processNotification(notificationId) {
               body: notification.message,
               clinicId: clinic.id,
           });
+          if (result.code === 'SMS_OPTED_OUT') {
+              await prisma.notification.update({
+                  where: { id: notificationId },
+                  data: { status: 'CANCELLED', error: 'Patient opted out of SMS' },
+              });
+              return { success: false, reason: 'Patient opted out of SMS' };
+          }
           if (!result.success) throw new Error(result.error || 'Twilio send failed');
 
           await prisma.notification.update({ where: { id: notificationId }, data: { status: 'SENT', sentAt: new Date() } });
