@@ -111,7 +111,15 @@ async function createTestDoctor(clinicId, overrides = {}) {
       name: 'Test Doctor',
       specialty: 'General',
       isActive: true,
-      workingHours: { weekdays: '10:00-16:00', saturday: '', sunday: '' },
+      workingHours: {
+        'Κυριακή': '',
+        'Δευτέρα': '10:00-16:00',
+        'Τρίτη': '10:00-16:00',
+        'Τετάρτη': '10:00-16:00',
+        'Πέμπτη': '10:00-16:00',
+        'Παρασκευή': '10:00-16:00',
+        'Σάββατο': '',
+      },
       ...overrides,
     },
   });
