@@ -170,10 +170,13 @@ try {
          appointment = await prisma.$transaction(async (tx) => {
              let assignedDoctorId = doctorId;
 
-             // Serialize concurrent attempts for the same slot. FOR UPDATE alone
-             // cannot lock a row that does not exist yet.
+             // Serialize appointment creation within this clinic. A lock keyed by the
+             // exact start/end only protects identical intervals: overlapping intervals
+             // (for example 10:00–11:00 and 10:30–11:30) take different locks and can
+             // both pass the conflict query when no appointment exists yet.
+             // This clinic-scoped transaction lock protects explicit and auto-assigned bookings.
              await tx.$queryRaw`
-                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', COALESCE(${assignedDoctorId}, 'AUTO'), ':', ${start.toISOString()}::text, ':', ${end.toISOString()}::text)))) t
+                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
              `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
