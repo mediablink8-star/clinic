@@ -302,7 +302,7 @@ describe('Webhooks Integration', () => {
       const crypto = require('crypto');
       const payload = { event: 'test', data: { foo: 'bar' } };
       const signature = crypto
-        .createHmac('sha256', webhookSecret)
+        .createHmac('sha256', process.env.WEBHOOK_SECRET)
         .update(JSON.stringify(payload))
         .digest('hex');
 
