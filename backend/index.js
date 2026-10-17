@@ -630,7 +630,9 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 // Graceful shutdown — finish in-flight requests before exiting
 const { getZadarmaSecret } = require('./middleware/webhookAuth');
 
-// Start server after DB connection is confirmed
+// Export the Express app for Supertest without opening sockets or starting workers.
+// Production startup only runs when this file is the process entry point.
+if (require.main === module) {
 prisma.connectWithRetry().then(() => {
     server = app.listen(port, () => {
         logger.info(`SaaS Backend running on port ${port}`);
@@ -724,3 +726,7 @@ if (process.env.DISABLE_WORKER !== 'true') {
 }
 
 });
+
+}
+
+module.exports = app;
