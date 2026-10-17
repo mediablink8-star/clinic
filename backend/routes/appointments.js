@@ -13,7 +13,6 @@ const { listPatients, deletePatient, restorePatient, getPatientExport } = requir
 const { logAction } = require('../services/auditService');
 const logger = require('../utils/logger');
 const { updateCalendarEvent } = require('../services/googleCalendarService');
-const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
 
 router.get('/patients', asyncHandler(async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -194,21 +193,13 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
 router.get('/appointments/available', asyncHandler(async (req, res) => {
     const { date, doctorId } = req.query;
     const { getAvailableSlots } = require('../services/appointmentService');
-    const prisma = require('../services/prisma');
     const targetDate = date ? new Date(date) : new Date();
 
     if (isNaN(targetDate.getTime())) {
         throw new AppError('VALIDATION_ERROR', 'Invalid date provided', 400);
     }
 
-    const clinic = await prisma.clinic.findUnique({
-        where: { id: req.clinicId },
-        select: { timezone: true },
-    });
-    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
-
-    const timezone = clinic.timezone || DEFAULT_TIMEZONE;
-    const slots = await getAvailableSlots(req.clinicId, targetDate, timezone, 60, doctorId || null);
+    const slots = await getAvailableSlots(req.clinicId, targetDate, doctorId || null);
     res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
 }));
 
