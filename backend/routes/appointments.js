@@ -135,18 +135,10 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
         });
         if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
-        // Serialize reassignment against simultaneous bookings/reassignments
-        // for the target doctor/time slot. The clinic ID is part of the lock
-        // key so tenants can never contend with or affect each other.
+        // Share the same lock as all booking paths so reassignment cannot
+        // race with a new booking for an overlapping interval.
         await tx.$queryRaw`
-            SELECT pg_advisory_xact_lock(
-                hashtext(CONCAT(
-                    ${req.clinicId}, ':',
-                    COALESCE(${doctorId || existing.doctorId || 'UNASSIGNED'}, ':UNASSIGNED'),
-                    ':', ${existing.startTime.toISOString()},
-                    ':', ${existing.endTime.toISOString()}
-                ))
-            )
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${req.clinicId}::text, ':APPOINTMENT_BOOKING')))) t
         `;
 
         if (doctorId) {
