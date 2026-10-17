@@ -75,10 +75,10 @@ describe('Recovery Tracking Service', () => {
         },
       });
 
-      await ensureRecoveryCaseForMissedCall(missedCall.id);
+      const recoveryCase = await ensureRecoveryCaseForMissedCall(missedCall.id);
 
       const event = await testPrisma.activityEvent.findFirst({
-        where: { type: 'MISSED_CALL_DETECTED', recoveryCaseId: { not: null } },
+        where: { type: 'MISSED_CALL_DETECTED', recoveryCaseId: recoveryCase.id },
       });
       expect(event).not.toBeNull();
       expect(event.metadata.missedCallId).toBe(missedCall.id);
@@ -102,7 +102,7 @@ describe('Recovery Tracking Service', () => {
     });
 
     it('should throw if missed call not found', async () => {
-      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toThrow('NOT_FOUND');
+      await expect(ensureRecoveryCaseForMissedCall('non-existent-id')).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 
