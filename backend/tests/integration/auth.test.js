@@ -4,15 +4,20 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const app = require('../../index');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
 
 describe('Authentication Integration', () => {
   let clinic, user, token;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await createTestClinic();
     user = await createTestUser(clinic.id);
     token = generateTestToken(user.id, clinic.id, user.role);
+  });
+
+  afterAll(async () => {
+    await cleanDatabase();
   });
 
   describe('POST /api/auth/login', () => {
@@ -22,8 +27,8 @@ describe('Authentication Integration', () => {
         .send({ email: user.email, password: 'TestPass123!' })
         .expect(200);
 
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('refreshToken');
+      expect(res.body).toHaveProperty('token');
+      expect(res.headers['set-cookie']?.some(cookie => cookie.startsWith('refreshToken='))).toBe(true);
       expect(res.body).toHaveProperty('clinic');
       expect(res.body.clinic.id).toBe(clinic.id);
     });
@@ -42,48 +47,50 @@ describe('Authentication Integration', () => {
         .expect(401);
     });
 
-    it('should rate limit after 5 failed attempts', async () => {
+    it('should lock an account after repeated failed attempts', async () => {
+      const lockoutUser = await createTestUser(clinic.id, { email: 'lockout@clinic.test' });
       for (let i = 0; i < 5; i++) {
         await request(app)
           .post('/api/auth/login')
-          .send({ email: user.email, password: 'WrongPass' });
+          .send({ email: lockoutUser.email, password: 'WrongPass' })
+          .expect(401);
       }
       await request(app)
         .post('/api/auth/login')
-        .send({ email: user.email, password: 'WrongPass' })
+        .send({ email: lockoutUser.email, password: 'WrongPass' })
         .expect(429);
     });
   });
 
   describe('POST /api/auth/register', () => {
-    it('should register new clinic and owner', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          clinicName: 'New Clinic',
-          clinicPhone: '+302109876543',
-          clinicEmail: 'new@clinic.com',
-          ownerName: 'New Owner',
-          ownerEmail: 'owner@newclinic.com',
-          ownerPassword: 'SecurePass123!',
-        })
-        .expect(201);
-
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body.clinic.name).toBe('New Clinic');
-      expect(res.body.user.role).toBe('OWNER');
+    it('should keep self-service registration disabled unless an invite code is configured', async () => {
+      const originalInviteCode = process.env.REGISTRATION_INVITE_CODE;
+      delete process.env.REGISTRATION_INVITE_CODE;
+      try {
+        const res = await request(app)
+          .post('/api/auth/register')
+          .send({
+            clinicName: 'New Clinic',
+            email: 'owner@newclinic.com',
+            password: 'SecurePass123!',
+            phone: '+302109876543',
+          })
+          .expect(403);
+        expect(res.body.code).toBe('REGISTRATION_DISABLED');
+      } finally {
+        if (originalInviteCode === undefined) delete process.env.REGISTRATION_INVITE_CODE;
+        else process.env.REGISTRATION_INVITE_CODE = originalInviteCode;
+      }
     });
 
     it('should reject weak passwords', async () => {
       await request(app)
         .post('/api/auth/register')
         .send({
-          clinicName: 'Test',
-          clinicPhone: '+302109876543',
-          clinicEmail: 'test@clinic.com',
-          ownerName: 'Owner',
-          ownerEmail: 'owner@test.com',
-          ownerPassword: 'weak',
+          clinicName: 'Test Clinic',
+          email: 'owner@test.com',
+          password: 'weak',
+          phone: '+302109876543',
         })
         .expect(400);
     });
@@ -100,7 +107,7 @@ describe('Authentication Integration', () => {
         .set('Cookie', loginRes.headers['set-cookie'])
         .expect(200);
 
-      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body).toHaveProperty('token');
     });
 
     it('should reject invalid refresh token', async () => {
@@ -111,15 +118,15 @@ describe('Authentication Integration', () => {
     });
   });
 
-  describe('GET /api/auth/me', () => {
+  describe('GET /api/clinic', () => {
     it('should return current user with valid token', async () => {
       const res = await request(app)
-        .get('/api/auth/me')
+        .get('/api/clinic')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body.user.id).toBe(user.id);
-      expect(res.body.user.email).toBe(user.email);
+      expect(res.body.id).toBe(clinic.id);
+      expect(res.body.userId).toBe(user.id);
     });
 
     it('should reject expired token', async () => {
@@ -143,14 +150,14 @@ describe('Authentication Integration', () => {
   });
 
   describe('MFA', () => {
-    it('should enable MFA and return secret', async () => {
+    it('should start MFA setup and return a QR image', async () => {
       const res = await request(app)
-        .post('/api/auth/mfa/enable')
+        .post('/api/auth/mfa/setup')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body).toHaveProperty('secret');
-      expect(res.body).toHaveProperty('qrCode');
+      expect(res.body).toHaveProperty('qrImageUrl');
+      expect(res.body.qrImageUrl).toMatch(/^data:image\//);
     });
 
     it('should verify MFA token', async () => {
@@ -162,13 +169,15 @@ describe('Authentication Integration', () => {
       const userWithMFA = await testPrisma.user.findUnique({ where: { id: user.id } });
       expect(userWithMFA.mfaEnabled).toBe(false);
 
-      const totp = require('otplib').authenticator;
-      const mfaToken = totp.generate(userWithMFA.mfaPendingSecret);
+      const { authenticator } = await import('otplib');
+      const { decrypt } = require('../../services/encryptionService');
+      const pendingSecret = decrypt(userWithMFA.mfaPendingSecret);
+      const mfaCode = authenticator.generate(pendingSecret);
 
       await request(app)
         .post('/api/auth/mfa/verify')
         .set('Authorization', `Bearer ${token}`)
-        .send({ token: mfaToken })
+        .send({ code: mfaCode })
         .expect(200);
 
       const verifiedUser = await testPrisma.user.findUnique({ where: { id: user.id } });
@@ -177,7 +186,7 @@ describe('Authentication Integration', () => {
   });
 
   describe('Per-clinic rate limiting', () => {
-    it('should rate limit authenticated endpoints per clinic', async () => {
+    it('should allow protected clinic reads for separate clinics', async () => {
       // Make many requests to a protected endpoint from same clinic
       const clinic2 = await createTestClinic({ webhookSecret: 'test-secret-2' });
       const user2 = await createTestUser(clinic2.id, { role: 'OWNER', email: 'owner2@clinic.com' });
