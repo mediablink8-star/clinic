@@ -5,6 +5,14 @@ const prisma = require('../services/prisma');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+function safeWebhookHost(rawUrl) {
+    try {
+        return new URL(rawUrl).origin;
+    } catch {
+        return '[invalid-url]';
+    }
+}
+
 // Default retry configuration
 const DEFAULT_RETRY_CONFIG = {
     maxRetries: 3,
@@ -163,7 +171,7 @@ async function triggerWebhook(eventType, payload, webhookUrl, webhookSecret, opt
          headers['X-Webhook-Signature'] = crypto.createHmac('sha256', secret).update(body).digest('hex');
      }
 
-     logger.info('Webhook Sending', { eventType, targetUrl });
+     logger.info('Webhook Sending', { eventType, targetHost: safeWebhookHost(targetUrl) });
 
      const startTime = Date.now();
      let lastError;
@@ -208,7 +216,7 @@ try {
          }
      }
 
-     logger.error('Webhook failed - moving to dead letter queue', { event: eventType, url: targetUrl, attempts: retryConfig.maxRetries, err: lastError });
+     logger.error('Webhook failed - moving to dead letter queue', { event: eventType, targetHost: safeWebhookHost(targetUrl), attempts: retryConfig.maxRetries, error: lastError?.message || 'Unknown error' });
      await recordDelivery({
          clinicId: clinic?.id,
          eventType,
@@ -353,7 +361,7 @@ function performRequest(url, body, headers) {
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 resolve(res.statusCode);
             } else {
-                logger.error('Webhook Server returned error', { statusCode: res.statusCode, body: resBody });
+                logger.error('Webhook Server returned error', { statusCode: res.statusCode, bodyLength: typeof resBody === 'string' ? resBody.length : 0 });
                 reject(new Error(`HTTP ${res.statusCode}`));
             }
         });
