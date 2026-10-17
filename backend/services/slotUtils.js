@@ -94,7 +94,7 @@ function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) 
 }
 
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    if (typeof rangeStr !== 'string' || !rangeStr.trim() || /closed/i.test(rangeStr)) return null;
     const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return {
@@ -244,6 +244,13 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
         select: { workingHours: true, aiConfig: true, id: true },
     });
     if (!clinic) return [];
+
+    if (typeof doctor === 'string') {
+        doctor = await prisma.doctor.findFirst({
+            where: { id: doctor, clinicId, isActive: true },
+        });
+        if (!doctor) return [];
+    }
 
     // If no doctor specified, get slots for ALL active doctors and union them
     if (!doctor) {
