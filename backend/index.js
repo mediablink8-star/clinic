@@ -408,7 +408,7 @@ app.post('/api/webhook/sms-status', express.urlencoded({ extended: false }), asy
         return res.sendStatus(403);
     }
     const { MessageSid, MessageStatus, To, ErrorCode } = req.body;
-    logger.info('Twilio status callback', { status: MessageStatus, sid: MessageSid, to: To });
+    logger.info('Twilio status callback', { status: MessageStatus, sid: MessageSid, toPhoneTail: To ? String(To).slice(-4) : null });
     if (MessageSid && MessageStatus) {
         await prisma.messageLog.updateMany({
             where: { providerMessageSid: MessageSid },
