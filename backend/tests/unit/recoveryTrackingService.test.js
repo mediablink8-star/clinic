@@ -192,7 +192,7 @@ describe('Recovery Tracking Service', () => {
       expect(recoveryCase.state).toBe('ENGAGED');
     });
 
-    it('should handle STOP opt-out', async () => {
+    it('records STOP as an inbound message; the webhook applies the opt-out state', async () => {
       const missedCall = await testPrisma.missedCall.create({
         data: {
           clinicId: clinic.id,
@@ -205,16 +205,19 @@ describe('Recovery Tracking Service', () => {
 
       await ensureRecoveryCaseForMissedCall(missedCall.id);
 
-      await recordInboundMessage({
+      const result = await recordInboundMessage({
         clinicId: clinic.id,
         fromPhone: '+306977777777',
         body: 'STOP',
         providerMessageSid: 'SM999',
       });
 
+      expect(result.success).toBe(true);
+      const message = await testPrisma.message.findUnique({ where: { id: result.messageId } });
+      expect(message.body).toBe('STOP');
+      // Consent state is applied by the authenticated inbound webhook handler.
       const updated = await testPrisma.missedCall.findUnique({ where: { id: missedCall.id } });
-      expect(updated.optedOut).toBe(true);
-      expect(updated.conversationState).toBe('COMPLETED');
+      expect(updated.optedOut).toBe(false);
     });
 
     it('should deduplicate by providerMessageSid', async () => {
@@ -370,12 +373,20 @@ describe('Recovery Tracking Service', () => {
         },
       });
 
+      const eventsBefore = await testPrisma.activityEvent.count({
+        where: { recoveryCaseId: rc.id, type: 'CASE_RECOVERED' },
+      });
+
       const result = await markRecoveryCaseRecovered({
         clinicId: clinic.id,
         missedCallId: missedCall.id,
       });
 
-      expect(result).toEqual(rc);
+      const eventsAfter = await testPrisma.activityEvent.count({
+        where: { recoveryCaseId: rc.id, type: 'CASE_RECOVERED' },
+      });
+      expect(result.state).toBe('RECOVERED');
+      expect(eventsAfter).toBe(eventsBefore);
     });
   });
 
