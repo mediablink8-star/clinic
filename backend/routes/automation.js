@@ -59,7 +59,7 @@ router.post('/mark-recovered', validateWebhookSecret, validate(markRecoveredSche
  */
 router.post('/log-error', validateSystemSecret, asyncHandler(async (req, res) => {
     const { type, workflow, error, executionId, timestamp } = req.body;
-    logger.error(`[n8n] ${workflow} failed`, { type, workflow, error, executionId, timestamp });
+    logger.error(`[n8n] ${workflow} failed`, { type, workflow, hasError: Boolean(error), errorLength: typeof error === 'string' ? error.length : 0, executionId, timestamp });
     
     if (error && (error.includes('Twilio') || error.includes('401') || error.includes('403'))) {
         const { sendSmsFailureAlert } = require('../services/emailService');
