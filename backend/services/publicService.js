@@ -79,11 +79,11 @@ async function getAvailableSlots(clinicId, date, doctorId = null) {
   return { success: true, data: slots, reason: slots.length === 0 ? 'no_working_hours' : null };
 }
 
-const { formatInTimeZone, fromZonedTime, toZonedTime } = require('date-fns-tz');
+const { formatInTimeZone } = require('date-fns-tz');
 
 function parseDateTimeInTimezone(date, time, timezone) {
-  const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
-  return fromZonedTime(localDateTimeStr, timezone);
+  const { parseDateTimeInTimezone: parseLocalDateTime } = require('./slotUtils');
+  return parseLocalDateTime(date.trim(), time.trim(), timezone);
 }
 
 async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId, doctorId }) {
@@ -109,8 +109,12 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time).trim())){
             throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
         }
-        startDateTime = parseDateTimeInTimezone(date, time, timezone);
-        logger.info('Public Booking Parsed Time', { localDateTimeStr: `${date.trim()} ${time.trim()}:00`, timezone, utc: startDateTime.toISOString() });
+        try {
+            startDateTime = parseDateTimeInTimezone(date, time, timezone);
+        } catch (error) {
+            throw new AppError('VALIDATION_ERROR', 'The requested local date/time does not exist in the clinic timezone.', 400);
+        }
+        logger.info('Public Booking Parsed Time', { timezone, utc: startDateTime.toISOString() });
     } else {
         throw new AppError('VALIDATION_ERROR', 'Either startTime or date+time is required', 400);
     }
