@@ -1,2 +1,52 @@
--- Add unique constraint to prevent double-booking at the database level
-CREATE UNIQUE INDEX "unique_doctor_slot" ON "Appointment"("clinicId", "doctorId", "startTime", "status");
+-- Ensure doctor scheduling schema exists before adding its booking index.
+-- The initial migration predates Doctor/Appointment.doctorId, so a fresh database
+-- otherwise fails here before the later migrations can run.
+CREATE TABLE IF NOT EXISTS "Doctor" (
+    "id" TEXT NOT NULL,
+    "clinicId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "specialty" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
+    "avatarUrl" TEXT,
+    "workingHours" JSONB,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "Doctor_pkey" PRIMARY KEY ("id")
+);
+
+ALTER TABLE "Appointment" ADD COLUMN IF NOT EXISTS "doctorId" TEXT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'Doctor_clinicId_fkey'
+          AND conrelid = '"Doctor"'::regclass
+    ) THEN
+        ALTER TABLE "Doctor"
+            ADD CONSTRAINT "Doctor_clinicId_fkey"
+            FOREIGN KEY ("clinicId") REFERENCES "Clinic"("id")
+            ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'Appointment_doctorId_fkey'
+          AND conrelid = '"Appointment"'::regclass
+    ) THEN
+        ALTER TABLE "Appointment"
+            ADD CONSTRAINT "Appointment_doctorId_fkey"
+            FOREIGN KEY ("doctorId") REFERENCES "Doctor"("id")
+            ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "Doctor_clinicId_idx" ON "Doctor"("clinicId");
+CREATE INDEX IF NOT EXISTS "Doctor_clinicId_isActive_idx" ON "Doctor"("clinicId", "isActive");
+
+-- This exact-slot index is supplemental; overlapping intervals are also guarded
+-- by the shared transaction lock and application conflict checks.
+CREATE UNIQUE INDEX IF NOT EXISTS "unique_doctor_slot"
+    ON "Appointment"("clinicId", "doctorId", "startTime", "status");
