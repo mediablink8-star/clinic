@@ -1,6 +1,32 @@
 const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: () => ({
+      generateContent: async (prompt) => {
+        const match = prompt.match(/Command: "([\s\S]*)"$/);
+        const command = match ? match[1] : '';
+        let parsed = { action: 'unknown', parameters: {}, confidence: 0.0 };
+        if (/Στείλε SMS/i.test(command)) {
+          parsed = { action: 'send_sms', parameters: { patientName: 'Γιάννης', message: 'Το ραντεβού σας είναι αύριο' }, confidence: 0.9 };
+        } else if (/Κάλεσε/i.test(command)) {
+          parsed = { action: 'call_patient', parameters: { patientName: 'Μαρία' }, confidence: 0.95 };
+        } else if (/Κλείσε ραντεβού/i.test(command)) {
+          parsed = { action: 'book_appointment', parameters: { patientName: 'Νίκος', reason: 'έλεγχος', date: '2026-01-16', time: '10:00', duration: 30 }, confidence: 0.85 };
+        } else if (/Ακύρωσε/i.test(command)) {
+          parsed = { action: 'cancel_appointment', parameters: { patientName: 'Πέτρος' }, confidence: 0.9 };
+        } else if (/Ποια ραντεβού/i.test(command)) {
+          parsed = { action: 'list_today_appointments', parameters: {}, confidence: 1.0 };
+        } else if (/αναπάντητες κλήσεις/i.test(command)) {
+          parsed = { action: 'list_missed_calls', parameters: {}, confidence: 0.95 };
+        }
+        return { response: { text: () => JSON.stringify(parsed) } };
+      }
+    })
+  }))
+}));
+
 jest.mock('../../services/prisma', () => mockTestPrisma);
 jest.mock('../../services/encryptionService', () => ({
   decrypt: (val) => val?.replace('encrypted:', '') || null,
@@ -25,7 +51,7 @@ jest.mock('../../services/appointmentService', () => ({
 }));
 
 describe('AI Command Service', () => {
-  let clinic, owner, patient, actor;
+  let clinic, owner, patient, doctor, actor;
 
   beforeAll(async () => {
     clinic = await mockTestPrisma.clinic.create({
@@ -65,6 +91,8 @@ describe('AI Command Service', () => {
         email: 'giannis@test.com',
       },
     });
+
+    doctor = await createTestDoctor(clinic.id, { name: 'Δρ. Παπαδόπουλος' });
 
     actor = { userId: owner.id, ip: '127.0.0.1', role: 'OWNER' };
   });
