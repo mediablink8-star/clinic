@@ -199,6 +199,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 WHERE "clinicId" = ${clinicId}
                 AND ("doctorId" IS NULL OR "doctorId" = ${doctorId})
                 AND "deletedAt" IS NULL
+                AND "isTest" = false
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
@@ -218,6 +219,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                     WHERE "clinicId" = ${clinicId}
                     AND ("doctorId" IS NULL OR "doctorId" = ${candidate.id})
                     AND "deletedAt" IS NULL
+                    AND "isTest" = false
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${endTime}
                     AND "endTime" > ${startDateTime}
@@ -240,6 +242,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
                 AND "deletedAt" IS NULL
+                AND "isTest" = false
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
