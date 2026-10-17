@@ -5,9 +5,20 @@ const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 const { assertWithinSmsLimit, incrementSmsUsage } = require('./usageService');
 const { sendSms } = require('./twilioService');
+const { normalizePhone } = require('../utils/phone');
 
 async function sendManagedSms({ clinicId, clinic, eventType, payload, logType = 'SMS', treatMissingWebhookAsSimulated = false }) {
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    // Check consent before either webhook delivery or the direct Twilio fallback.
+    if (payload?.phone) {
+        const patient = await prisma.patient.findFirst({
+            where: { clinicId, phone: normalizePhone(payload.phone), optedOut: true },
+            select: { id: true },
+        });
+        if (patient) throw new AppError('SMS_OPTED_OUT', 'Recipient has opted out of SMS messages', 409);
+    }
+
     if (clinic.messageCredits <= 0) {
         throw new AppError('INSUFFICIENT_CREDITS', 'Insufficient message credits', 403);
     }
