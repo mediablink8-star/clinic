@@ -2,6 +2,14 @@ const request = require('supertest');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
 const app = require('../../index');
 
+function makeStripeSignature(payload) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe.webhooks.generateTestHeaderString({
+    payload,
+    secret: process.env.STRIPE_WEBHOOK_SECRET,
+  });
+}
+
 function makeTwilioSignature(path, params) {
   const url = `${process.env.BACKEND_API_URL}${path}`;
   const data = Object.keys(params).sort().reduce((value, key) => value + key + String(params[key] ?? ''), url);
@@ -232,20 +240,21 @@ describe('Webhooks Integration', () => {
       // Mock Stripe webhook signature verification
       // In real test, use stripe.webhooks.generateTestHeaderString
       
+      const payload = JSON.stringify({
+        id: 'evt_test123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            customer: 'cus_test123',
+            metadata: { clinicId: clinicWithStripe.id },
+          },
+        },
+      });
       const res = await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test123',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              customer: 'cus_test123',
-              subscription: 'sub_test123',
-              metadata: { clinicId: clinicWithStripe.id },
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       expect(res.body.received).toBe(true);
@@ -257,23 +266,25 @@ describe('Webhooks Integration', () => {
         stripeSubscriptionId: 'sub_test456',
       });
 
+      const payload = JSON.stringify({
+        id: 'evt_test456',
+        type: 'invoice.paid',
+        data: {
+          object: {
+            customer: 'cus_test456',
+            subscription: 'sub_test456',
+            amount_paid: 2900,
+            currency: 'eur',
+            period_start: Math.floor(Date.now() / 1000) - 86400,
+            period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+          },
+        },
+      });
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test456',
-          type: 'invoice.paid',
-          data: {
-            object: {
-              customer: 'cus_test456',
-              subscription: 'sub_test456',
-              amount_paid: 2900,
-              currency: 'eur',
-              period_start: Math.floor(Date.now() / 1000) - 86400,
-              period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       const events = await testPrisma.subscriptionEvent.findMany({
@@ -312,6 +323,7 @@ describe('Webhooks Integration', () => {
   describe('n8n Webhook Endpoints', () => {
     it('should receive n8n webhook with HMAC', async () => {
       const crypto = require('crypto');
+const Stripe = require('stripe');
       const payload = { event: 'test', data: { foo: 'bar' } };
       const signature = crypto
         .createHmac('sha256', process.env.WEBHOOK_SECRET)
