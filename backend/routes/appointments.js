@@ -88,7 +88,7 @@ router.get('/appointments', asyncHandler(async (req, res) => {
     const l = Math.min(100, Math.max(1, parseInt(limit) || 50));
     const deleted = req.query.deleted === 'true';
     const { data, total, totalPages } = await listAppointments(req.clinicId, doctorId, p, l, deleted, req.user, dateFrom, dateTo);
-    res.json({ data, total, page: p, limit: l, totalPages });
+    res.json({ success: true, data, total, page: p, limit: l, totalPages });
 }));
 
 router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {
