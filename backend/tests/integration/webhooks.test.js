@@ -245,6 +245,7 @@ describe('Webhooks Integration', () => {
         type: 'checkout.session.completed',
         data: {
           object: {
+            id: 'cs_test123',
             customer: 'cus_test123',
             metadata: { clinicId: clinicWithStripe.id },
           },
@@ -271,6 +272,7 @@ describe('Webhooks Integration', () => {
         type: 'invoice.paid',
         data: {
           object: {
+            id: 'in_test456',
             customer: 'cus_test456',
             subscription: 'sub_test456',
             amount_paid: 2900,
