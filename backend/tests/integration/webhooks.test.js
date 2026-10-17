@@ -1,6 +1,6 @@
 const request = require('supertest');
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
+const app = require('../../index');
 
 describe('Webhooks Integration', () => {
   let clinic, owner, token, webhookSecret;
