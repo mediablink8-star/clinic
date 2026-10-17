@@ -200,7 +200,7 @@ try {
                          const conflict = await tx.$queryRaw`
                              SELECT id FROM "Appointment"
                              WHERE "clinicId" = ${clinicId}
-                             AND "doctorId" = ${doc.id}
+                             AND ("doctorId" IS NULL OR "doctorId" = ${doc.id})
                              AND "deletedAt" IS NULL
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
@@ -219,13 +219,29 @@ try {
                         logger.warn('AppointmentService No available doctors for slot', { startTime: start.toISOString() });
                         throw new AppError('CONFLICT', 'No doctors are available at this time', 409);
                     }
+                 } else {
+                     // With no active doctors, appointments use a clinic-level resource.
+                     // Serialize and check all appointments so two unassigned bookings
+                     // cannot overlap and an old doctor booking is not double-booked.
+                     const conflict = await tx.$queryRaw`
+                         SELECT id FROM "Appointment"
+                         WHERE "clinicId" = ${clinicId}
+                           AND "deletedAt" IS NULL
+                           AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                           AND "startTime" < ${end}
+                           AND "endTime" > ${start}
+                         LIMIT 1
+                     `;
+                     if (conflict.length > 0) {
+                         throw new AppError('CONFLICT', 'The clinic is already booked at this time', 409);
+                     }
                  }
              } else {
                 // Specific doctor check
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
-                    AND "doctorId" = ${assignedDoctorId}
+                    AND ("doctorId" IS NULL OR "doctorId" = ${assignedDoctorId})
                     AND "deletedAt" IS NULL
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
@@ -395,7 +411,7 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
             const conflicts = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                  AND "doctorId" IS NOT DISTINCT FROM ${existing.doctorId}
+                  AND (${existing.doctorId}::text IS NULL OR "doctorId" IS NULL OR "doctorId" = ${existing.doctorId})
                   AND id <> ${appointmentId}
                   AND "deletedAt" IS NULL
                   AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
