@@ -385,6 +385,29 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
+        // Status changes can reactivate a cancelled/no-show slot. Serialize them
+        // with every booking path and re-check before making the slot active.
+        await tx.$queryRaw`
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
+        `;
+
+        if (status !== 'CANCELLED' && status !== 'NO_SHOW') {
+            const conflicts = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${clinicId}
+                  AND "doctorId" IS NOT DISTINCT FROM ${existing.doctorId}
+                  AND id <> ${appointmentId}
+                  AND "deletedAt" IS NULL
+                  AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                  AND "startTime" < ${existing.endTime}
+                  AND "endTime" > ${existing.startTime}
+                LIMIT 1
+            `;
+            if (conflicts.length > 0) {
+                throw new AppError('CONFLICT', 'Cannot reactivate appointment because its time slot is already booked', 409);
+            }
+        }
+
         const updated = await tx.appointment.update({
             where: { id: appointmentId },
             data: { status }
