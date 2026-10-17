@@ -161,7 +161,11 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should prevent concurrent overlapping bookings for the same doctor', async () => {
       const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 13);
+      bookingDate.setDate(bookingDate.getDate() + 1);
+      // Keep the regression test inside the clinic's configured weekday hours.
+      while ([0, 6].includes(bookingDate.getDay())) {
+        bookingDate.setDate(bookingDate.getDate() + 1);
+      }
       const dateStr = bookingDate.toISOString().split('T')[0];
       const patientA = await createTestPatient(clinic.id, { name: 'Overlap A', phone: '+306922222221' });
       const patientB = await createTestPatient(clinic.id, { name: 'Overlap B', phone: '+306922222222' });
