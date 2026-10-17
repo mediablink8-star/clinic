@@ -44,6 +44,9 @@ describe('Appointment Service Unit Tests', () => {
     it('should create appointment with date/time in clinic timezone', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
@@ -88,6 +91,9 @@ describe('Appointment Service Unit Tests', () => {
     it('should auto-assign doctor when none specified', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 3);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       const result = await createAppointment({
@@ -133,6 +139,9 @@ describe('Appointment Service Unit Tests', () => {
     it('should prevent double-booking same doctor at same time', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 6);
+      while ([0, 6].includes(tomorrow.getDay())) {
+        tomorrow.setDate(tomorrow.getDate() + 1);
+      }
       const dateStr = tomorrow.toISOString().split('T')[0];
 
       // First appointment
