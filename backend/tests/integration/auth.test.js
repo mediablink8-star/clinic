@@ -169,10 +169,10 @@ describe('Authentication Integration', () => {
       const userWithMFA = await testPrisma.user.findUnique({ where: { id: user.id } });
       expect(userWithMFA.mfaEnabled).toBe(false);
 
-      const { authenticator } = await import('otplib');
+      const { generate } = await import('otplib');
       const { decrypt } = require('../../services/encryptionService');
       const pendingSecret = decrypt(userWithMFA.mfaPendingSecret);
-      const mfaCode = authenticator.generate(pendingSecret);
+      const mfaCode = await generate({ secret: pendingSecret });
 
       await request(app)
         .post('/api/auth/mfa/verify')
