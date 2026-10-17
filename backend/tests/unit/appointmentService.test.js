@@ -254,6 +254,34 @@ describe('Appointment Service Unit Tests', () => {
       expect(updateResult.data.status).toBe('COMPLETED');
     });
 
+    it('should reject reactivating a cancelled appointment when an overlapping booking exists', async () => {
+      const bookingDate = new Date();
+      bookingDate.setDate(bookingDate.getDate() + 30);
+      while ([0, 6].includes(bookingDate.getDay())) {
+        bookingDate.setDate(bookingDate.getDate() + 1);
+      }
+      const dateStr = bookingDate.toISOString().split('T')[0];
+      const first = await createAppointment({
+        clinicId: clinic.id, patientId: patient.id, reason: 'Cancelled slot',
+        date: dateStr, time: '10:00', doctorId: doctor.id,
+      }, actor);
+      await updateAppointmentStatus({
+        clinicId: clinic.id, appointmentId: first.data.id, status: 'CANCELLED',
+      }, actor);
+
+      const otherPatient = await createTestPatient(clinic.id, {
+        name: 'Replacement Patient', phone: '+306933333331',
+      });
+      await createAppointment({
+        clinicId: clinic.id, patientId: otherPatient.id, reason: 'Replacement slot',
+        date: dateStr, time: '10:30', doctorId: doctor.id,
+      }, actor);
+
+      await expect(updateAppointmentStatus({
+        clinicId: clinic.id, appointmentId: first.data.id, status: 'CONFIRMED',
+      }, actor)).rejects.toThrow('CONFLICT');
+    });
+
     it('should reject invalid status', async () => {
       await expect(updateAppointmentStatus({
         clinicId: clinic.id,
