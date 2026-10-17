@@ -1,4 +1,6 @@
 const request = require('supertest');
+const crypto = require('crypto');
+const Stripe = require('stripe');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
 const app = require('../../index');
 
@@ -302,19 +304,21 @@ describe('Webhooks Integration', () => {
         planStatus: 'active',
       });
 
+      const payload = JSON.stringify({
+        id: 'evt_test789',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            customer: 'cus_test789',
+            id: 'sub_test789',
+          },
+        },
+      });
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test789',
-          type: 'customer.subscription.deleted',
-          data: {
-            object: {
-              customer: 'cus_test789',
-              id: 'sub_test789',
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.clinic.findUnique({ where: { id: clinicWithStripe.id } });
@@ -324,8 +328,6 @@ describe('Webhooks Integration', () => {
 
   describe('n8n Webhook Endpoints', () => {
     it('should receive n8n webhook with HMAC', async () => {
-      const crypto = require('crypto');
-const Stripe = require('stripe');
       const payload = { event: 'test', data: { foo: 'bar' } };
       const signature = crypto
         .createHmac('sha256', process.env.WEBHOOK_SECRET)
