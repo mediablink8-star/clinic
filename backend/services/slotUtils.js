@@ -1,5 +1,4 @@
 const prisma = require('./prisma');
-const { fromZonedTime } = require('date-fns-tz');
 const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
 
 const GREEK_DAY_NAMES = [
@@ -42,16 +41,56 @@ function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) 
 
     const [year, month, day] = dateStr.split('-').map(Number);
     const [hour, minute] = timeStr.split(':').map(Number);
-    const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
+    const wallClockUtc = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+
     if (
-        localDate.getFullYear() !== year ||
-        localDate.getMonth() !== month - 1 ||
-        localDate.getDate() !== day
+        new Date(wallClockUtc).getUTCFullYear() !== year ||
+        new Date(wallClockUtc).getUTCMonth() !== month - 1 ||
+        new Date(wallClockUtc).getUTCDate() !== day
     ) {
         throw new Error('Invalid calendar date');
     }
 
-    return fromZonedTime(localDate, timezone);
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    });
+    const getParts = (instant) => Object.fromEntries(
+        formatter.formatToParts(new Date(instant))
+            .filter((part) => part.type !== 'literal')
+            .map((part) => [part.type, Number(part.value)])
+    );
+
+    // Solve the timezone offset against the requested wall-clock components.
+    // This avoids an ESM-only dependency in the CommonJS backend test/runtime.
+    let instant = wallClockUtc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const parts = getParts(instant);
+        const localAsUtc = Date.UTC(
+            parts.year, parts.month - 1, parts.day,
+            parts.hour, parts.minute, parts.second
+        );
+        instant = wallClockUtc - (localAsUtc - instant);
+    }
+
+    const resolved = getParts(instant);
+    if (
+        resolved.year !== year ||
+        resolved.month !== month ||
+        resolved.day !== day ||
+        resolved.hour !== hour ||
+        resolved.minute !== minute
+    ) {
+        throw new Error('Local time does not exist in the requested timezone');
+    }
+
+    return new Date(instant);
 }
 
 function parseHoursRange(rangeStr) {
