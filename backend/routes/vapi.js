@@ -477,7 +477,7 @@ async function handleVoiceBooking(mc, input) {
             create: { clinicId: clinic.id, name: patient_name || mc.fromNumber, phone: mc.fromNumber },
         });
     } catch (err) {
-        logger.warn('Vapi patient upsert failed', { err });
+        logger.warn('Vapi patient upsert failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
     }
 
     const clinicTimezone = clinic.timezone || DEFAULT_TIMEZONE;
@@ -554,12 +554,12 @@ async function handleVoiceBooking(mc, input) {
                 }),
             ]);
         } catch (err) {
-            logger.warn('Vapi appointment create failed', { err });
+            logger.warn('Vapi appointment create failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
             // Send SMS fallback with booking link so patient can self-book
             const bookingLink = getBookingLink(clinic.id, mc.id);
             const smsBody = `Δεν μπορέσαμε να κλείσουμε το ραντεβού για ${preferred_day} στις ${preferred_time} (εκτός ωραρίου ή μη διαθέσιμη ώρα).\nΚλείστε εδώ: ${bookingLink}`;
             await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id).catch(err =>
-                logger.error('Vapi SMS fallback failed', { missedCallId: mc.id, err })
+                logger.error('Vapi SMS fallback failed', { missedCallId: mc.id, errorName: err?.name || 'Error', errorCode: err?.code || null })
             );
         }
     }
@@ -584,7 +584,7 @@ async function handleVoiceBooking(mc, input) {
             await ensureRecoveryCaseForMissedCall(mc.id);
             await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
         } catch (err) {
-            logger.warn('Vapi markRecoveryCaseRecovered failed', { err });
+            logger.warn('Vapi markRecoveryCaseRecovered failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
         }
 
         logger.info('Vapi case RECOVERED', { missedCallId: mc.id, appointmentId, revenue });
