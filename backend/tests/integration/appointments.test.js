@@ -1,6 +1,6 @@
 const request = require('supertest');
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const app = require('../../index');
 
 function getFutureWeekdayDate(daysAhead) {
   const date = new Date();
