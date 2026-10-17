@@ -1,3 +1,7 @@
+jest.mock('../../services/messagingService', () => ({
+  sendDirectMessage: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 const { 
   createAppointment, 
   updateAppointmentStatus, 
@@ -396,7 +400,7 @@ describe('Appointment Service Unit Tests', () => {
     it('should return early if no patient phone', async () => {
       const patientNoPhone = await createTestPatient(clinic.id, { 
         name: 'No Phone', 
-        phone: null 
+        phone: '' 
       });
       
       const appointment = { startTime: new Date().toISOString() };
@@ -452,18 +456,24 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should not create duplicate reminders', async () => {
       const future = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
-      const appointment = { 
-        id: 'apt-duplicate', 
-        clinicId: clinic.id, 
-        startTime: future.toISOString() 
-      };
+      const appointment = await testPrisma.appointment.create({
+        data: {
+          clinicId: clinic.id,
+          patientId: patient.id,
+          doctorId: doctor.id,
+          startTime: future,
+          endTime: new Date(future.getTime() + 60 * 60 * 1000),
+          reason: 'Reminder duplicate test',
+          status: 'CONFIRMED',
+        },
+      });
       const clinicObj = { id: clinic.id, name: 'Test Clinic', timezone: 'Europe/Athens' };
       
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       
       const notifications = await testPrisma.notification.findMany({
-        where: { appointmentId: 'apt-duplicate', type: 'REMINDER' }
+        where: { appointmentId: appointment.id, type: 'REMINDER' }
       });
       expect(notifications.length).toBe(1);
     });
