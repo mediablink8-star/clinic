@@ -297,7 +297,8 @@ describe('Appointments Integration', () => {
       expect(res.body.data.reason).toBe('Afternoon');
     });
 
-    it('should allow different patients at same time', async () => {
+    it('should allow different patients at same time when another doctor is available', async () => {
+      await createTestDoctor(clinic.id, { name: 'Dr. Second' });
       const dateStr = getFutureWeekdayDate(22);
 
       const patient2 = await testPrisma.patient.create({
