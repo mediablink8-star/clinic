@@ -3,8 +3,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDatabase } = require('../setup');
+const app = require('../../index');
 
 describe('Authentication Integration', () => {
   let clinic, user, token;
