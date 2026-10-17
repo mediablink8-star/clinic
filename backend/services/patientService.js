@@ -260,12 +260,10 @@ async function restorePatient(clinicId, patientId, actor) {
     // each occupied doctor/time slot so a restore cannot resurrect an
     // appointment that was replaced while the patient was deleted.
     for (const appointment of appointments) {
-      if (!appointment.doctorId) continue;
-
       const conflict = await tx.$queryRaw`
         SELECT id FROM "Appointment"
         WHERE "clinicId" = ${clinicId}
-          AND "doctorId" = ${appointment.doctorId}
+          AND "doctorId" IS NOT DISTINCT FROM ${appointment.doctorId}
           AND id != ${appointment.id}
           AND "deletedAt" IS NULL
           AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
