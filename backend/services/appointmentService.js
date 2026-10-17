@@ -575,11 +575,15 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
 
         // A deleted appointment can still occupy the slot in the database, so
         // restoring it must re-check for an active overlapping appointment.
-        // IS NOT DISTINCT FROM also handles clinics with no assigned doctors.
+        // Unassigned bookings reserve the clinic-level resource and conflict with all doctors.
         const conflict = await tx.$queryRaw`
             SELECT id FROM "Appointment"
             WHERE "clinicId" = ${clinicId}
-              AND "doctorId" IS NOT DISTINCT FROM ${existing.doctorId}
+              AND (
+                ${existing.doctorId}::text IS NULL
+                OR "doctorId" IS NULL
+                OR "doctorId" = ${existing.doctorId}
+              )
               AND "id" <> ${appointmentId}
               AND "deletedAt" IS NULL
               AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
