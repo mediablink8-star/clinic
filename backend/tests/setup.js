@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 process.env.NODE_ENV = 'test';
+process.env.DB_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
 process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/clinic_test';
