@@ -9,7 +9,7 @@ const { triggerWebhook } = require('../services/webhookService');
 const { applyClinicDefaults } = require('../services/clinicService');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
-const getAuthenticator = async () => (await import('otplib')).authenticator;
+const getTotp = async () => import('otplib');
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -589,9 +589,9 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
 
-        const authenticator = await getAuthenticator();
-        const secret = authenticator.generateSecret();
-        const otpauth = authenticator.keyuri(user.email, 'ClinicFlow', secret);
+        const { generateSecret, generateURI } = await getTotp();
+        const secret = generateSecret();
+        const otpauth = generateURI({ issuer: 'ClinicFlow', label: user.email, secret });
         const qrImageUrl = await qrcode.toDataURL(otpauth);
 
         // Store encrypted secret temporarily for verification
@@ -618,9 +618,9 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
         }
 
         const pendingSecret = decrypt(user.mfaPendingSecret);
-        const authenticator = await getAuthenticator();
-        const isValid = authenticator.check(code, pendingSecret);
-        if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
+        const { verify } = await getTotp();
+        const verification = await verify({ token: code, secret: pendingSecret });
+        if (!verification.valid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
         // Store encrypted secret permanently
         await prisma.user.update({
@@ -664,9 +664,9 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
         if (!user || !user.mfaSecret) throw new AppError('INVALID_REQUEST', 'Invalid request', 401);
 
         const secret = decrypt(user.mfaSecret);
-        const authenticator = await getAuthenticator();
-        const isValid = authenticator.check(code, secret);
-        if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
+        const { verify } = await getTotp();
+        const verification = await verify({ token: code, secret });
+        if (!verification.valid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
         const accessToken = generateAccessToken({
             userId: user.id,
