@@ -134,7 +134,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
 
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
-        select: { id: true, name: true, timezone: true, webhookSecret: true, googleCalendarEnabled: true }
+        select: { id: true, name: true, isActive: true, timezone: true, webhookSecret: true, aiConfig: true, workingHours: true, googleCalendarEnabled: true }
     });
     if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
     const timezone = clinic.timezone || DEFAULT_TIMEZONE;
@@ -172,9 +172,9 @@ try {
 
              // Serialize concurrent attempts for the same slot. FOR UPDATE alone
              // cannot lock a row that does not exist yet.
-             await tx.$queryRaw\`
-                 SELECT pg_advisory_xact_lock(hashtext(CONCAT(\${clinicId}, ':', COALESCE(\${assignedDoctorId}, 'AUTO'), ':', \${start.toISOString()}, ':', \${end.toISOString()})))
-             \`;
+             await tx.$queryRaw`
+                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', COALESCE(${assignedDoctorId}, 'AUTO'), ':', ${start.toISOString()}::text, ':', ${end.toISOString()}::text)))) t
+             `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
              if (!assignedDoctorId) {

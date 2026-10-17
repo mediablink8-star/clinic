@@ -142,10 +142,14 @@ const validate = (schema) => (req, res, next) => {
         logger.warn(`Empty body received`, { url: req.url });
         throw new AppError('VALIDATION_ERROR', 'Request body is missing or empty', 400);
     }
-    const { error } = schema.validate(req.body);
+    const { error, value } = schema.validate(req.body);
     if (error) {
         logger.warn(`Validation error`, { url: req.url, detail: error.details[0].message });
         throw new AppError('VALIDATION_ERROR', error.details[0].message, 400);
+    }
+    // Preserve original date fields — Joi's validate() can strip or transform them
+    if (value) {
+        req.body = { ...req.body, ...value };
     }
     next();
 };

@@ -68,6 +68,11 @@ function resolveRangeForDate(workingHours, dateInput, timezone = DEFAULT_TIMEZON
     const actualShortKey = findKey(workingHours, shortKey);
     if (actualShortKey) return workingHours[actualShortKey];
 
+    // Check abbreviated day keys: mon, tue, wed, thu, fri, sat, sun
+    const abbrKey = enDay.slice(0, 3);
+    const actualAbbrKey = findKey(workingHours, abbrKey);
+    if (actualAbbrKey) return workingHours[actualAbbrKey];
+
     const actualEnKey = findKey(workingHours, enDay);
     if (actualEnKey) return workingHours[actualEnKey];
 
