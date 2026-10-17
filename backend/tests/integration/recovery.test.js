@@ -36,7 +36,7 @@ describe('Recovery System Integration', () => {
       });
       expect(missedCall).not.toBeNull();
       expect(missedCall.fromNumber).toBe('+306912345678');
-      expect(missedCall.status).toBe('DETECTED');
+      expect(missedCall.status).toBe('RECOVERING');
     });
 
     it('should link missed call to existing patient', async () => {
