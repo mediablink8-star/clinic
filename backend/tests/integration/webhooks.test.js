@@ -2,6 +2,12 @@ const request = require('supertest');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
 const app = require('../../index');
 
+function makeTwilioSignature(path, params) {
+  const url = `${process.env.BACKEND_API_URL}${path}`;
+  const data = Object.keys(params).sort().reduce((value, key) => value + key + String(params[key] ?? ''), url);
+  return crypto.createHmac('sha1', process.env.TWILIO_AUTH_TOKEN).update(data).digest('base64');
+}
+
 describe('Webhooks Integration', () => {
   let clinic, owner, token, webhookSecret;
 
@@ -167,13 +173,16 @@ describe('Webhooks Integration', () => {
         },
       });
 
+      const payload = {
+        MessageSid: 'SM1234567890',
+        MessageStatus: 'delivered',
+        To: '+306912345678',
+      };
       await request(app)
         .post('/api/webhook/sms-status')
-        .send({
-          MessageSid: 'SM1234567890',
-          MessageStatus: 'delivered',
-          To: '+306912345678',
-        })
+        .set('X-Twilio-Signature', makeTwilioSignature('/api/webhook/sms-status', payload))
+        .type('form')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
@@ -190,19 +199,22 @@ describe('Webhooks Integration', () => {
         },
       });
 
+      const payload = {
+        MessageSid: 'SM0987654321',
+        MessageStatus: 'failed',
+        ErrorCode: '30003',
+        To: '+306912345678',
+      };
       await request(app)
         .post('/api/webhook/sms-status')
-        .send({
-          MessageSid: 'SM0987654321',
-          MessageStatus: 'failed',
-          ErrorCode: '30003',
-          To: '+306912345678',
-        })
+        .set('X-Twilio-Signature', makeTwilioSignature('/api/webhook/sms-status', payload))
+        .type('form')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
       expect(updated.status).toBe('FAILED');
-      expect(updated.error).toContain('30003');
+      expect(updated.providerStatusRaw).toContain('30003');
     });
 
     it('should verify Twilio signature in production', async () => {
