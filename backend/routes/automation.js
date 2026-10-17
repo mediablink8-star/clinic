@@ -121,10 +121,24 @@ router.post('/verify-appointment', validateWebhookSecret, asyncHandler(async (re
  */
 router.post('/log-sms', validateWebhookSecret, asyncHandler(async (req, res) => {
     const { appointmentId, patientPhone, sid, status, type, from } = req.body;
-    
+    const clinicId = req.body.clinicId;
+
+    // The webhook secret authenticates the clinic, but it does not make a
+    // caller-supplied appointmentId trustworthy. Never attach a message log
+    // to an appointment owned by another clinic.
+    if (appointmentId) {
+        const appointment = await prisma.appointment.findFirst({
+            where: { id: appointmentId, clinicId },
+            select: { id: true }
+        });
+        if (!appointment) {
+            throw new AppError('NOT_FOUND', 'Appointment not found for this clinic', 404);
+        }
+    }
+
     await prisma.messageLog.create({
         data: {
-            clinicId: req.body.clinicId,
+            clinicId,
             appointmentId: appointmentId || null,
             toPhone: patientPhone || from || 'unknown',
             providerMessageSid: sid,
