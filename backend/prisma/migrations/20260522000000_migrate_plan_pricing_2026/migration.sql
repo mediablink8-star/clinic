@@ -1,3 +1,6 @@
+-- Ensure the plan field exists before migrating legacy plan values.
+ALTER TABLE "Clinic" ADD COLUMN IF NOT EXISTS "plan" TEXT NOT NULL DEFAULT 'trial';
+
 -- Migrate existing clinics from old plan keys to new plan pricing (2026)
 --
 -- solo  → starter: $350/mo, 200 SMS, 100 AI
