@@ -196,8 +196,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflict && conflict.length > 0) {
@@ -218,8 +218,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${endTime}
                     AND "endTime" > ${startDateTime}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
 
                 if (!conflict || conflict.length === 0) {
@@ -245,8 +245,8 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflicts && conflicts.length > 0) {
