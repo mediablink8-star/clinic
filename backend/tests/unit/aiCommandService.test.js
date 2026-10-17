@@ -1,5 +1,5 @@
-const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 
 jest.mock('../../services/prisma', () => mockTestPrisma);
 jest.mock('../../services/encryptionService', () => ({
