@@ -283,12 +283,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should reject reactivating a cancelled appointment when an overlapping booking exists', async () => {
-      const bookingDate = new Date();
-      bookingDate.setDate(bookingDate.getDate() + 30);
-      while ([0, 6].includes(bookingDate.getDay())) {
-        bookingDate.setDate(bookingDate.getDate() + 1);
-      }
-      const dateStr = bookingDate.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(50);
       const first = await createAppointment({
         clinicId: clinic.id, patientId: patient.id, reason: 'Cancelled slot',
         date: dateStr, time: '10:00', doctorId: doctor.id,
