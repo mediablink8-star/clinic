@@ -7,7 +7,7 @@ const { testPrisma, createTestClinic, createTestUser, generateTestToken, cleanDa
 const app = require('../../index');
 
 describe('Authentication Integration', () => {
-  let clinic, user, token;
+  let clinic, user, token, refreshCookie;
 
   beforeAll(async () => {
     await cleanDatabase();
@@ -29,6 +29,7 @@ describe('Authentication Integration', () => {
 
       expect(res.body).toHaveProperty('token');
       expect(res.headers['set-cookie']?.some(cookie => cookie.startsWith('refreshToken='))).toBe(true);
+      refreshCookie = res.headers['set-cookie'].find(cookie => cookie.startsWith('refreshToken='))?.split(';')[0];
       expect(res.body).toHaveProperty('clinic');
       expect(res.body.clinic.id).toBe(clinic.id);
     });
@@ -57,7 +58,7 @@ describe('Authentication Integration', () => {
       }
       await request(app)
         .post('/api/auth/login')
-        .send({ email: lockoutUser.email, password: 'WrongPass' })
+        .send({ email: lockoutUser.email, password: 'WrongPass123!' })
         .expect(429);
     });
   });
@@ -100,13 +101,10 @@ describe('Authentication Integration', () => {
 
   describe('POST /api/auth/refresh', () => {
     it('should refresh access token with valid refresh token', async () => {
-      const loginRes = await request(app)
-        .post('/api/auth/login')
-        .send({ email: user.email, password: 'TestPass123!' });
-
+      expect(refreshCookie).toMatch(/^refreshToken=/);
       const res = await request(app)
         .post('/api/auth/refresh')
-        .set('Cookie', loginRes.headers['set-cookie'])
+        .set('Cookie', refreshCookie)
         .expect(200);
 
       expect(res.body).toHaveProperty('token');
@@ -139,14 +137,14 @@ describe('Authentication Integration', () => {
       );
 
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/clinic')
         .set('Authorization', `Bearer ${expiredToken}`)
         .expect(401);
     });
 
     it('should reject request without token', async () => {
       await request(app)
-        .get('/api/auth/me')
+        .get('/api/clinic')
         .expect(401);
     });
   });
@@ -164,7 +162,7 @@ describe('Authentication Integration', () => {
 
     it('should verify MFA token', async () => {
       await request(app)
-        .post('/api/auth/mfa/enable')
+        .post('/api/auth/mfa/setup')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -197,7 +195,7 @@ describe('Authentication Integration', () => {
       // Make requests from clinic 1 (should succeed up to limit)
       for (let i = 0; i < 5; i++) {
         await request(app)
-          .get('/api/auth/me')
+          .get('/api/clinic')
           .set('Authorization', `Bearer ${token}`)
           .expect(200);
       }
@@ -205,7 +203,7 @@ describe('Authentication Integration', () => {
       // Make requests from clinic 2 (separate limit)
       for (let i = 0; i < 10; i++) {
         await request(app)
-          .get('/api/auth/me')
+          .get('/api/clinic')
           .set('Authorization', `Bearer ${token2}`)
           .expect(200);
       }
