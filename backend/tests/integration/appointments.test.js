@@ -105,6 +105,21 @@ describe('Appointments Integration', () => {
     });
   });
 
+  describe('GET /api/appointments/available', () => {
+    it('should return slots for a clinic-local date and selected doctor', async () => {
+      const date = getFutureWeekdayDate(6);
+      const res = await request(app)
+        .get(`/api/appointments/available?date=${date}&doctorId=${doctor.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.date).toBe(date);
+      expect(Array.isArray(res.body.slots)).toBe(true);
+      expect(res.body.slots).toContain('10:00');
+    });
+  });
+
   describe('GET /api/appointments', () => {
     it('should list appointments with pagination', async () => {
       const res = await request(app)
