@@ -361,7 +361,7 @@ describe('AI Command Service', () => {
         confidence: 0.9,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should validate required parameters for book_appointment', async () => {
@@ -402,10 +402,8 @@ describe('AI Command Service', () => {
         }),
       }));
 
-      const result = await processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('quota exceeded');
+      await expect(processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor))
+        .rejects.toMatchObject({ code: 'AI_QUOTA_EXCEEDED' });
     });
   });
 });
