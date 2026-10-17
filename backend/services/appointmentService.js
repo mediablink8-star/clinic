@@ -201,11 +201,12 @@ try {
                              SELECT id FROM "Appointment"
                              WHERE "clinicId" = ${clinicId}
                              AND "doctorId" = ${doc.id}
+                             AND "deletedAt" IS NULL
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
                              AND "endTime" > ${start}
-                             FOR UPDATE
                              LIMIT 1
+                             FOR UPDATE
                          `;
 
                          if (!conflict || conflict.length === 0) {
@@ -225,11 +226,12 @@ try {
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
                     AND "doctorId" = ${assignedDoctorId}
+                    AND "deletedAt" IS NULL
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
                 
                 if (conflict && conflict.length > 0) {
