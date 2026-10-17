@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 process.env.NODE_ENV = 'test';
+process.env.STRIPE_SECRET_KEY = 'sk_test_clinicflow';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_clinicflow';
 process.env.DB_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
