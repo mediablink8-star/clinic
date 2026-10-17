@@ -1,4 +1,4 @@
-const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 
 jest.mock('@google/generative-ai', () => ({
@@ -54,6 +54,7 @@ describe('AI Command Service', () => {
   let clinic, owner, patient, doctor, actor;
 
   beforeAll(async () => {
+    await cleanDatabase();
     clinic = await mockTestPrisma.clinic.create({
       data: {
         name: 'AI Test Clinic',
@@ -98,9 +99,7 @@ describe('AI Command Service', () => {
   });
 
   afterAll(async () => {
-    await mockTestPrisma.patient.deleteMany({ where: { clinicId: clinic.id } });
-    await mockTestPrisma.user.deleteMany({ where: { clinicId: clinic.id } });
-    await mockTestPrisma.clinic.delete({ where: { id: clinic.id } });
+    await cleanDatabase();
   });
 
   beforeEach(() => {
