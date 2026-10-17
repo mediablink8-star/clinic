@@ -193,7 +193,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             const conflict = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                AND "doctorId" = ${doctorId}
+                AND ("doctorId" IS NULL OR "doctorId" = ${doctorId})
                 AND "deletedAt" IS NULL
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
@@ -212,7 +212,7 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
-                    AND "doctorId" = ${candidate.id}
+                    AND ("doctorId" IS NULL OR "doctorId" = ${candidate.id})
                     AND "deletedAt" IS NULL
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${endTime}
@@ -235,7 +235,6 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             const conflicts = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                AND "doctorId" IS NULL
                 AND "deletedAt" IS NULL
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
