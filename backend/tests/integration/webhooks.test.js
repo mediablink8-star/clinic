@@ -128,6 +128,34 @@ describe('Webhooks Integration', () => {
     });
   });
 
+  describe('Inbound SMS consent handling', () => {
+    it('should apply STOP opt-out on the generic SMS webhook route', async () => {
+      const patient = await testPrisma.patient.create({
+        data: {
+          clinicId: clinic.id,
+          name: 'Opt Out Patient',
+          phone: '+306955551234',
+        },
+      });
+
+      const res = await request(app)
+        .post('/api/webhook/sms')
+        .set('X-ClinicFlow-Secret', webhookSecret)
+        .send({
+          clinicId: clinic.id,
+          from: '+306955551234',
+          body: 'STOP',
+          providerMessageSid: 'SM-OPT-OUT-GENERIC',
+        })
+        .expect(200);
+
+      expect(res.body.optOut).toBe('opted_out');
+      const updated = await testPrisma.patient.findUnique({ where: { id: patient.id } });
+      expect(updated.optedOut).toBe(true);
+      expect(updated.optedOutAt).not.toBeNull();
+    });
+  });
+
   describe('Twilio SMS Status Callback', () => {
     it('should update message log on delivery', async () => {
       const messageLog = await testPrisma.messageLog.create({
