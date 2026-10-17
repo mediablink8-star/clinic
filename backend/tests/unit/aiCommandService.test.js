@@ -1,4 +1,5 @@
 const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
 
 jest.mock('@google/generative-ai', () => ({
@@ -9,7 +10,7 @@ jest.mock('@google/generative-ai', () => ({
         const command = match ? match[1] : '';
         let parsed = { action: 'unknown', parameters: {}, confidence: 0.0 };
         if (/Στείλε SMS/i.test(command)) {
-          parsed = { action: 'send_sms', parameters: { patientName: 'Γιάννης', message: 'Το ραντεβού σας είναι αύριο' }, confidence: 0.9 };
+          parsed = { action: 'send_sms', parameters: { patientName: /Παπαδόπουλος/.test(command) ? 'Γιάννης Παπαδόπουλος' : 'Γιάννης', message: 'Το ραντεβού σας είναι αύριο' }, confidence: 0.9 };
         } else if (/Κάλεσε/i.test(command)) {
           parsed = { action: 'call_patient', parameters: { patientName: 'Μαρία' }, confidence: 0.95 };
         } else if (/Κλείσε ραντεβού/i.test(command)) {
@@ -47,7 +48,7 @@ jest.mock('../../services/appointmentService', () => ({
     data: { id: 'test-apt-id', startTime: new Date() },
   }),
   getTodayAppointments: jest.fn().mockResolvedValue({ data: [] }),
-  updateAppointmentStatus: jest.fn().mockResolvedValue({ success: true }),
+  updateAppointmentStatus: jest.fn(async ({ appointmentId, status }) => ({ success: true, data: await mockTestPrisma.appointment.update({ where: { id: appointmentId }, data: { status } }) })),
 }));
 
 describe('AI Command Service', () => {
@@ -104,6 +105,14 @@ describe('AI Command Service', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (!clinic || !patient) return;
+    await mockTestPrisma.appointment.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.missedCall.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.patient.deleteMany({ where: { clinicId: clinic.id, id: { not: patient.id } } });
+    await mockTestPrisma.doctor.deleteMany({ where: { clinicId: clinic.id, id: { not: doctor.id } } });
   });
 
   describe('parseCommand', () => {
@@ -323,7 +332,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('AMBIGUOUS_MATCH');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'AMBIGUOUS_MATCH' });
     });
 
     it('should reject non-existent patient', async () => {
@@ -333,7 +342,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should reject an unknown doctor name when booking', async () => {
@@ -362,7 +371,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('VALIDATION_ERROR');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
@@ -387,12 +396,10 @@ describe('AI Command Service', () => {
     });
 
     it('should handle AI quota exceeded', async () => {
-      jest.doMock('@google/generative-ai', () => ({
-        GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-          getGenerativeModel: () => ({
-            generateContent: () => Promise.reject(new Error('429 Too Many Requests')),
-          }),
-        })),
+      GoogleGenerativeAI.mockImplementationOnce(() => ({
+        getGenerativeModel: () => ({
+          generateContent: () => Promise.reject(new Error('429 Too Many Requests')),
+        }),
       }));
 
       const result = await processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor);
