@@ -361,6 +361,15 @@ async function processScheduledMissedCalls() {
                 clinicId: mc.clinicId
             });
 
+            if (twilioResult.code === 'SMS_OPTED_OUT') {
+                await prisma.missedCall.update({
+                    where: { id: mc.id },
+                    data: { smsStatus: 'skipped', scheduledSmsAt: null, smsError: null }
+                });
+                processed++;
+                continue;
+            }
+
             if (twilioResult.success) {
                 await prisma.missedCall.update({
                     where: { id: mc.id },
