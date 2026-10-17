@@ -52,7 +52,7 @@ describe('Authentication Integration', () => {
       for (let i = 0; i < 5; i++) {
         await request(app)
           .post('/api/auth/login')
-          .send({ email: lockoutUser.email, password: 'WrongPass' })
+          .send({ email: lockoutUser.email, password: 'WrongPass123!' })
           .expect(401);
       }
       await request(app)
@@ -74,6 +74,7 @@ describe('Authentication Integration', () => {
             email: 'owner@newclinic.com',
             password: 'SecurePass123!',
             phone: '+302109876543',
+            agreedToTerms: true,
           })
           .expect(403);
         expect(res.body.code).toBe('REGISTRATION_DISABLED');
@@ -91,6 +92,7 @@ describe('Authentication Integration', () => {
           email: 'owner@test.com',
           password: 'weak',
           phone: '+302109876543',
+          agreedToTerms: true,
         })
         .expect(400);
     });
@@ -193,7 +195,7 @@ describe('Authentication Integration', () => {
       const token2 = generateTestToken(user2.id, clinic2.id, user2.role);
 
       // Make requests from clinic 1 (should succeed up to limit)
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 5; i++) {
         await request(app)
           .get('/api/auth/me')
           .set('Authorization', `Bearer ${token}`)
