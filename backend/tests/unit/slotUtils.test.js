@@ -15,26 +15,26 @@ describe('Slot Utils Unit Tests', () => {
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
       workingHours: JSON.stringify({
-        monday: { open: '09:00', close: '18:00', closed: false },
-        tuesday: { open: '09:00', close: '18:00', closed: false },
-        wednesday: { open: '09:00', close: '18:00', closed: false },
-        thursday: { open: '09:00', close: '18:00', closed: false },
-        friday: { open: '09:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '14:00', closed: false },
-        sunday: { closed: true },
+        'Κυριακή': '',
+        'Δευτέρα': '09:00-18:00',
+        'Τρίτη': '09:00-18:00',
+        'Τετάρτη': '09:00-18:00',
+        'Πέμπτη': '09:00-18:00',
+        'Παρασκευή': '09:00-18:00',
+        'Σάββατο': '09:00-14:00',
       }),
     });
 
     doctor = await createTestDoctor(clinic.id, {
       name: 'Dr. Test',
       workingHours: JSON.stringify({
-        monday: { open: '10:00', close: '16:00', closed: false },
-        tuesday: { open: '10:00', close: '16:00', closed: false },
-        wednesday: { closed: true },
-        thursday: { open: '10:00', close: '16:00', closed: false },
-        friday: { open: '10:00', close: '16:00', closed: false },
-        saturday: { closed: true },
-        sunday: { closed: true },
+        'Κυριακή': '',
+        'Δευτέρα': '10:00-16:00',
+        'Τρίτη': '10:00-16:00',
+        'Τετάρτη': '',
+        'Πέμπτη': '10:00-16:00',
+        'Παρασκευή': '10:00-16:00',
+        'Σάββατο': '',
       }),
     });
   });
