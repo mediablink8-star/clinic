@@ -239,6 +239,15 @@ function isWithinWorkingHours({ clinic, start, end, timezone = DEFAULT_TIMEZONE,
 }
 
 async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, stepMinutes = 60, doctor = null) {
+    // The API accepts a calendar date (YYYY-MM-DD), not an instant. Anchor the
+    // date at local noon in the requested timezone so UTC-midnight inputs do not
+    // accidentally select the previous day in western timezones.
+    const dateKey = date instanceof Date
+        ? date.toISOString().slice(0, 10)
+        : String(date).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
+    const normalizedDate = parseDateTimeInTimezone(dateKey, '12:00', timezone);
+
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
         select: { workingHours: true, aiConfig: true, id: true },
@@ -260,11 +269,11 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
 
         if (activeDoctors.length === 0) {
             // Fallback to clinic-level slots if no doctors exist
-            return calculateSlots(clinic, null, date, timezone, stepMinutes, clinicId);
+            return calculateSlots(clinic, null, normalizedDate, timezone, stepMinutes, clinicId);
         }
 
         const allDoctorSlots = await Promise.all(
-            activeDoctors.map(doc => calculateSlots(clinic, doc, date, timezone, stepMinutes, clinicId))
+            activeDoctors.map(doc => calculateSlots(clinic, doc, normalizedDate, timezone, stepMinutes, clinicId))
         );
 
         // Union of all unique slots across all doctors, sorted
@@ -272,7 +281,7 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
         return uniqueSlots;
     }
 
-    return calculateSlots(clinic, doctor, date, timezone, stepMinutes, clinicId);
+    return calculateSlots(clinic, doctor, normalizedDate, timezone, stepMinutes, clinicId);
 }
 
 /**
