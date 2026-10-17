@@ -21,15 +21,17 @@ const { createAppointment } = require('../services/appointmentService');
 const { getBookingLink } = require('../utils/url');
 const { normalizePhone } = require('../utils/phone');
 const logger = require('../utils/logger');
-const { fromZonedTime } = require('date-fns-tz');
+const { getLocalDateParts, parseDateTimeInTimezone } = require('../services/slotUtils');
 const { connection: redis } = require('../services/queueService');
 const { recordDelivery } = require('../services/webhookService');
 
 // Redis may be disabled in some environments (e.g., dev without Redis)
 const REDIS_DISABLED = process.env.REDIS_DISABLED === 'true' || !redis;
 
-function parseAppointmentDay(dayStr) {
-    const now = new Date();
+function parseAppointmentDay(dayStr, timezone = DEFAULT_TIMEZONE) {
+    const localDateKey = getLocalDateParts(new Date(), timezone).dateKey;
+    const [year, month, day] = localDateKey.split('-').map(Number);
+    const now = new Date(year, month - 1, day, 12, 0, 0, 0);
     const lower = (dayStr || '').toLowerCase().trim();
     if (lower.includes('αύριο') || lower.includes('tomorrow')) {
         now.setDate(now.getDate() + 1);
@@ -478,14 +480,10 @@ async function handleVoiceBooking(mc, input) {
         logger.warn('Vapi patient upsert failed', { err });
     }
 
-    // Use full parseAppointmentDay for proper Greek day name support
-    let startTime = parseAppointmentDay(preferred_day || 'αύριο');
-    if (!startTime) {
-        startTime = new Date();
-        startTime.setDate(startTime.getDate() + 1);
-    }
-
     const clinicTimezone = clinic.timezone || DEFAULT_TIMEZONE;
+    // Parse relative day names from the clinic's local calendar, not the server's UTC day.
+    let startTime = parseAppointmentDay(preferred_day || 'αύριο', clinicTimezone);
+    if (!startTime) startTime = parseAppointmentDay('tomorrow', clinicTimezone);
     let hour = 9;
     let min = 0;
 
@@ -498,9 +496,10 @@ async function handleVoiceBooking(mc, input) {
         }
     } catch {}
 
-    const dateStr = startTime.toISOString().split('T')[0];
-    startTime = fromZonedTime(
-        `${dateStr} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}:00`,
+    const dateStr = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
+    startTime = parseDateTimeInTimezone(
+        dateStr,
+        `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`,
         clinicTimezone
     );
 
