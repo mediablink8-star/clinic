@@ -4,7 +4,7 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
-const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours, getStartOfDay } = require('./slotUtils');
+const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours, getStartOfDay, parseDateTimeInTimezone } = require('./slotUtils');
 const { normalizePhone } = require('../utils/phone');
 const { sendDirectMessage } = require('./messagingService');
 const { fromZonedTime, formatInTimeZone } = require('date-fns-tz');
@@ -144,8 +144,12 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     if (date && time) {
         // Construct local string WITHOUT 'T' or 'Z'
         const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
-        start = fromZonedTime(localDateTimeStr, timezone);
-        logger.info(`Staff Booking Parsed Time`, { localDateTimeStr, timezone, utc: start.toISOString() });
+        try {
+            start = parseDateTimeInTimezone(date.trim(), time.trim(), timezone);
+        } catch (error) {
+            throw new AppError('VALIDATION_ERROR', 'The requested local date/time does not exist in the clinic timezone.', 400);
+        }
+        logger.info('Staff Booking Parsed Time', { timezone, utc: start.toISOString() });
         end = new Date(start.getTime() + Number(duration || 60) * 60 * 1000);
     } else if (startTime && endTime) {
         start = new Date(startTime);
