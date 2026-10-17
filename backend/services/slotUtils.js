@@ -1,4 +1,5 @@
 const prisma = require('./prisma');
+const { fromZonedTime } = require('date-fns-tz');
 const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
 
 const GREEK_DAY_NAMES = [
@@ -30,6 +31,28 @@ const EN_DAY_INDEX = {
     friday: 5,
     saturday: 6,
 };
+
+function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) {
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        throw new Error('Invalid date format; expected YYYY-MM-DD');
+    }
+    if (typeof timeStr !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeStr)) {
+        throw new Error('Invalid time format; expected HH:MM');
+    }
+
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
+    if (
+        localDate.getFullYear() !== year ||
+        localDate.getMonth() !== month - 1 ||
+        localDate.getDate() !== day
+    ) {
+        throw new Error('Invalid calendar date');
+    }
+
+    return fromZonedTime(localDate, timezone);
+}
 
 function parseHoursRange(rangeStr) {
     if (!rangeStr || /closed/i.test(rangeStr)) return null;
@@ -283,6 +306,7 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
 }
 
 module.exports = {
+    parseDateTimeInTimezone,
     parseHoursRange,
     resolveRangeForDate,
     isWithinWorkingHours,
