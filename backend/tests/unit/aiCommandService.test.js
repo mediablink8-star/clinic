@@ -1,7 +1,7 @@
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const { mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 
-jest.mock('../../services/prisma', () => testPrisma);
+jest.mock('../../services/prisma', () => mockTestPrisma);
 jest.mock('../../services/encryptionService', () => ({
   decrypt: (val) => val?.replace('encrypted:', '') || null,
   encrypt: (val) => `encrypted:${val}`,
@@ -28,7 +28,7 @@ describe('AI Command Service', () => {
   let clinic, owner, patient, actor;
 
   beforeAll(async () => {
-    clinic = await testPrisma.clinic.create({
+    clinic = await mockTestPrisma.clinic.create({
       data: {
         name: 'AI Test Clinic',
         location: 'Athens',
@@ -48,7 +48,7 @@ describe('AI Command Service', () => {
       },
     });
 
-    owner = await testPrisma.user.create({
+    owner = await mockTestPrisma.user.create({
       data: {
         email: 'ai-owner@clinic.com',
         passwordHash: 'hashed',
@@ -57,7 +57,7 @@ describe('AI Command Service', () => {
       },
     });
 
-    patient = await testPrisma.patient.create({
+    patient = await mockTestPrisma.patient.create({
       data: {
         clinicId: clinic.id,
         name: 'Γιάννης Παπαδόπουλος',
@@ -70,9 +70,9 @@ describe('AI Command Service', () => {
   });
 
   afterAll(async () => {
-    await testPrisma.patient.deleteMany({ where: { clinicId: clinic.id } });
-    await testPrisma.user.deleteMany({ where: { clinicId: clinic.id } });
-    await testPrisma.clinic.delete({ where: { id: clinic.id } });
+    await mockTestPrisma.patient.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.user.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.clinic.delete({ where: { id: clinic.id } });
   });
 
   beforeEach(() => {
@@ -227,7 +227,7 @@ describe('AI Command Service', () => {
     });
 
     it('should execute cancel_appointment', async () => {
-      const existingApt = await testPrisma.appointment.create({
+      const existingApt = await mockTestPrisma.appointment.create({
         data: {
           clinicId: clinic.id,
           patientId: patient.id,
@@ -249,7 +249,7 @@ describe('AI Command Service', () => {
       expect(result.success).toBe(true);
       expect(result.action).toBe('cancel_appointment');
 
-      const updated = await testPrisma.appointment.findUnique({ where: { id: existingApt.id } });
+      const updated = await mockTestPrisma.appointment.findUnique({ where: { id: existingApt.id } });
       expect(updated.status).toBe('CANCELLED');
     });
 
@@ -265,7 +265,7 @@ describe('AI Command Service', () => {
     });
 
     it('should execute list_missed_calls', async () => {
-      await testPrisma.missedCall.create({
+      await mockTestPrisma.missedCall.create({
         data: {
           clinicId: clinic.id,
           fromNumber: '+306911111111',
@@ -283,10 +283,10 @@ describe('AI Command Service', () => {
     });
 
     it('should reject ambiguous patient names', async () => {
-      await testPrisma.patient.create({
+      await mockTestPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Γιάννης Α', phone: '+306900000001' },
       });
-      await testPrisma.patient.create({
+      await mockTestPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Γιάννης Β', phone: '+306900000002' },
       });
 
