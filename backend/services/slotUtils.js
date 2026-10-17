@@ -315,7 +315,8 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
         clinicId,
         startTime: { gte: startOfDay, lte: endOfDay },
         status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        deletedAt: null
+        deletedAt: null,
+        isTest: false
     };
     
     if (doctor) {
