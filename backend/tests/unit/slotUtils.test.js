@@ -266,5 +266,10 @@ describe('Slot Utils Unit Tests', () => {
       expect(() => parseDateTimeInTimezone('2026-01-15', '25:00', 'Europe/Athens'))
         .toThrow();
     });
+
+    it('should reject a nonexistent local time during the spring DST jump', () => {
+      expect(() => parseDateTimeInTimezone('2026-03-29', '03:30', 'Europe/Athens'))
+        .toThrow('Local time does not exist in the requested timezone');
+    });
   });
 });
