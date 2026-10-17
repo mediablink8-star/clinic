@@ -20,9 +20,21 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
-// Reuse the application's Prisma adapter configuration. Prisma 7's client
-// engine requires a driver adapter (or Accelerate URL), even in tests.
-const testPrisma = require('../services/prisma');
+// Prisma 7's client engine requires a driver adapter (or Accelerate URL),
+// including for the isolated test client.
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const pg = require('pg');
+const testPool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+const testPrisma = new PrismaClient({
+  adapter: new PrismaPg(testPool),
+  log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
+});
 
 let testClinicId = null;
 let testUserId = null;
