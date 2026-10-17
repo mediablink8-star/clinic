@@ -46,6 +46,14 @@ function parseRange(rangeStr) {
 
 const ENGLISH_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
+function hasWorkingHours(workingHours) {
+    let hours = workingHours;
+    if (typeof hours === 'string') {
+        try { hours = JSON.parse(hours); } catch { return false; }
+    }
+    return Boolean(hours && typeof hours === 'object' && Object.keys(hours).length > 0);
+}
+
 function getRangeConfig(workingHours, weekday) {
     let hours = workingHours;
     if (typeof hours === 'string') {
@@ -74,11 +82,13 @@ function getRangeConfig(workingHours, weekday) {
  * Check if `now` falls within the clinic's working hours.
  */
 function checkWorkingHours(now, workingHours, timezone = DEFAULT_TIMEZONE) {
-    if (!workingHours) return { withinHours: true, scheduledAt: null };
+    if (!hasWorkingHours(workingHours)) return { withinHours: true, scheduledAt: null };
 
     const { weekday, minutes } = getLocalDateParts(now, timezone);
     const config = getRangeConfig(workingHours, weekday);
-    if (!config.configured) return { withinHours: true, scheduledAt: null };
+    if (!config.configured) {
+        return { withinHours: false, scheduledAt: getNextOpeningTime(now, workingHours, timezone) };
+    }
 
     const range = parseRange(config.rangeStr);
     if (range) {
@@ -137,6 +147,17 @@ async function checkClinicAvailability(now, workingHours, timezone = DEFAULT_TIM
  * Find the next 09:00 on a day that has working hours configured.
  */
 function getNextOpeningTime(now, workingHours, timezone = DEFAULT_TIMEZONE) {
+    const today = getLocalDateParts(now, timezone);
+    const todayConfig = getRangeConfig(workingHours, today.weekday);
+    const todayRange = todayConfig.configured ? parseRange(todayConfig.rangeStr) : null;
+    if (todayRange) {
+        const openMinutes = todayRange.open.h * 60 + todayRange.open.m;
+        if (today.minutes < openMinutes) {
+            const openTime = `${String(todayRange.open.h).padStart(2, '0')}:${String(todayRange.open.m).padStart(2, '0')}`;
+            return parseDateTimeInTimezone(today.dateKey, openTime, timezone);
+        }
+    }
+
     for (let daysAhead = 1; daysAhead <= 7; daysAhead += 1) {
         const probe = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
         const { dateKey, weekday } = getLocalDateParts(probe, timezone);
@@ -157,19 +178,20 @@ function getNextOpeningTime(now, workingHours, timezone = DEFAULT_TIMEZONE) {
  * Check if appointment start/end times are within clinic working hours.
  */
 function isWithinWorkingHours({ clinic, start, end, timezone = clinic?.timezone || DEFAULT_TIMEZONE, doctor }) {
-    const doctorConfig = getRangeConfig(doctor?.workingHours, getLocalDateParts(start, timezone).weekday);
-    const clinicConfig = getRangeConfig(clinic?.workingHours, getLocalDateParts(start, timezone).weekday);
-    const config = doctorConfig.configured ? doctorConfig : clinicConfig;
-
-    // If neither schedule defines this day, keep the legacy permissive behavior.
-    if (!config.configured) return true;
-
-    const range = parseRange(config.rangeStr);
-    if (!range) return false;
-
     const startParts = getLocalDateParts(start, timezone);
     const endParts = getLocalDateParts(end, timezone);
     if (startParts.dateKey !== endParts.dateKey) return false;
+
+    const doctorHasHours = hasWorkingHours(doctor?.workingHours);
+    const selectedSchedule = doctorHasHours ? doctor.workingHours : clinic?.workingHours;
+    const scheduleHasHours = hasWorkingHours(selectedSchedule);
+    if (!scheduleHasHours) return true;
+
+    const config = getRangeConfig(selectedSchedule, startParts.weekday);
+    if (!config.configured) return false;
+
+    const range = parseRange(config.rangeStr);
+    if (!range) return false;
 
     const openMinutes = range.open.h * 60 + range.open.m;
     const closeMinutes = range.close.h * 60 + range.close.m;
