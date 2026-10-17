@@ -292,7 +292,7 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
                 action: isStop ? 'SMS_OPT_OUT' : 'SMS_OPT_IN',
                 entity: 'PATIENT',
                 entityId: patient.id,
-                details: { phone: normalizedFrom, keyword: normalizedBody, source: 'inbound-sms' }
+                details: { phoneLast4: normalizedFrom.slice(-4), keyword: normalizedBody, source: 'inbound-sms' }
             });
         } catch (err) {
             console.error('[inbound-sms] opt-out handler failed', err);
