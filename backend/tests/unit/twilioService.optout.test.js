@@ -1,4 +1,5 @@
 const { sendSmsWithTracking } = require('../../services/twilioService');
+const { sendManagedSms } = require('../../services/messagingService');
 const { createTestClinic, createTestPatient, cleanDatabase } = require('../setup');
 
 describe('Twilio SMS opt-out enforcement', () => {
@@ -31,5 +32,14 @@ describe('Twilio SMS opt-out enforcement', () => {
       error: 'Recipient has opted out of SMS messages',
       code: 'SMS_OPTED_OUT',
     });
+  });
+
+  it('blocks managed webhook and fallback sends to an opted-out patient', async () => {
+    await expect(sendManagedSms({
+      clinicId: clinic.id,
+      clinic,
+      eventType: 'test.message',
+      payload: { phone: optedOutPatient.phone, message: 'Test message' },
+    })).rejects.toMatchObject({ code: 'SMS_OPTED_OUT' });
   });
 });
