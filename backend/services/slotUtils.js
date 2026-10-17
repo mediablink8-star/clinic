@@ -243,7 +243,14 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
     // date at local noon in the requested timezone so UTC-midnight inputs do not
     // accidentally select the previous day in western timezones.
     const dateKey = date instanceof Date
-        ? date.toISOString().slice(0, 10)
+        ? (
+            date.getUTCHours() === 0 &&
+            date.getUTCMinutes() === 0 &&
+            date.getUTCSeconds() === 0 &&
+            date.getUTCMilliseconds() === 0
+                ? date.toISOString().slice(0, 10)
+                : getLocalDateParts(date, timezone).dateKey
+        )
         : String(date).slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
     const normalizedDate = parseDateTimeInTimezone(dateKey, '12:00', timezone);
