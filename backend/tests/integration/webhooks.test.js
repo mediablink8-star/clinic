@@ -18,7 +18,7 @@ describe('Webhooks Integration', () => {
   describe('Zadarma Webhook (Missed Call Detection)', () => {
     it('should create missed call on NOTIFY_START', async () => {
       const res = await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -48,7 +48,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306988888888',
@@ -66,7 +66,7 @@ describe('Webhooks Integration', () => {
 
     it('should deduplicate by call_id', async () => {
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -76,7 +76,7 @@ describe('Webhooks Integration', () => {
         .expect(200);
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -112,7 +112,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_END',
           caller_id: '+306966666666',
