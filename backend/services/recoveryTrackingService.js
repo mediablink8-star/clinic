@@ -456,8 +456,10 @@ async function recordInboundMessage({
         conversationId: conversation.id,
         messageId: message.id,
         type: 'PATIENT_REPLIED',
+        // The message body is stored on the Message record; avoid duplicating
+        // potentially sensitive patient text into the activity/audit timeline.
         metadata: {
-            bodyPreview: body ? body.slice(0, 140) : null,
+            bodyLength: typeof body === 'string' ? body.length : 0,
         }
     });
 
