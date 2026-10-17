@@ -236,7 +236,7 @@ router.post('/sms', validateWebhookSecret, asyncHandler(async (req, res) => {
     }
 
     if (!clinic.webhookUrl) {
-        logger.info('Inbound message skipped - no webhook URL', { clinicId: clinic.id, from: normalizedFrom });
+        logger.info('Inbound message skipped - no webhook URL', { clinicId: clinic.id, fromPhoneTail: normalizedFrom.slice(-4) });
         return res.json({ success: true, forwarded: false, reason: 'No webhook URL configured' });
     }
 
