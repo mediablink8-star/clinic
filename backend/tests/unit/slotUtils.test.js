@@ -27,7 +27,7 @@ describe('Slot Utils Unit Tests', () => {
 
     doctor = await createTestDoctor(clinic.id, {
       name: 'Dr. Test',
-      workingHours: JSON.stringify({
+      workingHours: {
         'Κυριακή': '',
         'Δευτέρα': '10:00-16:00',
         'Τρίτη': '10:00-16:00',
@@ -35,7 +35,7 @@ describe('Slot Utils Unit Tests', () => {
         'Πέμπτη': '10:00-16:00',
         'Παρασκευή': '10:00-16:00',
         'Σάββατο': '',
-      }),
+      },
     });
   });
 
