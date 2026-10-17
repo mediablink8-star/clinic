@@ -8,6 +8,7 @@ describe('Recovery System Integration', () => {
   beforeAll(async () => {
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
+      webhookSecret: 'test-webhook-secret-123',
       vapiAssistantId: 'test-assistant-id',
       vapiPhoneNumberId: 'test-phone-id',
     });
