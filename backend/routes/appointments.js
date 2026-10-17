@@ -146,21 +146,21 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
                 where: { id: doctorId, clinicId: req.clinicId, isActive: true }
             });
             if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+        }
 
-            const conflict = await tx.$queryRaw`
-                SELECT id FROM "Appointment"
-                WHERE "clinicId" = ${req.clinicId}
-                AND "doctorId" = ${doctorId}
-                AND id != ${req.params.id}
-                AND "deletedAt" IS NULL
-                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                AND "startTime" < ${existing.endTime}
-                AND "endTime" > ${existing.startTime}
-                LIMIT 1
-            `;
-            if (conflict.length > 0) {
-                throw new AppError('CONFLICT', 'This doctor already has an appointment at this time', 409);
-            }
+        const conflict = await tx.$queryRaw`
+            SELECT id FROM "Appointment"
+            WHERE "clinicId" = ${req.clinicId}
+            AND "doctorId" IS NOT DISTINCT FROM ${doctorId || null}
+            AND id != ${req.params.id}
+            AND "deletedAt" IS NULL
+            AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+            AND "startTime" < ${existing.endTime}
+            AND "endTime" > ${existing.startTime}
+            LIMIT 1
+        `;
+        if (conflict.length > 0) {
+            throw new AppError('CONFLICT', 'The target doctor or unassigned schedule already has an appointment at this time', 409);
         }
 
         return tx.appointment.update({
