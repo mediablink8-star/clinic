@@ -125,6 +125,27 @@ describe('Slot Utils Unit Tests', () => {
       expect(slots).not.toContain('11:00');
     });
 
+    it('should block doctor slots occupied by an unassigned clinic appointment', async () => {
+      const patient = await testPrisma.patient.create({
+        data: { clinicId: clinic.id, name: 'Unassigned Booking', phone: '+306999999998' },
+      });
+      const start = new Date('2026-01-19T09:00:00.000Z'); // 11:00 Athens
+      await testPrisma.appointment.create({
+        data: {
+          clinicId: clinic.id,
+          patientId: patient.id,
+          doctorId: null,
+          startTime: start,
+          endTime: new Date(start.getTime() + 60 * 60000),
+          reason: 'Unassigned existing booking',
+          status: 'CONFIRMED',
+        },
+      });
+
+      const slots = await getAvailableSlots(clinic.id, new Date('2026-01-19'), 'Europe/Athens', 60, doctor.id);
+      expect(slots).not.toContain('11:00');
+    });
+
     it('should handle different timezone', async () => {
       const date = new Date('2026-01-12');
       const slots = await getAvailableSlots(clinic.id, date, 'America/New_York', 60, null);
