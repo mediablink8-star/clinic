@@ -20,7 +20,7 @@ describe('Recovery System Integration', () => {
   describe('Missed Call Detection', () => {
     it('should create missed call via webhook', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post('/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}')
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
