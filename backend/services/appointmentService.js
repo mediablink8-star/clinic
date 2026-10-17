@@ -523,14 +523,10 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or not deleted', 404);
 
     await prisma.$transaction(async (tx) => {
-        // Serialize restoration with concurrent bookings for the same clinic/doctor/slot.
+        // Share the clinic booking lock so restore cannot race with any
+        // staff, AI, or public booking for an overlapping interval.
         await tx.$queryRaw`
-            SELECT pg_advisory_xact_lock(hashtext(CONCAT(
-                ${clinicId}, ':',
-                COALESCE(${existing.doctorId}, 'AUTO'), ':',
-                ${existing.startTime.toISOString()}, ':',
-                ${existing.endTime.toISOString()}
-            )))
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
         `;
 
         // A deleted appointment can still occupy the slot in the database, so
