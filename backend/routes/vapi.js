@@ -372,7 +372,7 @@ async function handleVapiEvent(event) {
         const toPhone = normalizePhone(event.phoneNumber?.number || event.call?.phoneNumber?.number);
         
         if (fromPhone && toPhone) {
-            logger.info('Vapi mc not found by ID, searching by phone', { fromPhone, toPhone });
+            logger.info('Vapi mc not found by ID, searching by phone', { fromPhoneTail: fromPhone ? String(fromPhone).slice(-4) : null, toPhoneTail: toPhone ? String(toPhone).slice(-4) : null });
             // Find clinic by the 'to' number (the zadarma/vapi number)
             const clinics = await prisma.clinic.findMany({
                 where: {
@@ -463,7 +463,7 @@ async function handleVapiEvent(event) {
 
 async function handleVoiceBooking(mc, input) {
     const { patient_name, preferred_day, preferred_time } = input;
-    logger.info('Vapi booking via voice', { patientName: patient_name, day: preferred_day, time: preferred_time });
+    logger.info('Vapi booking via voice', { hasPatientName: Boolean(patient_name), hasPreferredDay: Boolean(preferred_day), hasPreferredTime: Boolean(preferred_time) });
 
     const clinic = mc.clinic;
 
