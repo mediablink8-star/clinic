@@ -88,9 +88,12 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     // Idempotency: dedupe Vapi webhook retries by callId + eventType
     // A single call fires multiple distinct events (call-started, function-call, call-ended, transcript)
     // all sharing the same callId — key by both to avoid swallowing real events.
+    let idempotencyKey = null;
     if (redis && !REDIS_DISABLED && callId) {
-        const idempotencyKey = `vapi:webhook:${callId}:${eventType}`;
-        const alreadyProcessed = await redis.set(idempotencyKey, '1', 'EX', 86400, 'NX'); // 24h TTL, only if not exists
+        idempotencyKey = `vapi:webhook:${callId}:${eventType}`;
+        // Use a short processing lease. Promote it to a 24-hour dedupe key only
+        // after successful handling, so a crash or failed event can be retried.
+        const alreadyProcessed = await redis.set(idempotencyKey, 'processing', 'EX', 120, 'NX');
         if (!alreadyProcessed) {
             logger.info('Vapi webhook duplicate ignored', { callId, eventType });
             return res.json({ success: true, duplicate: true });
@@ -123,6 +126,11 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
                     payload: { callId, eventType, status: event.status, missedCallId },
                 });
             }
+            if (idempotencyKey) {
+                await redis.set(idempotencyKey, 'done', 'EX', 86400).catch((cacheErr) => {
+                    logger.warn('Vapi webhook dedupe retention update failed', { callId, eventType, error: cacheErr.message });
+                });
+            }
             return res.json({ success: true });
         } catch (err) {
             logger.error(`Vapi handleVapiEvent error (attempt ${attempt}/${MAX_RETRIES})`, { err, callId, eventType });
@@ -150,6 +158,12 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
             errorMessage: 'All retries exhausted',
             durationMs: null,
             payload: { callId, eventType, status: event.status, missedCallId },
+        });
+    }
+    // Release the idempotency lease so provider retries can reprocess this event.
+    if (idempotencyKey) {
+        await redis.del(idempotencyKey).catch((cacheErr) => {
+            logger.warn('Vapi webhook idempotency lease cleanup failed', { callId, eventType, error: cacheErr.message });
         });
     }
     res.status(500).json({ error: 'Webhook processing failed' });
