@@ -207,6 +207,7 @@ try {
                              WHERE "clinicId" = ${clinicId}
                              AND ("doctorId" IS NULL OR "doctorId" = ${doc.id})
                              AND "deletedAt" IS NULL
+                             AND "isTest" = false
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
                              AND "endTime" > ${start}
@@ -248,6 +249,7 @@ try {
                     WHERE "clinicId" = ${clinicId}
                     AND ("doctorId" IS NULL OR "doctorId" = ${assignedDoctorId})
                     AND "deletedAt" IS NULL
+                    AND "isTest" = false
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
@@ -419,6 +421,7 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
                   AND (${existing.doctorId}::text IS NULL OR "doctorId" IS NULL OR "doctorId" = ${existing.doctorId})
                   AND id <> ${appointmentId}
                   AND "deletedAt" IS NULL
+                  AND "isTest" = ${existing.isTest}
                   AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                   AND "startTime" < ${existing.endTime}
                   AND "endTime" > ${existing.startTime}
@@ -586,6 +589,7 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
               )
               AND "id" <> ${appointmentId}
               AND "deletedAt" IS NULL
+              AND "isTest" = ${existing.isTest}
               AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
               AND "startTime" < ${existing.endTime}
               AND "endTime" > ${existing.startTime}
