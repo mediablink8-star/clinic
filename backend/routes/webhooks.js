@@ -72,20 +72,24 @@ async function handleSmsOptOut({ clinicId, normalizedFrom, messageBody }) {
 }
 
 async function zadarmaHandler(req, res) {
-    const { caller_id, destination, disposition, event, call_id_with_callback, call_id } = req.body;
+    const { caller_id, destination, called_did, did, called, disposition, event, call_id_with_callback, call_id } = req.body;
     const sid = call_id_with_callback || call_id;
 
     const phone = normalizePhone(caller_id);
     if (!phone) throw new AppError('VALIDATION_ERROR', 'caller_id is required', 400);
 
+    // Zadarma sends called_did; accept destination/did aliases for existing integrations.
+    const destinationNumber = destination || called_did || did || called;
+    const normalizedTo = normalizePhone(destinationNumber);
+    if (!normalizedTo) throw new AppError('VALIDATION_ERROR', 'Called number is required', 400);
+
     // Find clinic by the called number
-    const normalizedTo = normalizePhone(destination);
     const clinic = await prisma.clinic.findFirst({
         where: {
             OR: [
-                { zadarmaPhoneNumber: destination },
+                { zadarmaPhoneNumber: destinationNumber },
                 { zadarmaPhoneNumber: normalizedTo },
-                { phone: destination },
+                { phone: destinationNumber },
                 { phone: normalizedTo }
             ]
         },
@@ -93,7 +97,7 @@ async function zadarmaHandler(req, res) {
     });
 
     if (!clinic) {
-        logger.warn(`[Zadarma] No clinic found for number: ${destination}`);
+        logger.warn('[Zadarma] No clinic found for called number', { phoneTail: normalizedTo.slice(-4) });
         return res.json({ success: false, error: 'Clinic not found' });
     }
 
