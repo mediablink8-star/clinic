@@ -188,10 +188,8 @@ describe('Slot Utils Unit Tests', () => {
       const date = new Date('2026-01-15T15:30:00.000Z');
       const start = getStartOfDay(date, 'Europe/Athens');
       
-      expect(start.getHours()).toBe(0);
-      expect(start.getMinutes()).toBe(0);
-      expect(start.getSeconds()).toBe(0);
-      expect(start.getMilliseconds()).toBe(0);
+      // Athens is UTC+2 in January, so local midnight is 22:00 UTC on the prior day.
+      expect(start.toISOString()).toBe('2026-01-14T22:00:00.000Z');
     });
 
     it('should handle different timezones', () => {
