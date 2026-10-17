@@ -297,8 +297,12 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
         return [];
     }
 
-    const startOfDay = getStartOfDay(new Date(date), timezone);
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const localDateKey = getLocalDateParts(new Date(date), timezone).dateKey;
+    const [localYear, localMonth, localDay] = localDateKey.split('-').map(Number);
+    const nextLocalDate = new Date(Date.UTC(localYear, localMonth - 1, localDay + 1));
+    const nextLocalDateKey = nextLocalDate.toISOString().slice(0, 10);
+    const startOfDay = parseDateTimeInTimezone(localDateKey, '00:00', timezone);
+    const endOfDay = new Date(parseDateTimeInTimezone(nextLocalDateKey, '00:00', timezone).getTime() - 1);
 
     const whereClause = {
         clinicId,
