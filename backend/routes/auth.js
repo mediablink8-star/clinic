@@ -9,7 +9,7 @@ const { triggerWebhook } = require('../services/webhookService');
 const { applyClinicDefaults } = require('../services/clinicService');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService');
-const { authenticator } = require('otplib');
+const getAuthenticator = async () => (await import('otplib')).authenticator;
 const qrcode = require('qrcode');
 const asyncHandler = require('../middleware/asyncHandler');
 const rateLimit = require('express-rate-limit');
@@ -589,6 +589,7 @@ router.post('/mfa/setup', requireAuth, asyncHandler(async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) throw new AppError('NOT_FOUND', 'User not found', 404);
 
+        const authenticator = await getAuthenticator();
         const secret = authenticator.generateSecret();
         const otpauth = authenticator.keyuri(user.email, 'ClinicFlow', secret);
         const qrImageUrl = await qrcode.toDataURL(otpauth);
@@ -617,6 +618,7 @@ router.post('/mfa/verify', requireAuth, asyncHandler(async (req, res) => {
         }
 
         const pendingSecret = decrypt(user.mfaPendingSecret);
+        const authenticator = await getAuthenticator();
         const isValid = authenticator.check(code, pendingSecret);
         if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
@@ -662,6 +664,7 @@ router.post('/mfa/login-verify', mfaLimiter, asyncHandler(async (req, res) => {
         if (!user || !user.mfaSecret) throw new AppError('INVALID_REQUEST', 'Invalid request', 401);
 
         const secret = decrypt(user.mfaSecret);
+        const authenticator = await getAuthenticator();
         const isValid = authenticator.check(code, secret);
         if (!isValid) throw new AppError('INVALID_MFA_CODE', 'Invalid MFA code', 400);
 
