@@ -283,7 +283,7 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
 
             if (isStop) {
                 const reply = 'Έχετε διαγραφεί από τις ειδοποιήσεις. Απαντήστε START για επανεγγραφή.';
-                sendSmsWithTracking({ to: normalizedFrom, body: reply, clinicId })
+                sendSmsWithTracking({ to: normalizedFrom, body: reply, clinicId, allowOptedOut: true })
                     .catch(err => logger.error('[inbound-sms] STOP confirmation SMS failed', { err: err.message, clinicId }));
             }
 
