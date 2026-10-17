@@ -1,4 +1,3 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -21,9 +20,9 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
-const testPrisma = new PrismaClient({
-  log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
-});
+// Reuse the application's Prisma adapter configuration. Prisma 7's client
+// engine requires a driver adapter (or Accelerate URL), even in tests.
+const testPrisma = require('../services/prisma');
 
 let testClinicId = null;
 let testUserId = null;
