@@ -10,6 +10,13 @@ const {
 } = require('../../services/appointmentService');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 
+function getFutureWeekdayDate(daysAhead) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  while ([0, 6].includes(date.getDay())) date.setDate(date.getDate() + 1);
+  return date.toISOString().split('T')[0];
+}
+
 describe('Appointment Service Unit Tests', () => {
   let clinic, owner, patient, doctor, actor;
 
@@ -42,12 +49,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('createAppointment', () => {
     it('should create appointment with date/time in clinic timezone', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(1);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -89,12 +91,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should auto-assign doctor when none specified', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 3);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(3);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -109,9 +106,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should reject appointment outside working hours', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 4);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(4);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -123,9 +118,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should reject appointment for non-existent patient', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 5);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(5);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -137,12 +130,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 6);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(6);
 
       // First appointment
       await createAppointment({
@@ -197,9 +185,7 @@ describe('Appointment Service Unit Tests', () => {
       expect(rejected[0].reason.code).toBe('CONFLICT');
     });
     it('should reject appointment without patientId', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 7);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(7);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -214,12 +200,7 @@ describe('Appointment Service Unit Tests', () => {
     let appointmentId;
 
     beforeAll(async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 8);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(8);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -244,12 +225,7 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should update status to COMPLETED', async () => {
       // Re-create appointment since it was cancelled
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 9);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(9);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -316,12 +292,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('deleteAppointment (soft delete)', () => {
     it('should soft delete appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 10);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(10);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -338,12 +309,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should restore soft-deleted appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 11);
-      while ([0, 6].includes(tomorrow.getDay())) {
-        tomorrow.setDate(tomorrow.getDate() + 1);
-      }
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(11);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -407,9 +373,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('getAvailableSlots', () => {
     it('should return available slots for a date', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 12);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(12);
 
       const slots = await getAvailableSlots(clinic.id, dateStr);
       
@@ -420,9 +384,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should filter by doctor', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 13);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(13);
 
       const slots = await getAvailableSlots(clinic.id, dateStr, doctor.id);
       
