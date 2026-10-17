@@ -312,17 +312,20 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
     };
     
     if (doctor) {
-        whereClause.doctorId = doctor.id;
+        // A legacy/imported appointment without an assigned doctor still blocks
+        // the clinic-wide slot; it must be considered for every doctor's view.
+        whereClause.OR = [
+            { doctorId: doctor.id },
+            { doctorId: null },
+        ];
     }
 
-    // IMPORTANT: If no doctor is provided, we don't filter by doctorId: null.
-    // We want to see ALL appointments for the clinic to see if the clinic/any doctor is busy.
-    // The previous code had `whereClause.doctorId = null` which was a bug.
-
+    // If no doctor is provided, don't filter by doctorId: the clinic-wide view
+    // must account for all appointments. Do not cap this query: truncating a
+    // busy day's appointments can make already-booked slots appear available.
     const existing = await prisma.appointment.findMany({
         where: whereClause,
         select: { startTime: true, endTime: true },
-        take: 200
     });
 
     const step = Math.max(15, stepMinutes);
