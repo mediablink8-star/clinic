@@ -193,13 +193,21 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
 router.get('/appointments/available', asyncHandler(async (req, res) => {
     const { date, doctorId } = req.query;
     const { getAvailableSlots } = require('../services/appointmentService');
+    const prisma = require('../services/prisma');
     const targetDate = date ? new Date(date) : new Date();
 
     if (isNaN(targetDate.getTime())) {
         throw new AppError('VALIDATION_ERROR', 'Invalid date provided', 400);
     }
 
-    const slots = await getAvailableSlots(req.clinicId, targetDate, doctorId);
+    const clinic = await prisma.clinic.findUnique({
+        where: { id: req.clinicId },
+        select: { timezone: true },
+    });
+    if (!clinic) throw new AppError('NOT_FOUND', 'Clinic not found', 404);
+
+    const timezone = clinic.timezone || DEFAULT_TIMEZONE;
+    const slots = await getAvailableSlots(req.clinicId, targetDate, timezone, 60, doctorId || null);
     res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
 }));
 
