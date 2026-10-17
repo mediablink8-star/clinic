@@ -316,6 +316,27 @@ async function handleMissedCall({ phone, clinicId, callSid, bypassCooldown = fal
 
 async function processScheduledMissedCalls() {
     const now = new Date();
+
+    // Recover stale claims left by a process crash. Do not auto-resend them:
+    // the provider may have accepted the SMS before the worker died, so require
+    // an explicit retry after delivery is checked.
+    const staleProcessing = await prisma.missedCall.updateMany({
+        where: {
+            smsStatus: 'processing',
+            updatedAt: { lt: new Date(now.getTime() - 15 * 60 * 1000) },
+        },
+        data: {
+            smsStatus: 'failed',
+            scheduledSmsAt: null,
+            smsError: 'Processing timed out; verify provider delivery before retrying',
+        },
+    });
+    if (staleProcessing.count > 0) {
+        logger.warn('Stale scheduled SMS claims marked failed for manual review', {
+            count: staleProcessing.count,
+        });
+    }
+
     const due = await prisma.missedCall.findMany({
         where: { smsStatus: 'scheduled', scheduledSmsAt: { lte: now } },
         include: { clinic: true },
@@ -330,7 +351,18 @@ async function processScheduledMissedCalls() {
         const clinic = mc.clinic;
         if (!clinic || !clinic.isActive) continue;
 
-        await ensureRecoveryCaseForMissedCall(mc.id);
+        try {
+            await ensureRecoveryCaseForMissedCall(mc.id);
+        } catch (err) {
+            // Keep the record scheduled so a transient case/database failure can
+            // be retried on the next worker tick; don't abort the entire batch.
+            logger.error('Unable to prepare recovery case for scheduled SMS', {
+                missedCallId: mc.id,
+                clinicId: mc.clinicId,
+                error: err.message,
+            });
+            continue;
+        }
 
         const claim = await prisma.missedCall.updateMany({
             where: { id: mc.id, smsStatus: 'scheduled' },
