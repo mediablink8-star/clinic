@@ -111,7 +111,7 @@ async function createTestDoctor(clinicId, overrides = {}) {
       name: 'Test Doctor',
       specialty: 'General',
       isActive: true,
-      workingHours: {},
+      workingHours: JSON.stringify({}),
       ...overrides,
     },
   });
