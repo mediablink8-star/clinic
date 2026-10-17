@@ -131,7 +131,10 @@ async function checkClinicAvailability(now, workingHours, timezone = DEFAULT_TIM
     // which never matches, so holiday closures were silently ignored.
     const holiday = await isHoliday(now, 'GR');
     if (holiday) {
-        const scheduled = getNextOpeningTime(now, workingHours, timezone);
+        // Skip the remainder of the holiday before searching for the next opening.
+        const { dateKey } = getLocalDateParts(now, timezone);
+        const endOfHoliday = parseDateTimeInTimezone(dateKey, '23:59', timezone);
+        const scheduled = getNextOpeningTime(endOfHoliday, workingHours, timezone);
         return {
             withinHours: false,
             scheduledAt: scheduled,
