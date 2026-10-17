@@ -127,7 +127,7 @@ async function listAppointments(clinicId, doctorId = null, page = 1, limit = 50,
     return { success: true, data: decryptedData, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, source }, actor) {
+async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, duration = 60, source }, actor) {
     if (!patientId) {
         throw new AppError('VALIDATION_ERROR', 'patientId is required', 400);
     }
@@ -145,7 +145,7 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
         const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
         start = fromZonedTime(localDateTimeStr, timezone);
         logger.info(`Staff Booking Parsed Time`, { localDateTimeStr, timezone, utc: start.toISOString() });
-        end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1h
+        end = new Date(start.getTime() + Number(duration || 60) * 60 * 1000);
     } else if (startTime && endTime) {
         start = new Date(startTime);
         end = new Date(endTime);
