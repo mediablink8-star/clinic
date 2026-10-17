@@ -94,7 +94,7 @@ describe('Appointments Integration', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${token}`)
         .send({ patientId: 'invalid-id', reason: 'Test', date: dateStr, time: '10:00' })
-        .expect(404);
+        .expect(400);
     });
 
     it('should require authentication', async () => {
