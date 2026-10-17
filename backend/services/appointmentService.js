@@ -8,6 +8,7 @@ const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours, getStartOfD
 const { normalizePhone } = require('../utils/phone');
 const { sendDirectMessage } = require('./messagingService');
 const { fromZonedTime, formatInTimeZone } = require('date-fns-tz');
+const { el: greekLocale } = require('date-fns/locale/el');
 const { encrypt, decrypt } = require('./encryptionService');
 const metrics = require('../utils/metrics');
 
@@ -762,7 +763,7 @@ async function sendConfirmationSms({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
 
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: greekLocale });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''} για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;
