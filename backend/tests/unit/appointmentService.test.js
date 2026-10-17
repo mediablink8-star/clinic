@@ -159,6 +159,30 @@ describe('Appointment Service Unit Tests', () => {
       }, actor)).rejects.toThrow('CONFLICT');
     });
 
+    it('should prevent concurrent overlapping bookings for the same doctor', async () => {
+      const bookingDate = new Date();
+      bookingDate.setDate(bookingDate.getDate() + 13);
+      const dateStr = bookingDate.toISOString().split('T')[0];
+      const patientA = await createTestPatient(clinic.id, { name: 'Overlap A', phone: '+306922222221' });
+      const patientB = await createTestPatient(clinic.id, { name: 'Overlap B', phone: '+306922222222' });
+
+      const results = await Promise.allSettled([
+        createAppointment({
+          clinicId: clinic.id, patientId: patientA.id, reason: 'Overlap race A',
+          date: dateStr, time: '10:00', doctorId: doctor.id,
+        }, actor),
+        createAppointment({
+          clinicId: clinic.id, patientId: patientB.id, reason: 'Overlap race B',
+          date: dateStr, time: '10:30', doctorId: doctor.id,
+        }, actor),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === 'fulfilled');
+      const rejected = results.filter((result) => result.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason.code).toBe('CONFLICT');
+    });
     it('should reject appointment without patientId', async () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 7);
