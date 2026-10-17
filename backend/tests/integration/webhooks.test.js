@@ -98,7 +98,7 @@ describe('Webhooks Integration', () => {
           called_did: '+302101234567',
           call_id: 'test-invalid-secret',
         })
-        .expect(403);
+        .expect(401);
     });
 
     it('should handle NOTIFY_END with duration', async () => {
