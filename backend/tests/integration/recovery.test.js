@@ -1,6 +1,6 @@
 const request = require('supertest');
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken } = require('../setup');
+const app = require('../../index');
 
 describe('Recovery System Integration', () => {
   let clinic, owner, patient, token;
