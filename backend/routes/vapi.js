@@ -172,7 +172,9 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     if (!input || typeof input !== 'object') {
         throw new AppError('VALIDATION_ERROR', 'Missing tool arguments', 400);
     }
-    logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, input });
+    // Tool arguments can contain patient names, phone numbers, and appointment details.
+    // Keep logs to operational metadata rather than copying patient data into log storage.
+    logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, inputKeys: Object.keys(input) });
 
     // Idempotency for tool calls (Vapi may retry).
     // Reserve the key as "processing", but only mark it "done" after the
@@ -224,7 +226,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     httpStatus: 200,
                     errorMessage: null,
                     durationMs: null,
-                    payload: { callId: call_id, fn, input },
+                    payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
                 });
             }
             if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
@@ -251,7 +253,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     httpStatus: 200,
                     errorMessage: null,
                     durationMs: null,
-                    payload: { callId: call_id, fn, input },
+                    payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
                 });
             }
             if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
@@ -267,7 +269,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
             await redis.del(toolIdempotencyKey).catch(() => {});
         }
-        logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, input });
+        logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, inputKeys: Object.keys(input) });
         // Log failed tool call for dead-letter visibility
         if (mc?.clinicId) {
             await recordDelivery({
@@ -279,7 +281,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                 httpStatus: 500,
                 errorMessage: err.message,
                 durationMs: null,
-                payload: { callId: call_id, fn, input },
+                payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
             });
         }
         throw err;
