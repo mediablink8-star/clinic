@@ -23,6 +23,7 @@ const appointmentSchema = Joi.object({
     endTime: Joi.date().iso(),
     date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
     time: Joi.string().pattern(/^\d{2}:\d{2}$/),
+    duration: Joi.number().integer().min(15).max(240).default(60),
     reason: Joi.string().max(500).allow(null, ''),
     priority: Joi.string().valid('NORMAL', 'URGENT').default('NORMAL'),
     doctorId: Joi.string().length(25).allow(null, ''),
