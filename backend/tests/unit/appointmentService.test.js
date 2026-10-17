@@ -188,6 +188,44 @@ describe('Appointment Service Unit Tests', () => {
       expect(rejected).toHaveLength(1);
       expect(rejected[0].reason.code).toBe('CONFLICT');
     });
+    it('should prevent overlapping clinic-level bookings when no doctors are active', async () => {
+      const secondPatient = await createTestPatient(clinic.id, {
+        name: 'Clinic-level booking patient',
+        phone: '+306900000099',
+      });
+      const dateStr = getFutureWeekdayDate(40);
+      const originalDoctor = await testPrisma.doctor.findUnique({ where: { id: doctor.id } });
+      const createdIds = [];
+
+      try {
+        await testPrisma.doctor.update({ where: { id: doctor.id }, data: { isActive: false } });
+
+        const first = await createAppointment({
+          clinicId: clinic.id,
+          patientId: patient.id,
+          reason: 'Clinic-level booking A',
+          date: dateStr,
+          time: '10:00',
+          duration: 60,
+        }, actor);
+        createdIds.push(first.data.id);
+        expect(first.data.doctorId).toBeNull();
+
+        await expect(createAppointment({
+          clinicId: clinic.id,
+          patientId: secondPatient.id,
+          reason: 'Clinic-level booking B',
+          date: dateStr,
+          time: '10:30',
+          duration: 60,
+        }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
+      } finally {
+        await testPrisma.appointment.deleteMany({ where: { id: { in: createdIds } } });
+        await testPrisma.doctor.update({ where: { id: doctor.id }, data: { isActive: originalDoctor.isActive } });
+        await testPrisma.patient.deleteMany({ where: { id: secondPatient.id } });
+      }
+    });
+
     it('should reject appointment without patientId', async () => {
       const dateStr = getFutureWeekdayDate(7);
 
