@@ -20,6 +20,7 @@ const TABS = {
   OVERVIEW: 'overview',
   CLINICS: 'clinics',
   REVENUE: 'revenue',
+  COSTS: 'costs',
   GOLIVE: 'golive',
   USERS: 'users',
   AUDIT: 'audit',
@@ -30,6 +31,7 @@ const TAB_CONFIG = [
   { id: TABS.OVERVIEW, label: 'Επισκόπηση',    icon: BarChart2 },
   { id: TABS.CLINICS,  label: 'Ιατρεία',        icon: Building2 },
   { id: TABS.REVENUE,  label: 'Έσοδα',          icon: DollarSign },
+  { id: TABS.COSTS,    label: 'Κόστη & Κέρδος',  icon: CreditCard },
   { id: TABS.GOLIVE,   label: 'Go-Live',        icon: ListChecks },
   { id: TABS.USERS,    label: 'Χρήστες',        icon: Users },
   { id: TABS.AUDIT,    label: 'Αρχείο',         icon: FileText },
@@ -1015,6 +1017,87 @@ const AuditLogs = () => {
   );
 };
 
+
+/* ─────────────────────────────────────────────────────────────
+   COST LEDGER — actual Stripe receipts + manually entered costs
+   ───────────────────────────────────────────────────────────── */
+const CostsTab = () => {
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [category, setCategory] = useState('VOICE_AI');
+  const [provider, setProvider] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [clinicId, setClinicId] = useState('');
+  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 10));
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['admin-cost-ledger', month],
+    queryFn: () => api.get('/admin/costs', { params: { month } }).then(res => res.data),
+    staleTime: 30000,
+  });
+  const euro = (cents) => new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' }).format((cents || 0) / 100);
+  const labels = { VOICE_AI: 'AI φωνής', TELEPHONY: 'Τηλεφωνία', SMS: 'SMS', HOSTING: 'Hosting', DATABASE: 'Βάση δεδομένων', SOFTWARE: 'Λογισμικό', PAYMENT_FEES: 'Προμήθειες πληρωμών', OTHER: 'Άλλο' };
+  const summary = data?.summary || {};
+  const submit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/admin/costs', {
+        category, provider, description, amount: Number(amount),
+        clinicId: clinicId || null, occurredAt: new Date(occurredAt + 'T12:00:00').toISOString(), isRecurring,
+      });
+      toast.success('Το κόστος καταχωρίστηκε');
+      setProvider(''); setDescription(''); setAmount(''); setIsRecurring(false);
+      await refetch();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Αποτυχία καταχώρισης κόστους');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const panel = { background: 'var(--glass-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem', boxShadow: 'var(--shadow-md)' };
+  const field = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', color: 'var(--text)', fontSize: '0.85rem', boxSizing: 'border-box' };
+  const kpis = [
+    ['Πραγματικές εισπράξεις', euro(summary.revenueCents), 'Stripe invoices με paid status'],
+    ['Συνολικά καταχωρισμένα κόστη', euro(summary.totalCostsCents), 'Ιατρείων + κοινά έξοδα'],
+    ['Εκτιμώμενο λειτουργικό αποτέλεσμα', euro(summary.estimatedOperatingProfitCents), 'Εισπράξεις μείον καταχωρισμένα κόστη'],
+    ['Περιθώριο', summary.marginPercent == null ? '—' : summary.marginPercent + '%', 'Δεν περιλαμβάνει μη καταχωρισμένα κόστη'],
+  ];
+  return <div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+      <div><h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--secondary)' }}>Κόστη & κερδοφορία</h2><p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Εισπράξεις από Stripe και κόστη που καταχωρίζεις εσύ ανά πάροχο και ιατρείο.</p></div>
+      <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Μήνας <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={{ ...field, width: 'auto', marginLeft: '8px' }} /></label>
+    </div>
+    {error && <div style={{ ...panel, marginBottom: '1rem', color: 'var(--urgent)' }}>Δεν ήταν δυνατή η φόρτωση των οικονομικών στοιχείων. <button onClick={() => refetch()}>Δοκιμή ξανά</button></div>}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+      {kpis.map(([label, value, sub]) => <div key={label} style={{ ...panel, padding: '1rem' }}><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--secondary)', margin: '7px 0' }}>{isLoading ? '…' : value}</div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{sub}</div></div>)}
+    </div>
+    <form onSubmit={submit} style={{ ...panel, marginBottom: '1rem' }}>
+      <h3 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 850 }}>Καταχώριση κόστους</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.8rem' }}>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Κατηγορία<select required value={category} onChange={e => setCategory(e.target.value)} style={field}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Πάροχος<input required maxLength={120} value={provider} onChange={e => setProvider(e.target.value)} placeholder="π.χ. Vapi, Zadarma, Render" style={field} /></label>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Ποσό (€)<input required type="number" min="0.01" max="10000000" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" style={field} /></label>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Ημερομηνία<input required type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={field} /></label>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Αντιστοίχιση<select value={clinicId} onChange={e => setClinicId(e.target.value)} style={field}><option value="">Κοινό κόστος πλατφόρμας</option>{(data?.perClinic || []).map(c => <option key={c.clinicId} value={c.clinicId}>{c.clinicName}</option>)}</select></label>
+        <label style={{ fontSize: '0.72rem', fontWeight: 700 }}>Περιγραφή<input required maxLength={500} value={description} onChange={e => setDescription(e.target.value)} placeholder="π.χ. Vapi usage — Οκτώβριος" style={field} /></label>
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '1rem 0', fontSize: '0.78rem', color: 'var(--text-light)' }}><input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} /> Επαναλαμβανόμενο κόστος (σήμανση μόνο — κάθε χρέωση καταχωρίζεται ξεχωριστά)</label>
+      <button disabled={saving} type="submit" style={{ padding: '10px 16px', border: 0, borderRadius: '9px', background: 'linear-gradient(135deg, #635bff, #8b5cf6)', color: '#fff', fontWeight: 800, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'Αποθήκευση…' : 'Προσθήκη κόστους'}</button>
+    </form>
+    <div style={{ ...panel, marginBottom: '1rem' }}>
+      <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 850 }}>Κερδοφορία ανά ιατρείο</h3>
+      <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}><thead><tr>{['Ιατρείο','Πλάνο','Κατάσταση','Εισπράξεις','Άμεσα κόστη','Συνεισφορά','Περιθώριο'].map(t => <th key={t} style={thBase}>{t}</th>)}</tr></thead><tbody>{(data?.perClinic || []).map(c => <tr key={c.clinicId}><td style={tdBase}>{c.clinicName}</td><td style={tdBase}>{c.plan}</td><td style={tdBase}>{c.planStatus}</td><td style={tdBase}>{euro(c.revenueCents)}</td><td style={tdBase}>{euro(c.directCostCents)}</td><td style={{ ...tdBase, fontWeight: 800 }}>{euro(c.contributionCents)}</td><td style={tdBase}>{c.marginPercent == null ? '—' : c.marginPercent + '%'}</td></tr>)}</tbody></table></div>
+    </div>
+    <div style={panel}>
+      <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 850 }}>Καταχωρισμένα έξοδα — {month}</h3>
+      {(data?.costs || []).length === 0 ? <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Δεν υπάρχουν καταχωρισμένα κόστη για αυτόν τον μήνα.</p> : <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '650px' }}><thead><tr>{['Ημερομηνία','Πάροχος / Περιγραφή','Κατηγορία','Ιατρείο','Ποσό'].map(t => <th key={t} style={thBase}>{t}</th>)}</tr></thead><tbody>{data.costs.map(c => <tr key={c.id}><td style={tdBase}>{new Date(c.occurredAt).toLocaleDateString('el-GR')}</td><td style={tdBase}><strong>{c.provider}</strong><div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.description}{c.isRecurring ? ' · Επαναλαμβανόμενο' : ''}</div></td><td style={tdBase}>{labels[c.category] || c.category}</td><td style={tdBase}>{c.clinicName}</td><td style={{ ...tdBase, fontWeight: 800 }}>{euro(c.amountCents)}</td></tr>)}</tbody></table></div>}
+    </div>
+    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>Σημαντικό: το κόστος Vapi/SMS/τηλεφωνίας δεν εισάγεται αυτόματα ακόμη. Καταχώριζε τις πραγματικές χρεώσεις από τα invoices των παρόχων. Οι εισπράξεις εμφανίζονται μόνο από πληρωμένα Stripe invoices σε EUR· οι εκτιμώμενες αξίες ανακτημένων ραντεβού δεν λογίζονται ως έσοδα της ClinicFlow.</p>
+  </div>;
+};
+
 /* ================================================================
    MAIN ADMIN DASHBOARD
    ================================================================ */
@@ -1205,6 +1288,7 @@ const AdminDashboard = () => {
       {activeTab === TABS.OVERVIEW && <PlatformStats data={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
       {activeTab === TABS.CLINICS && <ClinicsTab />}
       {activeTab === TABS.REVENUE && <RevenueTab statsData={statsData} loading={statsLoading} error={statsError} onRetry={statsRefetch} />}
+      {activeTab === TABS.COSTS && <CostsTab />}
       {activeTab === TABS.GOLIVE && <GoLiveTab />}
       {activeTab === TABS.USERS && <UserManagement />}
       {activeTab === TABS.AUDIT && <AuditLogs />}
