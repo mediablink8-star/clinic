@@ -482,7 +482,8 @@ const handleRetry = async (logId, e) => {
                             )}
                         </div>
                     </div>
-                ))}
+                );
+                })}
             </div>
 
             {selected && (
