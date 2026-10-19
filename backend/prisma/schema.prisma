@@ -90,6 +90,7 @@ model Clinic {
   feedEvents     FeedEvent[]
   subscriptionEvents SubscriptionEvent[]
   invoices      Invoice[]
+  operatingCosts OperatingCost[]
   webhookDeliveries WebhookDelivery[]
   
   createdAt    DateTime      @default(now())
@@ -579,4 +580,25 @@ model Holiday {
   @@unique([date, country])
   @@index([date])
   @@index([country, date])
+}
+
+
+model OperatingCost {
+  id          String   @id @default(cuid())
+  clinicId    String?
+  clinic      Clinic?  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  category    String   // VOICE_AI | TELEPHONY | SMS | HOSTING | DATABASE | SOFTWARE | PAYMENT_FEES | OTHER
+  provider    String
+  description String
+  amountCents Int      // EUR cents; always store money as integer cents
+  currency    String   @default("eur")
+  occurredAt  DateTime @default(now())
+  isRecurring Boolean  @default(false) // metadata only; each charge is entered once per period
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clinicId, occurredAt])
+  @@index([category, occurredAt])
+  @@index([occurredAt])
 }
