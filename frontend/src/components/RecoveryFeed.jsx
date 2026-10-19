@@ -325,183 +325,73 @@ const handleRetry = async (logId, e) => {
             </div>
             <div className="feed-list">
                 {filtered.map((item) => {
-        const offset = swipeOffset[item.id]?.currentX ?? 0;
-        const isSwiping = swipingId === item.id;
-        const showLeftActions = offset < -SWIPE_THRESHOLD;
-        const showRightActions = offset > SWIPE_THRESHOLD;
+                    const offset = swipeOffset[item.id]?.currentX ?? 0;
+                    const isSwiping = swipingId === item.id;
+                    const showLeftActions = offset < -SWIPE_THRESHOLD;
+                    const showRightActions = offset > SWIPE_THRESHOLD;
 
-        return (
-            <div
-                key={item.id}
-                className="feed-item"
-                style={{
-                    borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
-                    backgroundColor: getActionBackground(item),
-                    transform: isSwiping ? `translateX(${offset}px)` : undefined,
-                    transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    zIndex: isSwiping ? 10 : 1,
-                }}
-                onTouchStart={(e) => handleTouchStart(e, item.id)}
-                onTouchMove={(e) => handleTouchMove(e, item.id)}
-                onTouchEnd={() => handleTouchEnd(item.id, item)}
-                onMouseDown={(e) => handleTouchStart(e, item.id)}
-                onMouseMove={(e) => {
-                    if (swipingId === item.id) handleTouchMove(e, item.id);
-                }}
-                onMouseUp={() => handleTouchEnd(item.id, item)}
-                onMouseLeave={() => handleTouchEnd(item.id, item)}
-                onClick={() => !isSwiping && handleItemClick(item)}
-            >
-                {/* Swipe Left Actions (Mark Recovered / Follow-up) */}
-                <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: SWIPE_MAX,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    paddingLeft: '16px',
-                    background: 'linear-gradient(90deg, var(--success) 0%, var(--success) 100%)',
-                    borderRadius: '12px 0 0 12px',
-                    opacity: offset < 0 ? Math.min(1, Math.abs(offset) / SWIPE_THRESHOLD) : 0,
-                    pointerEvents: 'none',
-                    zIndex: -1,
-                }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('left', item); }}
+                    return (
+                        <div
+                            key={item.id}
+                            className="feed-item"
                             style={{
-                                padding: '8px 12px', borderRadius: '8px', border: 'none',
-                                background: 'rgba(255,255,255,0.2)', color: 'white',
-                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                                backdropFilter: 'blur(4px)',
+                                borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
+                                backgroundColor: getActionBackground(item),
+                                transform: isSwiping ? `translateX(${offset}px)` : undefined,
+                                transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                zIndex: isSwiping ? 10 : 1,
                             }}
-                        >
-                            <Check size={12} /> <span style={{fontSize:'0.65rem'}}>Ανακτήθηκε</span>
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('left', item); }}
-                            style={{
-                                padding: '8px 12px', borderRadius: '8px', border: 'none',
-                                background: 'rgba(255,255,255,0.2)', color: 'white',
-                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                                backdropFilter: 'blur(4px)',
+                            onTouchStart={(e) => handleTouchStart(e, item.id)}
+                            onTouchMove={(e) => handleTouchMove(e, item.id)}
+                            onTouchEnd={() => handleTouchEnd(item.id, item)}
+                            onMouseDown={(e) => handleTouchStart(e, item.id)}
+                            onMouseMove={(e) => {
+                                if (swipingId === item.id) handleTouchMove(e, item.id);
                             }}
+                            onMouseUp={() => handleTouchEnd(item.id, item)}
+                            onMouseLeave={() => handleTouchEnd(item.id, item)}
+                            onClick={() => !isSwiping && handleItemClick(item)}
                         >
-                            <MessageSquareIcon size={12} /> <span style={{fontSize:'0.65rem'}}>Follow-up</span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Swipe Right Actions (Call / View) */}
-                <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: SWIPE_MAX,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    paddingRight: '16px',
-                    background: 'linear-gradient(270deg, var(--primary) 0%, var(--primary-vibrant) 100%)',
-                    borderRadius: '0 12px 12px 0',
-                    opacity: offset > 0 ? Math.min(1, offset / SWIPE_THRESHOLD) : 0,
-                    pointerEvents: 'none',
-                    zIndex: -1,
-                }}>
-                    <div style={{ display: 'flex', gap: '8px', flexDirection: 'row-reverse' }}>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('right', item); }}
-                            style={{
-                                padding: '8px 12px', borderRadius: '8px', border: 'none',
-                                background: 'rgba(255,255,255,0.2)', color: 'white',
-                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                                backdropFilter: 'blur(4px)',
-                            }}
-                        >
-                            <PhoneIcon size={12} /> <span style={{fontSize:'0.65rem'}}>Καλέστε</span>
-                        </button>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleSwipeAction('right', item); }}
-                            style={{
-                                padding: '8px 12px', borderRadius: '8px', border: 'none',
-                                background: 'rgba(255,255,255,0.2)', color: 'white',
-                                fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '4px',
-                                backdropFilter: 'blur(4px)',
-                            }}
-                        >
-                            <Eye size={12} /> <span style={{fontSize:'0.65rem'}}>Δείτε</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div
-                    key={item.id}
-                    className="feed-item"
-                    style={{
-                        borderLeftColor: item.cfg?.dot || (item.raw?.status === 'DETECTED' ? '#ef4444' : 'var(--primary)'),
-                        backgroundColor: getActionBackground(item),
-                        transform: isSwiping ? `translateX(${offset}px)` : undefined,
-                        transition: isSwiping ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        zIndex: isSwiping ? 10 : 1,
-                    }}
-                    onTouchStart={(e) => handleTouchStart(e, item.id)}
-                    onTouchMove={(e) => handleTouchMove(e, item.id)}
-                    onTouchEnd={() => handleTouchEnd(item.id, item)}
-                    onMouseDown={(e) => handleTouchStart(e, item.id)}
-                    onMouseMove={(e) => {
-                        if (swipingId === item.id) handleTouchMove(e, item.id);
-                    }}
-                    onMouseUp={() => handleTouchEnd(item.id, item)}
-                    onMouseLeave={() => handleTouchEnd(item.id, item)}
-                    onClick={() => !isSwiping && handleItemClick(item)}
-                >
-                        <div className="feed-content">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                                <div className="feed-name">{item.name}</div>
-                                {getOutcomeBadge(item)}
+                            <div className="feed-content">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                    <div className="feed-name">{item.name}</div>
+                                    {getOutcomeBadge(item)}
+                                </div>
+                                <div className="feed-sub">{item.sub}</div>
                             </div>
-                            <div className="feed-sub">{item.sub}</div>
+                            <div className="feed-right">
+                                <span className="feed-time">{item.time}</span>
+                                {!item.isNewFormat && item.raw?.status === 'RECOVERED' && (
+                                    <span className="badge-success">+€{item.raw.estimatedRevenue || 80}</span>
+                                )}
+                                {!item.isNewFormat && item.raw?.smsStatus === 'failed' && (
+                                    <button className={`btn-retry ${retrying[item.id]}`} onClick={(e) => handleRetry(item.id, e)} disabled={!!retrying[item.id]}>
+                                        {retrying[item.id] === 'retrying' ? '...' : retrying[item.id] === 'sent' ? '✓' : '↻'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <div className="feed-right">
-                            <span className="feed-time">{item.time}</span>
-                            {!item.isNewFormat && item.raw?.status === 'RECOVERED' && (
-                                <span className="badge-success">+€{item.raw.estimatedRevenue || 80}</span>
-                            )}
-                            {!item.isNewFormat && item.raw?.smsStatus === 'failed' && (
-                                <button className={`btn-retry ${retrying[item.id]}`} onClick={(e) => handleRetry(item.id, e)} disabled={!!retrying[item.id]}>
-                                    {retrying[item.id] === 'retrying' ? '...' : retrying[item.id] === 'sent' ? '✓' : '↻'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )) } }
+                    );
+                })}
             </div>
 
-            {selected && (
+            {selected ? (
                 <ActionPanel
                     log={selected}
                     token={token}
                     onClose={() => setSelected(null)}
                     onNavigate={onNavigate}
                 />
-            )}
+            ) : null}
 
-            {selectedMissedCall && (
+            {selectedMissedCall ? (
                 <ActionPanel
                     log={selectedMissedCall}
                     token={token}
                     onClose={() => setSelectedMissedCall(null)}
                     onNavigate={onNavigate}
                 />
-            )}
+            ) : null}
 
             <style>{`
                 .feed-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }

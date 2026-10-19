@@ -1,4 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const pg = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -14,16 +16,16 @@ process.env.VAPI_ASSISTANT_ID = 'test-assistant';
 process.env.VAPI_PHONE_NUMBER_ID = 'test-phone';
 process.env.TWILIO_ACCOUNT_SID = 'test-sid';
 process.env.TWILIO_AUTH_TOKEN = 'test-token';
-process.env.TWILIO_PHONE_NUMBER = '+302101234567';
+process.env.TWILIO_PHONE_NUMBER = '+302100004567';
 process.env.GEMINI_API_KEY = 'test-gemini-key';
 process.env.BACKEND_API_URL = 'http://localhost:4000';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
-const testPrisma = new PrismaClient({
-  log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
-});
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const testPrisma = new PrismaClient({ adapter });
 
 let testClinicId = null;
 let testUserId = null;

@@ -51,8 +51,14 @@
       }
     },
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    }
+      "^@/(.*)$": "<rootDir>/$1",
+      "^otplib$": "<rootDir>/tests/mocks/otplib.js",
+      "^@otplib/.*$": "<rootDir>/tests/mocks/otplib.js",
+      "^@scure/.*$": "<rootDir>/tests/mocks/otplib.js"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!otplib|@otplib|@scure|@scurebase32)"
+    ]
   },
   "keywords": [],
   "author": "",

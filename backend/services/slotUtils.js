@@ -32,7 +32,23 @@ const EN_DAY_INDEX = {
 };
 
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    if (!rangeStr) return null;
+    // Handle object format: { open: "09:00", close: "18:00", closed: false }
+    if (typeof rangeStr === 'object') {
+        if (rangeStr.closed) return null;
+        const openMatch = (rangeStr.open || '').match(/(\d{1,2}):(\d{2})/);
+        const closeMatch = (rangeStr.close || '').match(/(\d{1,2}):(\d{2})/);
+        if (!openMatch || !closeMatch) return null;
+        return {
+            openHour: parseInt(openMatch[1], 10),
+            openMinute: parseInt(openMatch[2], 10),
+            closeHour: parseInt(closeMatch[1], 10),
+            closeMinute: parseInt(closeMatch[2], 10),
+        };
+    }
+    // Handle string format: "09:00-18:00"
+    if (typeof rangeStr !== 'string') return null;
+    if (/closed/i.test(rangeStr)) return null;
     const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return {
@@ -282,6 +298,11 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
     return slots;
 }
 
+function parseDateTimeInTimezone(date, time, timezone) {
+    const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
+    return fromZonedTime(localDateTimeStr, timezone);
+}
+
 module.exports = {
     parseHoursRange,
     resolveRangeForDate,
@@ -290,4 +311,5 @@ module.exports = {
     getLocalDateParts,
     getStartOfDay,
     getStartOfMonth,
+    parseDateTimeInTimezone,
 };
