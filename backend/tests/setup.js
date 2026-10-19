@@ -8,6 +8,7 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
 process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/clinic_test';
+process.env.DB_ENCRYPTION_KEY = 'test-db-encryption-key-32-chars-min!!';
 process.env.REDIS_URL = 'redis://localhost:6379/1';
 process.env.DISABLE_REDIS = 'true';
 process.env.DISABLE_WORKER = 'true';
