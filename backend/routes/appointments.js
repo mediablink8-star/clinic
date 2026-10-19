@@ -88,25 +88,25 @@ router.get('/appointments', asyncHandler(async (req, res) => {
     const l = Math.min(100, Math.max(1, parseInt(limit) || 50));
     const deleted = req.query.deleted === 'true';
     const { data, total, totalPages } = await listAppointments(req.clinicId, doctorId, p, l, deleted, req.user, dateFrom, dateTo);
-    res.json({ data, total, page: p, limit: l, totalPages });
+    res.json({ success: true, data, total, page: p, limit: l, totalPages });
 }));
 
 router.post('/appointments', validate(appointmentSchema), asyncHandler(async (req, res) => {
-    const { patientId, reason, startTime, endTime, priority, doctorId, date, time } = req.body;
-    const { data } = await createAppointment(
-        { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time },
+    const { patientId, reason, startTime, endTime, priority, doctorId, date, time, duration } = req.body;
+    const result = await createAppointment(
+        { clinicId: req.clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, duration },
         { userId: req.user.userId, ip: req.ip }
     );
-    res.json(data);
+    res.status(201).json(result);
 }));
 
 router.put('/appointments/:id/status', asyncHandler(async (req, res) => {
     const { status } = req.body;
-    const { data } = await updateAppointmentStatus(
+    const result = await updateAppointmentStatus(
         { clinicId: req.clinicId, appointmentId: req.params.id, status },
         { userId: req.user.userId, ip: req.ip }
     );
-    res.json(data);
+    res.json(result);
 }));
 
 router.delete('/appointments/:id', asyncHandler(async (req, res) => {
@@ -135,18 +135,10 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
         });
         if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
-        // Serialize reassignment against simultaneous bookings/reassignments
-        // for the target doctor/time slot. The clinic ID is part of the lock
-        // key so tenants can never contend with or affect each other.
+        // Share the same lock as all booking paths so reassignment cannot
+        // race with a new booking for an overlapping interval.
         await tx.$queryRaw`
-            SELECT pg_advisory_xact_lock(
-                hashtext(CONCAT(
-                    ${req.clinicId}, ':',
-                    COALESCE(${doctorId || existing.doctorId || 'UNASSIGNED'}, ':UNASSIGNED'),
-                    ':', ${existing.startTime.toISOString()},
-                    ':', ${existing.endTime.toISOString()}
-                ))
-            )
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${req.clinicId}::text, ':APPOINTMENT_BOOKING')))) t
         `;
 
         if (doctorId) {
@@ -154,21 +146,21 @@ router.patch('/appointments/:id/doctor', asyncHandler(async (req, res) => {
                 where: { id: doctorId, clinicId: req.clinicId, isActive: true }
             });
             if (!doctor) throw new AppError('NOT_FOUND', 'Doctor not found or inactive', 404);
+        }
 
-            const conflict = await tx.$queryRaw`
-                SELECT id FROM "Appointment"
-                WHERE "clinicId" = ${req.clinicId}
-                AND "doctorId" = ${doctorId}
-                AND id != ${req.params.id}
-                AND "deletedAt" IS NULL
-                AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                AND "startTime" < ${existing.endTime}
-                AND "endTime" > ${existing.startTime}
-                LIMIT 1
-            `;
-            if (conflict.length > 0) {
-                throw new AppError('CONFLICT', 'This doctor already has an appointment at this time', 409);
-            }
+        const conflict = await tx.$queryRaw`
+            SELECT id FROM "Appointment"
+            WHERE "clinicId" = ${req.clinicId}
+            AND "doctorId" IS NOT DISTINCT FROM ${doctorId || null}
+            AND id != ${req.params.id}
+            AND "deletedAt" IS NULL
+            AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+            AND "startTime" < ${existing.endTime}
+            AND "endTime" > ${existing.startTime}
+            LIMIT 1
+        `;
+        if (conflict.length > 0) {
+            throw new AppError('CONFLICT', 'The target doctor or unassigned schedule already has an appointment at this time', 409);
         }
 
         return tx.appointment.update({
@@ -207,7 +199,7 @@ router.get('/appointments/available', asyncHandler(async (req, res) => {
         throw new AppError('VALIDATION_ERROR', 'Invalid date provided', 400);
     }
 
-    const slots = await getAvailableSlots(req.clinicId, targetDate, doctorId);
+    const slots = await getAvailableSlots(req.clinicId, targetDate, doctorId || null);
     res.json({ success: true, date: targetDate.toISOString().split('T')[0], slots });
 }));
 

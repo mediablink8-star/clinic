@@ -4,10 +4,11 @@ const { logAction } = require('./auditService');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
 const { DEFAULT_TIMEZONE } = require('../utils/dateConstants');
-const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours, getStartOfDay } = require('./slotUtils');
+const { getAvailableSlots: _getAvailableSlots, isWithinWorkingHours, getStartOfDay, parseDateTimeInTimezone } = require('./slotUtils');
 const { normalizePhone } = require('../utils/phone');
 const { sendDirectMessage } = require('./messagingService');
 const { fromZonedTime, formatInTimeZone } = require('date-fns-tz');
+const { el: greekLocale } = require('date-fns/locale/el');
 const { encrypt, decrypt } = require('./encryptionService');
 const metrics = require('../utils/metrics');
 
@@ -127,7 +128,7 @@ async function listAppointments(clinicId, doctorId = null, page = 1, limit = 50,
     return { success: true, data: decryptedData, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, source }, actor) {
+async function createAppointment({ clinicId, patientId, reason, startTime, endTime, priority, doctorId, date, time, duration = 60, source }, actor) {
     if (!patientId) {
         throw new AppError('VALIDATION_ERROR', 'patientId is required', 400);
     }
@@ -143,9 +144,13 @@ async function createAppointment({ clinicId, patientId, reason, startTime, endTi
     if (date && time) {
         // Construct local string WITHOUT 'T' or 'Z'
         const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
-        start = fromZonedTime(localDateTimeStr, timezone);
-        logger.info(`Staff Booking Parsed Time`, { localDateTimeStr, timezone, utc: start.toISOString() });
-        end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1h
+        try {
+            start = parseDateTimeInTimezone(date.trim(), time.trim(), timezone);
+        } catch (error) {
+            throw new AppError('VALIDATION_ERROR', 'The requested local date/time does not exist in the clinic timezone.', 400);
+        }
+        logger.info('Staff Booking Parsed Time', { timezone, utc: start.toISOString() });
+        end = new Date(start.getTime() + Number(duration || 60) * 60 * 1000);
     } else if (startTime && endTime) {
         start = new Date(startTime);
         end = new Date(endTime);
@@ -170,10 +175,13 @@ try {
          appointment = await prisma.$transaction(async (tx) => {
              let assignedDoctorId = doctorId;
 
-             // Serialize concurrent attempts for the same slot. FOR UPDATE alone
-             // cannot lock a row that does not exist yet.
+             // Serialize appointment creation within this clinic. A lock keyed by the
+             // exact start/end only protects identical intervals: overlapping intervals
+             // (for example 10:00–11:00 and 10:30–11:30) take different locks and can
+             // both pass the conflict query when no appointment exists yet.
+             // This clinic-scoped transaction lock protects explicit and auto-assigned bookings.
              await tx.$queryRaw`
-                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', COALESCE(${assignedDoctorId}, 'AUTO'), ':', ${start.toISOString()}::text, ':', ${end.toISOString()}::text)))) t
+                 SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
              `;
 
              // Handle "Auto-assign" if no doctor provided in a multi-doctor clinic
@@ -197,12 +205,14 @@ try {
                          const conflict = await tx.$queryRaw`
                              SELECT id FROM "Appointment"
                              WHERE "clinicId" = ${clinicId}
-                             AND "doctorId" = ${doc.id}
+                             AND ("doctorId" IS NULL OR "doctorId" = ${doc.id})
+                             AND "deletedAt" IS NULL
+                             AND "isTest" = false
                              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                              AND "startTime" < ${end}
                              AND "endTime" > ${start}
-                             FOR UPDATE
                              LIMIT 1
+                             FOR UPDATE
                          `;
 
                          if (!conflict || conflict.length === 0) {
@@ -215,18 +225,36 @@ try {
                         logger.warn('AppointmentService No available doctors for slot', { startTime: start.toISOString() });
                         throw new AppError('CONFLICT', 'No doctors are available at this time', 409);
                     }
+                 } else {
+                     // With no active doctors, appointments use a clinic-level resource.
+                     // Serialize and check all appointments so two unassigned bookings
+                     // cannot overlap and an old doctor booking is not double-booked.
+                     const conflict = await tx.$queryRaw`
+                         SELECT id FROM "Appointment"
+                         WHERE "clinicId" = ${clinicId}
+                           AND "deletedAt" IS NULL
+                           AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                           AND "startTime" < ${end}
+                           AND "endTime" > ${start}
+                         LIMIT 1
+                     `;
+                     if (conflict.length > 0) {
+                         throw new AppError('CONFLICT', 'The clinic is already booked at this time', 409);
+                     }
                  }
              } else {
                 // Specific doctor check
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
-                    AND "doctorId" = ${assignedDoctorId}
+                    AND ("doctorId" IS NULL OR "doctorId" = ${assignedDoctorId})
+                    AND "deletedAt" IS NULL
+                    AND "isTest" = false
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${end}
                     AND "endTime" > ${start}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
                 
                 if (conflict && conflict.length > 0) {
@@ -380,6 +408,30 @@ async function updateAppointmentStatus({ clinicId, appointmentId, status }, acto
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or deleted', 404);
 
     const appointment = await prisma.$transaction(async (tx) => {
+        // Status changes can reactivate a cancelled/no-show slot. Serialize them
+        // with every booking path and re-check before making the slot active.
+        await tx.$queryRaw`
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
+        `;
+
+        if (status !== 'CANCELLED' && status !== 'NO_SHOW') {
+            const conflicts = await tx.$queryRaw`
+                SELECT id FROM "Appointment"
+                WHERE "clinicId" = ${clinicId}
+                  AND (${existing.doctorId}::text IS NULL OR "doctorId" IS NULL OR "doctorId" = ${existing.doctorId})
+                  AND id <> ${appointmentId}
+                  AND "deletedAt" IS NULL
+                  AND "isTest" = ${existing.isTest}
+                  AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+                  AND "startTime" < ${existing.endTime}
+                  AND "endTime" > ${existing.startTime}
+                LIMIT 1
+            `;
+            if (conflicts.length > 0) {
+                throw new AppError('CONFLICT', 'Cannot reactivate appointment because its time slot is already booked', 409);
+            }
+        }
+
         const updated = await tx.appointment.update({
             where: { id: appointmentId },
             data: { status }
@@ -518,33 +570,33 @@ async function restoreAppointment({ clinicId, appointmentId }, actor) {
     if (!existing) throw new AppError('NOT_FOUND', 'Appointment not found or not deleted', 404);
 
     await prisma.$transaction(async (tx) => {
-        // Serialize restoration with concurrent bookings for the same clinic/doctor/slot.
+        // Share the clinic booking lock so restore cannot race with any
+        // staff, AI, or public booking for an overlapping interval.
         await tx.$queryRaw`
-            SELECT pg_advisory_xact_lock(hashtext(CONCAT(
-                ${clinicId}, ':',
-                COALESCE(${existing.doctorId}, 'AUTO'), ':',
-                ${existing.startTime.toISOString()}, ':',
-                ${existing.endTime.toISOString()}
-            )))
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
         `;
 
         // A deleted appointment can still occupy the slot in the database, so
         // restoring it must re-check for an active overlapping appointment.
-        if (existing.doctorId) {
-            const conflict = await tx.$queryRaw`
-                SELECT id FROM "Appointment"
-                WHERE "clinicId" = ${clinicId}
-                  AND "doctorId" = ${existing.doctorId}
-                  AND "id" <> ${appointmentId}
-                  AND "deletedAt" IS NULL
-                  AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
-                  AND "startTime" < ${existing.endTime}
-                  AND "endTime" > ${existing.startTime}
-                LIMIT 1
-            `;
-            if (conflict.length > 0) {
-                throw new AppError('CONFLICT', 'Cannot restore appointment because the time slot is already booked', 409);
-            }
+        // Unassigned bookings reserve the clinic-level resource and conflict with all doctors.
+        const conflict = await tx.$queryRaw`
+            SELECT id FROM "Appointment"
+            WHERE "clinicId" = ${clinicId}
+              AND (
+                ${existing.doctorId}::text IS NULL
+                OR "doctorId" IS NULL
+                OR "doctorId" = ${existing.doctorId}
+              )
+              AND "id" <> ${appointmentId}
+              AND "deletedAt" IS NULL
+              AND "isTest" = ${existing.isTest}
+              AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
+              AND "startTime" < ${existing.endTime}
+              AND "endTime" > ${existing.startTime}
+            LIMIT 1
+        `;
+        if (conflict.length > 0) {
+            throw new AppError('CONFLICT', 'Cannot restore appointment because the time slot is already booked', 409);
         }
 
         await tx.appointment.update({
@@ -678,7 +730,7 @@ async function scheduleAppointmentReminder({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
     
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el').el });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Υπενθύμιση ραντεβού 📅\n${clinicName}: ${dateStr} στις ${timeStr}${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''}.\nΣας περιμένουμε! 😊`;
@@ -723,7 +775,7 @@ async function sendConfirmationSms({ appointment, patient, clinic }) {
     const clinicName = clinic.name || 'το ιατρείο';
 
     // Use clinic timezone for formatting
-    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: require('date-fns/locale/el') });
+    const dateStr = formatInTimeZone(appointmentStart, timezone, 'EEEE d MMMM', { locale: greekLocale });
     const timeStr = formatInTimeZone(appointmentStart, timezone, 'HH:mm');
 
     const message = `Επιβεβαίωση Ραντεβού 📅\n${clinicName}: Το ραντεβού σας κατοχυρώθηκε${appointment.doctor?.name ? ` με τον/την ${appointment.doctor.name}` : ''} για ${dateStr} στις ${timeStr}. Σας περιμένουμε! 😊`;

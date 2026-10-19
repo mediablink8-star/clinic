@@ -408,7 +408,7 @@ app.post('/api/webhook/sms-status', express.urlencoded({ extended: false }), asy
         return res.sendStatus(403);
     }
     const { MessageSid, MessageStatus, To, ErrorCode } = req.body;
-    logger.info('Twilio status callback', { status: MessageStatus, sid: MessageSid, to: To });
+    logger.info('Twilio status callback', { status: MessageStatus, sid: MessageSid, toPhoneTail: To ? String(To).slice(-4) : null });
     if (MessageSid && MessageStatus) {
         await prisma.messageLog.updateMany({
             where: { providerMessageSid: MessageSid },
@@ -630,7 +630,9 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 // Graceful shutdown — finish in-flight requests before exiting
 const { getZadarmaSecret } = require('./middleware/webhookAuth');
 
-// Start server after DB connection is confirmed
+// Export the Express app for Supertest without opening sockets or starting workers.
+// Production startup only runs when this file is the process entry point.
+if (require.main === module) {
 prisma.connectWithRetry().then(() => {
     server = app.listen(port, () => {
         logger.info(`SaaS Backend running on port ${port}`);
@@ -724,3 +726,7 @@ if (process.env.DISABLE_WORKER !== 'true') {
 }
 
 });
+
+}
+
+module.exports = app;

@@ -15,27 +15,27 @@ describe('Slot Utils Unit Tests', () => {
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
       workingHours: JSON.stringify({
-        monday: { open: '09:00', close: '18:00', closed: false },
-        tuesday: { open: '09:00', close: '18:00', closed: false },
-        wednesday: { open: '09:00', close: '18:00', closed: false },
-        thursday: { open: '09:00', close: '18:00', closed: false },
-        friday: { open: '09:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '14:00', closed: false },
-        sunday: { closed: true },
+        'Κυριακή': '',
+        'Δευτέρα': '09:00-18:00',
+        'Τρίτη': '09:00-18:00',
+        'Τετάρτη': '09:00-18:00',
+        'Πέμπτη': '09:00-18:00',
+        'Παρασκευή': '09:00-18:00',
+        'Σάββατο': '09:00-14:00',
       }),
     });
 
     doctor = await createTestDoctor(clinic.id, {
       name: 'Dr. Test',
-      workingHours: JSON.stringify({
-        monday: { open: '10:00', close: '16:00', closed: false },
-        tuesday: { open: '10:00', close: '16:00', closed: false },
-        wednesday: { closed: true },
-        thursday: { open: '10:00', close: '16:00', closed: false },
-        friday: { open: '10:00', close: '16:00', closed: false },
-        saturday: { closed: true },
-        sunday: { closed: true },
-      }),
+      workingHours: {
+        'Κυριακή': '',
+        'Δευτέρα': '10:00-16:00',
+        'Τρίτη': '10:00-16:00',
+        'Τετάρτη': '',
+        'Πέμπτη': '10:00-16:00',
+        'Παρασκευή': '10:00-16:00',
+        'Σάββατο': '',
+      },
     });
   });
 
@@ -125,6 +125,27 @@ describe('Slot Utils Unit Tests', () => {
       expect(slots).not.toContain('11:00');
     });
 
+    it('should block doctor slots occupied by an unassigned clinic appointment', async () => {
+      const patient = await testPrisma.patient.create({
+        data: { clinicId: clinic.id, name: 'Unassigned Booking', phone: '+306999999998' },
+      });
+      const start = new Date('2026-01-19T09:00:00.000Z'); // 11:00 Athens
+      await testPrisma.appointment.create({
+        data: {
+          clinicId: clinic.id,
+          patientId: patient.id,
+          doctorId: null,
+          startTime: start,
+          endTime: new Date(start.getTime() + 60 * 60000),
+          reason: 'Unassigned existing booking',
+          status: 'CONFIRMED',
+        },
+      });
+
+      const slots = await getAvailableSlots(clinic.id, new Date('2026-01-19'), 'Europe/Athens', 60, doctor.id);
+      expect(slots).not.toContain('11:00');
+    });
+
     it('should handle different timezone', async () => {
       const date = new Date('2026-01-12');
       const slots = await getAvailableSlots(clinic.id, date, 'America/New_York', 60, null);
@@ -188,10 +209,8 @@ describe('Slot Utils Unit Tests', () => {
       const date = new Date('2026-01-15T15:30:00.000Z');
       const start = getStartOfDay(date, 'Europe/Athens');
       
-      expect(start.getHours()).toBe(0);
-      expect(start.getMinutes()).toBe(0);
-      expect(start.getSeconds()).toBe(0);
-      expect(start.getMilliseconds()).toBe(0);
+      // Athens is UTC+2 in January, so local midnight is 22:00 UTC on the prior day.
+      expect(start.toISOString()).toBe('2026-01-14T22:00:00.000Z');
     });
 
     it('should handle different timezones', () => {
@@ -246,6 +265,11 @@ describe('Slot Utils Unit Tests', () => {
     it('should throw on invalid time format', () => {
       expect(() => parseDateTimeInTimezone('2026-01-15', '25:00', 'Europe/Athens'))
         .toThrow();
+    });
+
+    it('should reject a nonexistent local time during the spring DST jump', () => {
+      expect(() => parseDateTimeInTimezone('2026-03-29', '03:30', 'Europe/Athens'))
+        .toThrow('Local time does not exist in the requested timezone');
     });
   });
 });

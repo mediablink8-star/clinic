@@ -1,6 +1,6 @@
 const request = require('supertest');
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, generateTestToken } = require('../setup');
+const app = require('../../index');
 
 describe('Recovery System Integration', () => {
   let clinic, owner, patient, token;
@@ -8,7 +8,7 @@ describe('Recovery System Integration', () => {
   beforeAll(async () => {
     clinic = await createTestClinic({
       timezone: 'Europe/Athens',
-      vapiApiKey: 'test-vapi-key',
+      webhookSecret: 'test-webhook-secret-123',
       vapiAssistantId: 'test-assistant-id',
       vapiPhoneNumberId: 'test-phone-id',
     });
@@ -20,7 +20,7 @@ describe('Recovery System Integration', () => {
   describe('Missed Call Detection', () => {
     it('should create missed call via webhook', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -37,12 +37,12 @@ describe('Recovery System Integration', () => {
       });
       expect(missedCall).not.toBeNull();
       expect(missedCall.fromNumber).toBe('+306912345678');
-      expect(missedCall.status).toBe('DETECTED');
+      expect(missedCall.status).toBe('RECOVERING');
     });
 
     it('should link missed call to existing patient', async () => {
       const res = await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -60,12 +60,12 @@ describe('Recovery System Integration', () => {
 
     it('should deduplicate by callSid', async () => {
       await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
       await request(app)
-        .post('/api/webhook/zadarma/test-webhook-secret')
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({ event: 'NOTIFY_START', caller_id: '+306999999999', called_did: '+302101234567', call_id: 'dup-call' })
         .expect(200);
 
@@ -148,21 +148,25 @@ describe('Recovery System Integration', () => {
       });
     });
 
-    it('should handle inbound SMS and update conversation state', async () => {
+    it('should record inbound SMS and engage the recovery case', async () => {
       const res = await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhook/inbound-sms')
+        .set('X-ClinicFlow-Secret', clinic.webhookSecret)
         .send({
-          From: '+306977777777',
-          To: '+302101234567',
-          Body: 'Ναι, θέλω ραντεβού',
-          MessageSid: 'test-sms-inbound-1',
+          clinicId: clinic.id,
+          from: '+306977777777',
+          to: '+302101234567',
+          body: 'Ναι, θέλω ραντεβού',
+          missedCallId: conversationMissedCallId,
+          providerMessageSid: 'test-sms-inbound-1',
         })
         .expect(200);
 
-      const mc = await testPrisma.missedCall.findUnique({
-        where: { id: conversationMissedCallId },
+      expect(res.body.success).toBe(true);
+      const recoveryCase = await testPrisma.recoveryCase.findFirst({
+        where: { clinicId: clinic.id, missedCallId: conversationMissedCallId },
       });
-      expect(mc.conversationState).toBe('BOOKING');
+      expect(recoveryCase.state).toBe('ENGAGED');
     });
 
     it('should handle STOP opt-out', async () => {
@@ -177,12 +181,15 @@ describe('Recovery System Integration', () => {
       });
 
       await request(app)
-        .post('/api/webhook/twilio/sms')
+        .post('/api/webhook/inbound-sms')
+        .set('X-ClinicFlow-Secret', clinic.webhookSecret)
         .send({
-          From: '+306966666666',
-          To: '+302101234567',
-          Body: 'STOP',
-          MessageSid: 'test-sms-stop',
+          clinicId: clinic.id,
+          from: '+306966666666',
+          to: '+302101234567',
+          body: 'STOP',
+          missedCallId: mc.id,
+          providerMessageSid: 'test-sms-stop',
         })
         .expect(200);
 

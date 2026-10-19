@@ -3,6 +3,7 @@ const prisma = require('./prisma');
 const { assertWithinSmsLimit, ensureMonthlyUsageWindow } = require('./usageService');
 const AppError = require('../errors/AppError');
 const logger = require('../utils/logger');
+const { normalizePhone } = require('../utils/phone');
 
 function getClient() {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -82,7 +83,27 @@ async function sendSms({ to, body }) {
     return { success: false, error: lastError?.message || 'Unknown error' };
 }
 
-async function sendSmsWithTracking({ to, body, clinicId }) {
+async function sendSmsWithTracking({ to, body, clinicId, allowOptedOut = false }) {
+    // Enforce phone-level opt-outs centrally so every automated SMS path is covered.
+    // The STOP acknowledgement is the only caller allowed to bypass this guard.
+    if (!allowOptedOut) {
+        const normalizedTo = normalizePhone(to);
+        try {
+            const optedOutPatient = await prisma.patient.findFirst({
+                where: { clinicId, phone: normalizedTo, optedOut: true },
+                select: { id: true },
+            });
+            if (optedOutPatient) {
+                logger.info('SMS blocked for opted-out patient', { clinicId, phoneTail: normalizedTo.slice(-4) });
+                return { success: false, error: 'Recipient has opted out of SMS messages', code: 'SMS_OPTED_OUT' };
+            }
+        } catch (err) {
+            // Fail closed if consent cannot be checked; do not send without consent state.
+            logger.error('Unable to verify SMS opt-out state; blocking send', { clinicId, error: err.message });
+            return { success: false, error: 'Unable to verify SMS consent', code: 'SMS_CONSENT_CHECK_FAILED' };
+        }
+    }
+
     // Reserve the credit and usage slot BEFORE calling the provider. This
     // closes the race where concurrent sends could all pass the preflight
     // check and only one would be charged after delivery.

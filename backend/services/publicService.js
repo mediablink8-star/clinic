@@ -79,11 +79,11 @@ async function getAvailableSlots(clinicId, date, doctorId = null) {
   return { success: true, data: slots, reason: slots.length === 0 ? 'no_working_hours' : null };
 }
 
-const { formatInTimeZone, fromZonedTime, toZonedTime } = require('date-fns-tz');
+const { formatInTimeZone } = require('date-fns-tz');
 
 function parseDateTimeInTimezone(date, time, timezone) {
-  const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
-  return fromZonedTime(localDateTimeStr, timezone);
+  const { parseDateTimeInTimezone: parseLocalDateTime } = require('./slotUtils');
+  return parseLocalDateTime(date.trim(), time.trim(), timezone);
 }
 
 async function bookAppointment({ clinicId, name, phone, email, reason, startTime, date, time, missedCallId, doctorId }) {
@@ -109,8 +109,12 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(time).trim())){
             throw new AppError('VALIDATION_ERROR', 'Invalid appointment date or time.', 400);
         }
-        startDateTime = parseDateTimeInTimezone(date, time, timezone);
-        logger.info('Public Booking Parsed Time', { localDateTimeStr: `${date.trim()} ${time.trim()}:00`, timezone, utc: startDateTime.toISOString() });
+        try {
+            startDateTime = parseDateTimeInTimezone(date, time, timezone);
+        } catch (error) {
+            throw new AppError('VALIDATION_ERROR', 'The requested local date/time does not exist in the clinic timezone.', 400);
+        }
+        logger.info('Public Booking Parsed Time', { timezone, utc: startDateTime.toISOString() });
     } else {
         throw new AppError('VALIDATION_ERROR', 'Either startTime or date+time is required', 400);
     }
@@ -161,6 +165,13 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
 
     // Create appointment with double-booking prevention
     const appointment = await prisma.$transaction(async (tx) => {
+        // Use the same clinic-scoped transaction lock as staff/AI bookings. A
+        // time-slot-specific lock cannot serialize overlapping intervals whose
+        // start/end values differ, and FOR UPDATE cannot lock an empty result.
+        await tx.$queryRaw`
+            SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
+        `;
+
         let assignedDoctorId = doctorId || null;
         // Build or find patient INSIDE transaction
         let patient;
@@ -182,22 +193,18 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
         }
 
         if (doctorId) {
-            // Serialize concurrent attempts for the same clinic/doctor/time slot.
-            // FOR UPDATE cannot lock a missing row, so it is not sufficient by itself.
-            await tx.$queryRaw`
-                SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${doctorId}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) t
-            `;
             // Specific doctor — check only that doctor's schedule
             const conflict = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                AND "doctorId" = ${doctorId}
+                AND ("doctorId" IS NULL OR "doctorId" = ${doctorId})
                 AND "deletedAt" IS NULL
+                AND "isTest" = false
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflict && conflict.length > 0) {
@@ -207,19 +214,17 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
             // No specific doctor — assign the booking to the first doctor who is both working
             // and conflict-free. This avoids rejecting valid public slots in multi-doctor clinics.
             for (const candidate of autoAssignableDoctors) {
-                await tx.$queryRaw`
-                    SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':', ${candidate.id}::text, ':', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) t
-                `;
                 const conflict = await tx.$queryRaw`
                     SELECT id FROM "Appointment"
                     WHERE "clinicId" = ${clinicId}
-                    AND "doctorId" = ${candidate.id}
+                    AND ("doctorId" IS NULL OR "doctorId" = ${candidate.id})
                     AND "deletedAt" IS NULL
+                    AND "isTest" = false
                     AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                     AND "startTime" < ${endTime}
                     AND "endTime" > ${startDateTime}
-                    FOR UPDATE
                     LIMIT 1
+                    FOR UPDATE
                 `;
 
                 if (!conflict || conflict.length === 0) {
@@ -232,21 +237,17 @@ async function bookAppointment({ clinicId, name, phone, email, reason, startTime
                 throw new AppError('CONFLICT', 'All doctors are busy at this time. Please choose a different time.', 409);
             }
         } else {
-            // Serialize clinic-level slots when no doctors are configured.
-            await tx.$queryRaw`
-                SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':CLINIC:', ${startDateTime.toISOString()}::text, ':', ${endTime.toISOString()}::text)))) t
-            `;
             // Clinics without configured doctors use a clinic-level calendar resource.
             const conflicts = await tx.$queryRaw`
                 SELECT id FROM "Appointment"
                 WHERE "clinicId" = ${clinicId}
-                AND "doctorId" IS NULL
                 AND "deletedAt" IS NULL
+                AND "isTest" = false
                 AND "status" NOT IN ('CANCELLED', 'NO_SHOW')
                 AND "startTime" < ${endTime}
                 AND "endTime" > ${startDateTime}
-                FOR UPDATE
                 LIMIT 1
+                FOR UPDATE
             `;
 
             if (conflicts && conflicts.length > 0) {

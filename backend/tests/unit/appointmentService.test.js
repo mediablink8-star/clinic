@@ -1,3 +1,7 @@
+jest.mock('../../services/messagingService', () => ({
+  sendDirectMessage: jest.fn().mockResolvedValue({ success: true }),
+}));
+
 const { 
   createAppointment, 
   updateAppointmentStatus, 
@@ -10,6 +14,13 @@ const {
 } = require('../../services/appointmentService');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
 
+function getFutureWeekdayDate(daysAhead) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  while ([0, 6].includes(date.getDay())) date.setDate(date.getDate() + 1);
+  return date.toISOString().split('T')[0];
+}
+
 describe('Appointment Service Unit Tests', () => {
   let clinic, owner, patient, doctor, actor;
 
@@ -19,13 +30,13 @@ describe('Appointment Service Unit Tests', () => {
     clinic = await createTestClinic({ 
       timezone: 'Europe/Athens',
       workingHours: JSON.stringify({
-        monday: { open: '09:00', close: '18:00', closed: false },
-        tuesday: { open: '09:00', close: '18:00', closed: false },
-        wednesday: { open: '09:00', close: '18:00', closed: false },
-        thursday: { open: '09:00', close: '18:00', closed: false },
-        friday: { open: '09:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '14:00', closed: false },
-        sunday: { closed: true },
+        'Κυριακή': '',
+        'Δευτέρα': '09:00-18:00',
+        'Τρίτη': '09:00-18:00',
+        'Τετάρτη': '09:00-18:00',
+        'Πέμπτη': '09:00-18:00',
+        'Παρασκευή': '09:00-18:00',
+        'Σάββατο': '09:00-14:00',
       }),
     });
     
@@ -42,9 +53,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('createAppointment', () => {
     it('should create appointment with date/time in clinic timezone', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(1);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -86,9 +95,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should auto-assign doctor when none specified', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 3);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(3);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -103,9 +110,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should reject appointment outside working hours', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 4);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(4);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -113,13 +118,11 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'After hours',
         date: dateStr,
         time: '20:00', // Outside 09:00-18:00
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject appointment for non-existent patient', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 5);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(5);
 
       await expect(createAppointment({
         clinicId: clinic.id,
@@ -127,13 +130,11 @@ describe('Appointment Service Unit Tests', () => {
         reason: 'Test',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 6);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(6);
 
       // First appointment
       await createAppointment({
@@ -156,20 +157,79 @@ describe('Appointment Service Unit Tests', () => {
         date: dateStr,
         time: '14:00',
         doctorId: doctor.id,
-      }, actor)).rejects.toThrow('CONFLICT');
+      }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
+    });
+
+    it('should prevent concurrent overlapping bookings for the same doctor', async () => {
+      // Use a unique future weekday so earlier tests cannot occupy this slot.
+      const dateStr = getFutureWeekdayDate(30);
+      const patientA = await createTestPatient(clinic.id, { name: 'Overlap A', phone: '+306922222221' });
+      const patientB = await createTestPatient(clinic.id, { name: 'Overlap B', phone: '+306922222222' });
+
+      const results = await Promise.allSettled([
+        createAppointment({
+          clinicId: clinic.id, patientId: patientA.id, reason: 'Overlap race A',
+          date: dateStr, time: '10:00', doctorId: doctor.id,
+        }, actor),
+        createAppointment({
+          clinicId: clinic.id, patientId: patientB.id, reason: 'Overlap race B',
+          date: dateStr, time: '10:30', doctorId: doctor.id,
+        }, actor),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === 'fulfilled');
+      const rejected = results.filter((result) => result.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason.code).toBe('CONFLICT');
+    });
+    it('should prevent overlapping clinic-level bookings when no doctors are active', async () => {
+      const secondPatient = await createTestPatient(clinic.id, {
+        name: 'Clinic-level booking patient',
+        phone: '+306900000099',
+      });
+      const dateStr = getFutureWeekdayDate(40);
+      const originalDoctor = await testPrisma.doctor.findUnique({ where: { id: doctor.id } });
+      const createdIds = [];
+
+      try {
+        await testPrisma.doctor.update({ where: { id: doctor.id }, data: { isActive: false } });
+
+        const first = await createAppointment({
+          clinicId: clinic.id,
+          patientId: patient.id,
+          reason: 'Clinic-level booking A',
+          date: dateStr,
+          time: '10:00',
+          duration: 60,
+        }, actor);
+        createdIds.push(first.data.id);
+        expect(first.data.doctorId).toBeNull();
+
+        await expect(createAppointment({
+          clinicId: clinic.id,
+          patientId: secondPatient.id,
+          reason: 'Clinic-level booking B',
+          date: dateStr,
+          time: '10:30',
+          duration: 60,
+        }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
+      } finally {
+        await testPrisma.appointment.deleteMany({ where: { id: { in: createdIds } } });
+        await testPrisma.doctor.update({ where: { id: doctor.id }, data: { isActive: originalDoctor.isActive } });
+        await testPrisma.patient.deleteMany({ where: { id: secondPatient.id } });
+      }
     });
 
     it('should reject appointment without patientId', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 7);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(7);
 
       await expect(createAppointment({
         clinicId: clinic.id,
         reason: 'No patient',
         date: dateStr,
         time: '10:00',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
@@ -177,9 +237,7 @@ describe('Appointment Service Unit Tests', () => {
     let appointmentId;
 
     beforeAll(async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 8);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(8);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -204,9 +262,7 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should update status to COMPLETED', async () => {
       // Re-create appointment since it was cancelled
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 9);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(9);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -226,12 +282,35 @@ describe('Appointment Service Unit Tests', () => {
       expect(updateResult.data.status).toBe('COMPLETED');
     });
 
+    it('should reject reactivating a cancelled appointment when an overlapping booking exists', async () => {
+      const dateStr = getFutureWeekdayDate(50);
+      const first = await createAppointment({
+        clinicId: clinic.id, patientId: patient.id, reason: 'Cancelled slot',
+        date: dateStr, time: '10:00', doctorId: doctor.id,
+      }, actor);
+      await updateAppointmentStatus({
+        clinicId: clinic.id, appointmentId: first.data.id, status: 'CANCELLED',
+      }, actor);
+
+      const otherPatient = await createTestPatient(clinic.id, {
+        name: 'Replacement Patient', phone: '+306933333331',
+      });
+      await createAppointment({
+        clinicId: clinic.id, patientId: otherPatient.id, reason: 'Replacement slot',
+        date: dateStr, time: '10:30', doctorId: doctor.id,
+      }, actor);
+
+      await expect(updateAppointmentStatus({
+        clinicId: clinic.id, appointmentId: first.data.id, status: 'CONFIRMED',
+      }, actor)).rejects.toMatchObject({ code: 'CONFLICT' });
+    });
+
     it('should reject invalid status', async () => {
       await expect(updateAppointmentStatus({
         clinicId: clinic.id,
         appointmentId,
         status: 'INVALID_STATUS',
-      }, actor)).rejects.toThrow('VALIDATION_ERROR');
+      }, actor)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
 
     it('should reject non-existent appointment', async () => {
@@ -239,15 +318,13 @@ describe('Appointment Service Unit Tests', () => {
         clinicId: clinic.id,
         appointmentId: 'non-existent-id',
         status: 'CANCELLED',
-      }, actor)).rejects.toThrow('NOT_FOUND');
+      }, actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 
   describe('deleteAppointment (soft delete)', () => {
     it('should soft delete appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 10);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(10);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -264,9 +341,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should restore soft-deleted appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 11);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(11);
 
       const result = await createAppointment({
         clinicId: clinic.id,
@@ -330,9 +405,7 @@ describe('Appointment Service Unit Tests', () => {
 
   describe('getAvailableSlots', () => {
     it('should return available slots for a date', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 12);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(12);
 
       const slots = await getAvailableSlots(clinic.id, dateStr);
       
@@ -343,9 +416,7 @@ describe('Appointment Service Unit Tests', () => {
     });
 
     it('should filter by doctor', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 13);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(13);
 
       const slots = await getAvailableSlots(clinic.id, dateStr, doctor.id);
       
@@ -357,7 +428,7 @@ describe('Appointment Service Unit Tests', () => {
     it('should return early if no patient phone', async () => {
       const patientNoPhone = await createTestPatient(clinic.id, { 
         name: 'No Phone', 
-        phone: null 
+        phone: '' 
       });
       
       const appointment = { startTime: new Date().toISOString() };
@@ -413,18 +484,24 @@ describe('Appointment Service Unit Tests', () => {
 
     it('should not create duplicate reminders', async () => {
       const future = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
-      const appointment = { 
-        id: 'apt-duplicate', 
-        clinicId: clinic.id, 
-        startTime: future.toISOString() 
-      };
+      const appointment = await testPrisma.appointment.create({
+        data: {
+          clinicId: clinic.id,
+          patientId: patient.id,
+          doctorId: doctor.id,
+          startTime: future,
+          endTime: new Date(future.getTime() + 60 * 60 * 1000),
+          reason: 'Reminder duplicate test',
+          status: 'CONFIRMED',
+        },
+      });
       const clinicObj = { id: clinic.id, name: 'Test Clinic', timezone: 'Europe/Athens' };
       
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       await scheduleAppointmentReminder({ appointment, patient, clinic: clinicObj });
       
       const notifications = await testPrisma.notification.findMany({
-        where: { appointmentId: 'apt-duplicate', type: 'REMINDER' }
+        where: { appointmentId: appointment.id, type: 'REMINDER' }
       });
       expect(notifications.length).toBe(1);
     });

@@ -1,6 +1,13 @@
 const request = require('supertest');
-const app = require('../../index');
 const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
+const app = require('../../index');
+
+function getFutureWeekdayDate(daysAhead) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  while ([0, 6].includes(date.getDay())) date.setDate(date.getDate() + 1);
+  return date.toISOString().split('T')[0];
+}
 
 describe('Appointments Integration', () => {
   let clinic, owner, patient, doctor, token;
@@ -15,9 +22,7 @@ describe('Appointments Integration', () => {
 
   describe('POST /api/appointments', () => {
     it('should create appointment with date+time in clinic timezone', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(1);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -43,9 +48,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should prevent double-booking same doctor at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 2);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(2);
 
       await request(app)
         .post('/api/appointments')
@@ -63,9 +66,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should auto-assign doctor when none specified', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 3);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(3);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -77,9 +78,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should reject appointment outside working hours', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 4);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(4);
 
       await request(app)
         .post('/api/appointments')
@@ -89,15 +88,13 @@ describe('Appointments Integration', () => {
     });
 
     it('should reject invalid patientId', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 5);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(5);
 
       await request(app)
         .post('/api/appointments')
         .set('Authorization', `Bearer ${token}`)
         .send({ patientId: 'invalid-id', reason: 'Test', date: dateStr, time: '10:00' })
-        .expect(404);
+        .expect(400);
     });
 
     it('should require authentication', async () => {
@@ -105,6 +102,21 @@ describe('Appointments Integration', () => {
         .post('/api/appointments')
         .send({ patientId: patient.id, reason: 'Test', date: '2026-01-15', time: '10:00' })
         .expect(401);
+    });
+  });
+
+  describe('GET /api/appointments/available', () => {
+    it('should return slots for a clinic-local date and selected doctor', async () => {
+      const date = getFutureWeekdayDate(6);
+      const res = await request(app)
+        .get(`/api/appointments/available?date=${date}&doctorId=${doctor.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.date).toBe(date);
+      expect(Array.isArray(res.body.slots)).toBe(true);
+      expect(res.body.slots).toContain('10:00');
     });
   });
 
@@ -154,9 +166,7 @@ describe('Appointments Integration', () => {
     let appointmentId;
 
     beforeAll(async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 10);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(10);
 
       const res = await request(app)
         .post('/api/appointments')
@@ -195,9 +205,7 @@ describe('Appointments Integration', () => {
 
   describe('DELETE /api/appointments/:id', () => {
     it('should soft delete appointment', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 11);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(11);
 
       const createRes = await request(app)
         .post('/api/appointments')
@@ -224,9 +232,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow RECEPTIONIST to create appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 12);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(12);
 
       await request(app)
         .post('/api/appointments')
@@ -236,9 +242,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow RECEPTIONIST to update status', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 13);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(13);
 
       const createRes = await request(app)
         .post('/api/appointments')
@@ -256,9 +260,7 @@ describe('Appointments Integration', () => {
 
   describe('Patient double-booking prevention', () => {
     it('should prevent same patient from booking overlapping appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 20);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(20);
 
       // First appointment
       await request(app)
@@ -276,9 +278,7 @@ describe('Appointments Integration', () => {
     });
 
     it('should allow same patient to book non-overlapping appointments', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 21);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(21);
 
       // First appointment
       await request(app)
@@ -297,10 +297,9 @@ describe('Appointments Integration', () => {
       expect(res.body.data.reason).toBe('Afternoon');
     });
 
-    it('should allow different patients at same time', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 22);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+    it('should allow different patients at same time when another doctor is available', async () => {
+      await createTestDoctor(clinic.id, { name: 'Dr. Second' });
+      const dateStr = getFutureWeekdayDate(22);
 
       const patient2 = await testPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Patient Two', phone: '+306922222222' },
@@ -326,9 +325,7 @@ describe('Appointments Integration', () => {
 
   describe('Per-clinic rate limiting', () => {
     it('should enforce per-clinic rate limit on appointment creation', async () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 30);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = getFutureWeekdayDate(30);
 
       // Make requests up to the limit (assuming default apiLimiter: 500 per 15 min)
       // We'll test the burst behavior - rapid requests should eventually hit limit

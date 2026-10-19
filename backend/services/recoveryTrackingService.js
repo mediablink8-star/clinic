@@ -147,7 +147,7 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
     }
 
     try {
-        return await prisma.$transaction(async (tx) => {
+        const created = await prisma.$transaction(async (tx) => {
             const recoveryCase = await tx.recoveryCase.create({
                 data: {
                     clinicId: missedCall.clinicId,
@@ -186,6 +186,9 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
 
             return { ...recoveryCase, conversation };
         });
+        // Count only newly created cases; existing and concurrent-duplicate paths do not increment.
+        recordRecoveryCase(missedCall.clinicId, created.state);
+        return created;
     } catch (error) {
         if (error.code === 'P2002') {
             return prisma.recoveryCase.findUnique({
@@ -197,8 +200,6 @@ async function ensureRecoveryCaseForMissedCall(missedCallId) {
         throw error;
     }
 
-    // Record metrics
-    recordRecoveryCase(missedCall.clinicId, recoveryCase.state);
 }
 
 async function recordOutboundMessageForMissedCall({
@@ -455,8 +456,10 @@ async function recordInboundMessage({
         conversationId: conversation.id,
         messageId: message.id,
         type: 'PATIENT_REPLIED',
+        // The message body is stored on the Message record; avoid duplicating
+        // potentially sensitive patient text into the activity/audit timeline.
         metadata: {
-            bodyPreview: body ? body.slice(0, 140) : null,
+            bodyLength: typeof body === 'string' ? body.length : 0,
         }
     });
 

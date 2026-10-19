@@ -12,21 +12,84 @@ const { validateWebhookSecret, validateSystemSecret } = require('../middleware/w
 const webhookAuth = require('../middleware/webhookAuth');
 const { validateZadarmaSecret, getZadarmaSecret } = require('../middleware/webhookAuth');
 
+const STOP_KEYWORDS = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'];
+const START_KEYWORDS = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'];
+
+async function handleSmsOptOut({ clinicId, normalizedFrom, messageBody }) {
+    const normalizedBody = String(messageBody || '').trim().toUpperCase();
+    const isStop = STOP_KEYWORDS.includes(normalizedBody);
+    const isStart = START_KEYWORDS.includes(normalizedBody);
+    if (!isStop && !isStart) return { handled: false };
+
+    try {
+        const { logAction } = require('../services/auditService');
+        const { sendSmsWithTracking } = require('../services/twilioService');
+        const patient = await prisma.patient.upsert({
+            where: { clinicId_phone: { clinicId, phone: normalizedFrom } },
+            update: {},
+            create: { clinicId, name: 'Unknown (opt-out reply)', phone: normalizedFrom }
+        });
+
+        await prisma.patient.update({
+            where: { id: patient.id },
+            data: { optedOut: isStop, optedOutAt: isStop ? new Date() : null }
+        });
+
+        await prisma.missedCall.updateMany({
+            where: { clinicId, fromNumber: normalizedFrom },
+            data: isStop
+                ? { optedOut: true, conversationState: 'COMPLETED', smsStatus: 'skipped', scheduledSmsAt: null, smsError: null }
+                : { optedOut: false }
+        });
+
+        if (isStop) {
+            await prisma.recoveryCase.updateMany({
+                where: {
+                    clinicId,
+                    patientPhone: normalizedFrom,
+                    state: { in: ['ACTIVE', 'ENGAGED'] },
+                },
+                data: { state: 'CLOSED', lastActivityAt: new Date() }
+            });
+
+            const reply = 'Έχετε διαγραφεί από τις ειδοποιήσεις. Απαντήστε START για επανεγγραφή.';
+            sendSmsWithTracking({ to: normalizedFrom, body: reply, clinicId, allowOptedOut: true })
+                .catch(err => logger.error('[inbound-sms] STOP confirmation SMS failed', { err: err.message, clinicId }));
+        }
+
+        await logAction({
+            clinicId,
+            action: isStop ? 'SMS_OPT_OUT' : 'SMS_OPT_IN',
+            entity: 'PATIENT',
+            entityId: patient.id,
+            details: { phoneLast4: normalizedFrom.slice(-4), keyword: normalizedBody, source: 'inbound-sms' }
+        });
+    } catch (err) {
+        logger.error('[inbound-sms] opt-out handler failed', { err: err.message, clinicId });
+    }
+
+    return { handled: true, action: isStop ? 'opted_out' : 'opted_in' };
+}
+
 async function zadarmaHandler(req, res) {
-    const { caller_id, destination, disposition, event, call_id_with_callback, call_id } = req.body;
+    const { caller_id, destination, called_did, did, called, disposition, event, call_id_with_callback, call_id } = req.body;
     const sid = call_id_with_callback || call_id;
 
     const phone = normalizePhone(caller_id);
     if (!phone) throw new AppError('VALIDATION_ERROR', 'caller_id is required', 400);
 
+    // Zadarma sends called_did; accept destination/did aliases for existing integrations.
+    const destinationNumber = destination || called_did || did || called;
+    const normalizedTo = normalizePhone(destinationNumber);
+    if (!normalizedTo) throw new AppError('VALIDATION_ERROR', 'Called number is required', 400);
+
     // Find clinic by the called number
-    const normalizedTo = normalizePhone(destination);
     const clinic = await prisma.clinic.findFirst({
         where: {
             OR: [
-                { zadarmaPhoneNumber: destination },
+                { zadarmaPhoneNumber: destinationNumber },
                 { zadarmaPhoneNumber: normalizedTo },
-                { phone: destination },
+                { phone: destinationNumber },
                 { phone: normalizedTo }
             ]
         },
@@ -34,7 +97,7 @@ async function zadarmaHandler(req, res) {
     });
 
     if (!clinic) {
-        logger.warn(`[Zadarma] No clinic found for number: ${destination}`);
+        logger.warn('[Zadarma] No clinic found for called number', { phoneTail: normalizedTo.slice(-4) });
         return res.json({ success: false, error: 'Clinic not found' });
     }
 
@@ -171,8 +234,13 @@ router.post('/sms', validateWebhookSecret, asyncHandler(async (req, res) => {
         console.warn(`[SMS Inbound] Dual-write failed for clinicId=${clinicId}: ${err.message}`);
     });
 
+    const optOut = await handleSmsOptOut({ clinicId, normalizedFrom, messageBody });
+    if (optOut.handled) {
+        return res.json({ success: true, forwarded: false, optOut: optOut.action });
+    }
+
     if (!clinic.webhookUrl) {
-        logger.info('Inbound message skipped - no webhook URL', { clinicId: clinic.id, from: normalizedFrom });
+        logger.info('Inbound message skipped - no webhook URL', { clinicId: clinic.id, fromPhoneTail: normalizedFrom.slice(-4) });
         return res.json({ success: true, forwarded: false, reason: 'No webhook URL configured' });
     }
 
@@ -258,46 +326,8 @@ router.post('/inbound-sms', validateWebhookSecret, asyncHandler(async (req, res)
         recoveryCaseId,
     });
 
-    // ── SMS opt-out / opt-in keyword handling (TCPA / Greek law 3471/2006) ──
-    const normalizedBody = String(messageBody || '').trim().toUpperCase();
-    const STOP_KEYWORDS = ['STOP', 'UNSUBSCRIBE', 'ΔΙΑΚΟΠΗ', 'STOPALL', 'CANCEL', 'END', 'QUIT'];
-    const START_KEYWORDS = ['START', 'ΕΠΑΝΕΝΕΡΓΟΠΟΙΗΣΗ', 'UNSTOP', 'ALLOW'];
-
-    if (STOP_KEYWORDS.includes(normalizedBody) || START_KEYWORDS.includes(normalizedBody)) {
-        try {
-            const { logAction } = require('../services/auditService');
-            const { sendSmsWithTracking } = require('../services/twilioService');
-            const logger = require('../utils/logger');
-
-            const patient = await prisma.patient.upsert({
-                where: { clinicId_phone: { clinicId, phone: normalizedFrom } },
-                update: {},
-                create: { clinicId, name: 'Unknown (opt-out reply)', phone: normalizedFrom }
-            });
-
-            const isStop = STOP_KEYWORDS.includes(normalizedBody);
-            await prisma.patient.update({
-                where: { id: patient.id },
-                data: { optedOut: isStop, optedOutAt: new Date() }
-            });
-
-            if (isStop) {
-                const reply = 'Έχετε διαγραφεί από τις ειδοποιήσεις. Απαντήστε START για επανεγγραφή.';
-                sendSmsWithTracking({ to: normalizedFrom, body: reply, clinicId })
-                    .catch(err => logger.error('[inbound-sms] STOP confirmation SMS failed', { err: err.message, clinicId }));
-            }
-
-            await logAction({
-                clinicId,
-                action: isStop ? 'SMS_OPT_OUT' : 'SMS_OPT_IN',
-                entity: 'PATIENT',
-                entityId: patient.id,
-                details: { phone: normalizedFrom, keyword: normalizedBody, source: 'inbound-sms' }
-            });
-        } catch (err) {
-            console.error('[inbound-sms] opt-out handler failed', err);
-        }
-    }
+    const optOut = await handleSmsOptOut({ clinicId, normalizedFrom, messageBody });
+    if (optOut.handled) return res.json({ success: true, ...result, optOut: optOut.action });
 
     res.json({ success: true, ...result });
 }));

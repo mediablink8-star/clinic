@@ -10,6 +10,22 @@ const { handleMissedCall } = require('../services/missedCallService');
 const { createAppointment } = require('../services/appointmentService');
 const chrono = require('chrono-node');
 const { formatInTimeZone } = require('date-fns-tz');
+function getClinicLocalNoonAnchor(timezone) {
+    const { getLocalDateParts } = require('../services/slotUtils');
+    const localDateKey = getLocalDateParts(new Date(), timezone).dateKey;
+    const [year, month, day] = localDateKey.split('-').map(Number);
+    // Chrono parses against the Node process timezone. Use the clinic's calendar
+    // date as a local-noon anchor, not a UTC instant that may fall on yesterday.
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
+function parseChronoLocalDateTime(parsed, timezone) {
+    const { parseDateTimeInTimezone } = require('../services/slotUtils');
+    const date = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    const time = `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`;
+    return parseDateTimeInTimezone(date, time, timezone);
+}
+
 
 router.get('/stats', asyncHandler(async (req, res) => {
     const now = new Date();
@@ -350,9 +366,7 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
             // Smart parse the Greek/English day/time captured by AI
             let dayText = translateGreekDate(mc.bookingDay);
 
-            const { getStartOfDay } = require('../services/slotUtils');
-            const { fromZonedTime } = require('date-fns-tz');
-            const anchorDate = getStartOfDay(new Date(), timezone);
+            const anchorDate = getClinicLocalNoonAnchor(timezone);
 
             const parsed = chrono.parseDate(dayText, anchorDate, { forwardDate: true });
             if (!parsed) {
@@ -361,13 +375,7 @@ router.post('/batch-confirm', asyncHandler(async (req, res) => {
             }
 
             // Chrono parsed date needs to be treated as being in the clinic's timezone
-            const year = parsed.getFullYear();
-            const month = parsed.getMonth();
-            const day = parsed.getDate();
-            const hours = parsed.getHours();
-            const minutes = parsed.getMinutes();
-            
-            const startTime = fromZonedTime(new Date(year, month, day, hours, minutes), timezone);
+            const startTime = parseChronoLocalDateTime(parsed, timezone);
             logger.info('Batch Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
             const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Default 1h
 
@@ -444,10 +452,7 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } });
     const timezone = clinic?.timezone || DEFAULT_TIMEZONE;
     
-    const { getStartOfDay } = require('../services/slotUtils');
-    const { fromZonedTime, toZonedTime } = require('date-fns-tz');
-    const localNow = new Date();
-    const anchorDate = getStartOfDay(localNow, timezone);
+    const anchorDate = getClinicLocalNoonAnchor(timezone);
 
     // Smart parse the Greek/English day/time captured by AI
     let dayText = translateGreekDate(mc.bookingDay);
@@ -458,13 +463,7 @@ router.post('/:id/confirm', asyncHandler(async (req, res) => {
     }
 
     // Chrono parsed date needs to be treated as being in the clinic's timezone
-    const year = parsed.getFullYear();
-    const month = parsed.getMonth();
-    const day = parsed.getDate();
-    const hours = parsed.getHours();
-    const minutes = parsed.getMinutes();
-    
-    const startTime = fromZonedTime(new Date(year, month, day, hours, minutes), timezone);
+    const startTime = parseChronoLocalDateTime(parsed, timezone);
     logger.info('Recovery Confirm Parsed Time', { dayText, timezone, utc: startTime.toISOString() });
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); 
 

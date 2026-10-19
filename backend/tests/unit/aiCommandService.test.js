@@ -1,7 +1,34 @@
+const { testPrisma: mockTestPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken, cleanDatabase } = require('../setup');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { processCommand, parseCommand, executeCommand } = require('../../services/aiCommandService');
-const { testPrisma, createTestClinic, createTestUser, createTestPatient, createTestDoctor, generateTestToken } = require('../setup');
 
-jest.mock('../../services/prisma', () => testPrisma);
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: () => ({
+      generateContent: async (prompt) => {
+        const match = prompt.match(/Command: "([\s\S]*)"$/);
+        const command = match ? match[1] : '';
+        let parsed = { action: 'unknown', parameters: {}, confidence: 0.0 };
+        if (/Στείλε SMS/i.test(command)) {
+          parsed = { action: 'send_sms', parameters: { patientName: /Παπαδόπουλος/.test(command) ? 'Γιάννης Παπαδόπουλος' : 'Γιάννης', message: 'Το ραντεβού σας είναι αύριο' }, confidence: 0.9 };
+        } else if (/Κάλεσε/i.test(command)) {
+          parsed = { action: 'call_patient', parameters: { patientName: 'Μαρία' }, confidence: 0.95 };
+        } else if (/Κλείσε ραντεβού/i.test(command)) {
+          parsed = { action: 'book_appointment', parameters: { patientName: 'Νίκος', reason: 'έλεγχος', date: '2026-01-16', time: '10:00', duration: 30 }, confidence: 0.85 };
+        } else if (/Ακύρωσε/i.test(command)) {
+          parsed = { action: 'cancel_appointment', parameters: { patientName: 'Πέτρος' }, confidence: 0.9 };
+        } else if (/Ποια ραντεβού/i.test(command)) {
+          parsed = { action: 'list_today_appointments', parameters: {}, confidence: 1.0 };
+        } else if (/αναπάντητες κλήσεις/i.test(command)) {
+          parsed = { action: 'list_missed_calls', parameters: {}, confidence: 0.95 };
+        }
+        return { response: { text: () => JSON.stringify(parsed) } };
+      }
+    })
+  }))
+}));
+
+jest.mock('../../services/prisma', () => mockTestPrisma);
 jest.mock('../../services/encryptionService', () => ({
   decrypt: (val) => val?.replace('encrypted:', '') || null,
   encrypt: (val) => `encrypted:${val}`,
@@ -21,14 +48,15 @@ jest.mock('../../services/appointmentService', () => ({
     data: { id: 'test-apt-id', startTime: new Date() },
   }),
   getTodayAppointments: jest.fn().mockResolvedValue({ data: [] }),
-  updateAppointmentStatus: jest.fn().mockResolvedValue({ success: true }),
+  updateAppointmentStatus: jest.fn(async ({ appointmentId, status }) => ({ success: true, data: await mockTestPrisma.appointment.update({ where: { id: appointmentId }, data: { status } }) })),
 }));
 
 describe('AI Command Service', () => {
-  let clinic, owner, patient, actor;
+  let clinic, owner, patient, doctor, actor;
 
   beforeAll(async () => {
-    clinic = await testPrisma.clinic.create({
+    await cleanDatabase();
+    clinic = await mockTestPrisma.clinic.create({
       data: {
         name: 'AI Test Clinic',
         location: 'Athens',
@@ -48,7 +76,7 @@ describe('AI Command Service', () => {
       },
     });
 
-    owner = await testPrisma.user.create({
+    owner = await mockTestPrisma.user.create({
       data: {
         email: 'ai-owner@clinic.com',
         passwordHash: 'hashed',
@@ -57,7 +85,7 @@ describe('AI Command Service', () => {
       },
     });
 
-    patient = await testPrisma.patient.create({
+    patient = await mockTestPrisma.patient.create({
       data: {
         clinicId: clinic.id,
         name: 'Γιάννης Παπαδόπουλος',
@@ -66,17 +94,25 @@ describe('AI Command Service', () => {
       },
     });
 
+    doctor = await createTestDoctor(clinic.id, { name: 'Δρ. Παπαδόπουλος' });
+
     actor = { userId: owner.id, ip: '127.0.0.1', role: 'OWNER' };
   });
 
   afterAll(async () => {
-    await testPrisma.patient.deleteMany({ where: { clinicId: clinic.id } });
-    await testPrisma.user.deleteMany({ where: { clinicId: clinic.id } });
-    await testPrisma.clinic.delete({ where: { id: clinic.id } });
+    await cleanDatabase();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    if (!clinic || !patient) return;
+    await mockTestPrisma.appointment.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.missedCall.deleteMany({ where: { clinicId: clinic.id } });
+    await mockTestPrisma.patient.deleteMany({ where: { clinicId: clinic.id, id: { not: patient.id } } });
+    await mockTestPrisma.doctor.deleteMany({ where: { clinicId: clinic.id, id: { not: doctor.id } } });
   });
 
   describe('parseCommand', () => {
@@ -227,7 +263,7 @@ describe('AI Command Service', () => {
     });
 
     it('should execute cancel_appointment', async () => {
-      const existingApt = await testPrisma.appointment.create({
+      const existingApt = await mockTestPrisma.appointment.create({
         data: {
           clinicId: clinic.id,
           patientId: patient.id,
@@ -249,7 +285,7 @@ describe('AI Command Service', () => {
       expect(result.success).toBe(true);
       expect(result.action).toBe('cancel_appointment');
 
-      const updated = await testPrisma.appointment.findUnique({ where: { id: existingApt.id } });
+      const updated = await mockTestPrisma.appointment.findUnique({ where: { id: existingApt.id } });
       expect(updated.status).toBe('CANCELLED');
     });
 
@@ -265,7 +301,7 @@ describe('AI Command Service', () => {
     });
 
     it('should execute list_missed_calls', async () => {
-      await testPrisma.missedCall.create({
+      await mockTestPrisma.missedCall.create({
         data: {
           clinicId: clinic.id,
           fromNumber: '+306911111111',
@@ -283,10 +319,10 @@ describe('AI Command Service', () => {
     });
 
     it('should reject ambiguous patient names', async () => {
-      await testPrisma.patient.create({
+      await mockTestPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Γιάννης Α', phone: '+306900000001' },
       });
-      await testPrisma.patient.create({
+      await mockTestPrisma.patient.create({
         data: { clinicId: clinic.id, name: 'Γιάννης Β', phone: '+306900000002' },
       });
 
@@ -296,7 +332,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('AMBIGUOUS_MATCH');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'AMBIGUOUS_MATCH' });
     });
 
     it('should reject non-existent patient', async () => {
@@ -306,7 +342,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should reject an unknown doctor name when booking', async () => {
@@ -325,7 +361,7 @@ describe('AI Command Service', () => {
         confidence: 0.9,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('NOT_FOUND');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
 
     it('should validate required parameters for book_appointment', async () => {
@@ -335,7 +371,7 @@ describe('AI Command Service', () => {
         confidence: 0.8,
       };
 
-      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toThrow('VALIDATION_ERROR');
+      await expect(executeCommand(parsed, clinic.id, actor, clinic)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
   });
 
@@ -360,18 +396,14 @@ describe('AI Command Service', () => {
     });
 
     it('should handle AI quota exceeded', async () => {
-      jest.doMock('@google/generative-ai', () => ({
-        GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-          getGenerativeModel: () => ({
-            generateContent: () => Promise.reject(new Error('429 Too Many Requests')),
-          }),
-        })),
+      GoogleGenerativeAI.mockImplementationOnce(() => ({
+        getGenerativeModel: () => ({
+          generateContent: () => Promise.reject(new Error('429 Too Many Requests')),
+        }),
       }));
 
-      const result = await processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('quota exceeded');
+      await expect(processCommand('Στείλε SMS στον Γιάννη', clinic.id, actor))
+        .rejects.toMatchObject({ code: 'AI_QUOTA_EXCEEDED' });
     });
   });
 });

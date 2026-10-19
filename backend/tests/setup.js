@@ -1,8 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 process.env.NODE_ENV = 'test';
+process.env.STRIPE_SECRET_KEY = 'sk_test_clinicflow';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_clinicflow';
+process.env.DB_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret-key-for-testing-only';
 process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/clinic_test';
@@ -21,7 +23,19 @@ process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.ZADARMA_WEBHOOK_SECRET = 'test-zadarma-secret';
 
+// Prisma 7's client engine requires a driver adapter (or Accelerate URL),
+// including for the isolated test client.
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const pg = require('pg');
+const testPool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 const testPrisma = new PrismaClient({
+  adapter: new PrismaPg(testPool),
   log: process.env.DEBUG ? ['query', 'error', 'warn'] : ['error'],
 });
 
@@ -52,13 +66,13 @@ async function createTestClinic(overrides = {}) {
       email: 'test@clinic.com',
       timezone: 'Europe/Athens',
       workingHours: JSON.stringify({
-        monday: { open: '09:00', close: '18:00', closed: false },
-        tuesday: { open: '09:00', close: '18:00', closed: false },
-        wednesday: { open: '09:00', close: '18:00', closed: false },
-        thursday: { open: '09:00', close: '18:00', closed: false },
-        friday: { open: '09:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '14:00', closed: false },
-        sunday: { closed: true },
+        'Κυριακή': '',
+        'Δευτέρα': '09:00-18:00',
+        'Τρίτη': '09:00-18:00',
+        'Τετάρτη': '09:00-18:00',
+        'Πέμπτη': '09:00-18:00',
+        'Παρασκευή': '09:00-18:00',
+        'Σάββατο': '09:00-14:00',
       }),
       services: JSON.stringify(['General Checkup', 'Dermatology', 'Cardiology']),
       policies: JSON.stringify({ cancellation: '24h notice required' }),
@@ -99,7 +113,15 @@ async function createTestDoctor(clinicId, overrides = {}) {
       name: 'Test Doctor',
       specialty: 'General',
       isActive: true,
-      workingHours: JSON.stringify({}),
+      workingHours: {
+        'Κυριακή': '09:00-18:00',
+        'Δευτέρα': '09:00-18:00',
+        'Τρίτη': '09:00-18:00',
+        'Τετάρτη': '09:00-18:00',
+        'Πέμπτη': '09:00-18:00',
+        'Παρασκευή': '09:00-18:00',
+        'Σάββατο': '09:00-18:00',
+      },
       ...overrides,
     },
   });

@@ -31,8 +31,70 @@ const EN_DAY_INDEX = {
     saturday: 6,
 };
 
+function parseDateTimeInTimezone(dateStr, timeStr, timezone = DEFAULT_TIMEZONE) {
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        throw new Error('Invalid date format; expected YYYY-MM-DD');
+    }
+    if (typeof timeStr !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeStr)) {
+        throw new Error('Invalid time format; expected HH:MM');
+    }
+
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const wallClockUtc = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+
+    if (
+        new Date(wallClockUtc).getUTCFullYear() !== year ||
+        new Date(wallClockUtc).getUTCMonth() !== month - 1 ||
+        new Date(wallClockUtc).getUTCDate() !== day
+    ) {
+        throw new Error('Invalid calendar date');
+    }
+
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    });
+    const getParts = (instant) => Object.fromEntries(
+        formatter.formatToParts(new Date(instant))
+            .filter((part) => part.type !== 'literal')
+            .map((part) => [part.type, Number(part.value)])
+    );
+
+    // Solve the timezone offset against the requested wall-clock components.
+    // This avoids an ESM-only dependency in the CommonJS backend test/runtime.
+    let instant = wallClockUtc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const parts = getParts(instant);
+        const localAsUtc = Date.UTC(
+            parts.year, parts.month - 1, parts.day,
+            parts.hour, parts.minute, parts.second
+        );
+        instant = wallClockUtc - (localAsUtc - instant);
+    }
+
+    const resolved = getParts(instant);
+    if (
+        resolved.year !== year ||
+        resolved.month !== month ||
+        resolved.day !== day ||
+        resolved.hour !== hour ||
+        resolved.minute !== minute
+    ) {
+        throw new Error('Local time does not exist in the requested timezone');
+    }
+
+    return new Date(instant);
+}
+
 function parseHoursRange(rangeStr) {
-    if (!rangeStr || /closed/i.test(rangeStr)) return null;
+    if (typeof rangeStr !== 'string' || !rangeStr.trim() || /closed/i.test(rangeStr)) return null;
     const match = rangeStr.match(/(\d{1,2}):(\d{2})\s*[-\u2013]\s*(\d{1,2}):(\d{2})/);
     if (!match) return null;
     return {
@@ -177,11 +239,34 @@ function isWithinWorkingHours({ clinic, start, end, timezone = DEFAULT_TIMEZONE,
 }
 
 async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, stepMinutes = 60, doctor = null) {
+    // The API accepts a calendar date (YYYY-MM-DD), not an instant. Anchor the
+    // date at local noon in the requested timezone so UTC-midnight inputs do not
+    // accidentally select the previous day in western timezones.
+    const dateKey = date instanceof Date
+        ? (
+            date.getUTCHours() === 0 &&
+            date.getUTCMinutes() === 0 &&
+            date.getUTCSeconds() === 0 &&
+            date.getUTCMilliseconds() === 0
+                ? date.toISOString().slice(0, 10)
+                : getLocalDateParts(date, timezone).dateKey
+        )
+        : String(date).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return [];
+    const normalizedDate = parseDateTimeInTimezone(dateKey, '12:00', timezone);
+
     const clinic = await prisma.clinic.findUnique({
         where: { id: clinicId },
         select: { workingHours: true, aiConfig: true, id: true },
     });
     if (!clinic) return [];
+
+    if (typeof doctor === 'string') {
+        doctor = await prisma.doctor.findFirst({
+            where: { id: doctor, clinicId, isActive: true },
+        });
+        if (!doctor) return [];
+    }
 
     // If no doctor specified, get slots for ALL active doctors and union them
     if (!doctor) {
@@ -191,11 +276,11 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
 
         if (activeDoctors.length === 0) {
             // Fallback to clinic-level slots if no doctors exist
-            return calculateSlots(clinic, null, date, timezone, stepMinutes, clinicId);
+            return calculateSlots(clinic, null, normalizedDate, timezone, stepMinutes, clinicId);
         }
 
         const allDoctorSlots = await Promise.all(
-            activeDoctors.map(doc => calculateSlots(clinic, doc, date, timezone, stepMinutes, clinicId))
+            activeDoctors.map(doc => calculateSlots(clinic, doc, normalizedDate, timezone, stepMinutes, clinicId))
         );
 
         // Union of all unique slots across all doctors, sorted
@@ -203,7 +288,7 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
         return uniqueSlots;
     }
 
-    return calculateSlots(clinic, doctor, date, timezone, stepMinutes, clinicId);
+    return calculateSlots(clinic, doctor, normalizedDate, timezone, stepMinutes, clinicId);
 }
 
 /**
@@ -219,28 +304,36 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
         return [];
     }
 
-    const startOfDay = getStartOfDay(new Date(date), timezone);
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const localDateKey = getLocalDateParts(new Date(date), timezone).dateKey;
+    const [localYear, localMonth, localDay] = localDateKey.split('-').map(Number);
+    const nextLocalDate = new Date(Date.UTC(localYear, localMonth - 1, localDay + 1));
+    const nextLocalDateKey = nextLocalDate.toISOString().slice(0, 10);
+    const startOfDay = parseDateTimeInTimezone(localDateKey, '00:00', timezone);
+    const endOfDay = new Date(parseDateTimeInTimezone(nextLocalDateKey, '00:00', timezone).getTime() - 1);
 
     const whereClause = {
         clinicId,
         startTime: { gte: startOfDay, lte: endOfDay },
         status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-        deletedAt: null
+        deletedAt: null,
+        isTest: false
     };
     
     if (doctor) {
-        whereClause.doctorId = doctor.id;
+        // A legacy/imported appointment without an assigned doctor still blocks
+        // the clinic-wide slot; it must be considered for every doctor's view.
+        whereClause.OR = [
+            { doctorId: doctor.id },
+            { doctorId: null },
+        ];
     }
 
-    // IMPORTANT: If no doctor is provided, we don't filter by doctorId: null.
-    // We want to see ALL appointments for the clinic to see if the clinic/any doctor is busy.
-    // The previous code had `whereClause.doctorId = null` which was a bug.
-
+    // If no doctor is provided, don't filter by doctorId: the clinic-wide view
+    // must account for all appointments. Do not cap this query: truncating a
+    // busy day's appointments can make already-booked slots appear available.
     const existing = await prisma.appointment.findMany({
         where: whereClause,
         select: { startTime: true, endTime: true },
-        take: 200
     });
 
     const step = Math.max(15, stepMinutes);
@@ -283,6 +376,7 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
 }
 
 module.exports = {
+    parseDateTimeInTimezone,
     parseHoursRange,
     resolveRangeForDate,
     isWithinWorkingHours,

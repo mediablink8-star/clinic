@@ -1,6 +1,22 @@
 const request = require('supertest');
-const app = require('../../index');
+const crypto = require('crypto');
+const Stripe = require('stripe');
 const { testPrisma, createTestClinic, createTestUser, generateTestToken } = require('../setup');
+const app = require('../../index');
+
+function makeStripeSignature(payload) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe.webhooks.generateTestHeaderString({
+    payload,
+    secret: process.env.STRIPE_WEBHOOK_SECRET,
+  });
+}
+
+function makeTwilioSignature(path, params) {
+  const url = `${process.env.BACKEND_API_URL}${path}`;
+  const data = Object.keys(params).sort().reduce((value, key) => value + key + String(params[key] ?? ''), url);
+  return crypto.createHmac('sha1', process.env.TWILIO_AUTH_TOKEN).update(data).digest('base64');
+}
 
 describe('Webhooks Integration', () => {
   let clinic, owner, token, webhookSecret;
@@ -18,7 +34,7 @@ describe('Webhooks Integration', () => {
   describe('Zadarma Webhook (Missed Call Detection)', () => {
     it('should create missed call on NOTIFY_START', async () => {
       const res = await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306912345678',
@@ -35,7 +51,7 @@ describe('Webhooks Integration', () => {
       });
       expect(missedCall).not.toBeNull();
       expect(missedCall.fromNumber).toBe('+306912345678');
-      expect(missedCall.status).toBe('DETECTED');
+      expect(missedCall.status).toBe('RECOVERING');
     });
 
     it('should link missed call to existing patient', async () => {
@@ -48,7 +64,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306988888888',
@@ -66,7 +82,7 @@ describe('Webhooks Integration', () => {
 
     it('should deduplicate by call_id', async () => {
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -76,7 +92,7 @@ describe('Webhooks Integration', () => {
         .expect(200);
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_START',
           caller_id: '+306977777777',
@@ -98,7 +114,7 @@ describe('Webhooks Integration', () => {
           called_did: '+302101234567',
           call_id: 'test-invalid-secret',
         })
-        .expect(403);
+        .expect(401);
     });
 
     it('should handle NOTIFY_END with duration', async () => {
@@ -112,7 +128,7 @@ describe('Webhooks Integration', () => {
       });
 
       await request(app)
-        .post(`/api/webhook/zadarma/${webhookSecret}`)
+        .post(`/api/webhook/zadarma/${process.env.ZADARMA_WEBHOOK_SECRET}`)
         .send({
           event: 'NOTIFY_END',
           caller_id: '+306966666666',
@@ -128,6 +144,34 @@ describe('Webhooks Integration', () => {
     });
   });
 
+  describe('Inbound SMS consent handling', () => {
+    it('should apply STOP opt-out on the generic SMS webhook route', async () => {
+      const patient = await testPrisma.patient.create({
+        data: {
+          clinicId: clinic.id,
+          name: 'Opt Out Patient',
+          phone: '+306955551234',
+        },
+      });
+
+      const res = await request(app)
+        .post('/api/webhook/sms')
+        .set('X-ClinicFlow-Secret', webhookSecret)
+        .send({
+          clinicId: clinic.id,
+          from: '+306955551234',
+          body: 'STOP',
+          providerMessageSid: 'SM-OPT-OUT-GENERIC',
+        })
+        .expect(200);
+
+      expect(res.body.optOut).toBe('opted_out');
+      const updated = await testPrisma.patient.findUnique({ where: { id: patient.id } });
+      expect(updated.optedOut).toBe(true);
+      expect(updated.optedOutAt).not.toBeNull();
+    });
+  });
+
   describe('Twilio SMS Status Callback', () => {
     it('should update message log on delivery', async () => {
       const messageLog = await testPrisma.messageLog.create({
@@ -139,13 +183,16 @@ describe('Webhooks Integration', () => {
         },
       });
 
+      const payload = {
+        MessageSid: 'SM1234567890',
+        MessageStatus: 'delivered',
+        To: '+306912345678',
+      };
       await request(app)
         .post('/api/webhook/sms-status')
-        .send({
-          MessageSid: 'SM1234567890',
-          MessageStatus: 'delivered',
-          To: '+306912345678',
-        })
+        .set('X-Twilio-Signature', makeTwilioSignature('/api/webhook/sms-status', payload))
+        .type('form')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
@@ -162,19 +209,22 @@ describe('Webhooks Integration', () => {
         },
       });
 
+      const payload = {
+        MessageSid: 'SM0987654321',
+        MessageStatus: 'failed',
+        ErrorCode: '30003',
+        To: '+306912345678',
+      };
       await request(app)
         .post('/api/webhook/sms-status')
-        .send({
-          MessageSid: 'SM0987654321',
-          MessageStatus: 'failed',
-          ErrorCode: '30003',
-          To: '+306912345678',
-        })
+        .set('X-Twilio-Signature', makeTwilioSignature('/api/webhook/sms-status', payload))
+        .type('form')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.messageLog.findUnique({ where: { id: messageLog.id } });
       expect(updated.status).toBe('FAILED');
-      expect(updated.error).toContain('30003');
+      expect(updated.providerStatusRaw).toContain('30003');
     });
 
     it('should verify Twilio signature in production', async () => {
@@ -192,20 +242,22 @@ describe('Webhooks Integration', () => {
       // Mock Stripe webhook signature verification
       // In real test, use stripe.webhooks.generateTestHeaderString
       
+      const payload = JSON.stringify({
+        id: 'evt_test123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test123',
+            customer: 'cus_test123',
+            metadata: { clinicId: clinicWithStripe.id },
+          },
+        },
+      });
       const res = await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test123',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              customer: 'cus_test123',
-              subscription: 'sub_test123',
-              metadata: { clinicId: clinicWithStripe.id },
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       expect(res.body.received).toBe(true);
@@ -217,23 +269,26 @@ describe('Webhooks Integration', () => {
         stripeSubscriptionId: 'sub_test456',
       });
 
+      const payload = JSON.stringify({
+        id: 'evt_test456',
+        type: 'invoice.paid',
+        data: {
+          object: {
+            id: 'in_test456',
+            customer: 'cus_test456',
+            subscription: 'sub_test456',
+            amount_paid: 2900,
+            currency: 'eur',
+            period_start: Math.floor(Date.now() / 1000) - 86400,
+            period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
+          },
+        },
+      });
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test456',
-          type: 'invoice.paid',
-          data: {
-            object: {
-              customer: 'cus_test456',
-              subscription: 'sub_test456',
-              amount_paid: 2900,
-              currency: 'eur',
-              period_start: Math.floor(Date.now() / 1000) - 86400,
-              period_end: Math.floor(Date.now() / 1000) + 86400 * 30,
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       const events = await testPrisma.subscriptionEvent.findMany({
@@ -249,19 +304,21 @@ describe('Webhooks Integration', () => {
         planStatus: 'active',
       });
 
+      const payload = JSON.stringify({
+        id: 'evt_test789',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            customer: 'cus_test789',
+            id: 'sub_test789',
+          },
+        },
+      });
       await request(app)
         .post('/api/billing/webhook')
-        .send({
-          id: 'evt_test789',
-          type: 'customer.subscription.deleted',
-          data: {
-            object: {
-              customer: 'cus_test789',
-              id: 'sub_test789',
-            },
-          },
-        })
-        .set('Stripe-Signature', 'test-signature')
+        .set('Stripe-Signature', makeStripeSignature(payload))
+        .set('Content-Type', 'application/json')
+        .send(payload)
         .expect(200);
 
       const updated = await testPrisma.clinic.findUnique({ where: { id: clinicWithStripe.id } });
@@ -271,10 +328,9 @@ describe('Webhooks Integration', () => {
 
   describe('n8n Webhook Endpoints', () => {
     it('should receive n8n webhook with HMAC', async () => {
-      const crypto = require('crypto');
       const payload = { event: 'test', data: { foo: 'bar' } };
       const signature = crypto
-        .createHmac('sha256', webhookSecret)
+        .createHmac('sha256', process.env.WEBHOOK_SECRET)
         .update(JSON.stringify(payload))
         .digest('hex');
 

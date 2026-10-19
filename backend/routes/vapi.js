@@ -21,15 +21,17 @@ const { createAppointment } = require('../services/appointmentService');
 const { getBookingLink } = require('../utils/url');
 const { normalizePhone } = require('../utils/phone');
 const logger = require('../utils/logger');
-const { fromZonedTime } = require('date-fns-tz');
+const { getLocalDateParts, parseDateTimeInTimezone } = require('../services/slotUtils');
 const { connection: redis } = require('../services/queueService');
 const { recordDelivery } = require('../services/webhookService');
 
 // Redis may be disabled in some environments (e.g., dev without Redis)
 const REDIS_DISABLED = process.env.REDIS_DISABLED === 'true' || !redis;
 
-function parseAppointmentDay(dayStr) {
-    const now = new Date();
+function parseAppointmentDay(dayStr, timezone = DEFAULT_TIMEZONE) {
+    const localDateKey = getLocalDateParts(new Date(), timezone).dateKey;
+    const [year, month, day] = localDateKey.split('-').map(Number);
+    const now = new Date(year, month - 1, day, 12, 0, 0, 0);
     const lower = (dayStr || '').toLowerCase().trim();
     if (lower.includes('αύριο') || lower.includes('tomorrow')) {
         now.setDate(now.getDate() + 1);
@@ -88,9 +90,12 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
     // Idempotency: dedupe Vapi webhook retries by callId + eventType
     // A single call fires multiple distinct events (call-started, function-call, call-ended, transcript)
     // all sharing the same callId — key by both to avoid swallowing real events.
+    let idempotencyKey = null;
     if (redis && !REDIS_DISABLED && callId) {
-        const idempotencyKey = `vapi:webhook:${callId}:${eventType}`;
-        const alreadyProcessed = await redis.set(idempotencyKey, '1', 'EX', 86400, 'NX'); // 24h TTL, only if not exists
+        idempotencyKey = `vapi:webhook:${callId}:${eventType}`;
+        // Use a short processing lease. Promote it to a 24-hour dedupe key only
+        // after successful handling, so a crash or failed event can be retried.
+        const alreadyProcessed = await redis.set(idempotencyKey, 'processing', 'EX', 120, 'NX');
         if (!alreadyProcessed) {
             logger.info('Vapi webhook duplicate ignored', { callId, eventType });
             return res.json({ success: true, duplicate: true });
@@ -123,6 +128,11 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
                     payload: { callId, eventType, status: event.status, missedCallId },
                 });
             }
+            if (idempotencyKey) {
+                await redis.set(idempotencyKey, 'done', 'EX', 86400).catch((cacheErr) => {
+                    logger.warn('Vapi webhook dedupe retention update failed', { callId, eventType, error: cacheErr.message });
+                });
+            }
             return res.json({ success: true });
         } catch (err) {
             logger.error(`Vapi handleVapiEvent error (attempt ${attempt}/${MAX_RETRIES})`, { err, callId, eventType });
@@ -152,6 +162,12 @@ router.post('/webhook', vapiAuth, asyncHandler(async (req, res) => {
             payload: { callId, eventType, status: event.status, missedCallId },
         });
     }
+    // Release the idempotency lease so provider retries can reprocess this event.
+    if (idempotencyKey) {
+        await redis.del(idempotencyKey).catch((cacheErr) => {
+            logger.warn('Vapi webhook idempotency lease cleanup failed', { callId, eventType, error: cacheErr.message });
+        });
+    }
     res.status(500).json({ error: 'Webhook processing failed' });
 }));
 
@@ -172,7 +188,9 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
     if (!input || typeof input !== 'object') {
         throw new AppError('VALIDATION_ERROR', 'Missing tool arguments', 400);
     }
-    logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, input });
+    // Tool arguments can contain patient names, phone numbers, and appointment details.
+    // Keep logs to operational metadata rather than copying patient data into log storage.
+    logger.info(`Vapi Tool call: ${fn}`, { callId: call_id, inputKeys: Object.keys(input) });
 
     // Idempotency for tool calls (Vapi may retry).
     // Reserve the key as "processing", but only mark it "done" after the
@@ -224,7 +242,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     httpStatus: 200,
                     errorMessage: null,
                     durationMs: null,
-                    payload: { callId: call_id, fn, input },
+                    payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
                 });
             }
             if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
@@ -251,7 +269,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                     httpStatus: 200,
                     errorMessage: null,
                     durationMs: null,
-                    payload: { callId: call_id, fn, input },
+                    payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
                 });
             }
             if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
@@ -267,7 +285,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
         if (toolIdempotencyKey && redis && !REDIS_DISABLED) {
             await redis.del(toolIdempotencyKey).catch(() => {});
         }
-        logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, input });
+        logger.error(`Vapi tool ${fn} failed`, { err, callId: call_id, fn, inputKeys: Object.keys(input) });
         // Log failed tool call for dead-letter visibility
         if (mc?.clinicId) {
             await recordDelivery({
@@ -279,7 +297,7 @@ router.post('/tool', vapiAuth, asyncHandler(async (req, res) => {
                 httpStatus: 500,
                 errorMessage: err.message,
                 durationMs: null,
-                payload: { callId: call_id, fn, input },
+                payload: { callId: call_id, fn, inputKeys: Object.keys(input) },
             });
         }
         throw err;
@@ -356,7 +374,7 @@ async function handleVapiEvent(event) {
         const toPhone = normalizePhone(event.phoneNumber?.number || event.call?.phoneNumber?.number);
         
         if (fromPhone && toPhone) {
-            logger.info('Vapi mc not found by ID, searching by phone', { fromPhone, toPhone });
+            logger.info('Vapi mc not found by ID, searching by phone', { fromPhoneTail: fromPhone ? String(fromPhone).slice(-4) : null, toPhoneTail: toPhone ? String(toPhone).slice(-4) : null });
             // Find clinic by the 'to' number (the zadarma/vapi number)
             const clinics = await prisma.clinic.findMany({
                 where: {
@@ -447,7 +465,7 @@ async function handleVapiEvent(event) {
 
 async function handleVoiceBooking(mc, input) {
     const { patient_name, preferred_day, preferred_time } = input;
-    logger.info('Vapi booking via voice', { patientName: patient_name, day: preferred_day, time: preferred_time });
+    logger.info('Vapi booking via voice', { hasPatientName: Boolean(patient_name), hasPreferredDay: Boolean(preferred_day), hasPreferredTime: Boolean(preferred_time) });
 
     const clinic = mc.clinic;
 
@@ -459,17 +477,13 @@ async function handleVoiceBooking(mc, input) {
             create: { clinicId: clinic.id, name: patient_name || mc.fromNumber, phone: mc.fromNumber },
         });
     } catch (err) {
-        logger.warn('Vapi patient upsert failed', { err });
-    }
-
-    // Use full parseAppointmentDay for proper Greek day name support
-    let startTime = parseAppointmentDay(preferred_day || 'αύριο');
-    if (!startTime) {
-        startTime = new Date();
-        startTime.setDate(startTime.getDate() + 1);
+        logger.warn('Vapi patient upsert failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
     }
 
     const clinicTimezone = clinic.timezone || DEFAULT_TIMEZONE;
+    // Parse relative day names from the clinic's local calendar, not the server's UTC day.
+    let startTime = parseAppointmentDay(preferred_day || 'αύριο', clinicTimezone);
+    if (!startTime) startTime = parseAppointmentDay('tomorrow', clinicTimezone);
     let hour = 9;
     let min = 0;
 
@@ -482,9 +496,10 @@ async function handleVoiceBooking(mc, input) {
         }
     } catch {}
 
-    const dateStr = startTime.toISOString().split('T')[0];
-    startTime = fromZonedTime(
-        `${dateStr} ${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}:00`,
+    const dateStr = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
+    startTime = parseDateTimeInTimezone(
+        dateStr,
+        `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`,
         clinicTimezone
     );
 
@@ -539,12 +554,12 @@ async function handleVoiceBooking(mc, input) {
                 }),
             ]);
         } catch (err) {
-            logger.warn('Vapi appointment create failed', { err });
+            logger.warn('Vapi appointment create failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
             // Send SMS fallback with booking link so patient can self-book
             const bookingLink = getBookingLink(clinic.id, mc.id);
             const smsBody = `Δεν μπορέσαμε να κλείσουμε το ραντεβού για ${preferred_day} στις ${preferred_time} (εκτός ωραρίου ή μη διαθέσιμη ώρα).\nΚλείστε εδώ: ${bookingLink}`;
             await triggerSmsFallback(clinic, mc.fromNumber, smsBody, mc.id).catch(err =>
-                logger.error('Vapi SMS fallback failed', { missedCallId: mc.id, err })
+                logger.error('Vapi SMS fallback failed', { missedCallId: mc.id, errorName: err?.name || 'Error', errorCode: err?.code || null })
             );
         }
     }
@@ -569,7 +584,7 @@ async function handleVoiceBooking(mc, input) {
             await ensureRecoveryCaseForMissedCall(mc.id);
             await markRecoveryCaseRecovered({ clinicId: mc.clinicId, missedCallId: mc.id, occurredAt: recoveredAt });
         } catch (err) {
-            logger.warn('Vapi markRecoveryCaseRecovered failed', { err });
+            logger.warn('Vapi markRecoveryCaseRecovered failed', { errorName: err?.name || 'Error', errorCode: err?.code || null });
         }
 
         logger.info('Vapi case RECOVERED', { missedCallId: mc.id, appointmentId, revenue });

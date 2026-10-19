@@ -245,6 +245,12 @@ async function restorePatient(clinicId, patientId, actor) {
   if (!existing) throw new AppError('NOT_FOUND', 'Patient not found, not deleted, or already anonymized', 404);
 
   await prisma.$transaction(async (tx) => {
+    // Restoring a patient can restore several appointments; share the same
+    // clinic lock as all booking paths to prevent interval races.
+    await tx.$queryRaw`
+      SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(CONCAT(${clinicId}::text, ':APPOINTMENT_BOOKING')))) t
+    `;
+
     const appointments = await tx.appointment.findMany({
       where: { patientId, clinicId, deletedAt: { not: null } },
       select: { id: true, doctorId: true, startTime: true, endTime: true, status: true },
@@ -254,22 +260,10 @@ async function restorePatient(clinicId, patientId, actor) {
     // each occupied doctor/time slot so a restore cannot resurrect an
     // appointment that was replaced while the patient was deleted.
     for (const appointment of appointments) {
-      if (!appointment.doctorId) continue;
-
-      await tx.$queryRaw`
-        SELECT pg_advisory_xact_lock(
-          hashtext(CONCAT(
-            ${clinicId}, ':', ${appointment.doctorId}, ':',
-            ${appointment.startTime.toISOString()}, ':',
-            ${appointment.endTime.toISOString()}
-          ))
-        )
-      `;
-
       const conflict = await tx.$queryRaw`
         SELECT id FROM "Appointment"
         WHERE "clinicId" = ${clinicId}
-          AND "doctorId" = ${appointment.doctorId}
+          AND "doctorId" IS NOT DISTINCT FROM ${appointment.doctorId}
           AND id != ${appointment.id}
           AND "deletedAt" IS NULL
           AND "status" NOT IN ('CANCELLED', 'NO_SHOW')

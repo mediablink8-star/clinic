@@ -11,7 +11,7 @@
  */
 
 const { GREEK_DAYS, DEFAULT_TIMEZONE } = require('../utils/dateConstants');
-const { getLocalDateParts, getStartOfDay } = require('./slotUtils');
+const { getLocalDateParts, getStartOfDay, parseDateTimeInTimezone } = require('./slotUtils');
 
 /**
  * Parse "HH:MM" into { h, m }
@@ -27,7 +27,16 @@ function parseTime(str) {
  * Parse a range string like "09:00-17:00" into { open, close }
  */
 function parseRange(rangeStr) {
-    if (!rangeStr || !rangeStr.includes('-')) return null;
+    if (!rangeStr) return null;
+
+    if (typeof rangeStr === 'object') {
+        if (rangeStr.closed === true) return null;
+        const open = parseTime(rangeStr.open);
+        const close = parseTime(rangeStr.close);
+        return open && close ? { open, close } : null;
+    }
+
+    if (typeof rangeStr !== 'string' || !rangeStr.includes('-') || /closed/i.test(rangeStr)) return null;
     const [openStr, closeStr] = rangeStr.split('-');
     const open = parseTime(openStr.trim());
     const close = parseTime(closeStr.trim());
@@ -35,30 +44,62 @@ function parseRange(rangeStr) {
     return { open, close };
 }
 
+const ENGLISH_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+function hasWorkingHours(workingHours) {
+    let hours = workingHours;
+    if (typeof hours === 'string') {
+        try { hours = JSON.parse(hours); } catch { return false; }
+    }
+    return Boolean(hours && typeof hours === 'object' && Object.keys(hours).length > 0);
+}
+
+function getRangeConfig(workingHours, weekday) {
+    let hours = workingHours;
+    if (typeof hours === 'string') {
+        try { hours = JSON.parse(hours); } catch { return { configured: false, rangeStr: null }; }
+    }
+    if (!hours || typeof hours !== 'object') return { configured: false, rangeStr: null };
+
+    const index = ENGLISH_DAYS.indexOf(String(weekday).toLowerCase());
+    const greekKey = index >= 0 ? GREEK_DAYS[index] : null;
+    const keys = [greekKey, String(weekday).toLowerCase(), String(weekday).toLowerCase().slice(0, 3)].filter(Boolean);
+    for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(hours, key)) {
+            return { configured: true, rangeStr: hours[key] };
+        }
+    }
+    if (Object.prototype.hasOwnProperty.call(hours, 'weekdays')) {
+        return { configured: true, rangeStr: hours.weekdays };
+    }
+    if (Object.prototype.hasOwnProperty.call(hours, 'default') || Object.prototype.hasOwnProperty.call(hours, 'Default')) {
+        return { configured: true, rangeStr: hours.default ?? hours.Default };
+    }
+    return { configured: false, rangeStr: null };
+}
+
 /**
  * Check if `now` falls within the clinic's working hours.
  */
 function checkWorkingHours(now, workingHours, timezone = DEFAULT_TIMEZONE) {
-    if (!workingHours || typeof workingHours !== 'object') {
-        return { withinHours: true, scheduledAt: null };
-    }
+    if (!hasWorkingHours(workingHours)) return { withinHours: true, scheduledAt: null };
 
     const { weekday, minutes } = getLocalDateParts(now, timezone);
-    const rangeStr = workingHours[weekday];
-    const range = parseRange(rangeStr);
+    const config = getRangeConfig(workingHours, weekday);
+    if (!config.configured) {
+        return { withinHours: false, scheduledAt: getNextOpeningTime(now, workingHours, timezone) };
+    }
 
+    const range = parseRange(config.rangeStr);
     if (range) {
-        const openMinutes  = range.open.h  * 60 + range.open.m;
+        const openMinutes = range.open.h * 60 + range.open.m;
         const closeMinutes = range.close.h * 60 + range.close.m;
-
         if (minutes >= openMinutes && minutes < closeMinutes) {
             return { withinHours: true, scheduledAt: null };
         }
     }
 
-    // Outside hours — find next 09:00 on a working day
-    const scheduled = getNextOpeningTime(now, workingHours, timezone);
-    return { withinHours: false, scheduledAt: scheduled };
+    return { withinHours: false, scheduledAt: getNextOpeningTime(now, workingHours, timezone) };
 }
 
 /**
@@ -90,7 +131,10 @@ async function checkClinicAvailability(now, workingHours, timezone = DEFAULT_TIM
     // which never matches, so holiday closures were silently ignored.
     const holiday = await isHoliday(now, 'GR');
     if (holiday) {
-        const scheduled = getNextOpeningTime(now, workingHours, timezone);
+        // Skip the remainder of the holiday before searching for the next opening.
+        const { dateKey } = getLocalDateParts(now, timezone);
+        const endOfHoliday = parseDateTimeInTimezone(dateKey, '23:59', timezone);
+        const scheduled = getNextOpeningTime(endOfHoliday, workingHours, timezone);
         return {
             withinHours: false,
             scheduledAt: scheduled,
@@ -106,70 +150,54 @@ async function checkClinicAvailability(now, workingHours, timezone = DEFAULT_TIM
  * Find the next 09:00 on a day that has working hours configured.
  */
 function getNextOpeningTime(now, workingHours, timezone = DEFAULT_TIMEZONE) {
-    for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
-        let candidate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
-        candidate = getStartOfDay(candidate, timezone);
-        candidate.setHours(9, 0, 0, 0);
-
-        const { weekday } = getLocalDateParts(candidate, timezone);
-        const rangeStr = workingHours[weekday];
-        const range = parseRange(rangeStr);
-
-        if (range) {
-            // Re-calculate exactly based on timezone
-            const iso = candidate.toISOString().split('T')[0];
-            const h = String(range.open.h).padStart(2, '0');
-            const m = String(range.open.m).padStart(2, '0');
-            
-            // This is still slightly tricky without Luxon, but let's use the same offset trick
-            const offsetParts = new Intl.DateTimeFormat('en-US', {
-                timeZone: timezone,
-                timeZoneName: 'longOffset'
-            }).formatToParts(candidate);
-            
-            const offsetMatch = offsetParts.find(p => p.type === 'timeZoneName').value.match(/GMT([-+]\d{1,2}):?(\d{2})?/);
-            if (offsetMatch) {
-                const sign = offsetMatch[1].startsWith('+') ? '+' : '-';
-                const offH = offsetMatch[1].replace(/[-+]/, '').padStart(2, '0');
-                const offM = (offsetMatch[2] || '00').padStart(2, '0');
-                return new Date(`${iso}T${h}:${m}:00${sign}${offH}:${offM}`);
-            }
-            return candidate;
+    const today = getLocalDateParts(now, timezone);
+    const todayConfig = getRangeConfig(workingHours, today.weekday);
+    const todayRange = todayConfig.configured ? parseRange(todayConfig.rangeStr) : null;
+    if (todayRange) {
+        const openMinutes = todayRange.open.h * 60 + todayRange.open.m;
+        if (today.minutes < openMinutes) {
+            const openTime = `${String(todayRange.open.h).padStart(2, '0')}:${String(todayRange.open.m).padStart(2, '0')}`;
+            return parseDateTimeInTimezone(today.dateKey, openTime, timezone);
         }
     }
 
-    const fallback = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    return getStartOfDay(fallback, timezone);
-}
+    for (let daysAhead = 1; daysAhead <= 7; daysAhead += 1) {
+        const probe = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+        const { dateKey, weekday } = getLocalDateParts(probe, timezone);
+        const config = getRangeConfig(workingHours, weekday);
+        const range = config.configured ? parseRange(config.rangeStr) : null;
+        if (!range) continue;
 
+        const openTime = `${String(range.open.h).padStart(2, '0')}:${String(range.open.m).padStart(2, '0')}`;
+        const scheduled = parseDateTimeInTimezone(dateKey, openTime, timezone);
+        if (scheduled.getTime() > now.getTime()) return scheduled;
+    }
+
+    const nextProbe = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const { dateKey } = getLocalDateParts(nextProbe, timezone);
+    return parseDateTimeInTimezone(dateKey, '09:00', timezone);
+}
 /**
  * Check if appointment start/end times are within clinic working hours.
  */
-function isWithinWorkingHours({ clinic, start, end }) {
-    if (!clinic?.workingHours) return true;
+function isWithinWorkingHours({ clinic, start, end, timezone = clinic?.timezone || DEFAULT_TIMEZONE, doctor }) {
+    const startParts = getLocalDateParts(start, timezone);
+    const endParts = getLocalDateParts(end, timezone);
+    if (startParts.dateKey !== endParts.dateKey) return false;
 
-    let wh = {};
-    try {
-        wh = typeof clinic.workingHours === 'string' ? JSON.parse(clinic.workingHours) : clinic.workingHours;
-    } catch {
-        return true;
-    }
+    const doctorHasHours = hasWorkingHours(doctor?.workingHours);
+    const selectedSchedule = doctorHasHours ? doctor.workingHours : clinic?.workingHours;
+    const scheduleHasHours = hasWorkingHours(selectedSchedule);
+    if (!scheduleHasHours) return true;
 
-    const dayName = GREEK_DAYS[start.getDay()];
-    const rangeStr = wh[dayName] || wh.weekdays || wh.default || null;
+    const config = getRangeConfig(selectedSchedule, startParts.weekday);
+    if (!config.configured) return false;
 
-    if (!rangeStr || rangeStr.toLowerCase() === 'closed') return false;
+    const range = parseRange(config.rangeStr);
+    if (!range) return false;
 
-    const parsed = parseRange(rangeStr);
-    if (!parsed) return true;
-
-    const currentMinutesStart = start.getHours() * 60 + start.getMinutes();
-    const currentMinutesEnd = end.getHours() * 60 + end.getMinutes();
-
-    const openMinutes = parsed.open.h * 60 + parsed.open.m;
-    const closeMinutes = parsed.close.h * 60 + parsed.close.m;
-
-    return currentMinutesStart >= openMinutes && currentMinutesEnd <= closeMinutes;
+    const openMinutes = range.open.h * 60 + range.open.m;
+    const closeMinutes = range.close.h * 60 + range.close.m;
+    return startParts.minutes >= openMinutes && endParts.minutes <= closeMinutes;
 }
-
 module.exports = { checkWorkingHours, getNextOpeningTime, isWithinWorkingHours, checkClinicAvailability, isHoliday };
