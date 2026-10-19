@@ -219,7 +219,14 @@ async function getAvailableSlots(clinicId, date, timezone = DEFAULT_TIMEZONE, st
         return uniqueSlots;
     }
 
-    return calculateSlots(clinic, doctor, date, timezone, stepMinutes, clinicId);
+    // If doctor is an ID string, fetch the doctor object
+    let doctorObj = null;
+    if (doctor && typeof doctor === 'string') {
+        doctorObj = await prisma.doctor.findFirst({ where: { id: doctor, clinicId } });
+    } else if (doctor) {
+        doctorObj = doctor;
+    }
+    return calculateSlots(clinic, doctorObj, date, timezone, stepMinutes, clinicId);
 }
 
 /**
@@ -299,6 +306,12 @@ async function calculateSlots(clinic, doctor, date, timezone, stepMinutes, clini
 }
 
 function parseDateTimeInTimezone(date, time, timezone) {
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
+        throw new Error('Invalid date format. Use YYYY-MM-DD.');
+    }
+    if (!time || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time.trim())) {
+        throw new Error('Invalid time format. Use HH:MM.');
+    }
     const localDateTimeStr = `${date.trim()} ${time.trim()}:00`;
     return fromZonedTime(localDateTimeStr, timezone);
 }

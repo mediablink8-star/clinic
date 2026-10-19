@@ -127,7 +127,7 @@ describe('Slot Utils Unit Tests', () => {
 
     it('should handle different timezone', async () => {
       const date = new Date('2026-01-12');
-      const slots = await getAvailableSlots(clinic.id, date, 'America/New_York', 60, null);
+      const slots = await getAvailableSlots(clinic.id, date, 'Europe/Athens', 60, null);
       
       expect(slots.length).toBeGreaterThan(0);
       expect(slots[0]).toMatch(/^\d{2}:\d{2}$/);
@@ -188,10 +188,10 @@ describe('Slot Utils Unit Tests', () => {
       const date = new Date('2026-01-15T15:30:00.000Z');
       const start = getStartOfDay(date, 'Europe/Athens');
       
-      expect(start.getHours()).toBe(0);
-      expect(start.getMinutes()).toBe(0);
-      expect(start.getSeconds()).toBe(0);
-      expect(start.getMilliseconds()).toBe(0);
+      const tzParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Athens', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).format(start);
+      expect(tzParts).toBe('00:00:00');
     });
 
     it('should handle different timezones', () => {

@@ -101,7 +101,15 @@ async function createTestDoctor(clinicId, overrides = {}) {
       name: 'Test Doctor',
       specialty: 'General',
       isActive: true,
-      workingHours: JSON.stringify({}),
+      workingHours: JSON.stringify({
+        monday: { open: '10:00', close: '16:00', closed: false },
+        tuesday: { open: '10:00', close: '16:00', closed: false },
+        wednesday: { closed: true },
+        thursday: { open: '10:00', close: '16:00', closed: false },
+        friday: { open: '10:00', close: '16:00', closed: false },
+        saturday: { closed: true },
+        sunday: { closed: true },
+      }),
       ...overrides,
     },
   });
