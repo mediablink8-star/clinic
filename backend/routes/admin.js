@@ -17,10 +17,23 @@ const { handleMissedCall } = require('../services/missedCallService');
 const { normalizePhone } = require('../utils/phone');
 const { logAction } = require('../services/auditService');
 const logger = require('../utils/logger');
+const { getCostReport, createCostEntry } = require('../services/costTrackingService');
+
 const { triggerWebhook, retryWebhookDelivery, getDeadLetterQueue, cleanupWebhookDeliveries } = require('../services/webhookService');
 
 // Apply platform admin protection to all routes in this router
 router.use(requirePlatformAdmin);
+
+// ── Platform cost ledger (platform-admin only; costs are manually recorded) ──
+router.get('/costs', asyncHandler(async (req, res) => {
+    res.json(await getCostReport(req.query.month));
+}));
+
+router.post('/costs', asyncHandler(async (req, res) => {
+    const cost = await createCostEntry(req.body, req.user?.userId);
+    res.status(201).json({ success: true, cost });
+}));
+
 
 // ── Usage / Clinics ──
 router.get('/usage', asyncHandler(async (req, res) => {
