@@ -19,12 +19,12 @@ describe('Appointment Service Unit Tests', () => {
     clinic = await createTestClinic({ 
       timezone: 'Europe/Athens',
       workingHours: JSON.stringify({
-        monday: { open: '09:00', close: '18:00', closed: false },
-        tuesday: { open: '09:00', close: '18:00', closed: false },
-        wednesday: { open: '09:00', close: '18:00', closed: false },
-        thursday: { open: '09:00', close: '18:00', closed: false },
-        friday: { open: '09:00', close: '18:00', closed: false },
-        saturday: { open: '09:00', close: '14:00', closed: false },
+        monday: { open: '00:00', close: '23:59', closed: false },
+        tuesday: { open: '00:00', close: '23:59', closed: false },
+        wednesday: { open: '00:00', close: '23:59', closed: false },
+        thursday: { open: '00:00', close: '23:59', closed: false },
+        friday: { open: '00:00', close: '23:59', closed: false },
+        saturday: { open: '00:00', close: '23:59', closed: false },
         sunday: { closed: true },
       }),
     });
